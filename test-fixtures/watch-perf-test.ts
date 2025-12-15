@@ -1,0 +1,1 @@
+export const watchTest = 1;

@@ -1,0 +1,383 @@
+# CLI Reference
+
+Complete reference for all DevAC v2 commands.
+
+## Global Options
+
+```bash
+devac [command] [options]
+
+Options:
+  --help, -h       Show help
+  --version, -v    Show version
+  --verbose        Enable verbose logging
+  --quiet          Suppress output except errors
+```
+
+## Package Commands
+
+### devac analyze
+
+Parse source files and generate seed Parquet files.
+
+```bash
+devac analyze [options]
+
+Options:
+  --package <path>    Analyze specific package (default: current directory)
+  --all               Analyze all packages in repository
+  --if-changed        Only analyze if source files changed (hash-based)
+  --force             Force full re-analysis, ignore cache
+  --structural-only   Skip semantic resolution pass
+
+Examples:
+  devac analyze                        # Analyze current package
+  devac analyze --package ./packages/auth
+  devac analyze --all                  # Analyze entire monorepo
+  devac analyze --if-changed           # Smart incremental
+  devac analyze --force                # Full regeneration
+```
+
+**Output:**
+```
+✓ Analyzed 156 files
+  Nodes: 2,341
+  Edges: 1,892
+  External refs: 423
+  Time: 3.2s
+  Seeds: .devac/seed/
+```
+
+### devac query
+
+Run DuckDB SQL queries against seed files.
+
+```bash
+devac query "<sql>" [options]
+
+Options:
+  --package <path>    Query specific package
+  --format <format>   Output format: table (default), json, csv
+  --output <file>     Write output to file
+
+Examples:
+  devac query "SELECT * FROM nodes LIMIT 10"
+  devac query "SELECT name FROM nodes WHERE kind='function'" --format json
+  devac query "SELECT * FROM edges" --output edges.csv --format csv
+```
+
+### devac watch
+
+Watch for file changes and update seeds incrementally.
+
+```bash
+devac watch [options]
+
+Options:
+  --package <path>    Watch specific package
+  --validate          Run validation on changes
+
+Examples:
+  devac watch                          # Watch current package
+  devac watch --package ./packages/auth
+  devac watch --validate               # Watch + validate
+```
+
+**Output:**
+```
+👀 Watching ./packages/auth for changes...
+
+[10:32:15] src/auth.ts changed → updated in 145ms
+[10:32:18] src/utils.ts changed → updated in 132ms
+^C Stopping watch...
+```
+
+### devac verify
+
+Check seed file integrity.
+
+```bash
+devac verify [options]
+
+Options:
+  --package <path>    Verify specific package
+
+Checks:
+  • All Parquet files readable
+  • Edge references point to existing nodes
+  • Source files have corresponding seed data
+  • No orphan temp files
+```
+
+**Output:**
+```
+✓ Seed integrity verified
+  Nodes: 2,341 (valid)
+  Edges: 1,892 (valid)
+  Refs: 423 (valid)
+  Orphans: 0
+```
+
+### devac clean
+
+Remove all seed files (forces regeneration on next analyze).
+
+```bash
+devac clean [options]
+
+Options:
+  --package <path>    Clean specific package
+  --all               Clean all packages in repository
+  --dry-run           Show what would be deleted
+
+Examples:
+  devac clean                          # Clean current package
+  devac clean --all                    # Clean entire repo
+  devac clean --dry-run                # Preview
+```
+
+## Query Commands
+
+### devac find
+
+Find symbols by name.
+
+```bash
+devac find <name> [options]
+
+Options:
+  --kind <kind>       Filter by kind (function, class, method, etc.)
+  --exported          Only exported symbols
+  --file <path>       Filter by file path
+
+Examples:
+  devac find handleLogin
+  devac find User --kind class
+  devac find login --exported
+```
+
+### devac deps
+
+Show dependencies of a file or symbol.
+
+```bash
+devac deps <file|symbol> [options]
+
+Options:
+  --depth <n>         Traversal depth (default: 1)
+
+Examples:
+  devac deps src/auth.ts
+  devac deps handleLogin --depth 3
+```
+
+### devac rdeps
+
+Show reverse dependencies (who imports/calls this).
+
+```bash
+devac rdeps <file|symbol> [options]
+
+Options:
+  --depth <n>         Traversal depth (default: 1)
+
+Examples:
+  devac rdeps src/types.ts
+  devac rdeps User --depth 2
+```
+
+### devac calls
+
+Show call graph for a function.
+
+```bash
+devac calls <function> [options]
+
+Options:
+  --depth <n>         Max depth (default: 3, max: 6)
+  --direction <dir>   callers, callees, or both (default: both)
+
+Examples:
+  devac calls handleLogin
+  devac calls handleLogin --depth 5 --direction callees
+```
+
+## Hub Commands
+
+### devac hub register
+
+Register a repository with the central hub.
+
+```bash
+devac hub register [path]
+
+Arguments:
+  path               Repository path (default: current directory)
+
+Examples:
+  devac hub register                   # Register current repo
+  devac hub register ~/code/repo-api   # Register another repo
+```
+
+### devac hub unregister
+
+Remove a repository from the central hub.
+
+```bash
+devac hub unregister <name>
+
+Arguments:
+  name               Repository name
+
+Examples:
+  devac hub unregister repo-api
+```
+
+### devac hub list
+
+List registered repositories.
+
+```bash
+devac hub list
+
+Output:
+┌────────────────┬───────────────────────────┬────────────────┐
+│ Name           │ Path                      │ Packages       │
+├────────────────┼───────────────────────────┼────────────────┤
+│ repo-api       │ ~/code/repo-api           │ 4              │
+│ repo-web       │ ~/code/repo-web           │ 2              │
+└────────────────┴───────────────────────────┴────────────────┘
+```
+
+### devac hub query
+
+Query across all registered repositories.
+
+```bash
+devac hub query "<sql>" [options]
+
+Options:
+  --format <format>   Output format: table (default), json, csv
+
+Examples:
+  devac hub query "SELECT * FROM nodes WHERE name = 'handleLogin'"
+  devac hub query "SELECT DISTINCT module_specifier FROM external_refs"
+```
+
+### devac hub status
+
+Show hub status and statistics.
+
+```bash
+devac hub status
+
+Output:
+Central Hub: ~/.devac/
+Repositories: 3
+Total Packages: 9
+Total Nodes: 45,231
+Last Refresh: 2025-01-15T10:30:00Z
+```
+
+### devac hub refresh
+
+Rebuild cross-repo edge cache.
+
+```bash
+devac hub refresh
+
+Output:
+Refreshing hub cache...
+  Scanning 3 repositories...
+  Computing cross-repo edges...
+✓ Hub refreshed
+  Cross-repo edges: 234
+  Time: 4.2s
+```
+
+### devac hub init
+
+Initialize the central hub (first-time setup).
+
+```bash
+devac hub init [options]
+
+Options:
+  --path <path>       Hub location (default: ~/.devac/)
+```
+
+## Validation Commands
+
+### devac validate
+
+Run validation on affected files.
+
+```bash
+devac validate [options]
+
+Options:
+  --quick             Quick mode: changed + direct importers (1 hop)
+  --full              Full mode: all transitively affected
+  --package <path>    Validate specific package
+
+Examples:
+  devac validate --quick               # Fast validation
+  devac validate --full                # Thorough validation
+```
+
+### devac affected
+
+Show files affected by recent changes.
+
+```bash
+devac affected [options]
+
+Options:
+  --since <ref>       Git ref to compare against (default: HEAD~1)
+  --package <path>    Scope to specific package
+
+Examples:
+  devac affected
+  devac affected --since main
+```
+
+## MCP Server
+
+### devac mcp
+
+Start the MCP server for AI assistant integration.
+
+```bash
+devac mcp [options]
+
+Options:
+  --port <port>       Server port (default: stdio)
+  --package <path>    Package context
+
+Examples:
+  devac mcp                            # Start on stdio
+  devac mcp --package ./packages/auth
+```
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEVAC_HUB_PATH` | `~/.devac/` | Central hub location |
+| `DEVAC_DUCKDB_MEMORY` | `512MB` | DuckDB memory limit |
+| `DEVAC_DUCKDB_THREADS` | `CPU-1` | DuckDB parallel threads |
+| `DEVAC_LOG_LEVEL` | `info` | Log level: debug, info, warn, error |
+| `DEBUG` | - | Enable debug namespaces (e.g., `devac:*`) |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid arguments |
+| 130 | Interrupted (Ctrl+C) |
+
+---
+
+*Next: [API Reference](./api-reference.md) for programmatic usage*

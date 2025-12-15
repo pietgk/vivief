@@ -1,0 +1,1 @@
+export const func2 = () => 2;

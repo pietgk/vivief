@@ -1,12 +1,8 @@
-# Vision View Effect
-
-Currently a Development Analytics Centre  (DevAC) project.
-
-Future Extension will add more Vision View Effect functionality and explain the total concept.
-
-# DevAC
+# DevAC (vivief)
 
 Fast, local code analysis with DuckDB + Parquet storage.
+
+> **vivief** = Vision View Effect - A federated code analysis system for understanding codebases at scale.
 
 ## Features
 
@@ -217,6 +213,18 @@ pnpm typecheck
 - Node.js 20+
 - pnpm 9+
 - Python 3.8+ (for Python parsing)
+
+## Documentation
+
+Comprehensive documentation is available in the [docs/](./docs/) directory:
+
+- [Quick Start](./docs/quick-start.md) - Get up and running
+- [Architecture Overview](./docs/architecture-overview.md) - System design
+- [CLI Reference](./docs/cli-reference.md) - Command documentation
+- [API Reference](./docs/api-reference.md) - Programmatic API
+- [MCP Server](./docs/mcp-server.md) - AI assistant integration
+- [Data Model](./docs/data-model.md) - Nodes, edges, refs schema
+- [Storage System](./docs/storage-system.md) - DuckDB + Parquet internals
 
 ## License
 
