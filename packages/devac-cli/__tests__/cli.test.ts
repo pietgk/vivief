@@ -88,7 +88,19 @@ describe("CLI: analyze command", () => {
   });
 
   it("skips analysis when --if-changed and files unchanged", async () => {
-    await fs.cp(FIXTURES_DIR, path.join(tempDir, "src"), { recursive: true });
+    // Copy only valid TypeScript files (exclude error.ts and invalid.ts which have intentional syntax errors)
+    const srcDir = path.join(tempDir, "src");
+    await fs.mkdir(srcDir, { recursive: true });
+    const fixtureFiles = await fs.readdir(FIXTURES_DIR, {
+      withFileTypes: true,
+    });
+    for (const entry of fixtureFiles) {
+      // Skip files with intentional syntax errors and directories
+      if (entry.name === "error.ts" || entry.name === "invalid.ts") continue;
+      const srcPath = path.join(FIXTURES_DIR, entry.name);
+      const destPath = path.join(srcDir, entry.name);
+      await fs.cp(srcPath, destPath, { recursive: entry.isDirectory() });
+    }
 
     const options: AnalyzeOptions = {
       packagePath: tempDir,

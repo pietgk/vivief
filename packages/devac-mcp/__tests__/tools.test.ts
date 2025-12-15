@@ -1,18 +1,4 @@
-/**
- * DevAC MCP Tools Tests
- *
- * Tests for MCP tool definitions, schemas, and error handling.
- * Tool execution tests are separate from integration tests.
- *
- * Note: The current server implementation uses raw SQL with `FROM nodes`
- * which requires views to be set up. Tool execution integration tests
- * verify the full flow through the MCP protocol handlers.
- */
-
-import * as fs from "node:fs/promises";
-import { tmpdir } from "node:os";
-import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { MCP_TOOLS } from "../src/tools/index.js";
 

@@ -8,8 +8,10 @@
  */
 
 import { type ParserOptions, parse } from "@babel/parser";
-// @ts-expect-error - @babel/traverse doesn't have type declarations
-import traverse from "@babel/traverse";
+// @ts-expect-error - @babel/traverse doesn't have proper ESM type declarations
+import _traverse from "@babel/traverse";
+// Handle ESM/CommonJS interop - in ESM the function is at .default
+const traverse = typeof _traverse === "function" ? _traverse : _traverse.default;
 import type { File as BabelFile, Node as BabelNode } from "@babel/types";
 import * as t from "@babel/types";
 

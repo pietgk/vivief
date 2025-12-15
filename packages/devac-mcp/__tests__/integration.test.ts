@@ -383,9 +383,7 @@ describe("Concurrent Operations", () => {
       await server.start();
 
       // Make multiple concurrent status calls
-      const statusPromises = Array.from({ length: 10 }, () =>
-        Promise.resolve(server!.getStatus())
-      );
+      const statusPromises = Array.from({ length: 10 }, () => Promise.resolve(server?.getStatus()));
 
       const statuses = await Promise.all(statusPromises);
 

@@ -39,6 +39,6 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "coverage", "*.d.ts", ".turbo"]
+    "ignore": ["node_modules", "dist", "coverage", "*.d.ts", ".turbo", "test-fixtures"]
   }
 }
