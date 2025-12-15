@@ -1,0 +1,32 @@
+{
+  "name": "@devac/cli",
+  "version": "0.1.0",
+  "description": "DevAC command-line interface",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "devac": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@devac/core": "workspace:*",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.28",
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

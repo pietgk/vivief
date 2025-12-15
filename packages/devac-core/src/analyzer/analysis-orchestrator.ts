@@ -1,0 +1,630 @@
+/**
+ * Analysis Orchestrator
+ *
+ * Coordinates the analysis pipeline, connecting file events to
+ * the parsing and writing subsystems.
+ *
+ * Based on DevAC v2.0 spec Section 6.6
+ */
+
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { performance } from "node:perf_hooks";
+
+import type { ParserConfig } from "../parsers/parser-interface.js";
+import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
+import type { DuckDBPool } from "../storage/duckdb-pool.js";
+import type { SeedWriter } from "../storage/seed-writer.js";
+import type { LanguageRouter } from "./language-router.js";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * File change event from file watcher or CLI
+ */
+export interface FileChangeEvent {
+  type: "add" | "change" | "unlink";
+  filePath: string;
+  packagePath: string;
+  timestamp: number;
+}
+
+/**
+ * Result of analyzing a single file
+ */
+export interface AnalysisResult {
+  filePath: string;
+  success: boolean;
+  nodeCount: number;
+  edgeCount: number;
+  refCount: number;
+  parseTimeMs: number;
+  writeTimeMs: number;
+  error?: string;
+  warnings?: string[];
+}
+
+/**
+ * Result of analyzing an entire package
+ */
+export interface PackageResult {
+  packagePath: string;
+  filesAnalyzed: number;
+  filesSkipped: number;
+  filesFailed: number;
+  totalNodes: number;
+  totalEdges: number;
+  totalRefs: number;
+  totalTimeMs: number;
+  errors: Array<{ filePath: string; error: string }>;
+}
+
+/**
+ * Result of analyzing a batch of file changes
+ */
+export interface BatchResult {
+  events: FileChangeEvent[];
+  results: AnalysisResult[];
+  totalTimeMs: number;
+}
+
+/**
+ * Semantic resolution result (Phase 4)
+ */
+export interface ResolutionResult {
+  packagePath: string;
+  refsResolved: number;
+  refsFailed: number;
+  totalTimeMs: number;
+}
+
+/**
+ * Current orchestrator status
+ */
+export interface OrchestratorStatus {
+  mode: "idle" | "analyzing" | "resolving";
+  currentFile?: string;
+  progress?: {
+    completed: number;
+    total: number;
+    percentage: number;
+  };
+  lastError?: string;
+}
+
+/**
+ * Analysis Orchestrator interface
+ */
+export interface AnalysisOrchestrator {
+  /**
+   * Analyze a single file (CLI or watch mode).
+   * Routes to appropriate parser, writes seeds atomically.
+   */
+  analyzeFile(event: FileChangeEvent): Promise<AnalysisResult>;
+
+  /**
+   * Analyze all supported files in a package (CLI mode).
+   * Scans directory, batches by language, writes seeds.
+   */
+  analyzePackage(packagePath: string): Promise<PackageResult>;
+
+  /**
+   * Analyze a batch of file changes (watch mode).
+   * Groups by package, processes in parallel where safe.
+   */
+  analyzeBatch(events: FileChangeEvent[]): Promise<BatchResult>;
+
+  /**
+   * Trigger semantic resolution pass (Phase 4).
+   * Called after structural analysis settles.
+   */
+  resolveSemantics(packagePath: string): Promise<ResolutionResult>;
+
+  /**
+   * Get current analysis status and progress.
+   */
+  getStatus(): OrchestratorStatus;
+}
+
+/**
+ * Options for creating the orchestrator
+ */
+export interface OrchestratorOptions {
+  /** Maximum files to process in parallel (default: 50) */
+  batchSize?: number;
+  /** Maximum concurrent file operations (default: 10) */
+  concurrency?: number;
+  /** Repository name for entity IDs */
+  repoName?: string;
+  /** Branch name (default: "main") */
+  branch?: string;
+  /** Enable verbose logging */
+  verbose?: boolean;
+}
+
+// ============================================================================
+// Implementation
+// ============================================================================
+
+/**
+ * Default batch size for processing files
+ */
+const DEFAULT_BATCH_SIZE = 50;
+
+/**
+ * Default concurrency limit
+ */
+const DEFAULT_CONCURRENCY = 10;
+
+/**
+ * File extensions to ignore during scanning
+ */
+const IGNORED_PATTERNS = [
+  /node_modules/,
+  /\.git/,
+  /\.devac/,
+  /dist\//,
+  /build\//,
+  /coverage\//,
+  /\.d\.ts$/,
+  /\.min\.js$/,
+  /\.map$/,
+];
+
+/**
+ * Create a CLI-mode Analysis Orchestrator
+ */
+export function createAnalysisOrchestrator(
+  router: LanguageRouter,
+  writer: SeedWriter,
+  _pool: DuckDBPool,
+  options: OrchestratorOptions = {}
+): AnalysisOrchestrator {
+  const {
+    batchSize = DEFAULT_BATCH_SIZE,
+    concurrency = DEFAULT_CONCURRENCY,
+    repoName = "unknown",
+    branch = "main",
+    verbose = false,
+  } = options;
+
+  // Internal state
+  let status: OrchestratorStatus = { mode: "idle" };
+
+  /**
+   * Get the seed path for a package
+   */
+  function getSeedPath(packagePath: string): string {
+    return path.join(packagePath, ".devac", "seed");
+  }
+
+  /**
+   * Create parser config from options and package path
+   */
+  function createParserConfig(packagePath: string): ParserConfig {
+    return {
+      ...DEFAULT_PARSER_CONFIG,
+      repoName,
+      packagePath: path.relative(process.cwd(), packagePath) || ".",
+      branch,
+    };
+  }
+
+  /**
+   * Check if a file should be ignored
+   */
+  function shouldIgnore(filePath: string): boolean {
+    return IGNORED_PATTERNS.some((pattern) => pattern.test(filePath));
+  }
+
+  /**
+   * Scan for supported files in a directory
+   */
+  async function scanSupportedFiles(packagePath: string): Promise<string[]> {
+    const files: string[] = [];
+
+    async function scan(dir: string): Promise<void> {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+
+          if (shouldIgnore(fullPath)) {
+            continue;
+          }
+
+          if (entry.isDirectory()) {
+            await scan(fullPath);
+          } else if (entry.isFile()) {
+            const parser = router.getParser(fullPath);
+            if (parser) {
+              files.push(fullPath);
+            }
+          }
+        }
+      } catch (error) {
+        if (verbose) {
+          console.warn(`Warning: Could not scan directory ${dir}:`, error);
+        }
+      }
+    }
+
+    await scan(packagePath);
+    return files;
+  }
+
+  /**
+   * Process files in chunks with limited concurrency
+   */
+  async function processInBatches<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    chunkSize: number,
+    maxConcurrency: number
+  ): Promise<R[]> {
+    const results: R[] = [];
+
+    // Process in chunks
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+
+      // Process chunk with concurrency limit
+      const chunkResults = await processConcurrently(chunk, processor, maxConcurrency);
+      results.push(...chunkResults);
+    }
+
+    return results;
+  }
+
+  /**
+   * Process items concurrently with a limit
+   */
+  async function processConcurrently<T, R>(
+    items: T[],
+    processor: (item: T) => Promise<R>,
+    limit: number
+  ): Promise<R[]> {
+    const results: R[] = [];
+    const executing: Promise<void>[] = [];
+
+    for (const item of items) {
+      const promise = processor(item).then((result) => {
+        results.push(result);
+      });
+
+      executing.push(promise);
+
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+        // Remove completed promises
+        const completed = executing.filter((p) => {
+          // Check if promise is settled by racing with resolved promise
+          let settled = false;
+          Promise.race([p, Promise.resolve("pending")]).then((v) => {
+            settled = v !== "pending";
+          });
+          return !settled;
+        });
+        executing.length = 0;
+        executing.push(...completed);
+      }
+    }
+
+    await Promise.all(executing);
+    return results;
+  }
+
+  /**
+   * Analyze a single file
+   */
+  async function analyzeFile(event: FileChangeEvent): Promise<AnalysisResult> {
+    const startTime = performance.now();
+
+    // Update status
+    status = {
+      mode: "analyzing",
+      currentFile: event.filePath,
+    };
+
+    // Get appropriate parser
+    const parser = router.getParser(event.filePath);
+    if (!parser) {
+      return {
+        filePath: event.filePath,
+        success: false,
+        nodeCount: 0,
+        edgeCount: 0,
+        refCount: 0,
+        parseTimeMs: 0,
+        writeTimeMs: 0,
+        error: `No parser available for file type: ${path.extname(event.filePath)}`,
+      };
+    }
+
+    try {
+      // Handle file deletion
+      if (event.type === "unlink") {
+        const writeStart = performance.now();
+        // For deletions, we need to remove seeds for this file
+        // The seed writer handles this by marking nodes as deleted
+        await writer.deleteFile([event.filePath]);
+        const writeTimeMs = performance.now() - writeStart;
+
+        return {
+          filePath: event.filePath,
+          success: true,
+          nodeCount: 0,
+          edgeCount: 0,
+          refCount: 0,
+          parseTimeMs: 0,
+          writeTimeMs,
+        };
+      }
+
+      // Parse file
+      const parseStart = performance.now();
+      const config = createParserConfig(event.packagePath);
+      const parseResult = await parser.parse(event.filePath, config);
+      const parseTimeMs = performance.now() - parseStart;
+
+      // Write seeds (atomic)
+      const writeStart = performance.now();
+      await writer.updateFile([event.filePath], parseResult);
+      const writeTimeMs = performance.now() - writeStart;
+
+      return {
+        filePath: event.filePath,
+        success: true,
+        nodeCount: parseResult.nodes.length,
+        edgeCount: parseResult.edges.length,
+        refCount: parseResult.externalRefs.length,
+        parseTimeMs,
+        writeTimeMs,
+        warnings: parseResult.warnings,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (verbose) {
+        console.error(`Error analyzing ${event.filePath}:`, error);
+      }
+
+      return {
+        filePath: event.filePath,
+        success: false,
+        nodeCount: 0,
+        edgeCount: 0,
+        refCount: 0,
+        parseTimeMs: performance.now() - startTime,
+        writeTimeMs: 0,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Analyze all files in a package
+   */
+  async function analyzePackage(packagePath: string): Promise<PackageResult> {
+    const startTime = performance.now();
+    const errors: Array<{ filePath: string; error: string }> = [];
+
+    // Update status
+    status = {
+      mode: "analyzing",
+      progress: { completed: 0, total: 0, percentage: 0 },
+    };
+
+    try {
+      // 1. Ensure seed directory exists
+      const seedPath = getSeedPath(packagePath);
+      await fs.mkdir(seedPath, { recursive: true });
+
+      // 2. Scan for supported files
+      const files = await scanSupportedFiles(packagePath);
+
+      if (files.length === 0) {
+        return {
+          packagePath,
+          filesAnalyzed: 0,
+          filesSkipped: 0,
+          filesFailed: 0,
+          totalNodes: 0,
+          totalEdges: 0,
+          totalRefs: 0,
+          totalTimeMs: performance.now() - startTime,
+          errors: [],
+        };
+      }
+
+      // Update status with total
+      status.progress = {
+        completed: 0,
+        total: files.length,
+        percentage: 0,
+      };
+
+      // 3. Process files in batches
+      let totalNodes = 0;
+      let totalEdges = 0;
+      let totalRefs = 0;
+      let filesAnalyzed = 0;
+      let filesFailed = 0;
+
+      const results = await processInBatches(
+        files,
+        async (filePath) => {
+          const result = await analyzeFile({
+            type: "add",
+            filePath,
+            packagePath,
+            timestamp: Date.now(),
+          });
+
+          // Update progress
+          if (status.progress) {
+            status.progress.completed++;
+            status.progress.percentage = Math.round(
+              (status.progress.completed / status.progress.total) * 100
+            );
+          }
+
+          return result;
+        },
+        batchSize,
+        concurrency
+      );
+
+      // 4. Aggregate results
+      for (const result of results) {
+        if (result.success) {
+          filesAnalyzed++;
+          totalNodes += result.nodeCount;
+          totalEdges += result.edgeCount;
+          totalRefs += result.refCount;
+        } else {
+          filesFailed++;
+          if (result.error) {
+            errors.push({ filePath: result.filePath, error: result.error });
+          }
+        }
+      }
+
+      // Reset status
+      status = { mode: "idle" };
+
+      return {
+        packagePath,
+        filesAnalyzed,
+        filesSkipped: files.length - filesAnalyzed - filesFailed,
+        filesFailed,
+        totalNodes,
+        totalEdges,
+        totalRefs,
+        totalTimeMs: performance.now() - startTime,
+        errors,
+      };
+    } catch (error) {
+      status = {
+        mode: "idle",
+        lastError: error instanceof Error ? error.message : String(error),
+      };
+
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze a batch of file changes
+   */
+  async function analyzeBatch(events: FileChangeEvent[]): Promise<BatchResult> {
+    const startTime = performance.now();
+
+    // Update status
+    status = {
+      mode: "analyzing",
+      progress: {
+        completed: 0,
+        total: events.length,
+        percentage: 0,
+      },
+    };
+
+    const results: AnalysisResult[] = [];
+
+    // Group events by package for potential optimizations
+    const byPackage = new Map<string, FileChangeEvent[]>();
+    for (const event of events) {
+      const existing = byPackage.get(event.packagePath) || [];
+      existing.push(event);
+      byPackage.set(event.packagePath, existing);
+    }
+
+    // Process each package's events
+    for (const [_packagePath, packageEvents] of byPackage) {
+      const packageResults = await processConcurrently(
+        packageEvents,
+        async (event) => {
+          const result = await analyzeFile(event);
+
+          // Update progress
+          if (status.progress) {
+            status.progress.completed++;
+            status.progress.percentage = Math.round(
+              (status.progress.completed / status.progress.total) * 100
+            );
+          }
+
+          return result;
+        },
+        concurrency
+      );
+
+      results.push(...packageResults);
+    }
+
+    // Reset status
+    status = { mode: "idle" };
+
+    return {
+      events,
+      results,
+      totalTimeMs: performance.now() - startTime,
+    };
+  }
+
+  /**
+   * Resolve semantic references (Phase 4)
+   * This is a placeholder - full implementation in Phase 2
+   */
+  async function resolveSemantics(packagePath: string): Promise<ResolutionResult> {
+    const startTime = performance.now();
+
+    // Update status
+    status = { mode: "resolving" };
+
+    try {
+      // TODO: Implement semantic resolution in Phase 2
+      // This will:
+      // 1. Read external_refs from seeds
+      // 2. Resolve module specifiers to file paths
+      // 3. Match imported symbols to exported symbols
+      // 4. Update external_refs with resolved entity IDs
+
+      // Reset status
+      status = { mode: "idle" };
+
+      return {
+        packagePath,
+        refsResolved: 0,
+        refsFailed: 0,
+        totalTimeMs: performance.now() - startTime,
+      };
+    } catch (error) {
+      status = {
+        mode: "idle",
+        lastError: error instanceof Error ? error.message : String(error),
+      };
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get current status
+   */
+  function getStatus(): OrchestratorStatus {
+    return { ...status };
+  }
+
+  return {
+    analyzeFile,
+    analyzePackage,
+    analyzeBatch,
+    resolveSemantics,
+    getStatus,
+  };
+}
