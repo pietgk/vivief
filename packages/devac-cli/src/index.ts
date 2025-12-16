@@ -29,7 +29,10 @@ import {
 
 const program = new Command();
 
-program.name("devac").description("DevAC - Code analysis with DuckDB + Parquet").version("0.1.0");
+program
+  .name("devac")
+  .description("DevAC - Code analysis with DuckDB + Parquet")
+  .version("0.1.0");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANALYZE COMMAND
@@ -44,6 +47,8 @@ program
   .option("--if-changed", "Only analyze if source files changed")
   .option("--force", "Force full reanalysis")
   .option("--all", "Analyze all packages in repository")
+  .option("--resolve", "Run semantic resolution after structural analysis")
+  .option("--verbose", "Enable verbose output")
   .action(async (options) => {
     const result = await analyzeCommand({
       packagePath: path.resolve(options.package),
@@ -52,16 +57,23 @@ program
       ifChanged: options.ifChanged,
       force: options.force,
       all: options.all,
+      resolve: options.resolve,
+      verbose: options.verbose,
     });
 
     if (result.success) {
       if (result.skipped) {
         console.log("No changes detected - skipped analysis");
       } else {
-        console.log(`✓ Analyzed ${result.filesAnalyzed} files in ${result.timeMs}ms`);
+        console.log(
+          `✓ Analyzed ${result.filesAnalyzed} files in ${result.timeMs}ms`
+        );
         console.log(`  Nodes: ${result.nodesCreated}`);
         console.log(`  Edges: ${result.edgesCreated}`);
         console.log(`  External refs: ${result.refsCreated}`);
+        if (result.refsResolved !== undefined) {
+          console.log(`  Refs resolved: ${result.refsResolved}`);
+        }
       }
     } else {
       console.error(`✗ Analysis failed: ${result.error}`);
@@ -214,7 +226,9 @@ program
       console.log(`\n${signal} received, stopping watch...`);
       await controller.stop();
       const status = controller.getStatus();
-      console.log(`\nProcessed ${status.changesProcessed} changes, ${status.errors} errors`);
+      console.log(
+        `\nProcessed ${status.changesProcessed} changes, ${status.errors} errors`
+      );
       process.exit(0);
     };
 
@@ -279,7 +293,9 @@ program
       } else {
         console.log(`Found ${result.affectedFiles.length} affected files:`);
         for (const file of result.affectedFiles) {
-          console.log(`  ${file.impactLevel === "direct" ? "→" : "⤳"} ${file.filePath}`);
+          console.log(
+            `  ${file.impactLevel === "direct" ? "→" : "⤳"} ${file.filePath}`
+          );
         }
         console.log(`\nAnalysis time: ${result.analysisTimeMs}ms`);
       }
@@ -393,7 +409,12 @@ hub
       } else {
         console.log(`Registered repositories (${result.repos.length}):\n`);
         for (const repo of result.repos) {
-          const statusIcon = repo.status === "active" ? "✓" : repo.status === "stale" ? "⚠" : "✗";
+          const statusIcon =
+            repo.status === "active"
+              ? "✓"
+              : repo.status === "stale"
+              ? "⚠"
+              : "✗";
           console.log(`  ${statusIcon} ${repo.repoId}`);
           console.log(`    Path: ${repo.localPath}`);
           console.log(`    Packages: ${repo.packages}`);

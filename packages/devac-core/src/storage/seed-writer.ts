@@ -10,8 +10,16 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Connection } from "duckdb-async";
 import type { StructuralParseResult } from "../parsers/parser-interface.js";
-import { SCHEMA_VERSION, type SeedPaths, getSeedPaths } from "../types/config.js";
-import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
+import {
+  SCHEMA_VERSION,
+  type SeedPaths,
+  getSeedPaths,
+} from "../types/config.js";
+import type {
+  ParsedEdge,
+  ParsedExternalRef,
+  ParsedNode,
+} from "../types/index.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { withSeedLock } from "./file-lock.js";
 import { getCopyToParquet, initializeSchemas } from "./parquet-schemas.js";
@@ -46,10 +54,7 @@ export interface WriteResult {
  * Uses file locking and temp+rename pattern for safety.
  */
 export class SeedWriter {
-  constructor(
-    private pool: DuckDBPool,
-    private packagePath: string
-  ) {}
+  constructor(private pool: DuckDBPool, private packagePath: string) {}
 
   /**
    * Write structural parse results to Parquet files
@@ -62,7 +67,10 @@ export class SeedWriter {
    * 5. Atomically renames to final locations
    * 6. Releases the lock
    */
-  async writeFile(result: StructuralParseResult, options: WriteOptions = {}): Promise<WriteResult> {
+  async writeFile(
+    result: StructuralParseResult,
+    options: WriteOptions = {}
+  ): Promise<WriteResult> {
     const startTime = Date.now();
     const branch = options.branch ?? "base";
     const paths = getSeedPaths(this.packagePath, branch);
@@ -102,7 +110,10 @@ export class SeedWriter {
    * Used when files are deleted from the source.
    * Marks records as deleted in the branch partition.
    */
-  async deleteFile(sourceFilePaths: string[], options: WriteOptions = {}): Promise<WriteResult> {
+  async deleteFile(
+    sourceFilePaths: string[],
+    options: WriteOptions = {}
+  ): Promise<WriteResult> {
     const startTime = Date.now();
     const branch = options.branch ?? "base";
     const paths = getSeedPaths(this.packagePath, branch);
@@ -117,7 +128,12 @@ export class SeedWriter {
     try {
       const deleteResult = await withSeedLock(paths.seedRoot, async () => {
         return await executeWithRecovery(this.pool, async (conn) => {
-          return await this.markFilesDeleted(conn, sourceFilePaths, paths, branch);
+          return await this.markFilesDeleted(
+            conn,
+            sourceFilePaths,
+            paths,
+            branch
+          );
         });
       });
 
@@ -140,6 +156,143 @@ export class SeedWriter {
   }
 
   /**
+   * Update resolved references in the external_refs table
+   *
+   * This updates the target_entity_id and is_resolved fields for
+   * references that have been resolved by the semantic resolution pass.
+   */
+  async updateResolvedRefs(
+    resolvedRefs: ResolvedRefUpdate[],
+    options: WriteOptions = {}
+  ): Promise<UpdateResolvedRefsResult> {
+    const startTime = Date.now();
+    const branch = options.branch ?? "base";
+    const paths = getSeedPaths(this.packagePath, branch);
+
+    if (resolvedRefs.length === 0) {
+      return {
+        success: true,
+        refsUpdated: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    try {
+      const result = await withSeedLock(paths.seedRoot, async () => {
+        return await executeWithRecovery(this.pool, async (conn) => {
+          return await this.performResolvedRefsUpdate(
+            conn,
+            resolvedRefs,
+            paths,
+            branch
+          );
+        });
+      });
+
+      return {
+        success: true,
+        refsUpdated: result,
+        timeMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        refsUpdated: 0,
+        timeMs: Date.now() - startTime,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Perform the resolved refs update
+   */
+  private async performResolvedRefsUpdate(
+    conn: Connection,
+    resolvedRefs: ResolvedRefUpdate[],
+    paths: SeedPaths,
+    _branch: string
+  ): Promise<number> {
+    const refsPath = path.join(paths.basePath, "external_refs.parquet");
+
+    if (!(await this.fileExists(refsPath))) {
+      return 0;
+    }
+
+    // Build a lookup map for resolved refs
+    const resolvedMap = new Map<string, string>();
+    for (const ref of resolvedRefs) {
+      const key = `${ref.sourceEntityId}|${ref.moduleSpecifier}|${ref.importedSymbol}`;
+      resolvedMap.set(key, ref.targetEntityId);
+    }
+
+    // Read all existing refs
+    const existingRefs = await conn.all(
+      `SELECT * FROM read_parquet('${refsPath}')`
+    );
+
+    // Initialize schema and insert updated refs
+    await initializeSchemas(conn);
+
+    let updatedCount = 0;
+    const timestamp = new Date().toISOString();
+
+    for (const row of existingRefs) {
+      const ref = row as Record<string, unknown>;
+      const key = `${ref.source_entity_id}|${ref.module_specifier}|${ref.imported_symbol}`;
+      const resolvedTargetId = resolvedMap.get(key);
+
+      if (resolvedTargetId) {
+        // This ref was resolved - update it
+        await conn.run(
+          `
+          INSERT INTO external_refs (
+            source_entity_id, module_specifier, imported_symbol,
+            local_alias, import_style, is_type_only,
+            source_file_path, source_line, source_column,
+            target_entity_id, is_resolved, is_reexport, export_alias,
+            source_file_hash, branch, is_deleted, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+          ref.source_entity_id,
+          ref.module_specifier,
+          ref.imported_symbol,
+          ref.local_alias,
+          ref.import_style,
+          ref.is_type_only,
+          ref.source_file_path,
+          ref.source_line,
+          ref.source_column,
+          resolvedTargetId,
+          true, // is_resolved = true
+          ref.is_reexport,
+          ref.export_alias,
+          ref.source_file_hash,
+          ref.branch,
+          ref.is_deleted,
+          timestamp
+        );
+        updatedCount++;
+      } else {
+        // Not resolved - keep as is
+        await this.insertExternalRefFromRow(conn, ref);
+      }
+    }
+
+    // Write to temp and rename
+    const tempDir = path.join(paths.seedRoot, ".tmp");
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempSuffix = crypto.randomBytes(8).toString("hex");
+    const tempRefs = path.join(tempDir, `refs_${tempSuffix}.parquet`);
+
+    await conn.run(getCopyToParquet("external_refs", tempRefs));
+    await this.atomicRename(tempRefs, refsPath);
+    await this.cleanupTempDir(tempDir);
+
+    return updatedCount;
+  }
+
+  /**
    * Update seeds for changed files (delete old + write new atomically)
    */
   async updateFile(
@@ -157,7 +310,13 @@ export class SeedWriter {
           // For base branch: merge existing with new (replacing changed files)
           // For feature branch: write delta directly
           if (branch === "base") {
-            return await this.mergeAndWrite(conn, changedFiles, result, paths, branch);
+            return await this.mergeAndWrite(
+              conn,
+              changedFiles,
+              result,
+              paths,
+              branch
+            );
           }
           // Branch partition just stores the delta
           return await this.performAtomicWrite(conn, result, paths, branch);
@@ -344,7 +503,10 @@ export class SeedWriter {
   /**
    * Insert an external reference into the DuckDB table
    */
-  private async insertExternalRef(conn: Connection, ref: ParsedExternalRef): Promise<void> {
+  private async insertExternalRef(
+    conn: Connection,
+    ref: ParsedExternalRef
+  ): Promise<void> {
     const sql = `
       INSERT INTO external_refs (
         source_entity_id, module_specifier, imported_symbol,
@@ -380,7 +542,10 @@ export class SeedWriter {
   /**
    * Atomic rename with fsync
    */
-  private async atomicRename(tempPath: string, finalPath: string): Promise<void> {
+  private async atomicRename(
+    tempPath: string,
+    finalPath: string
+  ): Promise<void> {
     // Ensure parent directory exists
     await fs.mkdir(path.dirname(finalPath), { recursive: true });
 
@@ -447,7 +612,9 @@ export class SeedWriter {
           // Read existing and filter
           if (await this.fileExists(nodesPath)) {
             const rows = await conn.all(
-              `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(excludeFiles)})`
+              `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(
+                excludeFiles
+              )})`
             );
             nodesWritten = rows.length;
             for (const row of rows) {
@@ -457,7 +624,9 @@ export class SeedWriter {
 
           if (await this.fileExists(edgesPath)) {
             const rows = await conn.all(
-              `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(excludeFiles)})`
+              `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(
+                excludeFiles
+              )})`
             );
             edgesWritten = rows.length;
             for (const row of rows) {
@@ -467,7 +636,9 @@ export class SeedWriter {
 
           if (await this.fileExists(refsPath)) {
             const rows = await conn.all(
-              `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(excludeFiles)})`
+              `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(
+                excludeFiles
+              )})`
             );
             refsWritten = rows.length;
             for (const row of rows) {
@@ -552,7 +723,9 @@ export class SeedWriter {
 
     if (await this.fileExists(nodesPath)) {
       const nodes = await conn.all(
-        `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path IN (${this.toSqlList(filePaths)})`
+        `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path IN (${this.toSqlList(
+          filePaths
+        )})`
       );
       for (const node of nodes) {
         await conn.run(
@@ -598,7 +771,9 @@ export class SeedWriter {
 
     if (await this.fileExists(edgesPath)) {
       const edges = await conn.all(
-        `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path IN (${this.toSqlList(filePaths)})`
+        `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path IN (${this.toSqlList(
+          filePaths
+        )})`
       );
       for (const edge of edges) {
         await conn.run(
@@ -627,7 +802,9 @@ export class SeedWriter {
 
     if (await this.fileExists(refsPath)) {
       const refs = await conn.all(
-        `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path IN (${this.toSqlList(filePaths)})`
+        `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path IN (${this.toSqlList(
+          filePaths
+        )})`
       );
       for (const ref of refs) {
         await conn.run(
@@ -671,19 +848,28 @@ export class SeedWriter {
       if (nodesWritten > 0) {
         const tempNodes = path.join(tempDir, `nodes_${tempSuffix}.parquet`);
         await conn.run(getCopyToParquet("nodes", tempNodes));
-        await this.atomicRename(tempNodes, path.join(paths.branchPath, "nodes.parquet"));
+        await this.atomicRename(
+          tempNodes,
+          path.join(paths.branchPath, "nodes.parquet")
+        );
       }
 
       if (edgesWritten > 0) {
         const tempEdges = path.join(tempDir, `edges_${tempSuffix}.parquet`);
         await conn.run(getCopyToParquet("edges", tempEdges));
-        await this.atomicRename(tempEdges, path.join(paths.branchPath, "edges.parquet"));
+        await this.atomicRename(
+          tempEdges,
+          path.join(paths.branchPath, "edges.parquet")
+        );
       }
 
       if (refsWritten > 0) {
         const tempRefs = path.join(tempDir, `refs_${tempSuffix}.parquet`);
         await conn.run(getCopyToParquet("external_refs", tempRefs));
-        await this.atomicRename(tempRefs, path.join(paths.branchPath, "external_refs.parquet"));
+        await this.atomicRename(
+          tempRefs,
+          path.join(paths.branchPath, "external_refs.parquet")
+        );
       }
 
       await this.cleanupTempDir(tempDir);
@@ -716,7 +902,9 @@ export class SeedWriter {
     // Read existing data excluding changed files
     if (await this.fileExists(nodesPath)) {
       const existingNodes = await conn.all(
-        `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(changedFiles)})`
+        `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(
+          changedFiles
+        )})`
       );
       for (const row of existingNodes) {
         await this.insertNodeFromRow(conn, row);
@@ -725,7 +913,9 @@ export class SeedWriter {
 
     if (await this.fileExists(edgesPath)) {
       const existingEdges = await conn.all(
-        `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(changedFiles)})`
+        `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(
+          changedFiles
+        )})`
       );
       for (const row of existingEdges) {
         await this.insertEdgeFromRow(conn, row);
@@ -734,7 +924,9 @@ export class SeedWriter {
 
     if (await this.fileExists(refsPath)) {
       const existingRefs = await conn.all(
-        `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(changedFiles)})`
+        `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(
+          changedFiles
+        )})`
       );
       for (const row of existingRefs) {
         await this.insertExternalRefFromRow(conn, row);
@@ -759,7 +951,9 @@ export class SeedWriter {
 
     const nodeCount = await conn.all("SELECT COUNT(*) as count FROM nodes");
     const edgeCount = await conn.all("SELECT COUNT(*) as count FROM edges");
-    const refCount = await conn.all("SELECT COUNT(*) as count FROM external_refs");
+    const refCount = await conn.all(
+      "SELECT COUNT(*) as count FROM external_refs"
+    );
 
     const nodeRow = nodeCount[0] as Record<string, unknown> | undefined;
     const edgeRow = edgeCount[0] as Record<string, unknown> | undefined;
@@ -801,7 +995,10 @@ export class SeedWriter {
   /**
    * Insert node from raw DuckDB row
    */
-  private async insertNodeFromRow(conn: Connection, row: Record<string, unknown>): Promise<void> {
+  private async insertNodeFromRow(
+    conn: Connection,
+    row: Record<string, unknown>
+  ): Promise<void> {
     const sql = `
       INSERT INTO nodes (
         entity_id, name, qualified_name, kind, file_path,
@@ -846,7 +1043,10 @@ export class SeedWriter {
   /**
    * Insert edge from raw DuckDB row
    */
-  private async insertEdgeFromRow(conn: Connection, row: Record<string, unknown>): Promise<void> {
+  private async insertEdgeFromRow(
+    conn: Connection,
+    row: Record<string, unknown>
+  ): Promise<void> {
     const sql = `
       INSERT INTO edges (
         source_entity_id, target_entity_id, edge_type,
@@ -931,8 +1131,31 @@ export class SeedWriter {
 }
 
 /**
+ * Result of updating resolved references
+ */
+export interface UpdateResolvedRefsResult {
+  success: boolean;
+  refsUpdated: number;
+  timeMs: number;
+  error?: string;
+}
+
+/**
+ * Resolved reference update data
+ */
+export interface ResolvedRefUpdate {
+  sourceEntityId: string;
+  moduleSpecifier: string;
+  importedSymbol: string;
+  targetEntityId: string;
+}
+
+/**
  * Create a SeedWriter instance
  */
-export function createSeedWriter(pool: DuckDBPool, packagePath: string): SeedWriter {
+export function createSeedWriter(
+  pool: DuckDBPool,
+  packagePath: string
+): SeedWriter {
   return new SeedWriter(pool, packagePath);
 }

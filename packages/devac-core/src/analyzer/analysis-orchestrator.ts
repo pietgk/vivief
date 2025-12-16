@@ -13,8 +13,15 @@ import { performance } from "node:perf_hooks";
 
 import type { ParserConfig } from "../parsers/parser-interface.js";
 import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
+import {
+  getSemanticResolverFactory,
+  toUnresolvedRef,
+  type UnresolvedRef,
+  type ResolvedRef,
+} from "../semantic/index.js";
 import type { DuckDBPool } from "../storage/duckdb-pool.js";
-import type { SeedWriter } from "../storage/seed-writer.js";
+import { createSeedReader } from "../storage/seed-reader.js";
+import type { SeedWriter, ResolvedRefUpdate } from "../storage/seed-writer.js";
 import type { LanguageRouter } from "./language-router.js";
 
 // ============================================================================
@@ -179,7 +186,7 @@ const IGNORED_PATTERNS = [
 export function createAnalysisOrchestrator(
   router: LanguageRouter,
   writer: SeedWriter,
-  _pool: DuckDBPool,
+  pool: DuckDBPool,
   options: OrchestratorOptions = {}
 ): AnalysisOrchestrator {
   const {
@@ -272,7 +279,11 @@ export function createAnalysisOrchestrator(
       const chunk = items.slice(i, i + chunkSize);
 
       // Process chunk with concurrency limit
-      const chunkResults = await processConcurrently(chunk, processor, maxConcurrency);
+      const chunkResults = await processConcurrently(
+        chunk,
+        processor,
+        maxConcurrency
+      );
       results.push(...chunkResults);
     }
 
@@ -336,7 +347,9 @@ export function createAnalysisOrchestrator(
         refCount: 0,
         parseTimeMs: 0,
         writeTimeMs: 0,
-        error: `No parser available for file type: ${path.extname(event.filePath)}`,
+        error: `No parser available for file type: ${path.extname(
+          event.filePath
+        )}`,
       };
     }
 
@@ -382,7 +395,8 @@ export function createAnalysisOrchestrator(
         warnings: parseResult.warnings,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       if (verbose) {
         console.error(`Error analyzing ${event.filePath}:`, error);
@@ -573,30 +587,135 @@ export function createAnalysisOrchestrator(
   }
 
   /**
-   * Resolve semantic references (Phase 4)
-   * This is a placeholder - full implementation in Phase 2
+   * Resolve semantic references
+   *
+   * This is Pass 2 of the two-pass architecture:
+   * 1. Read unresolved external_refs from seeds
+   * 2. Use language-specific semantic resolvers (ts-morph, Pyright, Roslyn)
+   * 3. Resolve module specifiers to file paths
+   * 4. Match imported symbols to exported symbols
+   * 5. Update external_refs with resolved entity IDs
    */
-  async function resolveSemantics(packagePath: string): Promise<ResolutionResult> {
+  async function resolveSemantics(
+    packagePath: string
+  ): Promise<ResolutionResult> {
     const startTime = performance.now();
 
     // Update status
     status = { mode: "resolving" };
 
     try {
-      // TODO: Implement semantic resolution in Phase 2
-      // This will:
-      // 1. Read external_refs from seeds
-      // 2. Resolve module specifiers to file paths
-      // 3. Match imported symbols to exported symbols
-      // 4. Update external_refs with resolved entity IDs
+      // 1. Read unresolved external refs from seeds
+      const seedReader = createSeedReader(pool, packagePath);
+      const unresolvedResult = await seedReader.getUnresolvedRefs(branch);
+
+      if (unresolvedResult.length === 0) {
+        status = { mode: "idle" };
+        return {
+          packagePath,
+          refsResolved: 0,
+          refsFailed: 0,
+          totalTimeMs: performance.now() - startTime,
+        };
+      }
+
+      // 2. Convert to UnresolvedRef format for semantic resolver
+      const unresolvedRefs: UnresolvedRef[] =
+        unresolvedResult.map(toUnresolvedRef);
+
+      // 3. Get semantic resolver factory and detect language
+      const factory = getSemanticResolverFactory();
+      const language = factory.detectPackageLanguage(packagePath);
+
+      if (!language) {
+        if (verbose) {
+          console.warn(`Could not detect language for package: ${packagePath}`);
+        }
+        status = { mode: "idle" };
+        return {
+          packagePath,
+          refsResolved: 0,
+          refsFailed: unresolvedRefs.length,
+          totalTimeMs: performance.now() - startTime,
+        };
+      }
+
+      // 4. Get appropriate resolver
+      const resolver = factory.getResolver(language);
+      if (!resolver) {
+        if (verbose) {
+          console.warn(
+            `No semantic resolver available for language: ${language}`
+          );
+        }
+        status = { mode: "idle" };
+        return {
+          packagePath,
+          refsResolved: 0,
+          refsFailed: unresolvedRefs.length,
+          totalTimeMs: performance.now() - startTime,
+        };
+      }
+
+      // 5. Check if resolver is available
+      const isAvailable = await resolver.isAvailable();
+      if (!isAvailable) {
+        if (verbose) {
+          console.warn(`Semantic resolver for ${language} is not available`);
+        }
+        status = { mode: "idle" };
+        return {
+          packagePath,
+          refsResolved: 0,
+          refsFailed: unresolvedRefs.length,
+          totalTimeMs: performance.now() - startTime,
+        };
+      }
+
+      // 6. Resolve all refs
+      const resolutionResult = await resolver.resolvePackage(
+        packagePath,
+        unresolvedRefs
+      );
+
+      // 7. Update seeds with resolved refs
+      if (resolutionResult.resolvedRefs.length > 0) {
+        const updates: ResolvedRefUpdate[] = resolutionResult.resolvedRefs.map(
+          (resolved: ResolvedRef) => ({
+            sourceEntityId: resolved.ref.sourceEntityId,
+            moduleSpecifier: resolved.ref.moduleSpecifier,
+            importedSymbol: resolved.ref.importedSymbol,
+            targetEntityId: resolved.targetEntityId,
+          })
+        );
+
+        const updateResult = await writer.updateResolvedRefs(updates, {
+          branch,
+        });
+
+        if (!updateResult.success && verbose) {
+          console.error(
+            `Failed to update resolved refs: ${updateResult.error}`
+          );
+        }
+      }
+
+      // Log resolution errors if verbose
+      if (verbose && resolutionResult.errors.length > 0) {
+        for (const error of resolutionResult.errors) {
+          console.warn(
+            `Resolution error for ${error.ref.moduleSpecifier}:${error.ref.importedSymbol}: ${error.error}`
+          );
+        }
+      }
 
       // Reset status
       status = { mode: "idle" };
 
       return {
         packagePath,
-        refsResolved: 0,
-        refsFailed: 0,
+        refsResolved: resolutionResult.resolved,
+        refsFailed: resolutionResult.unresolved,
         totalTimeMs: performance.now() - startTime,
       };
     } catch (error) {

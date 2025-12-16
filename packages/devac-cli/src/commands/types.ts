@@ -20,6 +20,10 @@ export interface AnalyzeOptions {
   force?: boolean;
   /** Analyze all packages in repository */
   all?: boolean;
+  /** Run semantic resolution after structural analysis */
+  resolve?: boolean;
+  /** Enable verbose output */
+  verbose?: boolean;
 }
 
 /**
@@ -31,6 +35,8 @@ export interface AnalyzeResult {
   nodesCreated: number;
   edgesCreated: number;
   refsCreated: number;
+  /** Number of refs resolved in semantic pass */
+  refsResolved?: number;
   skipped?: boolean;
   error?: string;
   timeMs: number;

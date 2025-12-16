@@ -14,6 +14,8 @@ import {
   SeedWriter,
   TypeScriptParser,
   computeFileHash,
+  getSemanticResolverFactory,
+  toUnresolvedRef,
 } from "@devac/core";
 import { glob } from "glob";
 import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
@@ -21,7 +23,9 @@ import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
 /**
  * Analyze a package and generate seed files
  */
-export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeResult> {
+export async function analyzeCommand(
+  options: AnalyzeOptions
+): Promise<AnalyzeResult> {
   const startTime = Date.now();
 
   // Validate path exists
@@ -109,12 +113,31 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
       }
     }
 
+    // Run semantic resolution if requested
+    let refsResolved = 0;
+    if (options.resolve && totalRefs > 0) {
+      try {
+        refsResolved = await runSemanticResolution(
+          pool,
+          options.packagePath,
+          options.branch,
+          options.verbose
+        );
+      } catch (error) {
+        if (options.verbose) {
+          console.error("Semantic resolution failed:", error);
+        }
+        // Continue - structural analysis succeeded
+      }
+    }
+
     return {
       success: true,
       filesAnalyzed,
       nodesCreated: totalNodes,
       edgesCreated: totalEdges,
       refsCreated: totalRefs,
+      refsResolved: options.resolve ? refsResolved : undefined,
       timeMs: Date.now() - startTime,
     };
   } catch (error) {
@@ -135,10 +158,89 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
 }
 
 /**
+ * Run semantic resolution pass
+ */
+async function runSemanticResolution(
+  pool: DuckDBPool,
+  packagePath: string,
+  branch: string,
+  verbose?: boolean
+): Promise<number> {
+  // 1. Read unresolved refs from seeds
+  const reader = new SeedReader(pool, packagePath);
+  const unresolvedRefs = await reader.getUnresolvedRefs(branch);
+
+  if (unresolvedRefs.length === 0) {
+    return 0;
+  }
+
+  // 2. Get semantic resolver
+  const factory = getSemanticResolverFactory();
+  const language = factory.detectPackageLanguage(packagePath);
+
+  if (!language) {
+    if (verbose) {
+      console.warn(`Could not detect language for package: ${packagePath}`);
+    }
+    return 0;
+  }
+
+  const resolver = factory.getResolver(language);
+  if (!resolver) {
+    if (verbose) {
+      console.warn(`No semantic resolver available for language: ${language}`);
+    }
+    return 0;
+  }
+
+  const isAvailable = await resolver.isAvailable();
+  if (!isAvailable) {
+    if (verbose) {
+      console.warn(`Semantic resolver for ${language} is not available`);
+    }
+    return 0;
+  }
+
+  // 3. Resolve all refs
+  const refs = unresolvedRefs.map(toUnresolvedRef);
+  const result = await resolver.resolvePackage(packagePath, refs);
+
+  // 4. Update seeds with resolved refs
+  if (result.resolvedRefs.length > 0) {
+    const writer = new SeedWriter(pool, packagePath);
+    const updates = result.resolvedRefs.map((resolved) => ({
+      sourceEntityId: resolved.ref.sourceEntityId,
+      moduleSpecifier: resolved.ref.moduleSpecifier,
+      importedSymbol: resolved.ref.importedSymbol,
+      targetEntityId: resolved.targetEntityId,
+    }));
+
+    const updateResult = await writer.updateResolvedRefs(updates, { branch });
+
+    if (!updateResult.success && verbose) {
+      console.error(`Failed to update resolved refs: ${updateResult.error}`);
+    }
+  }
+
+  if (verbose && result.errors.length > 0) {
+    for (const error of result.errors) {
+      console.warn(
+        `Resolution error for ${error.ref.moduleSpecifier}:${error.ref.importedSymbol}: ${error.error}`
+      );
+    }
+  }
+
+  return result.resolved;
+}
+
+/**
  * Find all TypeScript files in a directory
  */
 async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
-  const patterns = [path.join(packagePath, "**/*.ts"), path.join(packagePath, "**/*.tsx")];
+  const patterns = [
+    path.join(packagePath, "**/*.ts"),
+    path.join(packagePath, "**/*.tsx"),
+  ];
 
   const ignorePatterns = [
     "**/node_modules/**",
@@ -169,7 +271,10 @@ async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
 /**
  * Check if any source files have changed since last analysis
  */
-async function checkForChanges(packagePath: string, sourceFiles: string[]): Promise<boolean> {
+async function checkForChanges(
+  packagePath: string,
+  sourceFiles: string[]
+): Promise<boolean> {
   try {
     // Try to read existing file hashes from seed reader
     const pool = new DuckDBPool({ memoryLimit: "256MB" });

@@ -87,8 +87,16 @@ export type {
 // Parsers
 export * from "./parsers/index.js";
 
-// Resolver
-export * from "./resolver/index.js";
+// Resolver (legacy regex-based - deprecated, use semantic module instead)
+export {
+  createSemanticResolver as createLegacySemanticResolver,
+  type SemanticResolver as LegacySemanticResolver,
+  type SemanticResolverOptions as LegacySemanticResolverOptions,
+  type ImportRef,
+} from "./resolver/index.js";
+
+// Semantic Resolution (compiler-grade - ts-morph, Pyright, Roslyn)
+export * from "./semantic/index.js";
 
 // Watcher
 export * from "./watcher/index.js";
