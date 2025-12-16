@@ -98,6 +98,9 @@ export {
 // Semantic Resolution (compiler-grade - ts-morph, Pyright, Roslyn)
 export * from "./semantic/index.js";
 
+// Configuration (Zod schemas and utilities)
+export * from "./config/index.js";
+
 // Watcher
 export * from "./watcher/index.js";
 
