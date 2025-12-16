@@ -17,17 +17,20 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createFileWatcher, createSemanticResolver, createUpdateManager } from "@devac/core";
+import {
+  createFileWatcher,
+  createTypeScriptResolver,
+  createUpdateManager,
+} from "@devac/core";
 import { analyzeCommand } from "../src/commands/analyze.js";
 
 // Fixtures path
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
-// Skip performance tests in CI (timing-dependent)
-const isCI = process.env.CI === "true";
-const describePerf = isCI ? describe.skip : describe;
+// CI environments are slower, so we use relaxed thresholds instead of skipping tests
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
 
-describePerf("Performance", () => {
+describe("Performance", () => {
   let tempDir: string;
 
   beforeEach(async () => {
@@ -84,8 +87,8 @@ export class WarmTestClass {
       await updateManager.dispose();
 
       // Should complete within 300ms
-      expect(elapsed).toBeLessThan(300);
-      expect(result.timeMs).toBeLessThan(300);
+      expect(elapsed).toBeLessThan(300 * CI_PERF_MULTIPLIER);
+      expect(result.timeMs).toBeLessThan(300 * CI_PERF_MULTIPLIER);
     });
 
     it("single file update completes in <500ms (cold)", async () => {
@@ -126,7 +129,7 @@ export type ColdType = string | number;
       await updateManager.dispose();
 
       // Should complete within 500ms even cold
-      expect(elapsed).toBeLessThan(500);
+      expect(elapsed).toBeLessThan(500 * CI_PERF_MULTIPLIER);
     });
   });
 
@@ -171,8 +174,8 @@ export class BatchClass${i} {
       await updateManager.dispose();
 
       // Should complete within 800ms
-      expect(elapsed).toBeLessThan(800);
-      expect(result.totalTimeMs).toBeLessThan(800);
+      expect(elapsed).toBeLessThan(800 * CI_PERF_MULTIPLIER);
+      expect(result.totalTimeMs).toBeLessThan(800 * CI_PERF_MULTIPLIER);
       expect(result.successCount + result.errorCount).toBe(10);
     });
 
@@ -206,7 +209,7 @@ export class BatchClass${i} {
 
       // Whether skipped or not, the hash check should be fast
       // The skip optimization works when hash is already tracked
-      expect(elapsed).toBeLessThan(100);
+      expect(elapsed).toBeLessThan(100 * CI_PERF_MULTIPLIER);
 
       // If the first result succeeded and stored the hash, second should skip
       if (firstResult.success && !firstResult.skipped) {
@@ -236,14 +239,14 @@ export class BatchClass${i} {
       const elapsed = Date.now() - startTime;
 
       expect(result.success).toBe(true);
-      expect(elapsed).toBeLessThan(2000);
-      expect(result.timeMs).toBeLessThan(2000);
+      expect(elapsed).toBeLessThan(2000 * CI_PERF_MULTIPLIER);
+      expect(result.timeMs).toBeLessThan(2000 * CI_PERF_MULTIPLIER);
       expect(result.filesAnalyzed).toBe(8);
     });
   });
 
   describe("semantic resolution", () => {
-    it("builds export index for 10 files in <200ms", async () => {
+    it("builds export index for 10 files in <1000ms", async () => {
       await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
 
       // Create files with exports
@@ -260,15 +263,16 @@ export type Type${i} = string;
         );
       }
 
-      const resolver = createSemanticResolver({ repoName: "test-repo" });
+      const resolver = createTypeScriptResolver();
 
       const startTime = Date.now();
       const index = await resolver.buildExportIndex(tempDir);
       const elapsed = Date.now() - startTime;
 
-      // Should be fast for small packages
-      expect(elapsed).toBeLessThan(200);
-      expect(index.exports.size).toBeGreaterThan(0);
+      // ts-morph initialization has some overhead, 1000ms is reasonable for small packages
+      // (ts-morph creates a full TypeScript project which is slower than regex-based parsing)
+      expect(elapsed).toBeLessThan(1000 * CI_PERF_MULTIPLIER);
+      expect(index.fileExports.size).toBeGreaterThan(0);
     });
 
     it("resolves imports for package in <500ms", async () => {
@@ -296,13 +300,52 @@ export class Consumer${i} extends Service {}
         );
       }
 
-      const resolver = createSemanticResolver({ repoName: "test-repo" });
+      const resolver = createTypeScriptResolver();
+
+      // Build unresolved refs that would come from structural parsing (Pass 1)
+      // In production, these come from the parser. For the test, we create them manually.
+      const unresolvedRefs = [];
+      for (let i = 0; i < 5; i++) {
+        const sourceFilePath = path.join(tempDir, "src", `consumer-${i}.ts`);
+        const sourceEntityId = `test-repo:test-pkg:function:src/consumer-${i}.ts:use${i}`;
+
+        // Each file imports helper, CONFIG, Service from utils
+        unresolvedRefs.push(
+          {
+            sourceEntityId: `${sourceEntityId}-helper`,
+            sourceFilePath,
+            moduleSpecifier: "./utils",
+            importedSymbol: "helper",
+            isTypeOnly: false,
+            isDefault: false,
+            isNamespace: false,
+          },
+          {
+            sourceEntityId: `${sourceEntityId}-config`,
+            sourceFilePath,
+            moduleSpecifier: "./utils",
+            importedSymbol: "CONFIG",
+            isTypeOnly: false,
+            isDefault: false,
+            isNamespace: false,
+          },
+          {
+            sourceEntityId: `${sourceEntityId}-service`,
+            sourceFilePath,
+            moduleSpecifier: "./utils",
+            importedSymbol: "Service",
+            isTypeOnly: false,
+            isDefault: false,
+            isNamespace: false,
+          }
+        );
+      }
 
       const startTime = Date.now();
-      const result = await resolver.resolvePackage(tempDir);
+      const result = await resolver.resolvePackage(tempDir, unresolvedRefs);
       const elapsed = Date.now() - startTime;
 
-      expect(elapsed).toBeLessThan(500);
+      expect(elapsed).toBeLessThan(500 * CI_PERF_MULTIPLIER);
       expect(result.resolved).toBeGreaterThan(0);
     });
   });
@@ -352,7 +395,7 @@ export class Consumer${i} extends Service {}
       if (changeDetected) {
         const elapsed = detectionTime - startTime;
         // Detection should be within 500ms
-        expect(elapsed).toBeLessThan(500);
+        expect(elapsed).toBeLessThan(500 * CI_PERF_MULTIPLIER);
       }
     });
   });

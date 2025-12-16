@@ -20,6 +20,9 @@ import {
   createFileWatcher,
 } from "../src/watcher/file-watcher.js";
 
+// CI environments (especially Linux with inotify) need longer timeouts for file system events
+const CI_TIMEOUT_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
+
 describe("FileWatcher", () => {
   let tempDir: string;
   let watcher: FileWatcher | null = null;
@@ -77,7 +80,10 @@ describe("FileWatcher", () => {
     it("ignores node_modules directory", async () => {
       // Create node_modules with a file
       await fs.mkdir(path.join(tempDir, "node_modules"), { recursive: true });
-      await fs.writeFile(path.join(tempDir, "node_modules", "test.ts"), "export const x = 1;");
+      await fs.writeFile(
+        path.join(tempDir, "node_modules", "test.ts"),
+        "export const x = 1;"
+      );
 
       const events: FileChangeEvent[] = [];
       watcher = createFileWatcher(tempDir, { ignoreInitial: false });
@@ -85,23 +91,32 @@ describe("FileWatcher", () => {
 
       await watcher.start();
       // Wait for initial scan
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Should not have picked up node_modules file
-      const nodeModulesEvents = events.filter((e) => e.filePath.includes("node_modules"));
+      const nodeModulesEvents = events.filter((e) =>
+        e.filePath.includes("node_modules")
+      );
       expect(nodeModulesEvents).toHaveLength(0);
     });
 
     it("ignores .devac directory", async () => {
       await fs.mkdir(path.join(tempDir, ".devac", "seed"), { recursive: true });
-      await fs.writeFile(path.join(tempDir, ".devac", "test.ts"), "export const x = 1;");
+      await fs.writeFile(
+        path.join(tempDir, ".devac", "test.ts"),
+        "export const x = 1;"
+      );
 
       const events: FileChangeEvent[] = [];
       watcher = createFileWatcher(tempDir, { ignoreInitial: false });
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       const devacEvents = events.filter((e) => e.filePath.includes(".devac"));
       expect(devacEvents).toHaveLength(0);
@@ -109,14 +124,19 @@ describe("FileWatcher", () => {
 
     it("ignores dist directory", async () => {
       await fs.mkdir(path.join(tempDir, "dist"), { recursive: true });
-      await fs.writeFile(path.join(tempDir, "dist", "index.js"), "export const x = 1;");
+      await fs.writeFile(
+        path.join(tempDir, "dist", "index.js"),
+        "export const x = 1;"
+      );
 
       const events: FileChangeEvent[] = [];
       watcher = createFileWatcher(tempDir, { ignoreInitial: false });
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       const distEvents = events.filter((e) => e.filePath.includes("dist"));
       expect(distEvents).toHaveLength(0);
@@ -156,7 +176,9 @@ describe("FileWatcher", () => {
       const events: FileChangeEvent[] = [];
       watcher.on("batch", (batch) => events.push(...batch));
 
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1100 * CI_TIMEOUT_MULTIPLIER)
+      );
       expect(events).toHaveLength(0);
     });
   });
@@ -173,14 +195,18 @@ describe("FileWatcher", () => {
       await watcher.start();
 
       // Small delay to ensure watcher is fully ready
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Create a new file
       const filePath = path.join(tempDir, "src", "new-file.ts");
       await fs.writeFile(filePath, 'export const hello = "world";');
 
       // Wait for debounce + file write stabilization
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe("add");
@@ -200,12 +226,16 @@ describe("FileWatcher", () => {
       watcher.on("change", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Modify the file
       await fs.writeFile(filePath, "export const x = 2;");
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe("change");
@@ -225,12 +255,16 @@ describe("FileWatcher", () => {
       watcher.on("unlink", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Delete the file
       await fs.unlink(filePath);
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.length).toBeGreaterThanOrEqual(1);
       expect(events[0].type).toBe("unlink");
@@ -257,7 +291,9 @@ describe("FileWatcher", () => {
       }
 
       // Wait for debounce to complete
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Should have fewer events than changes due to debouncing
       expect(events.length).toBeLessThan(5);
@@ -274,7 +310,9 @@ describe("FileWatcher", () => {
       });
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Create multiple files quickly
       await fs.writeFile(path.join(tempDir, "src", "file1.ts"), "const a = 1;");
@@ -282,7 +320,9 @@ describe("FileWatcher", () => {
       await fs.writeFile(path.join(tempDir, "src", "file3.ts"), "const c = 3;");
 
       // Wait for batch
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 400 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(batchEvents.length).toBeGreaterThanOrEqual(3);
     });
@@ -298,10 +338,17 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
-      await fs.writeFile(path.join(tempDir, "src", "test.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "test.ts"),
+        "export const x = 1;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.some((e) => e.filePath.endsWith(".ts"))).toBe(true);
     });
@@ -315,13 +362,17 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       await fs.writeFile(
         path.join(tempDir, "src", "component.tsx"),
         "export const C = () => <div/>;"
       );
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.some((e) => e.filePath.endsWith(".tsx"))).toBe(true);
     });
@@ -336,8 +387,13 @@ describe("FileWatcher", () => {
 
       await watcher.start();
 
-      await fs.writeFile(path.join(tempDir, "src", "types.d.ts"), "declare const x: number;");
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await fs.writeFile(
+        path.join(tempDir, "src", "types.d.ts"),
+        "declare const x: number;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 150 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.some((e) => e.filePath.endsWith(".d.ts"))).toBe(false);
     });
@@ -352,11 +408,21 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
-      await fs.writeFile(path.join(tempDir, "src", "file.ts"), "export const x = 1;");
-      await fs.writeFile(path.join(tempDir, "src", "file.js"), "export const y = 2;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "file.ts"),
+        "export const x = 1;"
+      );
+      await fs.writeFile(
+        path.join(tempDir, "src", "file.js"),
+        "export const y = 2;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.some((e) => e.filePath.endsWith(".js"))).toBe(true);
       expect(events.some((e) => e.filePath.endsWith(".ts"))).toBe(false);
@@ -372,12 +438,16 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       await fs.mkdir(path.join(tempDir, "test"), { recursive: true });
       await fs.writeFile(path.join(tempDir, "test", "spec.ts"), "test content");
       await fs.writeFile(path.join(tempDir, "src", "main.ts"), "main content");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.some((e) => e.filePath.includes("/test/"))).toBe(false);
       expect(events.some((e) => e.filePath.includes("/src/"))).toBe(true);
@@ -387,8 +457,14 @@ describe("FileWatcher", () => {
   describe("initial scan", () => {
     it("performs initial scan when ignoreInitial is false", async () => {
       // Create files before starting watcher
-      await fs.writeFile(path.join(tempDir, "src", "existing1.ts"), "export const a = 1;");
-      await fs.writeFile(path.join(tempDir, "src", "existing2.ts"), "export const b = 2;");
+      await fs.writeFile(
+        path.join(tempDir, "src", "existing1.ts"),
+        "export const a = 1;"
+      );
+      await fs.writeFile(
+        path.join(tempDir, "src", "existing2.ts"),
+        "export const b = 2;"
+      );
 
       const events: FileChangeEvent[] = [];
       watcher = createFileWatcher(tempDir, {
@@ -398,14 +474,19 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(events.length).toBeGreaterThanOrEqual(2);
     });
 
     it("skips initial scan when ignoreInitial is true", async () => {
       // Create files before starting watcher
-      await fs.writeFile(path.join(tempDir, "src", "existing.ts"), "export const x = 1;");
+      await fs.writeFile(
+        path.join(tempDir, "src", "existing.ts"),
+        "export const x = 1;"
+      );
 
       const events: FileChangeEvent[] = [];
       watcher = createFileWatcher(tempDir, {
@@ -415,7 +496,9 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 200 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       // Should not pick up existing files
       expect(events).toHaveLength(0);
@@ -439,10 +522,17 @@ describe("FileWatcher", () => {
       });
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
-      await fs.writeFile(path.join(tempDir, "src", "test.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "test.ts"),
+        "export const x = 1;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(handler1Called).toBe(true);
       expect(handler2Called).toBe(true);
@@ -461,16 +551,28 @@ describe("FileWatcher", () => {
       watcher.on("add", handler);
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
-      await fs.writeFile(path.join(tempDir, "src", "test1.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "test1.ts"),
+        "export const x = 1;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(callCount).toBe(1);
 
       watcher.off("add", handler);
-      await fs.writeFile(path.join(tempDir, "src", "test2.ts"), "export const y = 2;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "test2.ts"),
+        "export const y = 2;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       expect(callCount).toBe(1); // Should not increase
     });
@@ -483,10 +585,17 @@ describe("FileWatcher", () => {
         debounceMs: 50,
       });
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER)
+      );
 
-      await fs.writeFile(path.join(tempDir, "src", "test.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await fs.writeFile(
+        path.join(tempDir, "src", "test.ts"),
+        "export const x = 1;"
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER)
+      );
 
       const stats = watcher.getStats();
       expect(stats.isWatching).toBe(true);
