@@ -17,10 +17,16 @@
 
 export * from "./types.js";
 export * from "./typescript-semantic.js";
+export * from "./python-semantic.js";
 
-import type { SemanticConfig, SemanticLanguage, SemanticResolver } from "./types.js";
+import type {
+  SemanticConfig,
+  SemanticLanguage,
+  SemanticResolver,
+} from "./types.js";
 import { defaultSemanticConfig } from "./types.js";
 import { TypeScriptSemanticResolver } from "./typescript-semantic.js";
+import { PythonSemanticResolver } from "./python-semantic.js";
 
 /**
  * Semantic Resolver Factory
@@ -50,11 +56,19 @@ export class SemanticResolverFactory {
   private initializeResolvers(): void {
     // TypeScript resolver (always available when enabled)
     if (this.config.typescript.enabled) {
-      this.resolvers.set("typescript", new TypeScriptSemanticResolver(this.config.typescript));
+      this.resolvers.set(
+        "typescript",
+        new TypeScriptSemanticResolver(this.config.typescript)
+      );
     }
 
-    // Python resolver (Pyright-based, Phase 2)
-    // TODO: Implement PythonSemanticResolver
+    // Python resolver (Pyright-based)
+    if (this.config.python.enabled) {
+      this.resolvers.set(
+        "python",
+        new PythonSemanticResolver(this.config.python)
+      );
+    }
 
     // C# resolver (Roslyn-based, Phase 3)
     // TODO: Implement CSharpSemanticResolver
@@ -186,14 +200,18 @@ export function getSemanticResolverFactory(
 /**
  * Get a semantic resolver for a specific language
  */
-export function getSemanticResolver(language: SemanticLanguage): SemanticResolver | undefined {
+export function getSemanticResolver(
+  language: SemanticLanguage
+): SemanticResolver | undefined {
   return getSemanticResolverFactory().getResolver(language);
 }
 
 /**
  * Get a semantic resolver for a file based on extension
  */
-export function getSemanticResolverForFile(filePath: string): SemanticResolver | undefined {
+export function getSemanticResolverForFile(
+  filePath: string
+): SemanticResolver | undefined {
   return getSemanticResolverFactory().getResolverForFile(filePath);
 }
 
