@@ -18,6 +18,7 @@
 export * from "./types.js";
 export * from "./typescript-semantic.js";
 export * from "./python-semantic.js";
+export * from "./csharp-semantic.js";
 
 import type {
   SemanticConfig,
@@ -27,6 +28,7 @@ import type {
 import { defaultSemanticConfig } from "./types.js";
 import { TypeScriptSemanticResolver } from "./typescript-semantic.js";
 import { PythonSemanticResolver } from "./python-semantic.js";
+import { CSharpSemanticResolver } from "./csharp-semantic.js";
 
 /**
  * Semantic Resolver Factory
@@ -70,8 +72,13 @@ export class SemanticResolverFactory {
       );
     }
 
-    // C# resolver (Roslyn-based, Phase 3)
-    // TODO: Implement CSharpSemanticResolver
+    // C# resolver (regex-based with optional .NET SDK enhancement)
+    if (this.config.csharp.enabled) {
+      this.resolvers.set(
+        "csharp",
+        new CSharpSemanticResolver(this.config.csharp)
+      );
+    }
   }
 
   /**
