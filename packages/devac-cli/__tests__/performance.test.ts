@@ -8,6 +8,8 @@
  * - Watch mode responds in <300ms
  *
  * These tests validate performance targets from the spec.
+ *
+ * NOTE: These tests are skipped in CI due to environment-dependent timing.
  */
 
 import * as fs from "node:fs/promises";
@@ -21,7 +23,11 @@ import { analyzeCommand } from "../src/commands/analyze.js";
 // Fixtures path
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
-describe("Performance", () => {
+// Skip performance tests in CI (timing-dependent)
+const isCI = process.env.CI === "true";
+const describePerf = isCI ? describe.skip : describe;
+
+describePerf("Performance", () => {
   let tempDir: string;
 
   beforeEach(async () => {

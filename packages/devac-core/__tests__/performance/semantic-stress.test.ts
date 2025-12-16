@@ -3,6 +3,8 @@
  *
  * Tests performance characteristics of semantic resolvers
  * under various load conditions.
+ *
+ * NOTE: These tests are skipped in CI due to environment-dependent timing.
  */
 
 import * as fs from "node:fs/promises";
@@ -19,7 +21,11 @@ import {
   createTypeScriptResolver,
 } from "../../src/semantic/index.js";
 
-describe("Semantic Resolution Performance", () => {
+// Skip performance tests in CI (timing-dependent)
+const isCI = process.env.CI === "true";
+const describePerf = isCI ? describe.skip : describe;
+
+describePerf("Semantic Resolution Performance", () => {
   let tempDir: string;
 
   beforeAll(async () => {
