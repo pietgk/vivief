@@ -638,4 +638,729 @@ that spans multiple lines
       expect(result.parseTimeMs).toBeLessThan(10000); // Should parse in < 10s
     });
   });
+
+  // ==========================================================================
+  // Modern Python Features Tests (Python 3.10+)
+  // ==========================================================================
+
+  describe("modern Python features", () => {
+    describe("walrus operator (:=)", () => {
+      it("parses functions using walrus operator", async () => {
+        const content = `
+def process_data(items: list[int]) -> list[int]:
+    result = []
+    while (n := len(items)) > 0:
+        if (doubled := items.pop() * 2) > 10:
+            result.append(doubled)
+    return result
+`;
+        const result = await parser.parseContent(content, "walrus.py", testConfig);
+
+        const processFunc = result.nodes.find((n) => n.name === "process_data");
+        expect(processFunc).toBeDefined();
+        expect(processFunc?.kind).toBe("function");
+      });
+
+      it("parses walrus operator in comprehensions", async () => {
+        const content = `
+def filter_squares(n: int) -> list[int]:
+    return [y for x in range(n) if (y := x ** 2) > 20]
+`;
+        const result = await parser.parseContent(content, "walrus_comp.py", testConfig);
+
+        const filterFunc = result.nodes.find((n) => n.name === "filter_squares");
+        expect(filterFunc).toBeDefined();
+      });
+    });
+
+    describe("match statements (Python 3.10+)", () => {
+      it("parses function with basic match statement", async () => {
+        const content = `
+def handle_command(command: str) -> str:
+    match command.split():
+        case ["quit"]:
+            return "Quitting..."
+        case ["hello", name]:
+            return f"Hello, {name}!"
+        case _:
+            return "Unknown command"
+`;
+        const result = await parser.parseContent(content, "match.py", testConfig);
+
+        const handleFunc = result.nodes.find((n) => n.name === "handle_command");
+        expect(handleFunc).toBeDefined();
+        expect(handleFunc?.kind).toBe("function");
+      });
+
+      it("parses match with tuple patterns", async () => {
+        const content = `
+def process_point(point: tuple) -> str:
+    match point:
+        case (0, 0):
+            return "Origin"
+        case (0, y):
+            return f"On Y-axis at {y}"
+        case (x, 0):
+            return f"On X-axis at {x}"
+        case (x, y):
+            return f"Point at ({x}, {y})"
+`;
+        const result = await parser.parseContent(content, "match_tuple.py", testConfig);
+
+        const processFunc = result.nodes.find((n) => n.name === "process_point");
+        expect(processFunc).toBeDefined();
+      });
+
+      it("parses match with class patterns", async () => {
+        const content = `
+from dataclasses import dataclass
+
+@dataclass
+class Point3D:
+    x: float
+    y: float
+    z: float
+
+def classify_point(point: Point3D) -> str:
+    match point:
+        case Point3D(x=0, y=0, z=0):
+            return "Origin"
+        case Point3D(x=0, y=0, z=z):
+            return f"On Z-axis at {z}"
+        case _:
+            return "General point"
+`;
+        const result = await parser.parseContent(content, "match_class.py", testConfig);
+
+        const point3DClass = result.nodes.find((n) => n.name === "Point3D" && n.kind === "class");
+        expect(point3DClass).toBeDefined();
+
+        const classifyFunc = result.nodes.find((n) => n.name === "classify_point");
+        expect(classifyFunc).toBeDefined();
+      });
+
+      it("parses match with guard conditions", async () => {
+        const content = `
+def match_with_guards(value: int) -> str:
+    match value:
+        case n if n < 0:
+            return "Negative"
+        case 0:
+            return "Zero"
+        case n if n < 10:
+            return "Small positive"
+        case _:
+            return "Large positive"
+`;
+        const result = await parser.parseContent(content, "match_guards.py", testConfig);
+
+        const matchFunc = result.nodes.find((n) => n.name === "match_with_guards");
+        expect(matchFunc).toBeDefined();
+      });
+
+      it("parses match with OR patterns", async () => {
+        const content = `
+def match_status(status: str | int) -> str:
+    match status:
+        case "active" | "enabled" | 1:
+            return "Active"
+        case "inactive" | "disabled" | 0:
+            return "Inactive"
+        case _:
+            return "Unknown"
+`;
+        const result = await parser.parseContent(content, "match_or.py", testConfig);
+
+        const matchFunc = result.nodes.find((n) => n.name === "match_status");
+        expect(matchFunc).toBeDefined();
+      });
+    });
+
+    describe("positional-only and keyword-only parameters", () => {
+      it("parses positional-only parameters", async () => {
+        const content = `
+def positional_only(x: int, y: int, /, z: int = 0) -> int:
+    return x + y + z
+`;
+        const result = await parser.parseContent(content, "pos_only.py", testConfig);
+
+        const func = result.nodes.find((n) => n.name === "positional_only");
+        expect(func).toBeDefined();
+        expect(func?.kind).toBe("function");
+      });
+
+      it("parses keyword-only parameters", async () => {
+        const content = `
+def keyword_only(*, name: str, age: int) -> str:
+    return f"{name} is {age} years old"
+`;
+        const result = await parser.parseContent(content, "kw_only.py", testConfig);
+
+        const func = result.nodes.find((n) => n.name === "keyword_only");
+        expect(func).toBeDefined();
+      });
+
+      it("parses mixed parameter types", async () => {
+        const content = `
+def mixed_params(
+    pos_only1: int,
+    pos_only2: int,
+    /,
+    pos_or_kw: int,
+    *,
+    kw_only1: str,
+    kw_only2: str = "default",
+) -> dict:
+    return {}
+`;
+        const result = await parser.parseContent(content, "mixed_params.py", testConfig);
+
+        const func = result.nodes.find((n) => n.name === "mixed_params");
+        expect(func).toBeDefined();
+      });
+    });
+
+    describe("dataclasses", () => {
+      it("parses basic dataclass", async () => {
+        const content = `
+from dataclasses import dataclass
+
+@dataclass
+class User:
+    name: str
+    age: int
+    email: str = ""
+`;
+        const result = await parser.parseContent(content, "dataclass.py", testConfig);
+
+        const userClass = result.nodes.find((n) => n.name === "User" && n.kind === "class");
+        expect(userClass).toBeDefined();
+      });
+
+      it("parses frozen dataclass", async () => {
+        const content = `
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class ImmutableData:
+    id: int
+    value: str
+`;
+        const result = await parser.parseContent(content, "frozen_dataclass.py", testConfig);
+
+        const immutableClass = result.nodes.find(
+          (n) => n.name === "ImmutableData" && n.kind === "class"
+        );
+        expect(immutableClass).toBeDefined();
+      });
+
+      it("parses dataclass with slots", async () => {
+        const content = `
+from dataclasses import dataclass
+
+@dataclass(slots=True)
+class SlottedData:
+    x: float
+    y: float
+    z: float = 0.0
+`;
+        const result = await parser.parseContent(content, "slotted_dataclass.py", testConfig);
+
+        const slottedClass = result.nodes.find(
+          (n) => n.name === "SlottedData" && n.kind === "class"
+        );
+        expect(slottedClass).toBeDefined();
+      });
+
+      it("parses dataclass with field factories", async () => {
+        const content = `
+from dataclasses import dataclass, field
+
+@dataclass
+class DataWithFactory:
+    name: str
+    items: list[str] = field(default_factory=list)
+    metadata: dict[str, str] = field(default_factory=dict)
+`;
+        const result = await parser.parseContent(content, "dataclass_factory.py", testConfig);
+
+        const dataClass = result.nodes.find(
+          (n) => n.name === "DataWithFactory" && n.kind === "class"
+        );
+        expect(dataClass).toBeDefined();
+      });
+
+      it("parses dataclass with post_init", async () => {
+        const content = `
+from dataclasses import dataclass, field
+
+@dataclass
+class PersonWithFullName:
+    first_name: str
+    last_name: str
+    full_name: str = field(init=False)
+
+    def __post_init__(self):
+        self.full_name = f"{self.first_name} {self.last_name}"
+`;
+        const result = await parser.parseContent(content, "dataclass_post_init.py", testConfig);
+
+        const personClass = result.nodes.find(
+          (n) => n.name === "PersonWithFullName" && n.kind === "class"
+        );
+        expect(personClass).toBeDefined();
+
+        const postInitMethod = result.nodes.find(
+          (n) => n.name === "__post_init__" && n.kind === "method"
+        );
+        expect(postInitMethod).toBeDefined();
+      });
+    });
+
+    describe("Protocol classes", () => {
+      it("parses Protocol class", async () => {
+        const content = `
+from typing import Protocol
+
+class Drawable(Protocol):
+    def draw(self) -> None:
+        ...
+`;
+        const result = await parser.parseContent(content, "protocol.py", testConfig);
+
+        const drawableClass = result.nodes.find((n) => n.name === "Drawable" && n.kind === "class");
+        expect(drawableClass).toBeDefined();
+
+        const drawMethod = result.nodes.find((n) => n.name === "draw" && n.kind === "method");
+        expect(drawMethod).toBeDefined();
+      });
+
+      it("parses runtime_checkable Protocol", async () => {
+        const content = `
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Serializable(Protocol):
+    def to_json(self) -> str:
+        ...
+
+    def from_json(self, data: str) -> "Serializable":
+        ...
+`;
+        const result = await parser.parseContent(content, "runtime_protocol.py", testConfig);
+
+        const serializableClass = result.nodes.find(
+          (n) => n.name === "Serializable" && n.kind === "class"
+        );
+        expect(serializableClass).toBeDefined();
+      });
+
+      it("parses Protocol with comparison methods", async () => {
+        const content = `
+from typing import Protocol, Self
+
+class Comparable(Protocol):
+    def __lt__(self, other: Self) -> bool: ...
+    def __le__(self, other: Self) -> bool: ...
+    def __gt__(self, other: Self) -> bool: ...
+    def __ge__(self, other: Self) -> bool: ...
+`;
+        const result = await parser.parseContent(content, "comparable_protocol.py", testConfig);
+
+        const comparableClass = result.nodes.find(
+          (n) => n.name === "Comparable" && n.kind === "class"
+        );
+        expect(comparableClass).toBeDefined();
+
+        // Check for dunder methods
+        const ltMethod = result.nodes.find((n) => n.name === "__lt__" && n.kind === "method");
+        expect(ltMethod).toBeDefined();
+      });
+    });
+
+    describe("TypedDict", () => {
+      it("parses TypedDict class", async () => {
+        const content = `
+from typing import TypedDict
+
+class UserDict(TypedDict):
+    name: str
+    age: int
+    email: str
+`;
+        const result = await parser.parseContent(content, "typeddict.py", testConfig);
+
+        const userDictClass = result.nodes.find((n) => n.name === "UserDict" && n.kind === "class");
+        expect(userDictClass).toBeDefined();
+      });
+
+      it("parses TypedDict with total=False", async () => {
+        const content = `
+from typing import TypedDict
+
+class PartialUser(TypedDict, total=False):
+    name: str
+    age: int
+    email: str
+`;
+        const result = await parser.parseContent(content, "partial_typeddict.py", testConfig);
+
+        const partialClass = result.nodes.find(
+          (n) => n.name === "PartialUser" && n.kind === "class"
+        );
+        expect(partialClass).toBeDefined();
+      });
+    });
+
+    describe("overloaded functions", () => {
+      it("parses overloaded function signatures", async () => {
+        const content = `
+from typing import overload
+
+@overload
+def process(value: int) -> str: ...
+
+@overload
+def process(value: str) -> int: ...
+
+@overload
+def process(value: list[int]) -> list[str]: ...
+
+def process(value):
+    if isinstance(value, int):
+        return str(value)
+    elif isinstance(value, str):
+        return len(value)
+    else:
+        return [str(x) for x in value]
+`;
+        const result = await parser.parseContent(content, "overload.py", testConfig);
+
+        // Should find at least the implementation
+        const processFuncs = result.nodes.filter(
+          (n) => n.name === "process" && n.kind === "function"
+        );
+        expect(processFuncs.length).toBeGreaterThan(0);
+      });
+
+      it("parses overloaded function with Literal types", async () => {
+        const content = `
+from typing import overload, Literal
+
+@overload
+def fetch_data(url: str, *, as_json: Literal[True]) -> dict: ...
+
+@overload
+def fetch_data(url: str, *, as_json: Literal[False]) -> str: ...
+
+def fetch_data(url: str, *, as_json: bool = False) -> dict | str:
+    if as_json:
+        return {"url": url}
+    return url
+`;
+        const result = await parser.parseContent(content, "overload_literal.py", testConfig);
+
+        const fetchFuncs = result.nodes.filter(
+          (n) => n.name === "fetch_data" && n.kind === "function"
+        );
+        expect(fetchFuncs.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe("Final and Literal types", () => {
+      it("parses Final type annotations", async () => {
+        const content = `
+from typing import Final
+
+MAX_SIZE: Final[int] = 100
+API_VERSION: Final = "v2"
+
+class Config:
+    DEFAULT_TIMEOUT: Final[int] = 30
+`;
+        const result = await parser.parseContent(content, "final.py", testConfig);
+
+        const maxSize = result.nodes.find(
+          (n) => n.name === "MAX_SIZE" && (n.kind === "variable" || n.kind === "constant")
+        );
+        expect(maxSize).toBeDefined();
+
+        const configClass = result.nodes.find((n) => n.name === "Config" && n.kind === "class");
+        expect(configClass).toBeDefined();
+      });
+
+      it("parses Literal type in function signature", async () => {
+        const content = `
+from typing import Literal
+
+Mode = Literal["read", "write", "append"]
+
+def open_file(path: str, mode: Mode) -> str:
+    return f"Opening {path} in {mode} mode"
+`;
+        const result = await parser.parseContent(content, "literal.py", testConfig);
+
+        const openFunc = result.nodes.find((n) => n.name === "open_file");
+        expect(openFunc).toBeDefined();
+      });
+    });
+
+    describe("Self type annotation", () => {
+      it("parses methods returning Self", async () => {
+        const content = `
+from typing import Self
+
+class ChainableBuilder:
+    def __init__(self):
+        self.items: list[str] = []
+
+    def add(self, item: str) -> Self:
+        self.items.append(item)
+        return self
+
+    def clear(self) -> Self:
+        self.items.clear()
+        return self
+
+    @classmethod
+    def create(cls) -> Self:
+        return cls()
+`;
+        const result = await parser.parseContent(content, "self_type.py", testConfig);
+
+        const builderClass = result.nodes.find(
+          (n) => n.name === "ChainableBuilder" && n.kind === "class"
+        );
+        expect(builderClass).toBeDefined();
+
+        const addMethod = result.nodes.find((n) => n.name === "add" && n.kind === "method");
+        expect(addMethod).toBeDefined();
+
+        const createMethod = result.nodes.find((n) => n.name === "create" && n.kind === "method");
+        expect(createMethod).toBeDefined();
+      });
+    });
+
+    describe("__slots__", () => {
+      it("parses class with __slots__", async () => {
+        const content = `
+class SlottedClass:
+    __slots__ = ("x", "y", "z")
+
+    def __init__(self, x: float, y: float, z: float = 0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def magnitude(self) -> float:
+        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+`;
+        const result = await parser.parseContent(content, "slots.py", testConfig);
+
+        const slottedClass = result.nodes.find(
+          (n) => n.name === "SlottedClass" && n.kind === "class"
+        );
+        expect(slottedClass).toBeDefined();
+
+        const magnitudeMethod = result.nodes.find(
+          (n) => n.name === "magnitude" && n.kind === "method"
+        );
+        expect(magnitudeMethod).toBeDefined();
+      });
+
+      it("parses inherited slots", async () => {
+        const content = `
+class BaseSlotted:
+    __slots__ = ("x", "y")
+
+class DerivedSlotted(BaseSlotted):
+    __slots__ = ("z",)
+
+    def __init__(self, x: float, y: float, z: float):
+        self.x = x
+        self.y = y
+        self.z = z
+`;
+        const result = await parser.parseContent(content, "inherited_slots.py", testConfig);
+
+        const baseClass = result.nodes.find((n) => n.name === "BaseSlotted" && n.kind === "class");
+        expect(baseClass).toBeDefined();
+
+        const derivedClass = result.nodes.find(
+          (n) => n.name === "DerivedSlotted" && n.kind === "class"
+        );
+        expect(derivedClass).toBeDefined();
+
+        // Check EXTENDS edge
+        const extendsEdge = result.edges.find(
+          (e) => e.edge_type === "EXTENDS" && e.source_entity_id === derivedClass?.entity_id
+        );
+        expect(extendsEdge).toBeDefined();
+      });
+    });
+
+    describe("ParamSpec and TypeVarTuple", () => {
+      it("parses decorator using ParamSpec", async () => {
+        const content = `
+from typing import Callable, ParamSpec, TypeVar
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+def with_logging(func: Callable[P, R]) -> Callable[P, R]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        print(f"Calling {func.__name__}")
+        result = func(*args, **kwargs)
+        print(f"{func.__name__} returned {result}")
+        return result
+    return wrapper
+`;
+        const result = await parser.parseContent(content, "paramspec.py", testConfig);
+
+        const loggingFunc = result.nodes.find((n) => n.name === "with_logging");
+        expect(loggingFunc).toBeDefined();
+
+        const wrapperFunc = result.nodes.find((n) => n.name === "wrapper");
+        expect(wrapperFunc).toBeDefined();
+      });
+
+      it("parses TypeVarTuple usage", async () => {
+        const content = `
+from typing import TypeVarTuple, Generic, Unpack
+
+Ts = TypeVarTuple("Ts")
+
+class GenericTuple(Generic[Unpack[Ts]]):
+    def __init__(self, *args: Unpack[Ts]) -> None:
+        self.items = args
+`;
+        const result = await parser.parseContent(content, "typevartuple.py", testConfig);
+
+        const genericClass = result.nodes.find(
+          (n) => n.name === "GenericTuple" && n.kind === "class"
+        );
+        expect(genericClass).toBeDefined();
+      });
+    });
+
+    describe("async generators and context managers", () => {
+      it("parses async generator function", async () => {
+        const content = `
+async def async_range(start: int, stop: int):
+    for i in range(start, stop):
+        yield i
+`;
+        const result = await parser.parseContent(content, "async_gen.py", testConfig);
+
+        const asyncGenFunc = result.nodes.find((n) => n.name === "async_range");
+        expect(asyncGenFunc).toBeDefined();
+        expect(asyncGenFunc?.is_async).toBe(true);
+        // Generator flag may or may not be set depending on implementation
+      });
+
+      it("parses async context manager class", async () => {
+        const content = `
+from typing import Self
+
+class AsyncContextManager:
+    async def __aenter__(self) -> Self:
+        print("Entering async context")
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> bool:
+        print("Exiting async context")
+        return False
+
+    async def do_work(self) -> str:
+        return "Work done"
+`;
+        const result = await parser.parseContent(content, "async_context.py", testConfig);
+
+        const contextClass = result.nodes.find(
+          (n) => n.name === "AsyncContextManager" && n.kind === "class"
+        );
+        expect(contextClass).toBeDefined();
+
+        const aenterMethod = result.nodes.find((n) => n.name === "__aenter__");
+        expect(aenterMethod).toBeDefined();
+        expect(aenterMethod?.is_async).toBe(true);
+
+        const aexitMethod = result.nodes.find((n) => n.name === "__aexit__");
+        expect(aexitMethod).toBeDefined();
+        expect(aexitMethod?.is_async).toBe(true);
+      });
+    });
+
+    describe("exception groups (Python 3.11+)", () => {
+      it("parses function with exception group handling", async () => {
+        const content = `
+def handle_exception_group():
+    try:
+        raise ExceptionGroup(
+            "multiple errors",
+            [ValueError("value error"), TypeError("type error")],
+        )
+    except* ValueError as e:
+        print(f"Caught ValueError: {e}")
+    except* TypeError as e:
+        print(f"Caught TypeError: {e}")
+`;
+        const result = await parser.parseContent(content, "exception_group.py", testConfig);
+
+        const handleFunc = result.nodes.find((n) => n.name === "handle_exception_group");
+        expect(handleFunc).toBeDefined();
+        expect(handleFunc?.kind).toBe("function");
+      });
+    });
+
+    describe("complex modern Python patterns", () => {
+      it("parses file with combined modern features", async () => {
+        const filePath = path.join(FIXTURES_DIR, "sample-modern-python.py");
+        const result = await parser.parse(filePath, testConfig);
+
+        // Should parse without errors
+        expect(result).toBeDefined();
+        expect(result.nodes.length).toBeGreaterThan(0);
+
+        // Check for some key elements from the fixture
+        const classNodes = result.nodes.filter((n) => n.kind === "class");
+        expect(classNodes.length).toBeGreaterThan(0);
+
+        const functionNodes = result.nodes.filter((n) => n.kind === "function");
+        expect(functionNodes.length).toBeGreaterThan(0);
+      });
+
+      it("parses union types with | syntax", async () => {
+        const content = `
+def process(value: int | str | None) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+`;
+        const result = await parser.parseContent(content, "union_pipe.py", testConfig);
+
+        const processFunc = result.nodes.find((n) => n.name === "process");
+        expect(processFunc).toBeDefined();
+      });
+
+      it("parses generic type syntax", async () => {
+        const content = `
+from typing import TypeVar, Generic
+
+T = TypeVar("T", covariant=True)
+
+class Producer(Generic[T]):
+    def produce(self) -> T:
+        raise NotImplementedError
+`;
+        const result = await parser.parseContent(content, "generic.py", testConfig);
+
+        const producerClass = result.nodes.find((n) => n.name === "Producer" && n.kind === "class");
+        expect(producerClass).toBeDefined();
+
+        const produceMethod = result.nodes.find((n) => n.name === "produce");
+        expect(produceMethod).toBeDefined();
+      });
+    });
+  });
 });

@@ -1014,5 +1014,614 @@ public class Product
       const extensionMethods = result.nodes.filter((n) => n.properties?.isExtension === true);
       expect(extensionMethods.length).toBeGreaterThanOrEqual(5);
     });
+
+    it("parses sample-csharp-12.cs fixture with modern features", async () => {
+      const parser = createCSharpParser();
+      const fixturePath = getFixturePath("sample-csharp-12.cs");
+      const result = await parser.parse(fixturePath, defaultConfig);
+
+      // Should parse without errors
+      expect(result).toBeDefined();
+      expect(result.nodes.length).toBeGreaterThan(0);
+
+      // Should have classes
+      const classes = result.nodes.filter((n) => n.kind === "class");
+      expect(classes.length).toBeGreaterThan(5);
+
+      // Should have interfaces
+      const interfaces = result.nodes.filter((n) => n.kind === "interface");
+      expect(interfaces.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ==========================================================================
+  // Modern C# Features Tests (C# 10-12)
+  // ==========================================================================
+
+  describe("modern C# features", () => {
+    describe("nullable reference types", () => {
+      it("parses nullable property types", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class User
+{
+    public string Name { get; set; } = "";
+    public string? MiddleName { get; set; }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const nameProperty = result.nodes.find((n) => n.kind === "property" && n.name === "Name");
+        expect(nameProperty).toBeDefined();
+
+        const middleNameProperty = result.nodes.find(
+          (n) => n.kind === "property" && n.name === "MiddleName"
+        );
+        expect(middleNameProperty).toBeDefined();
+      });
+
+      it("parses nullable method parameters and return types", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Service
+{
+    public string? ProcessName(string? input)
+    {
+        return input?.ToUpper();
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const processMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "ProcessName"
+        );
+        expect(processMethod).toBeDefined();
+      });
+    });
+
+    describe("pattern matching", () => {
+      it("parses switch expression with type patterns", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class PatternDemo
+{
+    public string Describe(object obj) => obj switch
+    {
+        null => "null",
+        string s => $"String: {s}",
+        int n => $"Number: {n}",
+        _ => "Unknown"
+    };
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const describeMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "Describe"
+        );
+        expect(describeMethod).toBeDefined();
+      });
+
+      it("parses property patterns", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Customer { public int Level { get; set; } }
+
+public class DiscountCalculator
+{
+    public decimal GetDiscount(Customer c) => c switch
+    {
+        { Level: > 10 } => 0.20m,
+        { Level: > 5 } => 0.10m,
+        _ => 0m
+    };
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const getDiscountMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "GetDiscount"
+        );
+        expect(getDiscountMethod).toBeDefined();
+      });
+
+      it("parses relational patterns", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class TempClassifier
+{
+    public string Classify(double temp) => temp switch
+    {
+        < 0 => "Freezing",
+        >= 0 and < 15 => "Cold",
+        >= 15 and < 25 => "Comfortable",
+        >= 25 => "Hot"
+    };
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const classifyMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "Classify"
+        );
+        expect(classifyMethod).toBeDefined();
+      });
+
+      it("parses list patterns", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class ListMatcher
+{
+    public string Match(int[] numbers) => numbers switch
+    {
+        [] => "Empty",
+        [var single] => $"Single: {single}",
+        [var first, .., var last] => $"Range: {first} to {last}"
+    };
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const matchMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Match");
+        expect(matchMethod).toBeDefined();
+      });
+
+      it("parses is pattern with negation", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Checker
+{
+    public bool IsNotNull(object? obj) => obj is not null;
+    public bool IsValidAge(int age) => age is >= 0 and <= 120;
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const isNotNullMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "IsNotNull"
+        );
+        expect(isNotNullMethod).toBeDefined();
+
+        const isValidAgeMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "IsValidAge"
+        );
+        expect(isValidAgeMethod).toBeDefined();
+      });
+    });
+
+    describe("init-only setters", () => {
+      it("parses init-only properties", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class ImmutablePerson
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const idProperty = result.nodes.find((n) => n.kind === "property" && n.name === "Id");
+        expect(idProperty).toBeDefined();
+
+        const nameProperty = result.nodes.find((n) => n.kind === "property" && n.name === "Name");
+        expect(nameProperty).toBeDefined();
+      });
+    });
+
+    describe("primary constructors (C# 12)", () => {
+      it("parses class with primary constructor", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Person(string firstName, string lastName)
+{
+    public string FirstName { get; } = firstName;
+    public string LastName { get; } = lastName;
+    public string FullName => $"{firstName} {lastName}";
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const personClass = result.nodes.find((n) => n.kind === "class" && n.name === "Person");
+        expect(personClass).toBeDefined();
+
+        const firstNameProperty = result.nodes.find(
+          (n) => n.kind === "property" && n.name === "FirstName"
+        );
+        expect(firstNameProperty).toBeDefined();
+      });
+
+      it("parses struct with primary constructor", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public readonly struct Point(double x, double y)
+{
+    public double X { get; } = x;
+    public double Y { get; } = y;
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const pointStruct = result.nodes.find((n) => n.name === "Point");
+        expect(pointStruct).toBeDefined();
+        expect(pointStruct?.properties?.isStruct).toBe(true);
+      });
+
+      it("parses class with primary constructor and inheritance", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Person(string name) { }
+
+public class Employee(string name, string department) : Person(name)
+{
+    public string Department { get; } = department;
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const employeeClass = result.nodes.find((n) => n.kind === "class" && n.name === "Employee");
+        expect(employeeClass).toBeDefined();
+
+        const extendsEdge = result.edges.find(
+          (e) => e.edge_type === "EXTENDS" && e.source_entity_id === employeeClass?.entity_id
+        );
+        expect(extendsEdge).toBeDefined();
+      });
+    });
+
+    describe("collection expressions (C# 12)", () => {
+      it("parses methods using collection expressions", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class CollectionDemo
+{
+    public int[] GetNumbers() => [1, 2, 3, 4, 5];
+    public List<string> GetNames() => ["Alice", "Bob"];
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const getNumbersMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "GetNumbers"
+        );
+        expect(getNumbersMethod).toBeDefined();
+
+        const getNamesMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "GetNames"
+        );
+        expect(getNamesMethod).toBeDefined();
+      });
+
+      it("parses spread operator in collections", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class SpreadDemo
+{
+    public int[] Combine(int[] a, int[] b) => [..a, ..b];
+    public int[] Prepend(int[] arr) => [0, ..arr];
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const combineMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Combine");
+        expect(combineMethod).toBeDefined();
+      });
+    });
+
+    describe("raw string literals (C# 11)", () => {
+      it("parses class with raw string literals", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class StringDemo
+{
+    public string GetJson() => """
+        {
+            "name": "test"
+        }
+        """;
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const getJsonMethod = result.nodes.find((n) => n.kind === "method" && n.name === "GetJson");
+        expect(getJsonMethod).toBeDefined();
+      });
+    });
+
+    describe("required members (C# 11)", () => {
+      it("parses required properties", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Entity
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const entityClass = result.nodes.find((n) => n.kind === "class" && n.name === "Entity");
+        expect(entityClass).toBeDefined();
+
+        const idProperty = result.nodes.find((n) => n.kind === "property" && n.name === "Id");
+        expect(idProperty).toBeDefined();
+      });
+    });
+
+    describe("file-local types (C# 11)", () => {
+      it("parses file-local classes", async () => {
+        const parser = createCSharpParser();
+        const content = `
+file class FileLocalHelper
+{
+    public static int Calculate() => 42;
+}
+
+public class PublicClass
+{
+    public int GetValue() => FileLocalHelper.Calculate();
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        // File-local class should be parsed
+        const fileLocalClass = result.nodes.find(
+          (n) => n.kind === "class" && n.name === "FileLocalHelper"
+        );
+        expect(fileLocalClass).toBeDefined();
+
+        const publicClass = result.nodes.find(
+          (n) => n.kind === "class" && n.name === "PublicClass"
+        );
+        expect(publicClass).toBeDefined();
+      });
+    });
+
+    describe("static abstract members in interfaces (C# 11)", () => {
+      it("parses interface with static abstract members", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public interface IAddable<TSelf> where TSelf : IAddable<TSelf>
+{
+    static abstract TSelf operator +(TSelf left, TSelf right);
+    static abstract TSelf Zero { get; }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const addableInterface = result.nodes.find(
+          (n) => n.kind === "interface" && n.name === "IAddable"
+        );
+        expect(addableInterface).toBeDefined();
+        expect(addableInterface?.type_parameters).toContain("TSelf");
+      });
+
+      it("parses implementation of static abstract interface", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public interface IAddable<TSelf> where TSelf : IAddable<TSelf>
+{
+    static abstract TSelf operator +(TSelf left, TSelf right);
+    static abstract TSelf Zero { get; }
+}
+
+public readonly struct Money : IAddable<Money>
+{
+    public decimal Amount { get; }
+    public Money(decimal amount) => Amount = amount;
+    public static Money Zero => new(0);
+    public static Money operator +(Money left, Money right) => new(left.Amount + right.Amount);
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const moneyStruct = result.nodes.find((n) => n.name === "Money");
+        expect(moneyStruct).toBeDefined();
+
+        const implementsEdge = result.edges.find(
+          (e) => e.edge_type === "IMPLEMENTS" && e.source_entity_id === moneyStruct?.entity_id
+        );
+        expect(implementsEdge).toBeDefined();
+      });
+    });
+
+    describe("generic math (C# 11)", () => {
+      it("parses generic math methods using INumber", async () => {
+        const parser = createCSharpParser();
+        const content = `
+using System.Numerics;
+
+public class MathHelper
+{
+    public static T Sum<T>(IEnumerable<T> values) where T : INumber<T>
+    {
+        T result = T.Zero;
+        foreach (var value in values)
+            result += value;
+        return result;
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const sumMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Sum");
+        expect(sumMethod).toBeDefined();
+        expect(sumMethod?.is_static).toBe(true);
+      });
+    });
+
+    describe("lambda improvements", () => {
+      it("parses lambda with explicit return type", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class LambdaDemo
+{
+    public Func<int, int> Square = (int x) => x * x;
+
+    public void Demo()
+    {
+        var add = (int a, int b) => a + b;
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const lambdaClass = result.nodes.find((n) => n.kind === "class" && n.name === "LambdaDemo");
+        expect(lambdaClass).toBeDefined();
+
+        const demoMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Demo");
+        expect(demoMethod).toBeDefined();
+      });
+    });
+
+    describe("async improvements", () => {
+      it("parses async enumerable methods", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class AsyncDemo
+{
+    public async IAsyncEnumerable<int> GenerateAsync()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            await Task.Delay(100);
+            yield return i;
+        }
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const generateMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "GenerateAsync"
+        );
+        expect(generateMethod).toBeDefined();
+        expect(generateMethod?.is_async).toBe(true);
+      });
+
+      it("parses async disposable", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class AsyncResource : IAsyncDisposable
+{
+    public async ValueTask DisposeAsync()
+    {
+        await Task.Delay(50);
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const resourceClass = result.nodes.find(
+          (n) => n.kind === "class" && n.name === "AsyncResource"
+        );
+        expect(resourceClass).toBeDefined();
+
+        const disposeMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "DisposeAsync"
+        );
+        expect(disposeMethod).toBeDefined();
+        expect(disposeMethod?.is_async).toBe(true);
+      });
+    });
+
+    describe("ref and span improvements", () => {
+      it("parses ref struct", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public ref struct SpanParser
+{
+    private readonly ReadOnlySpan<char> _data;
+    private int _position;
+
+    public SpanParser(ReadOnlySpan<char> data)
+    {
+        _data = data;
+        _position = 0;
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const parserStruct = result.nodes.find((n) => n.name === "SpanParser");
+        expect(parserStruct).toBeDefined();
+      });
+
+      it("parses scoped parameter", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class SpanProcessor
+{
+    public void Process(scoped ReadOnlySpan<int> data)
+    {
+        foreach (var item in data)
+            Console.WriteLine(item);
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const processMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Process");
+        expect(processMethod).toBeDefined();
+      });
+    });
+
+    describe("type aliases (C# 12)", () => {
+      it("parses using alias for tuple types", async () => {
+        const parser = createCSharpParser();
+        const content = `
+using Point = (int X, int Y);
+
+public class PointHelper
+{
+    public Point Origin => (0, 0);
+
+    public double Distance(Point a, Point b)
+    {
+        var dx = b.X - a.X;
+        var dy = b.Y - a.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const helperClass = result.nodes.find(
+          (n) => n.kind === "class" && n.name === "PointHelper"
+        );
+        expect(helperClass).toBeDefined();
+
+        const distanceMethod = result.nodes.find(
+          (n) => n.kind === "method" && n.name === "Distance"
+        );
+        expect(distanceMethod).toBeDefined();
+      });
+    });
+
+    describe("extended property patterns", () => {
+      it("parses nested property patterns", async () => {
+        const parser = createCSharpParser();
+        const content = `
+public class Address { public string Country { get; init; } = ""; }
+public class Customer { public Address Address { get; init; } = new(); }
+public class Order { public Customer Customer { get; init; } = new(); }
+
+public class OrderProcessor
+{
+    public string Process(Order order) => order switch
+    {
+        { Customer.Address.Country: "USA" } => "Domestic",
+        _ => "International"
+    };
+}
+`;
+        const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+        const processMethod = result.nodes.find((n) => n.kind === "method" && n.name === "Process");
+        expect(processMethod).toBeDefined();
+      });
+    });
   });
 });
