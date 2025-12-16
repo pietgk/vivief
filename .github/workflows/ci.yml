@@ -17,6 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -42,6 +47,13 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Upload coverage reports
+        if: matrix.node-version == '22.x'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   release:
     needs: build

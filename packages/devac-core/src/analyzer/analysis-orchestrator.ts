@@ -281,6 +281,9 @@ export function createAnalysisOrchestrator(
 
   /**
    * Process items concurrently with a limit
+   *
+   * Uses a Set to track executing promises and removes them
+   * when they complete, ensuring proper concurrency limiting.
    */
   async function processConcurrently<T, R>(
     items: T[],
@@ -288,31 +291,24 @@ export function createAnalysisOrchestrator(
     limit: number
   ): Promise<R[]> {
     const results: R[] = [];
-    const executing: Promise<void>[] = [];
+    const executing = new Set<Promise<void>>();
 
     for (const item of items) {
+      // Create a wrapper promise that removes itself when done
       const promise = processor(item).then((result) => {
         results.push(result);
+        executing.delete(promise);
       });
 
-      executing.push(promise);
+      executing.add(promise);
 
-      if (executing.length >= limit) {
+      // If we've reached the limit, wait for one to complete
+      if (executing.size >= limit) {
         await Promise.race(executing);
-        // Remove completed promises
-        const completed = executing.filter((p) => {
-          // Check if promise is settled by racing with resolved promise
-          let settled = false;
-          Promise.race([p, Promise.resolve("pending")]).then((v) => {
-            settled = v !== "pending";
-          });
-          return !settled;
-        });
-        executing.length = 0;
-        executing.push(...completed);
       }
     }
 
+    // Wait for all remaining promises to complete
     await Promise.all(executing);
     return results;
   }
