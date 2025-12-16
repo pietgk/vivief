@@ -5,14 +5,13 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import * as path from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  TypeScriptSemanticResolver,
-  createTypeScriptResolver,
+  type TypeScriptSemanticResolver,
   type UnresolvedRef,
-  type ExportIndex,
+  createTypeScriptResolver,
 } from "../../src/semantic/index.js";
 
 describe("TypeScriptSemanticResolver", () => {
@@ -99,10 +98,10 @@ export type UserId = string | number;
       const indexFilePath = path.join(pkgDir, "index.ts");
       const exports = index.fileExports.get(indexFilePath);
       expect(exports).toBeDefined();
-      expect(exports!.length).toBeGreaterThanOrEqual(5);
+      expect(exports?.length).toBeGreaterThanOrEqual(5);
 
       // Check specific exports
-      const exportNames = exports!.map((e) => e.name);
+      const exportNames = exports?.map((e) => e.name);
       expect(exportNames).toContain("greet");
       expect(exportNames).toContain("VERSION");
       expect(exportNames).toContain("User");
@@ -110,13 +109,13 @@ export type UserId = string | number;
       expect(exportNames).toContain("UserId");
 
       // Check export kinds
-      const greetExport = exports!.find((e) => e.name === "greet");
+      const greetExport = exports?.find((e) => e.name === "greet");
       expect(greetExport?.kind).toBe("function");
 
-      const userExport = exports!.find((e) => e.name === "User");
+      const userExport = exports?.find((e) => e.name === "User");
       expect(userExport?.kind).toBe("class");
 
-      const userPropsExport = exports!.find((e) => e.name === "UserProps");
+      const userPropsExport = exports?.find((e) => e.name === "UserProps");
       expect(userPropsExport?.kind).toBe("interface");
       expect(userPropsExport?.isTypeOnly).toBe(true);
     });
@@ -147,7 +146,7 @@ export default function main() {
       const exports = index.fileExports.get(mainFilePath);
 
       expect(exports).toBeDefined();
-      const defaultExport = exports!.find((e) => e.isDefault);
+      const defaultExport = exports?.find((e) => e.isDefault);
       expect(defaultExport).toBeDefined();
       expect(defaultExport?.kind).toBe("function");
     });
@@ -192,7 +191,7 @@ export * from "./utils";
       const exports = index.fileExports.get(indexFilePath);
 
       expect(exports).toBeDefined();
-      const exportNames = exports!.map((e) => e.name);
+      const exportNames = exports?.map((e) => e.name);
       expect(exportNames).toContain("formatDate");
       expect(exportNames).toContain("parseDate");
     });
@@ -231,10 +230,10 @@ export { internalValue as publicValue } from "./internal";
       // ts-morph's getExportedDeclarations returns the exported name as the key
       // For "export { x as y }", it returns { "y": [declaration] }
       // So we expect "publicValue" to be the export name
-      const exportNames = exports!.map((e) => e.name);
+      const _exportNames = exports?.map((e) => e.name);
       // The actual behavior depends on ts-morph version - it may use original or alias name
       // At minimum, we should have an export from this file
-      expect(exports!.length).toBeGreaterThan(0);
+      expect(exports?.length).toBeGreaterThan(0);
     });
   });
 
@@ -342,7 +341,7 @@ console.log(config.debug);
       const pkgDir = path.join(tempDir, "resolve-external");
       await fs.mkdir(pkgDir, { recursive: true });
 
-      await fs.writeFile(path.join(pkgDir, "index.ts"), `export const x = 1;`);
+      await fs.writeFile(path.join(pkgDir, "index.ts"), "export const x = 1;");
 
       await fs.writeFile(
         path.join(pkgDir, "tsconfig.json"),
@@ -469,7 +468,7 @@ console.log(formatUser(user.name));
       const pkgDir = path.join(tempDir, "unresolvable");
       await fs.mkdir(pkgDir, { recursive: true });
 
-      await fs.writeFile(path.join(pkgDir, "index.ts"), `export const x = 1;`);
+      await fs.writeFile(path.join(pkgDir, "index.ts"), "export const x = 1;");
 
       await fs.writeFile(
         path.join(pkgDir, "tsconfig.json"),
@@ -507,7 +506,7 @@ console.log(formatUser(user.name));
       const pkgDir = path.join(tempDir, "cache-test");
       await fs.mkdir(pkgDir, { recursive: true });
 
-      await fs.writeFile(path.join(pkgDir, "index.ts"), `export const x = 1;`);
+      await fs.writeFile(path.join(pkgDir, "index.ts"), "export const x = 1;");
 
       await fs.writeFile(
         path.join(pkgDir, "tsconfig.json"),

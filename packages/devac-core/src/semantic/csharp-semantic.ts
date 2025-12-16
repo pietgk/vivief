@@ -22,23 +22,23 @@
  * @module semantic/csharp-semantic
  */
 
-import * as path from "node:path";
-import * as fs from "node:fs";
 import { exec } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { promisify } from "node:util";
 
-import type { NodeKind } from "../types/nodes.js";
 import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
+import type { NodeKind } from "../types/nodes.js";
 import type {
-  SemanticResolver,
-  ExportInfo,
   ExportIndex,
-  UnresolvedRef,
-  ResolvedRef,
-  ResolutionResult,
+  ExportInfo,
   ResolutionError,
   ResolutionErrorCode,
+  ResolutionResult,
+  ResolvedRef,
   SemanticConfig,
+  SemanticResolver,
+  UnresolvedRef,
 } from "./types.js";
 
 const execAsync = promisify(exec);
@@ -50,7 +50,9 @@ type CSharpVisibility = "public" | "internal" | "protected" | "private";
 
 /**
  * C# symbol information
+ * @planned Used for enhanced Roslyn integration in future versions
  */
+// biome-ignore lint/correctness/noUnusedVariables: Planned for enhanced Roslyn integration
 interface CSharpSymbol {
   name: string;
   kind: NodeKind;
@@ -293,7 +295,8 @@ export class CSharpSemanticResolver implements SemanticResolver {
       }
 
       // Find public record declarations
-      const recordRegex = /public\s+(?:partial\s+)?(?:sealed\s+)?record\s+(?:class\s+|struct\s+)?(\w+)/g;
+      const recordRegex =
+        /public\s+(?:partial\s+)?(?:sealed\s+)?record\s+(?:class\s+|struct\s+)?(\w+)/g;
       while ((match = recordRegex.exec(content)) !== null) {
         const name = match[1];
         if (name) {
@@ -369,10 +372,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
   /**
    * Resolve a single using reference
    */
-  async resolveRef(
-    ref: UnresolvedRef,
-    index: ExportIndex
-  ): Promise<ResolvedRef | null> {
+  async resolveRef(ref: UnresolvedRef, index: ExportIndex): Promise<ResolvedRef | null> {
     // In C#, moduleSpecifier is typically a namespace
     const namespace = ref.moduleSpecifier;
 
@@ -424,10 +424,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
   /**
    * Resolve all external references in a project
    */
-  async resolvePackage(
-    packagePath: string,
-    refs: UnresolvedRef[]
-  ): Promise<ResolutionResult> {
+  async resolvePackage(packagePath: string, refs: UnresolvedRef[]): Promise<ResolutionResult> {
     const startTime = Date.now();
     const resolvedRefs: ResolvedRef[] = [];
     const errors: ResolutionError[] = [];

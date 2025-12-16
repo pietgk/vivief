@@ -23,9 +23,7 @@ import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
 /**
  * Analyze a package and generate seed files
  */
-export async function analyzeCommand(
-  options: AnalyzeOptions
-): Promise<AnalyzeResult> {
+export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeResult> {
   const startTime = Date.now();
 
   // Validate path exists
@@ -237,10 +235,7 @@ async function runSemanticResolution(
  * Find all TypeScript files in a directory
  */
 async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
-  const patterns = [
-    path.join(packagePath, "**/*.ts"),
-    path.join(packagePath, "**/*.tsx"),
-  ];
+  const patterns = [path.join(packagePath, "**/*.ts"), path.join(packagePath, "**/*.tsx")];
 
   const ignorePatterns = [
     "**/node_modules/**",
@@ -271,10 +266,7 @@ async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
 /**
  * Check if any source files have changed since last analysis
  */
-async function checkForChanges(
-  packagePath: string,
-  sourceFiles: string[]
-): Promise<boolean> {
+async function checkForChanges(packagePath: string, sourceFiles: string[]): Promise<boolean> {
   try {
     // Try to read existing file hashes from seed reader
     const pool = new DuckDBPool({ memoryLimit: "256MB" });

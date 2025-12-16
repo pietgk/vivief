@@ -6,14 +6,13 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import * as path from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  CSharpSemanticResolver,
-  createCSharpResolver,
+  type CSharpSemanticResolver,
   type UnresolvedRef,
-  type ExportIndex,
+  createCSharpResolver,
 } from "../../src/semantic/index.js";
 
 describe("CSharpSemanticResolver", () => {
@@ -90,16 +89,16 @@ namespace MyApp.Models
       expect(exports).toBeDefined();
 
       // Check public classes are exported
-      const userExport = exports!.find((e) => e.name === "User");
+      const userExport = exports?.find((e) => e.name === "User");
       expect(userExport).toBeDefined();
-      expect(userExport!.kind).toBe("class");
+      expect(userExport?.kind).toBe("class");
 
-      const orderExport = exports!.find((e) => e.name === "Order");
+      const orderExport = exports?.find((e) => e.name === "Order");
       expect(orderExport).toBeDefined();
-      expect(orderExport!.kind).toBe("class");
+      expect(orderExport?.kind).toBe("class");
 
       // Internal class should NOT be exported
-      const internalExport = exports!.find((e) => e.name === "InternalHelper");
+      const internalExport = exports?.find((e) => e.name === "InternalHelper");
       expect(internalExport).toBeUndefined();
     });
 
@@ -131,12 +130,12 @@ namespace MyApp.Contracts
 
       expect(exports).toBeDefined();
 
-      const userServiceExport = exports!.find((e) => e.name === "IUserService");
+      const userServiceExport = exports?.find((e) => e.name === "IUserService");
       expect(userServiceExport).toBeDefined();
-      expect(userServiceExport!.kind).toBe("interface");
-      expect(userServiceExport!.isTypeOnly).toBe(true);
+      expect(userServiceExport?.kind).toBe("interface");
+      expect(userServiceExport?.isTypeOnly).toBe(true);
 
-      const orderServiceExport = exports!.find((e) => e.name === "IOrderService");
+      const orderServiceExport = exports?.find((e) => e.name === "IOrderService");
       expect(orderServiceExport).toBeDefined();
     });
 
@@ -176,13 +175,13 @@ namespace MyApp.ValueTypes
       expect(exports).toBeDefined();
 
       // Structs
-      expect(exports!.find((e) => e.name === "Point")).toBeDefined();
-      expect(exports!.find((e) => e.name === "ImmutablePoint")).toBeDefined();
+      expect(exports?.find((e) => e.name === "Point")).toBeDefined();
+      expect(exports?.find((e) => e.name === "ImmutablePoint")).toBeDefined();
 
       // Records
-      expect(exports!.find((e) => e.name === "Person")).toBeDefined();
-      expect(exports!.find((e) => e.name === "Employee")).toBeDefined();
-      expect(exports!.find((e) => e.name === "Coordinate")).toBeDefined();
+      expect(exports?.find((e) => e.name === "Person")).toBeDefined();
+      expect(exports?.find((e) => e.name === "Employee")).toBeDefined();
+      expect(exports?.find((e) => e.name === "Coordinate")).toBeDefined();
     });
 
     it("should handle enums and delegates", async () => {
@@ -220,17 +219,17 @@ namespace MyApp.Types
       expect(exports).toBeDefined();
 
       // Enums
-      const statusExport = exports!.find((e) => e.name === "Status");
+      const statusExport = exports?.find((e) => e.name === "Status");
       expect(statusExport).toBeDefined();
-      expect(statusExport!.kind).toBe("enum");
+      expect(statusExport?.kind).toBe("enum");
 
-      const priorityExport = exports!.find((e) => e.name === "Priority");
+      const priorityExport = exports?.find((e) => e.name === "Priority");
       expect(priorityExport).toBeDefined();
 
       // Delegates
-      const eventHandlerExport = exports!.find((e) => e.name === "EventHandler");
+      const eventHandlerExport = exports?.find((e) => e.name === "EventHandler");
       expect(eventHandlerExport).toBeDefined();
-      expect(eventHandlerExport!.kind).toBe("type");
+      expect(eventHandlerExport?.kind).toBe("type");
     });
 
     it("should handle file-scoped namespaces", async () => {
@@ -261,8 +260,8 @@ public class OrderService
 
       const exports = index.fileExports.get(path.join(pkgDir, "Service.cs"));
       expect(exports).toBeDefined();
-      expect(exports!.find((e) => e.name === "UserService")).toBeDefined();
-      expect(exports!.find((e) => e.name === "OrderService")).toBeDefined();
+      expect(exports?.find((e) => e.name === "UserService")).toBeDefined();
+      expect(exports?.find((e) => e.name === "OrderService")).toBeDefined();
     });
 
     it("should handle abstract and sealed classes", async () => {
@@ -296,9 +295,9 @@ namespace MyApp.Base
       const exports = index.fileExports.get(path.join(pkgDir, "BaseClasses.cs"));
 
       expect(exports).toBeDefined();
-      expect(exports!.find((e) => e.name === "BaseEntity")).toBeDefined();
-      expect(exports!.find((e) => e.name === "FinalClass")).toBeDefined();
-      expect(exports!.find((e) => e.name === "PartialClass")).toBeDefined();
+      expect(exports?.find((e) => e.name === "BaseEntity")).toBeDefined();
+      expect(exports?.find((e) => e.name === "FinalClass")).toBeDefined();
+      expect(exports?.find((e) => e.name === "PartialClass")).toBeDefined();
     });
 
     it("should handle static classes", async () => {
@@ -327,8 +326,8 @@ namespace MyApp.Utilities
       const exports = index.fileExports.get(path.join(pkgDir, "Helpers.cs"));
 
       expect(exports).toBeDefined();
-      expect(exports!.find((e) => e.name === "StringHelper")).toBeDefined();
-      expect(exports!.find((e) => e.name === "MathHelper")).toBeDefined();
+      expect(exports?.find((e) => e.name === "StringHelper")).toBeDefined();
+      expect(exports?.find((e) => e.name === "MathHelper")).toBeDefined();
     });
   });
 
@@ -363,8 +362,8 @@ namespace MyApp.Models
       const resolved = await resolver.resolveRef(ref, index);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.targetFilePath).toBe(path.join(pkgDir, "Models.cs"));
-      expect(resolved!.confidence).toBeGreaterThan(0.8);
+      expect(resolved?.targetFilePath).toBe(path.join(pkgDir, "Models.cs"));
+      expect(resolved?.confidence).toBeGreaterThan(0.8);
     });
 
     it("should return null for unresolvable imports", async () => {
@@ -607,8 +606,8 @@ namespace MyApp.ViewModels
       // Both classes should be exported
       const exports = index.fileExports.get(path.join(pkgDir, "MultiNs.cs"));
       expect(exports).toBeDefined();
-      expect(exports!.find((e) => e.name === "User")).toBeDefined();
-      expect(exports!.find((e) => e.name === "UserViewModel")).toBeDefined();
+      expect(exports?.find((e) => e.name === "User")).toBeDefined();
+      expect(exports?.find((e) => e.name === "UserViewModel")).toBeDefined();
     });
   });
 });

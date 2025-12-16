@@ -19,30 +19,32 @@
  * @module semantic/python-semantic
  */
 
-import * as path from "node:path";
-import * as fs from "node:fs";
 import { exec } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { promisify } from "node:util";
 
-import type { NodeKind } from "../types/nodes.js";
 import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
+import type { NodeKind } from "../types/nodes.js";
 import type {
-  SemanticResolver,
-  ExportInfo,
   ExportIndex,
-  UnresolvedRef,
-  ResolvedRef,
-  ResolutionResult,
+  ExportInfo,
   ResolutionError,
   ResolutionErrorCode,
+  ResolutionResult,
+  ResolvedRef,
   SemanticConfig,
+  SemanticResolver,
+  UnresolvedRef,
 } from "./types.js";
 
 const execAsync = promisify(exec);
 
 /**
  * Pyright symbol information from JSON output
+ * @planned Used for enhanced Pyright integration in future versions
  */
+// biome-ignore lint/correctness/noUnusedVariables: Planned for enhanced Pyright integration
 interface PyrightSymbol {
   name: string;
   kind: string;
@@ -82,7 +84,9 @@ interface PyrightOutput {
 
 /**
  * Pyright hover response with symbol info
+ * @planned Used for enhanced Pyright integration in future versions
  */
+// biome-ignore lint/correctness/noUnusedVariables: Planned for enhanced Pyright integration
 interface PyrightHoverInfo {
   contents: {
     kind: string;
@@ -96,7 +100,9 @@ interface PyrightHoverInfo {
 
 /**
  * Pyright definition response
+ * @planned Used for enhanced Pyright integration in future versions
  */
+// biome-ignore lint/correctness/noUnusedVariables: Planned for enhanced Pyright integration
 interface PyrightDefinition {
   uri: string;
   range: {
@@ -107,7 +113,9 @@ interface PyrightDefinition {
 
 /**
  * Map Pyright symbol kind to universal NodeKind
+ * @planned Used for enhanced Pyright integration in future versions
  */
+// biome-ignore lint/correctness/noUnusedVariables: Planned for enhanced Pyright integration
 function mapPyrightKindToNodeKind(pyrightKind: string): NodeKind {
   switch (pyrightKind.toLowerCase()) {
     case "function":
@@ -196,10 +204,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
     for (const filePath of pythonFiles) {
       try {
-        const exports = await this.extractExportsFromFile(
-          filePath,
-          packagePath
-        );
+        const exports = await this.extractExportsFromFile(filePath, packagePath);
         if (exports.length > 0) {
           fileExports.set(filePath, exports);
         }
@@ -311,12 +316,12 @@ export class PythonSemanticResolver implements SemanticResolver {
 
     try {
       const content = fs.readFileSync(filePath, "utf-8");
-      const lines = content.split("\n");
+      const _lines = content.split("\n");
 
       // Track __all__ if defined
       let allExports: string[] | null = null;
       const allMatch = content.match(/__all__\s*=\s*\[([\s\S]*?)\]/);
-      if (allMatch && allMatch[1]) {
+      if (allMatch?.[1]) {
         allExports = allMatch[1]
           .split(",")
           .map((s) => s.trim().replace(/['"]/g, ""))
@@ -414,10 +419,7 @@ export class PythonSemanticResolver implements SemanticResolver {
   /**
    * Resolve a single import reference
    */
-  async resolveRef(
-    ref: UnresolvedRef,
-    index: ExportIndex
-  ): Promise<ResolvedRef | null> {
+  async resolveRef(ref: UnresolvedRef, index: ExportIndex): Promise<ResolvedRef | null> {
     // Convert Python import to file lookup
     const moduleSpecifier = ref.moduleSpecifier;
 
@@ -434,10 +436,7 @@ export class PythonSemanticResolver implements SemanticResolver {
         baseDir = path.dirname(baseDir);
       }
 
-      modulePath = path.relative(
-        index.packagePath,
-        path.join(baseDir, ...relativeParts)
-      );
+      modulePath = path.relative(index.packagePath, path.join(baseDir, ...relativeParts));
       modulePath = modulePath.replace(/[/\\]/g, ".");
     }
 
@@ -479,13 +478,10 @@ export class PythonSemanticResolver implements SemanticResolver {
 
     try {
       const pyrightCmd = this.config.pyrightPath || "npx pyright";
-      const { stdout } = await execAsync(
-        `${pyrightCmd} --outputjson "${packagePath}"`,
-        {
-          timeout: 60000, // 60s timeout for full analysis
-          maxBuffer: 50 * 1024 * 1024, // 50MB buffer
-        }
-      );
+      const { stdout } = await execAsync(`${pyrightCmd} --outputjson "${packagePath}"`, {
+        timeout: 60000, // 60s timeout for full analysis
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer
+      });
 
       const output = JSON.parse(stdout) as PyrightOutput;
       return output;
@@ -494,7 +490,7 @@ export class PythonSemanticResolver implements SemanticResolver {
       if (error && typeof error === "object" && "stdout" in error) {
         try {
           const stdout = (error as { stdout: string }).stdout;
-          if (stdout && stdout.trim().startsWith("{")) {
+          if (stdout?.trim().startsWith("{")) {
             return JSON.parse(stdout) as PyrightOutput;
           }
         } catch {
@@ -509,10 +505,7 @@ export class PythonSemanticResolver implements SemanticResolver {
   /**
    * Resolve all external references in a package
    */
-  async resolvePackage(
-    packagePath: string,
-    refs: UnresolvedRef[]
-  ): Promise<ResolutionResult> {
+  async resolvePackage(packagePath: string, refs: UnresolvedRef[]): Promise<ResolutionResult> {
     const startTime = Date.now();
     const resolvedRefs: ResolvedRef[] = [];
     const errors: ResolutionError[] = [];
@@ -589,10 +582,7 @@ export class PythonSemanticResolver implements SemanticResolver {
       if (message.includes("timeout")) {
         return "TIMEOUT";
       }
-      if (
-        message.includes("module not found") ||
-        message.includes("no module named")
-      ) {
+      if (message.includes("module not found") || message.includes("no module named")) {
         return "MODULE_NOT_FOUND";
       }
       if (message.includes("syntax") || message.includes("parse")) {

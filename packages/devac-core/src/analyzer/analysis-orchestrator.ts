@@ -14,14 +14,14 @@ import { performance } from "node:perf_hooks";
 import type { ParserConfig } from "../parsers/parser-interface.js";
 import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
 import {
+  type ResolvedRef,
+  type UnresolvedRef,
   getSemanticResolverFactory,
   toUnresolvedRef,
-  type UnresolvedRef,
-  type ResolvedRef,
 } from "../semantic/index.js";
 import type { DuckDBPool } from "../storage/duckdb-pool.js";
 import { createSeedReader } from "../storage/seed-reader.js";
-import type { SeedWriter, ResolvedRefUpdate } from "../storage/seed-writer.js";
+import type { ResolvedRefUpdate, SeedWriter } from "../storage/seed-writer.js";
 import type { LanguageRouter } from "./language-router.js";
 
 // ============================================================================
@@ -279,11 +279,7 @@ export function createAnalysisOrchestrator(
       const chunk = items.slice(i, i + chunkSize);
 
       // Process chunk with concurrency limit
-      const chunkResults = await processConcurrently(
-        chunk,
-        processor,
-        maxConcurrency
-      );
+      const chunkResults = await processConcurrently(chunk, processor, maxConcurrency);
       results.push(...chunkResults);
     }
 
@@ -347,9 +343,7 @@ export function createAnalysisOrchestrator(
         refCount: 0,
         parseTimeMs: 0,
         writeTimeMs: 0,
-        error: `No parser available for file type: ${path.extname(
-          event.filePath
-        )}`,
+        error: `No parser available for file type: ${path.extname(event.filePath)}`,
       };
     }
 
@@ -395,8 +389,7 @@ export function createAnalysisOrchestrator(
         warnings: parseResult.warnings,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
 
       if (verbose) {
         console.error(`Error analyzing ${event.filePath}:`, error);
@@ -596,9 +589,7 @@ export function createAnalysisOrchestrator(
    * 4. Match imported symbols to exported symbols
    * 5. Update external_refs with resolved entity IDs
    */
-  async function resolveSemantics(
-    packagePath: string
-  ): Promise<ResolutionResult> {
+  async function resolveSemantics(packagePath: string): Promise<ResolutionResult> {
     const startTime = performance.now();
 
     // Update status
@@ -620,8 +611,7 @@ export function createAnalysisOrchestrator(
       }
 
       // 2. Convert to UnresolvedRef format for semantic resolver
-      const unresolvedRefs: UnresolvedRef[] =
-        unresolvedResult.map(toUnresolvedRef);
+      const unresolvedRefs: UnresolvedRef[] = unresolvedResult.map(toUnresolvedRef);
 
       // 3. Get semantic resolver factory and detect language
       const factory = getSemanticResolverFactory();
@@ -644,9 +634,7 @@ export function createAnalysisOrchestrator(
       const resolver = factory.getResolver(language);
       if (!resolver) {
         if (verbose) {
-          console.warn(
-            `No semantic resolver available for language: ${language}`
-          );
+          console.warn(`No semantic resolver available for language: ${language}`);
         }
         status = { mode: "idle" };
         return {
@@ -673,10 +661,7 @@ export function createAnalysisOrchestrator(
       }
 
       // 6. Resolve all refs
-      const resolutionResult = await resolver.resolvePackage(
-        packagePath,
-        unresolvedRefs
-      );
+      const resolutionResult = await resolver.resolvePackage(packagePath, unresolvedRefs);
 
       // 7. Update seeds with resolved refs
       if (resolutionResult.resolvedRefs.length > 0) {
@@ -694,9 +679,7 @@ export function createAnalysisOrchestrator(
         });
 
         if (!updateResult.success && verbose) {
-          console.error(
-            `Failed to update resolved refs: ${updateResult.error}`
-          );
+          console.error(`Failed to update resolved refs: ${updateResult.error}`);
         }
       }
 

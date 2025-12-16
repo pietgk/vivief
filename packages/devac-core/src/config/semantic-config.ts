@@ -89,9 +89,7 @@ export type SemanticConfigValidated = z.infer<typeof SemanticConfigSchema>;
  * @returns Validated configuration with defaults applied
  * @throws ZodError if validation fails
  */
-export function parseSemanticConfig(
-  config: unknown
-): SemanticConfigValidated {
+export function parseSemanticConfig(config: unknown): SemanticConfigValidated {
   return SemanticConfigSchema.parse(config);
 }
 
@@ -101,10 +99,9 @@ export function parseSemanticConfig(
  * @param config - Raw configuration object
  * @returns Result object with success status and data/error
  */
-export function safeParseSemanticConfig(config: unknown): z.SafeParseReturnType<
-  unknown,
-  SemanticConfigValidated
-> {
+export function safeParseSemanticConfig(
+  config: unknown
+): z.SafeParseReturnType<unknown, SemanticConfigValidated> {
   return SemanticConfigSchema.safeParse(config);
 }
 
@@ -160,10 +157,10 @@ export function loadSemanticConfigFromEnv(): Partial<SemanticConfigValidated> {
     tsConfig.enabled = process.env.DEVAC_SEMANTIC_TS_ENABLED === "true";
   }
   if (process.env.DEVAC_SEMANTIC_TS_TIMEOUT_MS !== undefined) {
-    tsConfig.timeoutMs = parseInt(process.env.DEVAC_SEMANTIC_TS_TIMEOUT_MS, 10);
+    tsConfig.timeoutMs = Number.parseInt(process.env.DEVAC_SEMANTIC_TS_TIMEOUT_MS, 10);
   }
   if (process.env.DEVAC_SEMANTIC_TS_BATCH_SIZE !== undefined) {
-    tsConfig.batchSize = parseInt(process.env.DEVAC_SEMANTIC_TS_BATCH_SIZE, 10);
+    tsConfig.batchSize = Number.parseInt(process.env.DEVAC_SEMANTIC_TS_BATCH_SIZE, 10);
   }
   if (process.env.DEVAC_SEMANTIC_TS_SKIP_LIB_CHECK !== undefined) {
     tsConfig.skipLibCheck = process.env.DEVAC_SEMANTIC_TS_SKIP_LIB_CHECK === "true";

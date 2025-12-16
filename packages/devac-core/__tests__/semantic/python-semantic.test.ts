@@ -6,14 +6,13 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import * as path from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  PythonSemanticResolver,
-  createPythonResolver,
+  type PythonSemanticResolver,
   type UnresolvedRef,
-  type ExportIndex,
+  createPythonResolver,
 } from "../../src/semantic/index.js";
 
 describe("PythonSemanticResolver", () => {
@@ -92,27 +91,27 @@ MyType: TypeAlias = str | int
       const exports = index.fileExports.get(moduleFilePath);
 
       expect(exports).toBeDefined();
-      expect(exports!.length).toBeGreaterThanOrEqual(4);
+      expect(exports?.length).toBeGreaterThanOrEqual(4);
 
       // Check function export
-      const greetExport = exports!.find((e) => e.name === "greet");
+      const greetExport = exports?.find((e) => e.name === "greet");
       expect(greetExport).toBeDefined();
-      expect(greetExport!.kind).toBe("function");
+      expect(greetExport?.kind).toBe("function");
 
       // Check async function export
-      const fetchExport = exports!.find((e) => e.name === "fetch_data");
+      const fetchExport = exports?.find((e) => e.name === "fetch_data");
       expect(fetchExport).toBeDefined();
-      expect(fetchExport!.kind).toBe("function");
+      expect(fetchExport?.kind).toBe("function");
 
       // Check class export
-      const userExport = exports!.find((e) => e.name === "User");
+      const userExport = exports?.find((e) => e.name === "User");
       expect(userExport).toBeDefined();
-      expect(userExport!.kind).toBe("class");
+      expect(userExport?.kind).toBe("class");
 
       // Check constant exports
-      const maxRetriesExport = exports!.find((e) => e.name === "MAX_RETRIES");
+      const maxRetriesExport = exports?.find((e) => e.name === "MAX_RETRIES");
       expect(maxRetriesExport).toBeDefined();
-      expect(maxRetriesExport!.kind).toBe("constant");
+      expect(maxRetriesExport?.kind).toBe("constant");
     });
 
     it("should respect __all__ exports", async () => {
@@ -144,17 +143,17 @@ class _PrivateClass:
       expect(exports).toBeDefined();
 
       // Only __all__ exports should be included
-      const publicFunc = exports!.find((e) => e.name === "public_func");
+      const publicFunc = exports?.find((e) => e.name === "public_func");
       expect(publicFunc).toBeDefined();
 
-      const publicClass = exports!.find((e) => e.name === "PublicClass");
+      const publicClass = exports?.find((e) => e.name === "PublicClass");
       expect(publicClass).toBeDefined();
 
       // Private symbols should NOT be included
-      const privateFunc = exports!.find((e) => e.name === "_private_func");
+      const privateFunc = exports?.find((e) => e.name === "_private_func");
       expect(privateFunc).toBeUndefined();
 
-      const privateClass = exports!.find((e) => e.name === "_PrivateClass");
+      const privateClass = exports?.find((e) => e.name === "_PrivateClass");
       expect(privateClass).toBeUndefined();
     });
 
@@ -188,17 +187,13 @@ class _PrivateClass:
       expect(exports).toBeDefined();
 
       // Public symbols should be included
-      expect(exports!.find((e) => e.name === "public_function")).toBeDefined();
-      expect(exports!.find((e) => e.name === "PublicClass")).toBeDefined();
+      expect(exports?.find((e) => e.name === "public_function")).toBeDefined();
+      expect(exports?.find((e) => e.name === "PublicClass")).toBeDefined();
 
       // Private symbols should NOT be included
-      expect(
-        exports!.find((e) => e.name === "_private_function")
-      ).toBeUndefined();
-      expect(
-        exports!.find((e) => e.name === "__dunder_function")
-      ).toBeUndefined();
-      expect(exports!.find((e) => e.name === "_PrivateClass")).toBeUndefined();
+      expect(exports?.find((e) => e.name === "_private_function")).toBeUndefined();
+      expect(exports?.find((e) => e.name === "__dunder_function")).toBeUndefined();
+      expect(exports?.find((e) => e.name === "_PrivateClass")).toBeUndefined();
     });
 
     it("should handle package structure with __init__.py", async () => {
@@ -244,13 +239,9 @@ def another_helper():
       expect(index.moduleResolution.size).toBeGreaterThan(0);
 
       // Check core.py exports
-      const coreExports = index.fileExports.get(
-        path.join(subPkgDir, "core.py")
-      );
+      const coreExports = index.fileExports.get(path.join(subPkgDir, "core.py"));
       expect(coreExports).toBeDefined();
-      expect(
-        coreExports!.find((e) => e.name === "main_function")
-      ).toBeDefined();
+      expect(coreExports?.find((e) => e.name === "main_function")).toBeDefined();
     });
   });
 
@@ -283,8 +274,8 @@ class TargetClass:
       const resolved = await resolver.resolveRef(ref, index);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.targetFilePath).toBe(path.join(pkgDir, "target.py"));
-      expect(resolved!.confidence).toBeGreaterThan(0.8);
+      expect(resolved?.targetFilePath).toBe(path.join(pkgDir, "target.py"));
+      expect(resolved?.confidence).toBeGreaterThan(0.8);
     });
 
     it("should resolve relative imports", async () => {
@@ -320,7 +311,7 @@ from ..utils import utility
       const resolved = await resolver.resolveRef(ref, index);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.targetFilePath).toBe(path.join(pkgDir, "utils.py"));
+      expect(resolved?.targetFilePath).toBe(path.join(pkgDir, "utils.py"));
     });
 
     it("should return null for unresolvable imports", async () => {
@@ -502,8 +493,8 @@ class TypedClass:
 
       const exports = index.fileExports.get(path.join(pkgDir, "types.pyi"));
       expect(exports).toBeDefined();
-      expect(exports!.find((e) => e.name === "typed_function")).toBeDefined();
-      expect(exports!.find((e) => e.name === "TypedClass")).toBeDefined();
+      expect(exports?.find((e) => e.name === "typed_function")).toBeDefined();
+      expect(exports?.find((e) => e.name === "TypedClass")).toBeDefined();
     });
 
     it("should skip __pycache__ directories", async () => {
@@ -519,17 +510,12 @@ def real_function():
 `
       );
 
-      await fs.writeFile(
-        path.join(pycacheDir, "module.cpython-39.pyc"),
-        "binary data"
-      );
+      await fs.writeFile(path.join(pycacheDir, "module.cpython-39.pyc"), "binary data");
 
       const index = await resolver.buildExportIndex(pkgDir);
 
       // Should not include __pycache__ files
-      expect(
-        index.fileExports.has(path.join(pycacheDir, "module.cpython-39.pyc"))
-      ).toBe(false);
+      expect(index.fileExports.has(path.join(pycacheDir, "module.cpython-39.pyc"))).toBe(false);
       expect(index.fileExports.has(path.join(pkgDir, "module.py"))).toBe(true);
     });
   });

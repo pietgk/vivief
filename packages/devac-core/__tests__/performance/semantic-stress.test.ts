@@ -6,17 +6,17 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import * as path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  TypeScriptSemanticResolver,
-  PythonSemanticResolver,
-  CSharpSemanticResolver,
-  createTypeScriptResolver,
-  createPythonResolver,
-  createCSharpResolver,
+  type CSharpSemanticResolver,
+  type PythonSemanticResolver,
+  type TypeScriptSemanticResolver,
   type UnresolvedRef,
+  createCSharpResolver,
+  createPythonResolver,
+  createTypeScriptResolver,
 } from "../../src/semantic/index.js";
 
 describe("Semantic Resolution Performance", () => {
@@ -89,11 +89,9 @@ export const CONSTANT_${i} = ${i};
       expect(duration).toBeLessThan(5000); // <5s
 
       // Verify exports were extracted
-      const firstFileExports = index.fileExports.get(
-        path.join(pkgDir, "module0.ts")
-      );
+      const firstFileExports = index.fileExports.get(path.join(pkgDir, "module0.ts"));
       expect(firstFileExports).toBeDefined();
-      expect(firstFileExports!.length).toBeGreaterThanOrEqual(5); // func, class, interface, type, const
+      expect(firstFileExports?.length).toBeGreaterThanOrEqual(5); // func, class, interface, type, const
 
       console.log(`TypeScript: Built index for 50 files in ${duration}ms`);
     });
@@ -140,19 +138,14 @@ export class Service${i} {}
       expect(result.resolved).toBeGreaterThan(90); // Allow some failures
       expect(duration).toBeLessThan(2000); // <2s
 
-      console.log(
-        `TypeScript: Resolved ${result.resolved}/100 refs in ${duration}ms`
-      );
+      console.log(`TypeScript: Resolved ${result.resolved}/100 refs in ${duration}ms`);
     });
 
     it("should handle cache efficiently", async () => {
       const pkgDir = path.join(tempDir, "ts-cache-test");
       await fs.mkdir(pkgDir, { recursive: true });
 
-      await fs.writeFile(
-        path.join(pkgDir, "module.ts"),
-        `export function cached(): void {}`
-      );
+      await fs.writeFile(path.join(pkgDir, "module.ts"), "export function cached(): void {}");
 
       await fs.writeFile(
         path.join(pkgDir, "tsconfig.json"),
@@ -176,9 +169,7 @@ export class Service${i} {}
       expect(warmDuration).toBeLessThan(coldDuration);
       expect(warmDuration).toBeLessThan(10); // Should be near-instant
 
-      console.log(
-        `TypeScript: Cold build ${coldDuration}ms, Cached ${warmDuration}ms`
-      );
+      console.log(`TypeScript: Cold build ${coldDuration}ms, Cached ${warmDuration}ms`);
     });
   });
 
@@ -260,9 +251,7 @@ class Service${i}:
       expect(result.resolved).toBeGreaterThan(90);
       expect(duration).toBeLessThan(2000); // <2s
 
-      console.log(
-        `Python: Resolved ${result.resolved}/100 refs in ${duration}ms`
-      );
+      console.log(`Python: Resolved ${result.resolved}/100 refs in ${duration}ms`);
     });
   });
 
@@ -402,13 +391,7 @@ namespace MyApp.Helpers${i}
       // ts-morph uses significant memory for type checking
       expect(memoryGrowth).toBeLessThan(200 * 1024 * 1024);
 
-      console.log(
-        `Memory growth after 5 iterations: ${(
-          memoryGrowth /
-          1024 /
-          1024
-        ).toFixed(2)}MB`
-      );
+      console.log(`Memory growth after 5 iterations: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB`);
     });
   });
 });
