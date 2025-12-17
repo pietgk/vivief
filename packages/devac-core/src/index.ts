@@ -17,6 +17,8 @@ export {
   executeWithRecovery,
   getDefaultPool,
   shutdownDefaultPool,
+  getPoolStats,
+  assertPoolClean,
   NODES_SCHEMA,
   EDGES_SCHEMA,
   EXTERNAL_REFS_SCHEMA,

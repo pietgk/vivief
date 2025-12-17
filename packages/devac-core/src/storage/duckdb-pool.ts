@@ -309,8 +309,12 @@ export class DuckDBPool {
    */
   private updateStats(): void {
     this.stats.totalConnections = this.connections.length;
-    this.stats.activeConnections = this.connections.filter((c) => c.inUse).length;
-    this.stats.idleConnections = this.connections.filter((c) => !c.inUse).length;
+    this.stats.activeConnections = this.connections.filter(
+      (c) => c.inUse
+    ).length;
+    this.stats.idleConnections = this.connections.filter(
+      (c) => !c.inUse
+    ).length;
   }
 }
 
@@ -385,5 +389,35 @@ export async function shutdownDefaultPool(): Promise<void> {
   if (defaultPool) {
     await defaultPool.shutdown();
     defaultPool = null;
+  }
+}
+
+/**
+ * Get current pool statistics (for debugging and testing)
+ */
+export function getPoolStats(): PoolStats {
+  if (!defaultPool) {
+    return {
+      totalConnections: 0,
+      activeConnections: 0,
+      idleConnections: 0,
+      totalAcquires: 0,
+      totalReleases: 0,
+      failedAcquires: 0,
+    };
+  }
+  return defaultPool.getStats();
+}
+
+/**
+ * Assert that the pool is in a clean state (for testing)
+ * Throws if there are active connections
+ */
+export function assertPoolClean(): void {
+  const stats = getPoolStats();
+  if (stats.activeConnections > 0) {
+    throw new Error(
+      `DuckDB pool not clean: ${stats.activeConnections} active connections`
+    );
   }
 }

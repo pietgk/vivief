@@ -11,6 +11,8 @@ export {
   executeWithRecovery,
   getDefaultPool,
   shutdownDefaultPool,
+  getPoolStats,
+  assertPoolClean,
 } from "./duckdb-pool.js";
 export type { PoolStats, PoolConfig } from "./duckdb-pool.js";
 

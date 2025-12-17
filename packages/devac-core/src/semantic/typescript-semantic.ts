@@ -162,6 +162,9 @@ function getNodeName(node: Node): string | undefined {
 export class TypeScriptSemanticResolver implements SemanticResolver {
   readonly language = "typescript" as const;
 
+  /** Track all instances for global cache clearing (used in tests) */
+  private static allInstances = new Set<TypeScriptSemanticResolver>();
+
   private projectCache = new Map<string, Project>();
   private exportIndexCache = new Map<string, ExportIndex>();
   private config: SemanticConfig["typescript"];
@@ -174,6 +177,18 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
       skipLibCheck: true,
       ...config,
     };
+    TypeScriptSemanticResolver.allInstances.add(this);
+  }
+
+  /**
+   * Clear ALL caches across ALL instances (for testing)
+   * This prevents stale AST data from leaking between tests
+   */
+  static clearAllCaches(): void {
+    for (const instance of TypeScriptSemanticResolver.allInstances) {
+      instance.projectCache.clear();
+      instance.exportIndexCache.clear();
+    }
   }
 
   /**
@@ -249,7 +264,11 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
       }
 
       try {
-        const exports = await this.extractExportsFromFile(sourceFile, packagePath, filePath);
+        const exports = await this.extractExportsFromFile(
+          sourceFile,
+          packagePath,
+          filePath
+        );
 
         if (exports.length > 0) {
           fileExports.set(filePath, exports);
@@ -315,7 +334,8 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
 
           // Check if type-only export
           const isTypeOnly =
-            Node.isInterfaceDeclaration(declaration) || Node.isTypeAliasDeclaration(declaration);
+            Node.isInterfaceDeclaration(declaration) ||
+            Node.isTypeAliasDeclaration(declaration);
 
           // Check if default export
           const isDefault = name === "default";
@@ -330,7 +350,8 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
             entityId,
             isDefault,
             isTypeOnly,
-            originalFilePath: originalFile !== filePath ? originalFile : undefined,
+            originalFilePath:
+              originalFile !== filePath ? originalFile : undefined,
           });
         }
       }
@@ -352,9 +373,16 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   /**
    * Resolve a single import reference
    */
-  async resolveRef(ref: UnresolvedRef, index: ExportIndex): Promise<ResolvedRef | null> {
+  async resolveRef(
+    ref: UnresolvedRef,
+    index: ExportIndex
+  ): Promise<ResolvedRef | null> {
     // Try to resolve the module specifier to a file
-    const targetFile = this.resolveModuleSpecifier(ref.moduleSpecifier, ref.sourceFilePath, index);
+    const targetFile = this.resolveModuleSpecifier(
+      ref.moduleSpecifier,
+      ref.sourceFilePath,
+      index
+    );
 
     if (!targetFile) {
       return null;
@@ -415,7 +443,14 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
     const resolved = path.resolve(sourceDir, specifier);
 
     // Try with various extensions
-    const extensions = [".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx"];
+    const extensions = [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      "/index.ts",
+      "/index.tsx",
+    ];
     for (const ext of extensions) {
       const withExt = resolved + ext;
       if (index.fileExports.has(withExt)) {
@@ -434,7 +469,10 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   /**
    * Resolve all external references in a package
    */
-  async resolvePackage(packagePath: string, refs: UnresolvedRef[]): Promise<ResolutionResult> {
+  async resolvePackage(
+    packagePath: string,
+    refs: UnresolvedRef[]
+  ): Promise<ResolutionResult> {
     const startTime = Date.now();
     const resolvedRefs: ResolvedRef[] = [];
     const errors: ResolutionError[] = [];
@@ -531,7 +569,10 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
       if (message.includes("timeout")) {
         return "TIMEOUT";
       }
-      if (message.includes("cannot find module") || message.includes("module not found")) {
+      if (
+        message.includes("cannot find module") ||
+        message.includes("module not found")
+      ) {
         return "MODULE_NOT_FOUND";
       }
       if (message.includes("parse") || message.includes("syntax")) {
