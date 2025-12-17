@@ -17,8 +17,9 @@ This document describes the development workflow for vivief. For the rationale b
 5. [Changesets](#changesets)
 6. [Architecture Decision Records](#architecture-decision-records)
 7. [Release Process](#release-process)
-8. [Claude Collaboration](#claude-collaboration)
-9. [Quick Reference](#quick-reference)
+8. [Claude-Assisted Slash Commands](#claude-assisted-slash-commands)
+9. [Claude Collaboration](#claude-collaboration)
+10. [Quick Reference](#quick-reference)
 
 ---
 
@@ -267,6 +268,73 @@ pnpm add @devac/core @devac/cli
 
 ---
 
+## Claude-Assisted Slash Commands
+
+When working with Claude Code, you can use these slash commands for guided workflows:
+
+### Available Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/commit` | Full commit flow: draft message, create changeset, check ADR, commit |
+| `/prepare-commit` | Same as /commit but stops before committing (review first) |
+| `/draft-commit` | Just draft a commit message |
+| `/draft-changeset` | Draft and create a changeset file |
+| `/draft-adr` | Help create an Architecture Decision Record |
+| `/prepare-pr` | Draft PR title and description |
+| `/ship` | Full flow: commit → push → draft PR description |
+
+### When to Use Each Command
+
+**For quick commits:**
+- `/draft-commit` - Just need a commit message, will handle changeset/ADR yourself
+
+**For standard development:**
+- `/commit` - Full guided workflow, executes commit automatically
+- `/prepare-commit` - Same guidance but lets you review before committing
+
+**For documentation:**
+- `/draft-changeset` - Creating a changelog entry
+- `/draft-adr` - Documenting an architectural decision
+
+**For shipping:**
+- `/prepare-pr` - Ready to open a PR, need description
+- `/ship` - Complete flow from commit to PR
+
+### Example Usage
+
+```
+User: /commit
+
+Claude: Let me check your staged changes...
+
+[Analyzes changes, drafts commit message]
+
+Based on the changes, I suggest:
+
+  feat(cli): add watch mode for incremental analysis
+
+This modifies packages/devac-cli/src/. A changeset is needed.
+Should I create one? (yes/no)
+```
+
+### Command Files Location
+
+The slash commands are defined in `.claude/commands/`:
+
+```
+.claude/commands/
+├── commit.md
+├── prepare-commit.md
+├── draft-commit.md
+├── draft-changeset.md
+├── draft-adr.md
+├── prepare-pr.md
+└── ship.md
+```
+
+---
+
 ## Claude Collaboration
 
 ### Workflow with Claude
@@ -414,4 +482,5 @@ pnpm release            # Build and publish
 
 | Date | Change |
 |------|--------|
+| 2025-12-17 | Add Claude-assisted slash commands (/commit, /ship, etc.) |
 | 2025-12-17 | Initial implementation - workflow fully operational |

@@ -1,0 +1,18 @@
+#!/bin/sh
+commit_msg=$(cat "$1")
+pattern="^(feat|fix|docs|refactor|perf|test|chore)(\(.+\))?: .+"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo ""
+  echo "  Invalid commit message format"
+  echo ""
+  echo "  Expected: type(scope): description"
+  echo "  Types: feat, fix, docs, refactor, perf, test, chore"
+  echo ""
+  echo "  Examples:"
+  echo "    feat(cli): add commit command"
+  echo "    fix: resolve memory leak in watcher"
+  echo "    docs: update workflow documentation"
+  echo ""
+  exit 1
+fi
