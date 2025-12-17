@@ -1,0 +1,58 @@
+name: Task
+description: Create a new development task
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Task Description
+        Please provide details about the task you want to complete.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be done?
+      placeholder: Describe the task in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this task is complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: packages
+    attributes:
+      label: Affected Packages
+      description: Which packages does this task affect?
+      multiple: true
+      options:
+        - devac-core
+        - devac-cli
+        - devac-mcp
+        - Documentation
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: This task requires a changeset (affects published packages)
+          required: false
+        - label: This task requires an ADR (architectural decision)
+          required: false
+        - label: This task has been discussed with the team
+          required: false

@@ -18,12 +18,19 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build && changeset publish",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["biome check --write"],
+    "*.{json,md}": ["biome format --write"]
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@changesets/cli": "^2.27.10",
     "@types/node": "^20.17.28",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
     "vitest": "^3.1.1"

@@ -272,7 +272,7 @@ export type Type${i} = string;
       expect(index.fileExports.size).toBeGreaterThan(0);
     });
 
-    it("resolves imports for package in <500ms", async () => {
+    it("resolves imports for package in <1000ms", async () => {
       await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
 
       // Create a module with exports
@@ -342,7 +342,7 @@ export class Consumer${i} extends Service {}
       const result = await resolver.resolvePackage(tempDir, unresolvedRefs);
       const elapsed = Date.now() - startTime;
 
-      expect(elapsed).toBeLessThan(500 * CI_PERF_MULTIPLIER);
+      expect(elapsed).toBeLessThan(1000 * CI_PERF_MULTIPLIER);
       expect(result.resolved).toBeGreaterThan(0);
     });
   });

@@ -53,6 +53,56 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  changeset-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for changesets
+        run: |
+          # Get list of changed files in this PR
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+
+          # Check if any package source files changed
+          PACKAGE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^packages/.*/src/" || true)
+
+          if [ -n "$PACKAGE_CHANGES" ]; then
+            echo "Package source files changed:"
+            echo "$PACKAGE_CHANGES"
+            echo ""
+
+            # Check if there's a changeset
+            CHANGESET_FILES=$(echo "$CHANGED_FILES" | grep -E "^\.changeset/.*\.md$" | grep -v "README.md" || true)
+
+            if [ -z "$CHANGESET_FILES" ]; then
+              echo "::error::This PR modifies package source files but does not include a changeset."
+              echo "::error::Please run 'pnpm changeset' to create a changeset describing your changes."
+              exit 1
+            else
+              echo "Changeset found:"
+              echo "$CHANGESET_FILES"
+            fi
+          else
+            echo "No package source files changed, changeset not required."
+          fi
+
   release:
     needs: build
     runs-on: ubuntu-latest
