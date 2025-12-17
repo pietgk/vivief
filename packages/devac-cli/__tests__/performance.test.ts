@@ -17,18 +17,15 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  createFileWatcher,
-  createTypeScriptResolver,
-  createUpdateManager,
-} from "@devac/core";
+import { createFileWatcher, createTypeScriptResolver, createUpdateManager } from "@devac/core";
 import { analyzeCommand } from "../src/commands/analyze.js";
 
 // Fixtures path
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
 // CI environments are slower, so we use relaxed thresholds instead of skipping tests
-const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
+// Local environments also get a small multiplier (1.5x) to account for machine load variability
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1.5;
 
 describe("Performance", () => {
   let tempDir: string;

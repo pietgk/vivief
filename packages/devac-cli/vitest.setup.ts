@@ -10,12 +10,12 @@
  * - Semantic resolver factory singleton
  */
 
-import { afterAll, afterEach, beforeEach } from "vitest";
 import {
-  shutdownDefaultPool,
   TypeScriptSemanticResolver,
   resetSemanticResolverFactory,
+  shutdownDefaultPool,
 } from "@devac/core";
+import { afterAll, afterEach, beforeEach } from "vitest";
 
 // Reset all shared state before each test to ensure clean state
 beforeEach(async () => {

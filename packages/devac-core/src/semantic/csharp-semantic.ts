@@ -204,15 +204,13 @@ export class CSharpSemanticResolver implements SemanticResolver {
       const blockNamespaceRegex = /namespace\s+([\w.]+)\s*\{/g;
       const fileScopedNamespaceRegex = /namespace\s+([\w.]+)\s*;/g;
 
-      let match: RegExpExecArray | null;
-
-      while ((match = blockNamespaceRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(blockNamespaceRegex)) {
         if (match[1]) {
           namespaces.push(match[1]);
         }
       }
 
-      while ((match = fileScopedNamespaceRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(fileScopedNamespaceRegex)) {
         if (match[1]) {
           namespaces.push(match[1]);
         }
@@ -244,8 +242,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public class declarations
       const classRegex = /public\s+(?:partial\s+)?(?:abstract\s+)?(?:sealed\s+)?class\s+(\w+)/g;
-      let match: RegExpExecArray | null;
-      while ((match = classRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(classRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "class";
@@ -262,7 +259,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public interface declarations
       const interfaceRegex = /public\s+(?:partial\s+)?interface\s+(\w+)/g;
-      while ((match = interfaceRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(interfaceRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "interface";
@@ -279,7 +276,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public struct declarations
       const structRegex = /public\s+(?:partial\s+)?(?:readonly\s+)?struct\s+(\w+)/g;
-      while ((match = structRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(structRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "class"; // Map to class with is_struct property
@@ -297,7 +294,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
       // Find public record declarations
       const recordRegex =
         /public\s+(?:partial\s+)?(?:sealed\s+)?record\s+(?:class\s+|struct\s+)?(\w+)/g;
-      while ((match = recordRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(recordRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "class"; // Map to class with is_record property
@@ -314,7 +311,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public enum declarations
       const enumRegex = /public\s+enum\s+(\w+)/g;
-      while ((match = enumRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(enumRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "enum";
@@ -331,7 +328,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public delegate declarations
       const delegateRegex = /public\s+delegate\s+\S+\s+(\w+)\s*\(/g;
-      while ((match = delegateRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(delegateRegex)) {
         const name = match[1];
         if (name) {
           const kind: NodeKind = "type";
@@ -348,7 +345,7 @@ export class CSharpSemanticResolver implements SemanticResolver {
 
       // Find public static classes (often utility classes)
       const staticClassRegex = /public\s+static\s+(?:partial\s+)?class\s+(\w+)/g;
-      while ((match = staticClassRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(staticClassRegex)) {
         const name = match[1];
         if (name && !exports.some((e) => e.name === name)) {
           const kind: NodeKind = "class";

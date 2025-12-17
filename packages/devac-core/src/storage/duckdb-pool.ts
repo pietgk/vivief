@@ -309,12 +309,8 @@ export class DuckDBPool {
    */
   private updateStats(): void {
     this.stats.totalConnections = this.connections.length;
-    this.stats.activeConnections = this.connections.filter(
-      (c) => c.inUse
-    ).length;
-    this.stats.idleConnections = this.connections.filter(
-      (c) => !c.inUse
-    ).length;
+    this.stats.activeConnections = this.connections.filter((c) => c.inUse).length;
+    this.stats.idleConnections = this.connections.filter((c) => !c.inUse).length;
   }
 }
 
@@ -416,8 +412,6 @@ export function getPoolStats(): PoolStats {
 export function assertPoolClean(): void {
   const stats = getPoolStats();
   if (stats.activeConnections > 0) {
-    throw new Error(
-      `DuckDB pool not clean: ${stats.activeConnections} active connections`
-    );
+    throw new Error(`DuckDB pool not clean: ${stats.activeConnections} active connections`);
   }
 }

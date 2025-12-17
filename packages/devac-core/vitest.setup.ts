@@ -11,8 +11,8 @@
  */
 
 import { afterAll, afterEach, beforeEach } from "vitest";
-import { TypeScriptSemanticResolver } from "./src/semantic/typescript-semantic.js";
 import { resetSemanticResolverFactory } from "./src/semantic/index.js";
+import { TypeScriptSemanticResolver } from "./src/semantic/typescript-semantic.js";
 import { shutdownDefaultPool } from "./src/storage/duckdb-pool.js";
 
 // Reset all shared state before each test to ensure clean state

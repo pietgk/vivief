@@ -330,8 +330,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
       // Find function definitions
       const funcRegex = /^(?:async\s+)?def\s+(\w+)\s*\(/gm;
-      let match: RegExpExecArray | null;
-      while ((match = funcRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(funcRegex)) {
         const name = match[1];
         if (name && this.isPublicSymbol(name, allExports)) {
           const kind: NodeKind = "function";
@@ -348,7 +347,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
       // Find class definitions
       const classRegex = /^class\s+(\w+)\s*[:(]/gm;
-      while ((match = classRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(classRegex)) {
         const name = match[1];
         if (name && this.isPublicSymbol(name, allExports)) {
           const kind: NodeKind = "class";
@@ -365,7 +364,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
       // Find module-level assignments (simple pattern)
       const assignRegex = /^([A-Z_][A-Z0-9_]*)\s*=/gm;
-      while ((match = assignRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(assignRegex)) {
         const name = match[1];
         if (name && this.isPublicSymbol(name, allExports)) {
           const kind: NodeKind = "constant";
@@ -382,7 +381,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
       // Find type aliases (TypeAlias or simple assignment with type annotation)
       const typeAliasRegex = /^(\w+):\s*TypeAlias\s*=/gm;
-      while ((match = typeAliasRegex.exec(content)) !== null) {
+      for (const match of content.matchAll(typeAliasRegex)) {
         const name = match[1];
         if (name && this.isPublicSymbol(name, allExports)) {
           const kind: NodeKind = "type";

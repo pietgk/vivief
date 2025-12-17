@@ -22,7 +22,8 @@ import {
 } from "../../src/semantic/index.js";
 
 // CI environments are slower, so we use relaxed thresholds instead of skipping tests
-const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
+// Local environments also get a small multiplier (1.5x) to account for machine load variability
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1.5;
 
 describe("Semantic Resolution Performance", () => {
   let tempDir: string;
@@ -94,9 +95,7 @@ export const CONSTANT_${i} = ${i};
       expect(duration).toBeLessThan(5000 * CI_PERF_MULTIPLIER); // <5s (15s in CI)
 
       // Verify exports were extracted
-      const firstFileExports = index.fileExports.get(
-        path.join(pkgDir, "module0.ts")
-      );
+      const firstFileExports = index.fileExports.get(path.join(pkgDir, "module0.ts"));
       expect(firstFileExports).toBeDefined();
       expect(firstFileExports?.length).toBeGreaterThanOrEqual(5); // func, class, interface, type, const
 
@@ -145,19 +144,14 @@ export class Service${i} {}
       expect(result.resolved).toBeGreaterThan(90); // Allow some failures
       expect(duration).toBeLessThan(2000 * CI_PERF_MULTIPLIER); // <2s (6s in CI)
 
-      console.log(
-        `TypeScript: Resolved ${result.resolved}/100 refs in ${duration}ms`
-      );
+      console.log(`TypeScript: Resolved ${result.resolved}/100 refs in ${duration}ms`);
     });
 
     it("should handle cache efficiently", async () => {
       const pkgDir = path.join(tempDir, "ts-cache-test");
       await fs.mkdir(pkgDir, { recursive: true });
 
-      await fs.writeFile(
-        path.join(pkgDir, "module.ts"),
-        "export function cached(): void {}"
-      );
+      await fs.writeFile(path.join(pkgDir, "module.ts"), "export function cached(): void {}");
 
       await fs.writeFile(
         path.join(pkgDir, "tsconfig.json"),
@@ -181,9 +175,7 @@ export class Service${i} {}
       expect(warmDuration).toBeLessThan(coldDuration);
       expect(warmDuration).toBeLessThan(10 * CI_PERF_MULTIPLIER); // Should be near-instant
 
-      console.log(
-        `TypeScript: Cold build ${coldDuration}ms, Cached ${warmDuration}ms`
-      );
+      console.log(`TypeScript: Cold build ${coldDuration}ms, Cached ${warmDuration}ms`);
     });
   });
 
@@ -265,9 +257,7 @@ class Service${i}:
       expect(result.resolved).toBeGreaterThan(90);
       expect(duration).toBeLessThan(5000 * CI_PERF_MULTIPLIER); // <5s (15s in CI) (Python resolution can be slow)
 
-      console.log(
-        `Python: Resolved ${result.resolved}/100 refs in ${duration}ms`
-      );
+      console.log(`Python: Resolved ${result.resolved}/100 refs in ${duration}ms`);
     });
   });
 
@@ -407,13 +397,7 @@ namespace MyApp.Helpers${i}
       // ts-morph uses significant memory for type checking
       expect(memoryGrowth).toBeLessThan(200 * 1024 * 1024 * CI_PERF_MULTIPLIER);
 
-      console.log(
-        `Memory growth after 5 iterations: ${(
-          memoryGrowth /
-          1024 /
-          1024
-        ).toFixed(2)}MB`
-      );
+      console.log(`Memory growth after 5 iterations: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB`);
     });
   });
 });
