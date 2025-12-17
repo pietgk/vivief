@@ -61,8 +61,13 @@ describe("hub list command", () => {
     const repo1 = await createMockRepo("repo1", "git@github.com:org/repo1.git");
     const repo2 = await createMockRepo("repo2", "git@github.com:org/repo2.git");
 
-    await hubRegister({ hubDir, repoPath: repo1 });
-    await hubRegister({ hubDir, repoPath: repo2 });
+    const reg1 = await hubRegister({ hubDir, repoPath: repo1 });
+    expect(reg1.success).toBe(true);
+    expect(reg1.repoId).toBe("github.com/org/repo1");
+
+    const reg2 = await hubRegister({ hubDir, repoPath: repo2 });
+    expect(reg2.success).toBe(true);
+    expect(reg2.repoId).toBe("github.com/org/repo2");
 
     const result = await hubList({ hubDir });
 
