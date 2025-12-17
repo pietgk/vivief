@@ -1,8 +1,8 @@
 # vivief Development Workflow
 
-> **Version**: 1.0.0
+> **Version**: 1.2.0
 > **Last Updated**: 2025-12-17
-> **ADR**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md)
+> **ADRs**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md), [ADR-0012: Claude-Assisted Slash Commands](adr/0012-claude-assisted-slash-commands.md)
 
 This document describes the development workflow for vivief. For the rationale behind these choices, see ADR-0011.
 
@@ -52,7 +52,36 @@ This applies Biome formatting and linting to staged files only, ensuring fast fe
 
 **What it checks:**
 - `*.{ts,tsx,js,jsx}` → `biome check --write`
-- `*.{json,md}` → `biome format --write`
+- `*.json` → `biome format --write`
+
+### Commit Message Hook
+
+Runs automatically on `git commit` (after message is entered):
+
+```bash
+# Validates conventional commit format
+pattern="^(feat|fix|docs|refactor|perf|test|chore)(\(.+\))?: .+"
+```
+
+**What it enforces:**
+- Message must start with valid type
+- Optional scope in parentheses
+- Colon and space before description
+- Non-empty description
+
+**Valid examples:**
+```
+feat(cli): add watch mode
+fix: resolve memory leak
+docs: update README
+```
+
+**Invalid examples:**
+```
+added new feature     # Missing type
+feat:                 # Empty description
+Fix bug               # Wrong capitalization
+```
 
 ### Pre-push Hook
 
@@ -80,14 +109,50 @@ Use sparingly - CI will still enforce these checks.
 
 ### Creating Issues
 
-Use the task template when creating issues:
+There are three ways to create issues:
+
+#### Option 1: GitHub UI (for humans)
 
 1. Go to **Issues** → **New Issue** → **Task**
 2. Fill in:
    - **Description**: What needs to be done
+   - **Context**: Current state and why this is needed
    - **Acceptance Criteria**: How we know it's complete
    - **Affected Packages**: Which packages are involved
-   - **Checklist**: Whether changeset/ADR is needed
+   - **Constraints**: Changeset/ADR requirements
+   - **Open Questions**: Any clarifications needed
+
+#### Option 2: `/issue` command (Claude-assisted)
+
+Use the `/issue` slash command for guided issue creation:
+
+```
+User: /issue
+
+Claude: I'll help you create a GitHub issue. Let me ask about:
+- What needs to be done
+- Why it's needed
+- Acceptance criteria
+- Affected packages
+- Any constraints or questions
+
+[Interactive gathering and issue creation via gh CLI]
+```
+
+This creates properly formatted issues directly via `gh issue create`.
+
+#### Option 3: `/start-issue` command (start from existing)
+
+If an issue already exists, use `/start-issue` to begin work:
+
+```
+User: /start-issue #42
+
+Claude: Fetching issue #42...
+[Presents summary, creates branch, proposes implementation plan]
+```
+
+This fetches the issue, creates a branch, and enters plan mode.
 
 ### Branch Naming
 
@@ -224,9 +289,13 @@ and import statements. Enables cross-language analysis in polyglot repositories.
 
 4. Include in your PR
 
-### ADR Index
+### Current ADRs
 
-See [docs/adr/README.md](adr/README.md) for the full list of architectural decisions.
+There are currently **12 ADRs** documenting architectural decisions. Key workflow-related ADRs:
+- **[ADR-0011](adr/0011-development-workflow.md)**: Development Workflow - documents the quality gate system
+- **[ADR-0012](adr/0012-claude-assisted-slash-commands.md)**: Claude-Assisted Slash Commands - documents the slash command system
+
+See [docs/adr/README.md](adr/README.md) for the full list.
 
 ---
 
@@ -276,6 +345,8 @@ When working with Claude Code, you can use these slash commands for guided workf
 
 | Command | Purpose |
 |---------|---------|
+| `/issue` | Create a new GitHub issue with Claude assistance |
+| `/start-issue` | Start work on an existing issue (fetch, branch, plan) |
 | `/commit` | Full commit flow: draft message, create changeset, check ADR, commit |
 | `/prepare-commit` | Same as /commit but stops before committing (review first) |
 | `/draft-commit` | Just draft a commit message |
@@ -285,6 +356,10 @@ When working with Claude Code, you can use these slash commands for guided workf
 | `/ship` | Full flow: commit → push → draft PR description |
 
 ### When to Use Each Command
+
+**For issue management:**
+- `/issue` - Create a new issue with guided prompts
+- `/start-issue` - Begin work on an existing issue (fetches, branches, plans)
 
 **For quick commits:**
 - `/draft-commit` - Just need a commit message, will handle changeset/ADR yourself
@@ -324,6 +399,8 @@ The slash commands are defined in `.claude/commands/`:
 
 ```
 .claude/commands/
+├── issue.md
+├── start-issue.md
 ├── commit.md
 ├── prepare-commit.md
 ├── draft-commit.md
@@ -468,19 +545,23 @@ pnpm release            # Build and publish
 
 | Path | Description |
 |------|-------------|
-| `.husky/pre-commit` | Pre-commit hook script |
-| `.husky/pre-push` | Pre-push hook script |
+| `.husky/pre-commit` | Pre-commit hook (lint-staged) |
+| `.husky/commit-msg` | Commit message validation hook |
+| `.husky/pre-push` | Pre-push hook (typecheck + test) |
 | `.github/ISSUE_TEMPLATE/task.yml` | Issue template |
 | `.github/pull_request_template.md` | PR template |
 | `.github/workflows/ci.yml` | CI workflow |
-| `docs/adr/` | Architecture Decision Records |
+| `.claude/commands/` | Claude slash commands |
+| `docs/adr/` | Architecture Decision Records (12 ADRs) |
 | `.changeset/` | Pending changesets |
 
 ---
 
 ## Document History
 
-| Date | Change |
-|------|--------|
-| 2025-12-17 | Add Claude-assisted slash commands (/commit, /ship, etc.) |
-| 2025-12-17 | Initial implementation - workflow fully operational |
+| Date | Version | Change |
+|------|---------|--------|
+| 2025-12-17 | 1.2.0 | Add /issue and /start-issue commands, expand issue creation docs |
+| 2025-12-17 | 1.1.0 | Add commit-msg hook docs, fix lint-staged config, update ADR references |
+| 2025-12-17 | 1.0.0 | Add Claude-assisted slash commands (/commit, /ship, etc.) |
+| 2025-12-17 | 1.0.0 | Initial implementation - workflow fully operational |

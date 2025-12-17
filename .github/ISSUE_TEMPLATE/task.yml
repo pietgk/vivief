@@ -19,6 +19,17 @@ body:
       required: true
 
   - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What exists currently? Why is this needed?
+      placeholder: |
+        Current state: ...
+        Why needed: ...
+    validations:
+      required: false
+
+  - type: textarea
     id: acceptance-criteria
     attributes:
       label: Acceptance Criteria
@@ -46,13 +57,23 @@ body:
       required: true
 
   - type: checkboxes
-    id: checklist
+    id: constraints
     attributes:
-      label: Pre-submission Checklist
+      label: Constraints
+      description: Important considerations for implementation
       options:
-        - label: This task requires a changeset (affects published packages)
-          required: false
-        - label: This task requires an ADR (architectural decision)
-          required: false
-        - label: This task has been discussed with the team
-          required: false
+        - label: Requires changeset (affects published packages)
+        - label: Requires ADR (architectural decision)
+        - label: Breaking change allowed
+        - label: Has been discussed with team
+
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open Questions
+      description: Any questions about approach or requirements?
+      placeholder: |
+        1. Should we...?
+        2. How should...?
+    validations:
+      required: false
