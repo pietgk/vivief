@@ -260,6 +260,17 @@ export class CentralHub {
       };
     }
 
+    // Validate repository path exists before attempting refresh
+    const pathExists = await this.pathExists(repo.local_path);
+    if (!pathExists) {
+      return {
+        reposRefreshed: 0,
+        packagesUpdated: 0,
+        edgesUpdated: 0,
+        errors: [`Repository path does not exist: ${repo.local_path}`],
+      };
+    }
+
     try {
       // Regenerate manifest
       const manifest = await this.manifestGenerator.generate(repo.local_path);

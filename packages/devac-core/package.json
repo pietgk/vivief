@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "DevAC core analysis engine - DuckDB/Parquet-based code graph",
   "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pietgk/vivief.git",
+    "directory": "packages/devac-core"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

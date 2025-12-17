@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "DevAC command-line interface",
   "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pietgk/vivief.git",
+    "directory": "packages/devac-cli"
+  },
   "main": "./dist/index.js",
   "bin": {
     "devac": "./dist/index.js"

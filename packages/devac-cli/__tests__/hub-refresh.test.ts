@@ -116,16 +116,14 @@ describe("hub refresh command", () => {
   });
 
   it("continues on single repo failure and reports errors", async () => {
-    const { repoPath } = await createAndRegisterRepo("repo1");
+    const { repoPath: repo1Path } = await createAndRegisterRepo("repo1");
     await createAndRegisterRepo("repo2");
 
-    // Make repo1's manifest file unwritable by deleting entire .devac directory
-    // and replacing with a regular file (causes write failure)
-    await fs.rm(path.join(repoPath, ".devac"), {
-      recursive: true,
-      force: true,
-    });
-    await fs.writeFile(path.join(repoPath, ".devac"), "not a directory");
+    // Corrupt repo1 by removing the entire directory
+    // This reliably causes manifestGenerator.generate() to fail across all platforms
+    // (The previous approach of replacing .devac with a file had inconsistent behavior
+    // between macOS and Linux due to fs.mkdir recursive behavior differences)
+    await fs.rm(repo1Path, { recursive: true, force: true });
 
     const result = await hubRefresh({ hubDir });
 

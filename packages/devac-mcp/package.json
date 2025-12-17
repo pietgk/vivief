@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "DevAC MCP server for AI assistants",
   "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pietgk/vivief.git",
+    "directory": "packages/devac-mcp"
+  },
   "main": "./dist/index.js",
   "bin": {
     "devac-mcp": "./dist/index.js"
