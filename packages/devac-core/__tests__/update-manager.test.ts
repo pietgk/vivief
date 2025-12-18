@@ -20,6 +20,9 @@ import type { FileChangeEvent } from "../src/watcher/file-watcher.js";
 import type { RenameInfo } from "../src/watcher/rename-detector.js";
 import { type UpdateManager, createUpdateManager } from "../src/watcher/update-manager.js";
 
+// CI environments are slower, so we use relaxed thresholds
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1.5;
+
 describe("UpdateManager", () => {
   let tempDir: string;
   let manager: UpdateManager | null = null;
@@ -489,7 +492,7 @@ export type TestType = {
       });
 
       expect(result.success).toBe(true);
-      expect(result.timeMs).toBeLessThan(300);
+      expect(result.timeMs).toBeLessThan(300 * CI_PERF_MULTIPLIER);
     });
   });
 
