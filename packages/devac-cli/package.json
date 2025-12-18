@@ -1,6 +1,6 @@
 {
   "name": "@devac/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DevAC command-line interface",
   "type": "module",
   "publishConfig": {
