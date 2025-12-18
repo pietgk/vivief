@@ -8,13 +8,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import {
-  DuckDBPool,
-  SeedReader,
-  type SymbolAffectedAnalyzer,
-  createSymbolAffectedAnalyzer,
-  executeWithRecovery,
-} from "@pietgk/devac-core";
+import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.js";
 
@@ -23,29 +17,15 @@ import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.j
  */
 export class DevacMCPServer {
   private server: Server;
-  private _pool: DuckDBPool | null = null;
-  private _seedReader: SeedReader | null = null;
-  private _analyzer: SymbolAffectedAnalyzer | null = null;
+  private _provider: DataProvider | null = null;
   private options: MCPServerOptions;
   private startTime = 0;
   private running = false;
 
-  /** Get pool or throw if not initialized */
-  private get pool(): DuckDBPool {
-    if (!this._pool) throw new Error("DuckDB pool not initialized");
-    return this._pool;
-  }
-
-  /** Get seedReader or throw if not initialized */
-  private get seedReader(): SeedReader {
-    if (!this._seedReader) throw new Error("SeedReader not initialized");
-    return this._seedReader;
-  }
-
-  /** Get analyzer or throw if not initialized */
-  private get analyzer(): SymbolAffectedAnalyzer {
-    if (!this._analyzer) throw new Error("Analyzer not initialized");
-    return this._analyzer;
+  /** Get provider or throw if not initialized */
+  private get provider(): DataProvider {
+    if (!this._provider) throw new Error("Data provider not initialized");
+    return this._provider;
   }
 
   constructor(options: MCPServerOptions) {
@@ -84,7 +64,7 @@ export class DevacMCPServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
-      if (!this._pool || !this._seedReader) {
+      if (!this._provider) {
         return {
           content: [
             {
@@ -117,7 +97,7 @@ export class DevacMCPServer {
     toolName: string,
     input: Record<string, unknown>
   ): Promise<MCPToolResult> {
-    if (!this.pool || !this.seedReader || !this.analyzer) {
+    if (!this.provider) {
       return { success: false, error: "Server not initialized" };
     }
 
@@ -144,6 +124,9 @@ export class DevacMCPServer {
         case "query_sql":
           return await this.executeQuerySql(input);
 
+        case "list_repos":
+          return await this.executeListRepos();
+
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
       }
@@ -162,12 +145,7 @@ export class DevacMCPServer {
     const name = input.name as string;
     const kind = input.kind as string | undefined;
 
-    let sql = `SELECT * FROM nodes WHERE name = '${name.replace(/'/g, "''")}'`;
-    if (kind) {
-      sql += ` AND kind = '${kind.replace(/'/g, "''")}'`;
-    }
-
-    const result = await this.seedReader.querySeeds(sql);
+    const result = await this.provider.findSymbol(name, kind);
     return { success: true, data: result.rows };
   }
 
@@ -176,8 +154,8 @@ export class DevacMCPServer {
    */
   private async executeGetDependencies(input: Record<string, unknown>): Promise<MCPToolResult> {
     const entityId = input.entityId as string;
-    const edges = await this.seedReader.getEdgesBySource(entityId);
-    return { success: true, data: edges };
+    const result = await this.provider.getDependencies(entityId);
+    return { success: true, data: result.rows };
   }
 
   /**
@@ -185,8 +163,8 @@ export class DevacMCPServer {
    */
   private async executeGetDependents(input: Record<string, unknown>): Promise<MCPToolResult> {
     const entityId = input.entityId as string;
-    const edges = await this.seedReader.getEdgesByTarget(entityId);
-    return { success: true, data: edges };
+    const result = await this.provider.getDependents(entityId);
+    return { success: true, data: result.rows };
   }
 
   /**
@@ -194,8 +172,7 @@ export class DevacMCPServer {
    */
   private async executeGetFileSymbols(input: Record<string, unknown>): Promise<MCPToolResult> {
     const filePath = input.filePath as string;
-    const sql = `SELECT * FROM nodes WHERE source_file = '${filePath.replace(/'/g, "''")}'`;
-    const result = await this.seedReader.querySeeds(sql);
+    const result = await this.provider.getFileSymbols(filePath);
     return { success: true, data: result.rows };
   }
 
@@ -206,9 +183,8 @@ export class DevacMCPServer {
     const changedFiles = input.changedFiles as string[];
     const maxDepth = (input.maxDepth as number) ?? 10;
 
-    const result = await this.analyzer.analyzeFileChanges(changedFiles, {}, { maxDepth });
-
-    return { success: true, data: result };
+    const result = await this.provider.getAffected(changedFiles, maxDepth);
+    return { success: true, data: result.rows[0] };
   }
 
   /**
@@ -216,40 +192,11 @@ export class DevacMCPServer {
    */
   private async executeGetCallGraph(input: Record<string, unknown>): Promise<MCPToolResult> {
     const entityId = input.entityId as string;
-    const direction = (input.direction as string) ?? "both";
-    const _maxDepth = (input.maxDepth as number) ?? 3;
+    const direction = (input.direction as "callers" | "callees" | "both") ?? "both";
+    const maxDepth = (input.maxDepth as number) ?? 3;
 
-    const results: { callers?: unknown[]; callees?: unknown[] } = {};
-
-    if (direction === "callers" || direction === "both") {
-      // Get incoming CALLS edges
-      const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM edges e
-        JOIN nodes n ON e.source_entity_id = n.entity_id
-        WHERE e.target_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
-        LIMIT 100
-      `;
-      const queryResult = await this.seedReader.querySeeds(sql);
-      results.callers = queryResult.rows;
-    }
-
-    if (direction === "callees" || direction === "both") {
-      // Get outgoing CALLS edges
-      const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM edges e
-        JOIN nodes n ON e.target_entity_id = n.entity_id
-        WHERE e.source_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
-        LIMIT 100
-      `;
-      const queryResult = await this.seedReader.querySeeds(sql);
-      results.callees = queryResult.rows;
-    }
-
-    return { success: true, data: results };
+    const result = await this.provider.getCallGraph(entityId, direction, maxDepth);
+    return { success: true, data: result.rows[0] };
   }
 
   /**
@@ -264,30 +211,37 @@ export class DevacMCPServer {
       return { success: false, error: "Only SELECT queries are allowed" };
     }
 
-    const result = await executeWithRecovery(this.pool, async (conn) => {
-      return await conn.all(sql);
-    });
+    const result = await this.provider.querySql(sql);
+    return { success: true, data: result.rows };
+  }
 
-    return { success: true, data: result };
+  /**
+   * List registered repositories (hub mode only)
+   */
+  private async executeListRepos(): Promise<MCPToolResult> {
+    try {
+      const repos = await this.provider.listRepos();
+      return { success: true, data: repos };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   /**
    * Start the MCP server
    */
   async start(): Promise<void> {
-    // Initialize DuckDB pool
-    this._pool = new DuckDBPool({
-      memoryLimit: this.options.memoryLimit ?? "256MB",
+    // Create the appropriate data provider based on mode
+    this._provider = createDataProvider(this.options.mode, {
+      packagePath: this.options.packagePath,
+      hubDir: this.options.hubDir,
+      memoryLimit: this.options.memoryLimit,
     });
-    await this._pool.initialize();
 
-    // Create seed reader and analyzer
-    this._seedReader = new SeedReader(this._pool, this.options.packagePath);
-    this._analyzer = createSymbolAffectedAnalyzer(
-      this._pool,
-      this.options.packagePath,
-      this._seedReader
-    );
+    await this._provider.initialize();
 
     // Start server with stdio transport
     const transport = new StdioServerTransport();
@@ -303,12 +257,10 @@ export class DevacMCPServer {
   async stop(): Promise<void> {
     this.running = false;
     await this.server.close();
-    if (this._pool) {
-      await this._pool.shutdown();
-      this._pool = null;
+    if (this._provider) {
+      await this._provider.shutdown();
+      this._provider = null;
     }
-    this._seedReader = null;
-    this._analyzer = null;
   }
 
   /**
@@ -317,7 +269,9 @@ export class DevacMCPServer {
   getStatus(): MCPServerStatus {
     return {
       isRunning: this.running,
+      mode: this.options.mode,
       packagePath: this.options.packagePath,
+      hubDir: this.options.hubDir,
       toolCount: MCP_TOOLS.length,
       uptime: this.running ? Date.now() - this.startTime : 0,
     };

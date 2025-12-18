@@ -56,7 +56,7 @@ describe("MCP Integration", () => {
 
   describe("full workflow: start → list tools → stop", () => {
     it("completes full lifecycle successfully", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Start
@@ -66,7 +66,7 @@ describe("MCP Integration", () => {
       // Get status (includes tool count)
       const status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(7);
+      expect(status.toolCount).toBe(8);
       expect(status.packagePath).toBe(packagePath);
       expect(status.uptime).toBeGreaterThanOrEqual(0);
 
@@ -76,7 +76,7 @@ describe("MCP Integration", () => {
     });
 
     it("handles multiple start/stop cycles", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
 
       // First cycle
       server = new DevacMCPServer(options);
@@ -96,7 +96,7 @@ describe("MCP Integration", () => {
 
   describe("server state transitions", () => {
     it("transitions from stopped → running → stopped", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Initial state (not started)
@@ -114,7 +114,7 @@ describe("MCP Integration", () => {
     });
 
     it("getStatus reflects current state accurately", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Before start
@@ -126,7 +126,7 @@ describe("MCP Integration", () => {
       await server.start();
       status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(7);
+      expect(status.toolCount).toBe(8);
 
       // After stop
       await server.stop();
@@ -138,6 +138,7 @@ describe("MCP Integration", () => {
   describe("configuration options", () => {
     it("accepts custom memory limit", async () => {
       const options: MCPServerOptions = {
+        mode: "package",
         packagePath,
         memoryLimit: "512MB",
       };
@@ -150,7 +151,7 @@ describe("MCP Integration", () => {
     });
 
     it("uses default memory limit when not specified", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Should start without error with default 256MB
@@ -163,7 +164,7 @@ describe("MCP Integration", () => {
 
   describe("package path handling", () => {
     it("creates seed reader for valid package path", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -183,7 +184,7 @@ describe("MCP Integration", () => {
         JSON.stringify({ name: "test", version: "1.0.0" })
       );
 
-      const options: MCPServerOptions = { packagePath: pathWithSpaces };
+      const options: MCPServerOptions = { mode: "package", packagePath: pathWithSpaces };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -200,7 +201,7 @@ describe("MCP Integration", () => {
         JSON.stringify({ name: "test", version: "1.0.0" })
       );
 
-      const options: MCPServerOptions = { packagePath: specialPath };
+      const options: MCPServerOptions = { mode: "package", packagePath: specialPath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -212,7 +213,7 @@ describe("MCP Integration", () => {
 
   describe("uptime tracking", () => {
     it("tracks uptime correctly", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -227,7 +228,7 @@ describe("MCP Integration", () => {
     });
 
     it("resets uptime to 0 after stop", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -245,7 +246,7 @@ describe("MCP Integration", () => {
 
   describe("resource cleanup", () => {
     it("cleans up DuckDB pool on stop", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -260,7 +261,7 @@ describe("MCP Integration", () => {
     });
 
     it("handles stop when already stopped gracefully", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -276,7 +277,7 @@ describe("MCP Integration", () => {
       const emptyDir = path.join(tempDir, "empty-package");
       await fs.mkdir(emptyDir, { recursive: true });
 
-      const options: MCPServerOptions = { packagePath: emptyDir };
+      const options: MCPServerOptions = { mode: "package", packagePath: emptyDir };
       server = new DevacMCPServer(options);
 
       // Should start even with empty directory (seed files may not exist yet)
@@ -318,7 +319,7 @@ describe("MCP Protocol Handlers", () => {
 
   describe("server metadata", () => {
     it("reports correct server name and version", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // The server is created with name "devac-mcp" and version "0.1.0"
@@ -333,14 +334,14 @@ describe("MCP Protocol Handlers", () => {
   });
 
   describe("tool count", () => {
-    it("reports 7 available tools", async () => {
-      const options: MCPServerOptions = { packagePath };
+    it("reports 8 available tools", async () => {
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
 
       const status = server.getStatus();
-      expect(status.toolCount).toBe(7);
+      expect(status.toolCount).toBe(8);
 
       await server.stop();
     });
@@ -377,7 +378,7 @@ describe("Concurrent Operations", () => {
 
   describe("concurrent status checks", () => {
     it("handles multiple concurrent getStatus calls", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -390,7 +391,7 @@ describe("Concurrent Operations", () => {
       // All should return consistent results
       for (const status of statuses) {
         expect(status?.isRunning).toBe(true);
-        expect(status?.toolCount).toBe(7);
+        expect(status?.toolCount).toBe(8);
       }
 
       await server.stop();

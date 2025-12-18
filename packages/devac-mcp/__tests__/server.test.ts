@@ -73,7 +73,7 @@ describe("DevacMCPServer", () => {
 
   describe("initialization", () => {
     it("creates server with correct name and version", () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Server should be created but not running yet
@@ -82,7 +82,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("stores package path from options", () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       const status = server.getStatus();
@@ -90,7 +90,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("uses default memory limit when not specified", () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // Server created without error using default memory limit
@@ -99,6 +99,7 @@ describe("DevacMCPServer", () => {
 
     it("accepts custom memory limit", () => {
       const options: MCPServerOptions = {
+        mode: "package",
         packagePath,
         memoryLimit: "512MB",
       };
@@ -108,18 +109,18 @@ describe("DevacMCPServer", () => {
     });
 
     it("has correct tool count in status before start", () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       const status = server.getStatus();
       expect(status.toolCount).toBe(MCP_TOOLS.length);
-      expect(status.toolCount).toBe(7); // find_symbol, get_dependencies, get_dependents, get_file_symbols, get_affected, get_call_graph, query_sql
+      expect(status.toolCount).toBe(8); // find_symbol, get_dependencies, get_dependents, get_file_symbols, get_affected, get_call_graph, query_sql, list_repos
     });
   });
 
   describe("start/stop lifecycle", () => {
     it("start() sets isRunning to true", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       expect(server.isRunning()).toBe(false);
@@ -130,7 +131,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("stop() sets isRunning to false", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -141,7 +142,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("getStatus() returns uptime when running", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       const statusBefore = server.getStatus();
@@ -157,7 +158,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("getStatus() returns zero uptime when stopped", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -168,7 +169,7 @@ describe("DevacMCPServer", () => {
     });
 
     it("can be started and stopped multiple times", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       // First cycle
@@ -187,7 +188,7 @@ describe("DevacMCPServer", () => {
 
   describe("getStatus()", () => {
     it("returns complete status object", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -195,18 +196,20 @@ describe("DevacMCPServer", () => {
       const status = server.getStatus();
 
       expect(status).toHaveProperty("isRunning");
+      expect(status).toHaveProperty("mode");
       expect(status).toHaveProperty("packagePath");
       expect(status).toHaveProperty("toolCount");
       expect(status).toHaveProperty("uptime");
 
       expect(status.isRunning).toBe(true);
+      expect(status.mode).toBe("package");
       expect(status.packagePath).toBe(packagePath);
-      expect(status.toolCount).toBe(7);
+      expect(status.toolCount).toBe(8);
       expect(typeof status.uptime).toBe("number");
     });
 
     it("reflects correct state after stop", async () => {
-      const options: MCPServerOptions = { packagePath };
+      const options: MCPServerOptions = { mode: "package", packagePath };
       server = new DevacMCPServer(options);
 
       await server.start();
@@ -220,18 +223,18 @@ describe("DevacMCPServer", () => {
 
   describe("createMCPServer factory", () => {
     it("creates and starts server in one call", async () => {
-      server = await createMCPServer({ packagePath });
+      server = await createMCPServer({ mode: "package", packagePath });
 
       expect(server).toBeInstanceOf(DevacMCPServer);
       expect(server.isRunning()).toBe(true);
     });
 
     it("returns started server ready for use", async () => {
-      server = await createMCPServer({ packagePath });
+      server = await createMCPServer({ mode: "package", packagePath });
 
       const status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(7);
+      expect(status.toolCount).toBe(8);
     });
   });
 });
@@ -247,6 +250,7 @@ describe("MCP Tool Registration", () => {
     expect(toolNames).toContain("get_affected");
     expect(toolNames).toContain("get_call_graph");
     expect(toolNames).toContain("query_sql");
+    expect(toolNames).toContain("list_repos");
   });
 
   it("each tool has required properties", () => {
