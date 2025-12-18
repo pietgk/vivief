@@ -62,6 +62,77 @@ give me a high level system diagram of the complete code base using the c4 model
 
 what communication channels are used to contact the users of this code base.
 
+## combine worktree and devac hub concepts
+
+lets plan upgrading the devac concept 
+
+we have devac-worktree enabling to work on an issue in its worktree
+
+we devac hub concept that combines the seeds from multiple repos into a single queryable hub
+
+when we work in the context of a worktree we might want to have the hub concept to be able to query all the seeds from the main repo and the worktree repo together
+
+as an issue can involve making changes in multiple repos we get multiple worktrees with the <reo>-<issueid-short-issue-name>
+
+this would mean that we get a kind of issue hub context that enable queryinh the seeds from all the worktrees for the issue together with the main repos seeds
+
+this should be something that does not need configuration but uses convention to determine the worktrees for the issue based on the current working directory and its parent directories
+
+this would also be an oppertunity to strengthen the concept of convention over configuration in devac cli commands context, so do we need registration of the worktree repos in the hub or can we determine this by convention based on the current working directory and its parent directories.
+
+this needs toke the total flow concept into account
+-(see github issue 16 checking the github action status) 
+- integrating the idea/concept of reviewing an issue or the pr by a specific llm by using the copilot cli that enables specifying a specific model to do a review of the isse or the pr or some specific concept within the context of a review where the result of the review can be used to create a sub issue within the main issue for follow up work.
+- we need to keep the human in control and be sure not to force anything but be the supporting tool that is appreciated for it helping where humans or llms forget and be helpfull in completing the flow but not forcing by being flexible where needed and automated where it helps avoiding putting work on the human and make sure the llm does not forget to follow the rules
+
+can we have a thorough recap of the 2 devac cli commands and their options to determine how to best implement this concept
+
+lets try to get some high quality clean nice and as simple and still supplying a great developer experience for this concept
+
+
+## search extensions
+
+### Vision View Effect 
+
+effectHandler = (State, Effect) => (State', [Effect'])
+
+with proper higher level effects grouped into categories like IO.HTTP
+
+### Hybrid Search (FTS + Vector)
+For situations where queries are vague or documents contain overlapping keywords with semantic differences, a hybrid search approach combining full-text search with vector embeddings works well. MotherDuck
+This is useful for RAG pipelines — you can combine BM25 scores with vector similarity using reciprocal rank fusion.
+Important Caveat
+The FTS index is built on a table, not directly on a Parquet file. So you need to:
+
+Load the Parquet into a table
+Create the index on that table
+
+The index lives in DuckDB's storage, not in the Parquet file itself. If you need persistent FTS across sessions, use a DuckDB database file rather than in-memory.
+
+## extraction extensions
+
+### jira-cli (already a gh issue)
+
+### aws, gcloud, azure infra extraction to get the infrastructure as code and the current state of the infrastructure
+
+### cms systems from their backup json data export (contentfull, etc)
+
+### Datadoc
+
+Dogshell — General API access
+A wrapper for the Datadog API that comes with the official datadogpy Python library. It lets you use the Datadog API from the command line. Datadog
+bashpip install datadog
+
+# Configure ~/.dogrc
+[Connection]
+apikey = MY_API_KEY
+appkey = MY_APP_KEY
+Commands:
+bashdog metric post my_metric 1.0 --tags "env:prod"
+dog event post "Deployment" "v1.2.3 deployed"
+dog monitor show 12345
+
+
 -------------------------------------------------------------------
 WiP brainstorm level prompts
 

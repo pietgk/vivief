@@ -1,5 +1,11 @@
 # @pietgk/devac-core
 
+## 0.1.2
+
+### Patch Changes
+
+- 23e65a2: Replace non-null assertions with optional chaining in test files to resolve biome lint warnings
+
 ## 0.1.1
 
 ### Patch Changes
