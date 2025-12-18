@@ -27,10 +27,11 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("get_affected");
       expect(toolNames).toContain("get_call_graph");
       expect(toolNames).toContain("query_sql");
+      expect(toolNames).toContain("list_repos");
     });
 
-    it("has exactly 7 tools", () => {
-      expect(MCP_TOOLS.length).toBe(7);
+    it("has exactly 8 tools", () => {
+      expect(MCP_TOOLS.length).toBe(8);
     });
   });
 
@@ -204,6 +205,22 @@ describe("MCP Tool Definitions", () => {
 
     it("has descriptive description mentioning read-only", () => {
       expect(tool?.description.toLowerCase()).toContain("read-only");
+    });
+  });
+
+  describe("list_repos schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "list_repos");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has descriptive description mentioning hub mode", () => {
+      expect(tool?.description.toLowerCase()).toContain("hub");
     });
   });
 });

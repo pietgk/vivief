@@ -113,14 +113,35 @@ Example: `myrepo:packages/api:function:abc123`
 | `devac hub register` | Register repository |
 | `devac mcp` | Start MCP server |
 
-## MCP Tools
+## MCP Server
+
+The MCP server supports two modes:
+- **Hub mode** (default): Query across all registered repositories via the central hub
+- **Package mode**: Query a single package
+
+### Running MCP Server
+
+```bash
+# Hub mode (default) - federated queries across all registered repos
+devac-mcp
+
+# Package mode - single package queries
+devac-mcp --package ./my-project
+```
+
+The `--hub` and `--package` flags are mutually exclusive.
+
+### MCP Tools
 
 The MCP server provides these tools for AI assistants:
 - `find_symbol`: Find symbols by name
 - `get_dependencies`: Get symbol dependencies
 - `get_dependents`: Get reverse dependencies
+- `get_file_symbols`: Get symbols in a file
 - `get_affected`: Find affected files from changes
-- `query_sql`: Execute read-only SQL queries
+- `get_call_graph`: Get call graph for a function
+- `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from registered repos)
+- `list_repos`: List registered repositories (hub mode only)
 
 ## Development Workflow
 

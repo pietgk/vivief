@@ -25,11 +25,20 @@ export interface MCPToolResult {
 }
 
 /**
+ * MCP Server mode
+ */
+export type MCPServerMode = "package" | "hub";
+
+/**
  * MCP Server options
  */
 export interface MCPServerOptions {
-  /** Path to the package to analyze */
-  packagePath: string;
+  /** Server mode: "package" for single package, "hub" for federated queries */
+  mode: MCPServerMode;
+  /** Path to the package to analyze (required in package mode) */
+  packagePath?: string;
+  /** Hub directory path (default: ~/.devac, used in hub mode) */
+  hubDir?: string;
   /** Memory limit for DuckDB (default: 256MB) */
   memoryLimit?: string;
 }
@@ -39,7 +48,9 @@ export interface MCPServerOptions {
  */
 export interface MCPServerStatus {
   isRunning: boolean;
-  packagePath: string;
+  mode: MCPServerMode;
+  packagePath?: string;
+  hubDir?: string;
   toolCount: number;
   uptime: number;
 }

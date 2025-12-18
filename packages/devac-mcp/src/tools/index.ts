@@ -90,13 +90,24 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   {
     name: "query_sql",
-    description: "Execute a read-only SQL query against the code graph",
+    description:
+      "Execute a read-only SQL query against the code graph. In hub mode, queries all seeds from registered repositories.",
     inputSchema: {
       type: "object",
       properties: {
         sql: { type: "string", description: "SQL query (SELECT only)" },
       },
       required: ["sql"],
+    },
+  },
+  {
+    name: "list_repos",
+    description:
+      "List all registered repositories in the hub. Only available in hub mode. Returns repository metadata including path, package count, status, and last sync time.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
     },
   },
 ];
