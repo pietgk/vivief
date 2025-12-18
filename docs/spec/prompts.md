@@ -24,6 +24,44 @@ the context is that we want to determine if this is a good base for further futu
 can you do a very thorough review of the current vivief repo based on the above context
 create is as docs/reviews/quality-review-gemini.md
 
+## ci updates
+
+the ci workflow build went ok, the release action failed can we plan a fix for it
+also it seems that the C# tests did not run can you have a look at it, it might be that we need to plan supporting dotnet in the ci 
+also it seems that it is easy to forget adding a changelog entry, lets see if we need to improve our workflow to avoid missing adding a changeset. 
+what options would be available to make committing the changes with a correct commit message, making sure the changelog is correctly handled and that the ADR check is handled. currently the advice is to tell you (claude) to check this. but it is so easy to forget this. what would be a good solution to make this a better developer experience. maybe create a command or tool or skill or hook  so lets determine what is wise
+
+## entity id and repo name dependency
+
+can we have a thorough look at the way entityid is using the repo name.
+   when we run tests inside repo vivief and create snapshots
+   and then run the snapshot test in a github worktree with a different directory name
+   the entityid is different. we need to find a structural way to make the repo name
+   not dependent on the directory name.
+   
+   
+   
+## doc update 
+
+the current documentation on how to install devac-cli is outdated and does not explain installing it from the repo locally.
+
+also using hte github packages release of devac-cli and devac-mcp is not documented
+
+we now have a release (See https://github.com/pietgk/vivief/pkgs/npm/devac-cli and https://github.com/pietgk/vivief/pkgs/npm/devac-mcp) that enables installing devac-cli and devac-mcp from github packages. 
+you can reference their readme with documentation to get context that can be used or referenced by you in the to be created doc.
+
+a main use of this repo is to be able to analyse code bases locally with the devac-cli tool and use of the devac-mcp with claude code cli or copilot cli or github copilot chat to ask questions about the code base using the devac-mcp to get more extensive and better answers
+
+can we plan and create a start-asking-about-your-code-guide.md in the docs with step by step instructions to get started with analysing a code base and asking questions about it using the devac-cli and devac-mcp tools together with an llm tool like claude code cli or github copilot chat.
+Starting point is a directory with cloned repos where the developer is working on.
+So we start with nothing installed, explain installing the needed tools, instruct to have a workspace directory (use ~/ws as example) where the code bases are cloned, then explain how to analyse a code base with devac-cli, then how to start the devac-mcp server for that code base, then how to connect an llm tool like claude code cli or github copilot chat to the mcp server and then how to ask questions about the code base.
+
+example questions we can use are:
+
+give me a high level system diagram of the complete code base using the c4 model concepts as a markdown file.
+
+what communication channels are used to contact the users of this code base.
+
 -------------------------------------------------------------------
 WiP brainstorm level prompts
 
