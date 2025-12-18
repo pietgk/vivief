@@ -52,3 +52,14 @@ export {
   logger,
 } from "./logger.js";
 export type { Logger, LogLevel, LoggerOptions } from "./logger.js";
+
+// Git utilities
+export {
+  detectRepoId,
+  detectRepoIdFromGit,
+  detectRepoIdFromPackageJson,
+  parseGitConfigForOrigin,
+  parseGitUrl,
+  getRepoIdSync,
+} from "./git.js";
+export type { RepoIdResult } from "./git.js";

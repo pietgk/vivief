@@ -9,6 +9,8 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
+import { detectRepoId } from "../utils/git.js";
+
 /**
  * Repository manifest structure
  */
@@ -71,7 +73,7 @@ export class ManifestGenerator {
    * Generate a new manifest for a repository
    */
   async generate(repoPath: string): Promise<RepositoryManifest> {
-    const repoId = await this.detectRepoId(repoPath);
+    const repoId = await this.detectRepoIdFromPath(repoPath);
     const packages = await this.discoverPackages(repoPath);
     const externalDeps = await this.collectExternalDependencies(repoPath, packages);
 
@@ -244,47 +246,12 @@ export class ManifestGenerator {
   }
 
   /**
-   * Detect repository ID from git remote or path
+   * Detect repository ID from git remote, package.json, or path.
+   * Delegates to the shared git utility which handles worktrees.
    */
-  private async detectRepoId(repoPath: string): Promise<string> {
-    try {
-      // Try to read git config
-      const gitConfigPath = path.join(repoPath, ".git", "config");
-      const gitConfig = await fs.readFile(gitConfigPath, "utf-8");
-
-      // Parse remote origin URL
-      const remoteMatch = gitConfig.match(/\[remote "origin"\][^[]*url\s*=\s*(.+)/);
-      if (remoteMatch?.[1]) {
-        const url = remoteMatch[1].trim();
-        return this.parseGitUrl(url);
-      }
-    } catch {
-      // No git config, use directory-based ID
-    }
-
-    // Fall back to directory name
-    const basename = path.basename(path.resolve(repoPath));
-    return `local/${basename}`;
-  }
-
-  /**
-   * Parse a git URL into a repo ID
-   */
-  private parseGitUrl(url: string): string {
-    // Handle SSH URLs: git@github.com:org/repo.git
-    const sshMatch = url.match(/@([^:]+):(.+?)(?:\.git)?$/);
-    if (sshMatch) {
-      return `${sshMatch[1]}/${sshMatch[2]}`;
-    }
-
-    // Handle HTTPS URLs: https://github.com/org/repo.git
-    const httpsMatch = url.match(/https?:\/\/([^/]+)\/(.+?)(?:\.git)?$/);
-    if (httpsMatch) {
-      return `${httpsMatch[1]}/${httpsMatch[2]}`;
-    }
-
-    // Return as-is if can't parse
-    return url;
+  private async detectRepoIdFromPath(repoPath: string): Promise<string> {
+    const result = await detectRepoId(repoPath);
+    return result.repoId;
   }
 
   /**

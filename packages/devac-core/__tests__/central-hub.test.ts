@@ -183,13 +183,14 @@ describe("CentralHub", () => {
       expect(result.repoId).toBe("github.com/myorg/myrepo");
     });
 
-    it("uses local path as repo_id if no git remote", async () => {
+    it("uses package.json name as repo_id if no git remote", async () => {
       const repoPath = path.join(tempDir, "test-repo");
       await createMockRepo(repoPath);
 
       const result = await hub.registerRepo(repoPath);
 
-      expect(result.repoId).toContain("local/");
+      // When no git remote, falls back to package.json name
+      expect(result.repoId).toBe("package/test-pkg");
     });
 
     it("fails if repo has no .devac/seed/ directory", async () => {
@@ -241,7 +242,12 @@ describe("CentralHub", () => {
       const statsPath = path.join(repoPath, "packages/api/.devac/seed/base/stats.json");
       await fs.writeFile(
         statsPath,
-        JSON.stringify({ nodeCount: 50, edgeCount: 20, refCount: 5, fileCount: 10 })
+        JSON.stringify({
+          nodeCount: 50,
+          edgeCount: 20,
+          refCount: 5,
+          fileCount: 10,
+        })
       );
 
       const refreshResult = await hub.refreshRepo(result.repoId);
@@ -253,8 +259,12 @@ describe("CentralHub", () => {
     it("refreshes all repos", async () => {
       const repo1 = path.join(tempDir, "repo1");
       const repo2 = path.join(tempDir, "repo2");
-      await createMockRepo(repo1);
-      await createMockRepo(repo2);
+      await createMockRepo(repo1, {
+        packages: [{ path: ".", name: "test-pkg-1" }],
+      });
+      await createMockRepo(repo2, {
+        packages: [{ path: ".", name: "test-pkg-2" }],
+      });
 
       await hub.registerRepo(repo1);
       await hub.registerRepo(repo2);

@@ -33,6 +33,7 @@ import {
 
 import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
 import type { NodeKind } from "../types/nodes.js";
+import { detectRepoId } from "../utils/git.js";
 import type {
   ExportIndex,
   ExportInfo,
@@ -248,6 +249,9 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
       return cached;
     }
 
+    // Detect repo ID using git config (handles worktrees)
+    const { repoId } = await detectRepoId(packagePath);
+
     const project = this.getProject(packagePath);
     const sourceFiles = project.getSourceFiles();
 
@@ -264,7 +268,12 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
       }
 
       try {
-        const exports = await this.extractExportsFromFile(sourceFile, packagePath, filePath);
+        const exports = await this.extractExportsFromFile(
+          sourceFile,
+          packagePath,
+          filePath,
+          repoId
+        );
 
         if (exports.length > 0) {
           fileExports.set(filePath, exports);
@@ -306,15 +315,15 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   private async extractExportsFromFile(
     sourceFile: SourceFile,
     packagePath: string,
-    filePath: string
+    filePath: string,
+    repoId: string
   ): Promise<ExportInfo[]> {
     const exports: ExportInfo[] = [];
     const relativePath = path.relative(packagePath, filePath);
 
-    // Get package name from package.json or use directory name
-    const repo = path.basename(path.dirname(packagePath)) || "unknown";
+    // Use provided repo ID (detected from git) and package path
     const pkgPath = path.basename(packagePath);
-    const generateId = createEntityIdGenerator(repo, pkgPath);
+    const generateId = createEntityIdGenerator(repoId, pkgPath);
 
     try {
       // Get all exported declarations using ts-morph's API

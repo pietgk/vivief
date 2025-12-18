@@ -26,6 +26,7 @@ import { promisify } from "node:util";
 
 import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
 import type { NodeKind } from "../types/nodes.js";
+import { detectRepoId } from "../utils/git.js";
 import type {
   ExportIndex,
   ExportInfo,
@@ -196,6 +197,9 @@ export class PythonSemanticResolver implements SemanticResolver {
       return cached;
     }
 
+    // Detect repo ID using git config (handles worktrees)
+    const { repoId } = await detectRepoId(packagePath);
+
     const fileExports = new Map<string, ExportInfo[]>();
     const moduleResolution = new Map<string, string>();
 
@@ -204,7 +208,7 @@ export class PythonSemanticResolver implements SemanticResolver {
 
     for (const filePath of pythonFiles) {
       try {
-        const exports = await this.extractExportsFromFile(filePath, packagePath);
+        const exports = await this.extractExportsFromFile(filePath, packagePath, repoId);
         if (exports.length > 0) {
           fileExports.set(filePath, exports);
         }
@@ -304,15 +308,15 @@ export class PythonSemanticResolver implements SemanticResolver {
    */
   private async extractExportsFromFile(
     filePath: string,
-    packagePath: string
+    packagePath: string,
+    repoId: string
   ): Promise<ExportInfo[]> {
     const exports: ExportInfo[] = [];
     const relativePath = path.relative(packagePath, filePath);
 
-    // Get package info for entity ID generation
-    const repo = path.basename(path.dirname(packagePath)) || "unknown";
+    // Use provided repo ID (detected from git) and package path
     const pkgPath = path.basename(packagePath);
-    const generateId = createEntityIdGenerator(repo, pkgPath);
+    const generateId = createEntityIdGenerator(repoId, pkgPath);
 
     try {
       const content = fs.readFileSync(filePath, "utf-8");
