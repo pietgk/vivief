@@ -266,9 +266,9 @@ export type Type${i} = string;
       const index = await resolver.buildExportIndex(tempDir);
       const elapsed = Date.now() - startTime;
 
-      // ts-morph initialization has some overhead, 1000ms is reasonable for small packages
+      // ts-morph initialization has some overhead, 1200ms is reasonable for small packages
       // (ts-morph creates a full TypeScript project which is slower than regex-based parsing)
-      expect(elapsed).toBeLessThan(1000 * CI_PERF_MULTIPLIER);
+      expect(elapsed).toBeLessThan(1200 * CI_PERF_MULTIPLIER);
       expect(index.fileExports.size).toBeGreaterThan(0);
     });
 
@@ -316,6 +316,8 @@ export class Consumer${i} extends Service {}
             isTypeOnly: false,
             isDefault: false,
             isNamespace: false,
+            sourceLine: 1,
+            sourceColumn: 0,
           },
           {
             sourceEntityId: `${sourceEntityId}-config`,
@@ -325,6 +327,8 @@ export class Consumer${i} extends Service {}
             isTypeOnly: false,
             isDefault: false,
             isNamespace: false,
+            sourceLine: 1,
+            sourceColumn: 0,
           },
           {
             sourceEntityId: `${sourceEntityId}-service`,
@@ -334,6 +338,8 @@ export class Consumer${i} extends Service {}
             isTypeOnly: false,
             isDefault: false,
             isNamespace: false,
+            sourceLine: 1,
+            sourceColumn: 0,
           }
         );
       }

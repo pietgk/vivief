@@ -247,7 +247,7 @@ describe("CLI: validate command", () => {
 
       // If there are issues, they should have promptMarkdown
       if (result.typecheck && result.typecheck.issues.length > 0) {
-        expect(result.typecheck.issues[0].promptMarkdown).toBeDefined();
+        expect(result.typecheck.issues[0]!.promptMarkdown).toBeDefined();
       }
     });
   });

@@ -68,7 +68,7 @@ describe("MCP Tool Definitions", () => {
       expect(tool?.inputSchema.type).toBe("object");
       expect(tool?.inputSchema.properties).toBeDefined();
       expect(tool?.inputSchema.properties.name).toBeDefined();
-      expect(tool?.inputSchema.properties.name.type).toBe("string");
+      expect((tool?.inputSchema.properties.name as { type: string }).type).toBe("string");
     });
 
     it("requires name parameter", () => {
@@ -77,7 +77,7 @@ describe("MCP Tool Definitions", () => {
 
     it("has optional kind parameter", () => {
       expect(tool?.inputSchema.properties.kind).toBeDefined();
-      expect(tool?.inputSchema.properties.kind.type).toBe("string");
+      expect((tool?.inputSchema.properties.kind as { type: string }).type).toBe("string");
     });
 
     it("has descriptive description", () => {
@@ -94,7 +94,7 @@ describe("MCP Tool Definitions", () => {
 
     it("requires entityId parameter", () => {
       expect(tool?.inputSchema.properties.entityId).toBeDefined();
-      expect(tool?.inputSchema.properties.entityId.type).toBe("string");
+      expect((tool?.inputSchema.properties.entityId as { type: string }).type).toBe("string");
       expect(tool?.inputSchema.required).toContain("entityId");
     });
 
@@ -112,7 +112,7 @@ describe("MCP Tool Definitions", () => {
 
     it("requires entityId parameter", () => {
       expect(tool?.inputSchema.properties.entityId).toBeDefined();
-      expect(tool?.inputSchema.properties.entityId.type).toBe("string");
+      expect((tool?.inputSchema.properties.entityId as { type: string }).type).toBe("string");
       expect(tool?.inputSchema.required).toContain("entityId");
     });
 
@@ -130,7 +130,7 @@ describe("MCP Tool Definitions", () => {
 
     it("requires filePath parameter", () => {
       expect(tool?.inputSchema.properties.filePath).toBeDefined();
-      expect(tool?.inputSchema.properties.filePath.type).toBe("string");
+      expect((tool?.inputSchema.properties.filePath as { type: string }).type).toBe("string");
       expect(tool?.inputSchema.required).toContain("filePath");
     });
 
@@ -148,13 +148,13 @@ describe("MCP Tool Definitions", () => {
 
     it("requires changedFiles parameter", () => {
       expect(tool?.inputSchema.properties.changedFiles).toBeDefined();
-      expect(tool?.inputSchema.properties.changedFiles.type).toBe("array");
+      expect((tool?.inputSchema.properties.changedFiles as { type: string }).type).toBe("array");
       expect(tool?.inputSchema.required).toContain("changedFiles");
     });
 
     it("has optional maxDepth parameter", () => {
       expect(tool?.inputSchema.properties.maxDepth).toBeDefined();
-      expect(tool?.inputSchema.properties.maxDepth.type).toBe("number");
+      expect((tool?.inputSchema.properties.maxDepth as { type: string }).type).toBe("number");
     });
 
     it("has descriptive description", () => {
@@ -171,7 +171,7 @@ describe("MCP Tool Definitions", () => {
 
     it("requires entityId parameter", () => {
       expect(tool?.inputSchema.properties.entityId).toBeDefined();
-      expect(tool?.inputSchema.properties.entityId.type).toBe("string");
+      expect((tool?.inputSchema.properties.entityId as { type: string }).type).toBe("string");
       expect(tool?.inputSchema.required).toContain("entityId");
     });
 
@@ -181,7 +181,7 @@ describe("MCP Tool Definitions", () => {
 
     it("has optional maxDepth parameter", () => {
       expect(tool?.inputSchema.properties.maxDepth).toBeDefined();
-      expect(tool?.inputSchema.properties.maxDepth.type).toBe("number");
+      expect((tool?.inputSchema.properties.maxDepth as { type: string }).type).toBe("number");
     });
 
     it("has descriptive description", () => {
@@ -198,7 +198,7 @@ describe("MCP Tool Definitions", () => {
 
     it("requires sql parameter", () => {
       expect(tool?.inputSchema.properties.sql).toBeDefined();
-      expect(tool?.inputSchema.properties.sql.type).toBe("string");
+      expect((tool?.inputSchema.properties.sql as { type: string }).type).toBe("string");
       expect(tool?.inputSchema.required).toContain("sql");
     });
 
@@ -233,7 +233,7 @@ describe("Tool Input Validation", () => {
       const tool = MCP_TOOLS.find((t) => t.name === "get_affected");
       const validInput = { changedFiles: ["src/a.ts", "src/b.ts"] };
 
-      expect(tool?.inputSchema.properties.changedFiles.type).toBe("array");
+      expect((tool?.inputSchema.properties.changedFiles as { type: string }).type).toBe("array");
       expect(Array.isArray(validInput.changedFiles)).toBe(true);
     });
 
@@ -241,7 +241,7 @@ describe("Tool Input Validation", () => {
       const tool = MCP_TOOLS.find((t) => t.name === "get_affected");
       const validInput = { changedFiles: ["src/a.ts"], maxDepth: 5 };
 
-      expect(tool?.inputSchema.properties.maxDepth.type).toBe("number");
+      expect((tool?.inputSchema.properties.maxDepth as { type: string }).type).toBe("number");
       expect(typeof validInput.maxDepth).toBe("number");
     });
   });
@@ -263,7 +263,7 @@ describe("Tool Input Validation", () => {
       const tool = MCP_TOOLS.find((t) => t.name === "query_sql");
       const validInput = { sql: "SELECT * FROM nodes LIMIT 10" };
 
-      expect(tool?.inputSchema.properties.sql.type).toBe("string");
+      expect((tool?.inputSchema.properties.sql as { type: string }).type).toBe("string");
       expect(typeof validInput.sql).toBe("string");
     });
   });

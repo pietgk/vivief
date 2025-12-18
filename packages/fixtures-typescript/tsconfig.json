@@ -25,6 +25,16 @@
     "src/sample-decorators.ts",
     "src/sample-edge-cases.ts",
     "src/sample-generics.ts",
-    "src/sample-modules.ts"
+    "src/sample-modules.ts",
+    "src/error.ts",
+    "src/invalid.ts",
+    "src/hello.ts",
+    "src/valid.ts",
+    "src/pending.ts",
+    "src/new-file.ts",
+    "src/perf-test.ts",
+    "src/perf-test-warm.ts",
+    "src/watch-perf-test.ts",
+    "src/rapid-*.ts"
   ]
 }

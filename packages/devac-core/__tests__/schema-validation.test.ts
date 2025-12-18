@@ -92,7 +92,7 @@ function isValidEntityId(entityId: string, config: ParserConfig, allowUnresolved
   if (parts.length < 3) return false;
 
   // First part should be repo name
-  if (!parts[0].includes(config.repoName)) return false;
+  if (!parts[0]!.includes(config.repoName)) return false;
 
   return true;
 }
@@ -228,8 +228,10 @@ function validateExternalRef(ref: ParsedExternalRef): string[] {
     errors.push(`is_type_only should be boolean: ${typeof ref.is_type_only}`);
   }
 
-  if (ref.is_namespace_import !== undefined && typeof ref.is_namespace_import !== "boolean") {
-    errors.push(`is_namespace_import should be boolean: ${typeof ref.is_namespace_import}`);
+  // import_style should be a valid string
+  const validStyles = ["named", "default", "namespace", "side_effect", "dynamic", "require"];
+  if (ref.import_style && !validStyles.includes(ref.import_style)) {
+    errors.push(`import_style should be valid ImportStyle: ${ref.import_style}`);
   }
 
   return errors;

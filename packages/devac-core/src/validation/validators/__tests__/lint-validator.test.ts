@@ -86,8 +86,8 @@ export const x = 1;
 
       expect(result.success).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
-      expect(result.issues[0].source).toBe("eslint");
-      expect(result.issues[0].severity).toBe("error");
+      expect(result.issues[0]!.source).toBe("eslint");
+      expect(result.issues[0]!.severity).toBe("error");
     });
 
     it("detects lint warnings", async () => {
@@ -121,7 +121,7 @@ export const x = 1;
       });
 
       expect(result.issues.length).toBeGreaterThan(0);
-      expect(result.issues[0].code).toBe("no-unused-vars");
+      expect(result.issues[0]!.code).toBe("no-unused-vars");
     });
 
     it("returns timing metrics", async () => {
@@ -184,7 +184,7 @@ export const x = 1;
         severity: "error",
         source: "eslint",
       });
-      expect(issues[0].message).toContain("defined but never used");
+      expect(issues[0]!.message).toContain("defined but never used");
 
       expect(issues[1]).toMatchObject({
         file: "src/test.js",
@@ -258,8 +258,8 @@ export const x = 1;
       const issues = validator.parseOutput(output, "/project");
 
       expect(issues).toHaveLength(2);
-      expect(issues[0].file).toBe("src/a.js");
-      expect(issues[1].file).toBe("src/b.js");
+      expect(issues[0]!.file).toBe("src/a.js");
+      expect(issues[1]!.file).toBe("src/b.js");
     });
   });
 });

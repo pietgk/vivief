@@ -389,8 +389,8 @@ describe("Concurrent Operations", () => {
 
       // All should return consistent results
       for (const status of statuses) {
-        expect(status.isRunning).toBe(true);
-        expect(status.toolCount).toBe(7);
+        expect(status!.isRunning).toBe(true);
+        expect(status!.toolCount).toBe(7);
       }
 
       await server.stop();

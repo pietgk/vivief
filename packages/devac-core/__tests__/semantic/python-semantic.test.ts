@@ -269,6 +269,10 @@ class TargetClass:
         moduleSpecifier: "target",
         importedSymbol: "target_function",
         isTypeOnly: false,
+        isDefault: false,
+        isNamespace: false,
+        sourceLine: 1,
+        sourceColumn: 0,
       };
 
       const resolved = await resolver.resolveRef(ref, index);
@@ -306,6 +310,10 @@ from ..utils import utility
         moduleSpecifier: "..utils",
         importedSymbol: "utility",
         isTypeOnly: false,
+        isDefault: false,
+        isNamespace: false,
+        sourceLine: 1,
+        sourceColumn: 0,
       };
 
       const resolved = await resolver.resolveRef(ref, index);
@@ -334,6 +342,10 @@ def existing_function():
         moduleSpecifier: "nonexistent",
         importedSymbol: "missing_function",
         isTypeOnly: false,
+        isDefault: false,
+        isNamespace: false,
+        sourceLine: 1,
+        sourceColumn: 0,
       };
 
       const resolved = await resolver.resolveRef(ref, index);
@@ -376,6 +388,10 @@ def validate():
           moduleSpecifier: "models",
           importedSymbol: "User",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
         {
           sourceEntityId: "test:pkg:module:main",
@@ -383,6 +399,10 @@ def validate():
           moduleSpecifier: "utils",
           importedSymbol: "format_date",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
         {
           sourceEntityId: "test:pkg:module:main",
@@ -390,6 +410,10 @@ def validate():
           moduleSpecifier: "nonexistent",
           importedSymbol: "missing",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
       ];
 

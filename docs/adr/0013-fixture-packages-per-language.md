@@ -6,7 +6,7 @@ Accepted
 
 ## Date
 
-2024-12-18
+2025-12-18
 
 ## Context
 
@@ -59,7 +59,19 @@ orchestration via `turbo run typecheck`.
 ### TypeScript Fixtures Configuration
 
 - Intentionally broken files renamed to `.txt` extension to prevent IDE errors
-- Parser test files with edge cases excluded from type-checking
+  - `error.ts.txt` and `invalid.ts.txt` contain intentionally broken syntax for parser error handling tests
+- Parser test files with edge cases excluded from type-checking via tsconfig.json:
+  - `sample-advanced-types.ts` - Complex type constructs that may not fully type-check
+  - `sample-decorators.ts` - Decorator patterns for parser testing
+  - `sample-edge-cases.ts` - Edge case syntax patterns
+  - `sample-generics.ts` - Generic type patterns
+  - `sample-modules.ts` - Module import/export patterns
+- Test-generated files excluded from type-checking (created dynamically by tests):
+  - `error.ts`, `invalid.ts` - Intentionally broken syntax for error handling tests
+  - `hello.ts`, `valid.ts`, `pending.ts`, `new-file.ts` - Simple test files
+  - `perf-test.ts`, `perf-test-warm.ts`, `watch-perf-test.ts` - Performance test files
+  - `rapid-*.ts` - Rapid change test files
+- Relaxed type-checking settings (strict: false, noImplicitAny: false) for fixture flexibility
 - React types included for JSX/TSX fixtures
 
 ### Python Fixtures Configuration

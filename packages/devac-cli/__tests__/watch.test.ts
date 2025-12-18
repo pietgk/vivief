@@ -220,7 +220,7 @@ describe("CLI: watch command", () => {
 
       expect(events.length).toBeGreaterThan(0);
       // File system may report as "add" or "change" depending on timing
-      expect(["add", "change"]).toContain(events[0].type);
+      expect(["add", "change"]).toContain(events[0]!.type);
 
       await controller.stop();
     });

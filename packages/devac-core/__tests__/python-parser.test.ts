@@ -280,9 +280,9 @@ describe("PythonParser", () => {
       // Check that functions have return type info
       const addFunc = result.nodes.find((n) => n.kind === "function" && n.name === "add");
       expect(addFunc).toBeDefined();
-      // Return type might be in return_type property or via RETURNS edge
+      // Return type might be in type_signature property or via RETURNS edge
       expect(
-        addFunc?.return_type !== undefined ||
+        addFunc?.type_signature !== undefined ||
           result.edges.some(
             (e) => e.edge_type === "RETURNS" && e.source_entity_id === addFunc?.entity_id
           ) ||
@@ -338,8 +338,8 @@ describe("PythonParser", () => {
       // Check for 'import json as json_lib'
       const jsonImport = result.externalRefs.find((r) => r.module_specifier === "json");
       expect(jsonImport).toBeDefined();
-      if (jsonImport?.local_name) {
-        expect(jsonImport.local_name).toBe("json_lib");
+      if (jsonImport?.local_alias) {
+        expect(jsonImport.local_alias).toBe("json_lib");
       }
     });
 
@@ -424,8 +424,8 @@ from ..utils import helper
 
       // Either we have DECORATES edges or decorator info in properties
       const decoratesEdges = result.edges.filter((e) => e.edge_type === "DECORATES");
-      const hasDecoratorInfo =
-        decoratesEdges.length > 0 || decoratedFunc?.properties?.decorators?.length > 0;
+      const decorators = decoratedFunc?.properties?.decorators as unknown[] | undefined;
+      const hasDecoratorInfo = decoratesEdges.length > 0 || (decorators && decorators.length > 0);
       expect(hasDecoratorInfo).toBe(true);
     });
 

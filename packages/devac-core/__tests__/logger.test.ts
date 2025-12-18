@@ -249,7 +249,7 @@ describe("Logger", () => {
       const logger = createLogger({ json: true });
       logger.info("json message", { data: "test" });
 
-      const call = consoleInfoSpy.mock.calls[0][0];
+      const call = consoleInfoSpy.mock.calls[0]![0] as string;
       const parsed = JSON.parse(call);
 
       expect(parsed).toHaveProperty("level", "info");
@@ -261,7 +261,7 @@ describe("Logger", () => {
       const logger = createLogger({ json: true });
       logger.info("test");
 
-      const call = consoleInfoSpy.mock.calls[0][0];
+      const call = consoleInfoSpy.mock.calls[0]![0] as string;
       const parsed = JSON.parse(call);
 
       expect(parsed).toHaveProperty("timestamp");

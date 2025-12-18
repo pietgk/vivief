@@ -79,9 +79,9 @@ describe("TypecheckValidator", () => {
 
       expect(result.success).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
-      expect(result.issues[0].source).toBe("tsc");
-      expect(result.issues[0].severity).toBe("error");
-      expect(result.issues[0].file).toContain("error.ts");
+      expect(result.issues[0]!.source).toBe("tsc");
+      expect(result.issues[0]!.severity).toBe("error");
+      expect(result.issues[0]!.file).toContain("error.ts");
     });
 
     it("includes error code in issues", async () => {
@@ -97,7 +97,7 @@ describe("TypecheckValidator", () => {
       expect(result.success).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
       // TS2322: Type 'string' is not assignable to type 'number'
-      expect(result.issues[0].code).toMatch(/TS\d+/);
+      expect(result.issues[0]!.code).toMatch(/TS\d+/);
     });
 
     it("checks all project files with tsconfig (files option is informational)", async () => {
@@ -171,7 +171,7 @@ src/api.ts(25,10): error TS2345: Argument of type 'string' is not assignable to 
         severity: "error",
         source: "tsc",
       });
-      expect(issues[0].message).toContain("Type 'string' is not assignable");
+      expect(issues[0]!.message).toContain("Type 'string' is not assignable");
 
       expect(issues[1]).toMatchObject({
         file: "src/api.ts",
@@ -205,7 +205,7 @@ Found 0 errors. Watching for file changes.
       const issues = validator.parseOutput(output);
 
       expect(issues).toHaveLength(1);
-      expect(issues[0].message).toContain("missing the following properties");
+      expect(issues[0]!.message).toContain("missing the following properties");
     });
   });
 });

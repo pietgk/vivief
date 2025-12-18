@@ -48,7 +48,6 @@ function normalizeForSnapshot(result: StructuralParseResult): object {
         is_abstract: node.is_abstract,
         is_generator: node.is_generator,
         type_parameters: node.type_parameters,
-        return_type: node.return_type,
         type_signature: node.type_signature,
         decorators: node.decorators,
         documentation: node.documentation ? "HAS_DOCUMENTATION" : undefined,
@@ -79,10 +78,9 @@ function normalizeForSnapshot(result: StructuralParseResult): object {
       .map((ref) => ({
         module_specifier: ref.module_specifier,
         imported_symbol: ref.imported_symbol,
-        local_name: ref.local_name,
         local_alias: ref.local_alias,
         is_type_only: ref.is_type_only,
-        is_namespace_import: ref.is_namespace_import,
+        import_style: ref.import_style,
       }))
       .sort((a, b) => {
         if (a.module_specifier !== b.module_specifier) {
