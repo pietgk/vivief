@@ -82,10 +82,11 @@ describe("hub list command", () => {
     const result = await hubList({ hubDir });
 
     expect(result.success).toBe(true);
-    expect(result.repos[0].repoId).toBe("github.com/org/test");
-    expect(result.repos[0].localPath).toBe(repo);
-    expect(result.repos[0].packages).toBeGreaterThanOrEqual(1);
-    expect(result.repos[0].status).toBe("active");
+    expect(result.repos).toHaveLength(1);
+    expect(result.repos[0]!.repoId).toBe("github.com/org/test");
+    expect(result.repos[0]!.localPath).toBe(repo);
+    expect(result.repos[0]!.packages).toBeGreaterThanOrEqual(1);
+    expect(result.repos[0]!.status).toBe("active");
   });
 
   it("shows last_synced timestamp", async () => {
@@ -94,7 +95,8 @@ describe("hub list command", () => {
 
     const result = await hubList({ hubDir });
 
-    expect(result.repos[0].lastSynced).toBeDefined();
+    expect(result.repos).toHaveLength(1);
+    expect(result.repos[0]!.lastSynced).toBeDefined();
   });
 
   it("returns empty list if no repos registered", async () => {

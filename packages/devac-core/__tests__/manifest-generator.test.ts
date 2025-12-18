@@ -158,7 +158,7 @@ describe("ManifestGenerator", () => {
 
       const manifest = await generator.generate(tempDir);
 
-      const pkg = manifest.packages[0];
+      const pkg = manifest.packages[0]!;
       expect(pkg.node_count).toBe(50);
       expect(pkg.edge_count).toBe(30);
       expect(pkg.file_count).toBe(5);
@@ -220,7 +220,7 @@ describe("ManifestGenerator", () => {
 
       const manifest = await generator.generate(tempDir);
 
-      const pkg = manifest.packages[0];
+      const pkg = manifest.packages[0]!;
       expect(pkg.seed_path).toBe(".devac/seed/base/packages-api/");
     });
 
@@ -230,7 +230,7 @@ describe("ManifestGenerator", () => {
 
       const manifest = await generator.generate(tempDir);
 
-      const pkg = manifest.packages[0];
+      const pkg = manifest.packages[0]!;
       expect(pkg.last_analyzed).toBeDefined();
       // Should be a valid ISO date
       expect(new Date(pkg.last_analyzed).toISOString()).toBe(pkg.last_analyzed);
@@ -421,7 +421,7 @@ describe("ManifestGenerator", () => {
       const manifest = await generator.generate(tempDir);
 
       expect(manifest.packages.length).toBe(1);
-      expect(manifest.packages[0].path).toBe("packages/scope/nested/deep/package");
+      expect(manifest.packages[0]!.path).toBe("packages/scope/nested/deep/package");
     });
 
     it("handles packages at repo root", async () => {
@@ -431,7 +431,7 @@ describe("ManifestGenerator", () => {
       const manifest = await generator.generate(tempDir);
 
       expect(manifest.packages.length).toBe(1);
-      expect(manifest.packages[0].path).toBe(".");
+      expect(manifest.packages[0]!.path).toBe(".");
     });
 
     it("ignores .devac directories in node_modules", async () => {
@@ -446,7 +446,7 @@ describe("ManifestGenerator", () => {
       const manifest = await generator.generate(tempDir);
 
       expect(manifest.packages.length).toBe(1);
-      expect(manifest.packages[0].path).toBe("packages/api");
+      expect(manifest.packages[0]!.path).toBe("packages/api");
     });
 
     it("handles corrupted seed files gracefully", async () => {
@@ -462,7 +462,7 @@ describe("ManifestGenerator", () => {
 
       expect(manifest.packages.length).toBe(1);
       // Counts may be 0 or default values for corrupted data
-      expect(manifest.packages[0].node_count).toBeDefined();
+      expect(manifest.packages[0]!.node_count).toBeDefined();
     });
 
     it("handles concurrent generate calls", async () => {
@@ -477,7 +477,7 @@ describe("ManifestGenerator", () => {
       ]);
 
       // All should succeed and return consistent results
-      expect(results[0].packages.length).toBe(1);
+      expect(results[0]!.packages.length).toBe(1);
       expect(results[1].packages.length).toBe(1);
       expect(results[2].packages.length).toBe(1);
     });

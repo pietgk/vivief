@@ -1,0 +1,19 @@
+[project]
+name = "devac-fixtures-python"
+version = "0.0.0"
+description = "Python test fixtures for DevAC parsers"
+requires-python = ">=3.11"
+
+[tool.pyright]
+include = ["*.py"]
+exclude = ["**/node_modules"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportMissingImports = false
+reportMissingModuleSource = false
+reportReturnType = false
+reportAttributeAccessIssue = false
+reportInvalidTypeForm = false
+reportCallIssue = false
+reportGeneralTypeIssues = false
+reportUndefinedVariable = false

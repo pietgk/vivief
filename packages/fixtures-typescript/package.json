@@ -1,0 +1,21 @@
+{
+  "name": "@devac/fixtures-typescript",
+  "version": "0.0.0",
+  "private": true,
+  "description": "TypeScript test fixtures for DevAC parsers",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "~5.8.0"
+  }
+}

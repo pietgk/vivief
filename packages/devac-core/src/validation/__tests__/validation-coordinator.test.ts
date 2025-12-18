@@ -12,7 +12,7 @@ import type { StructuralParseResult } from "../../parsers/parser-interface.js";
 import { DuckDBPool } from "../../storage/duckdb-pool.js";
 import { type SeedReader, createSeedReader } from "../../storage/seed-reader.js";
 import { type SeedWriter, createSeedWriter } from "../../storage/seed-writer.js";
-import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../../types/index.js";
+import type { NodeKind, ParsedEdge, ParsedExternalRef, ParsedNode } from "../../types/index.js";
 import {
   type ValidationConfig,
   type ValidationCoordinator,
@@ -25,7 +25,7 @@ import {
 function createTestNode(partial: {
   entity_id: string;
   name: string;
-  kind: string;
+  kind: NodeKind;
   file_path: string;
   start_line?: number;
   end_line?: number;

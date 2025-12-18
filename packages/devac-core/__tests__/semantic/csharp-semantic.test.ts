@@ -357,6 +357,10 @@ namespace MyApp.Models
         moduleSpecifier: "MyApp.Models",
         importedSymbol: "User",
         isTypeOnly: false,
+        isDefault: false,
+        isNamespace: false,
+        sourceLine: 1,
+        sourceColumn: 0,
       };
 
       const resolved = await resolver.resolveRef(ref, index);
@@ -388,6 +392,10 @@ namespace MyApp.Models
         moduleSpecifier: "NonExistent.Namespace",
         importedSymbol: "MissingClass",
         isTypeOnly: false,
+        isDefault: false,
+        isNamespace: false,
+        sourceLine: 1,
+        sourceColumn: 0,
       };
 
       const resolved = await resolver.resolveRef(ref, index);
@@ -429,6 +437,10 @@ namespace MyApp.Services
           moduleSpecifier: "MyApp.Models",
           importedSymbol: "User",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
         {
           sourceEntityId: "test:pkg:class:main",
@@ -436,6 +448,10 @@ namespace MyApp.Services
           moduleSpecifier: "MyApp.Services",
           importedSymbol: "UserService",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
         {
           sourceEntityId: "test:pkg:class:main",
@@ -443,6 +459,10 @@ namespace MyApp.Services
           moduleSpecifier: "NonExistent",
           importedSymbol: "Missing",
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         },
       ];
 

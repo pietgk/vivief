@@ -96,7 +96,7 @@ describe("HubStorage", () => {
 
       const repos = await storage.listRepos();
       expect(repos.length).toBe(1);
-      expect(repos[0].repo_id).toBe("github.com/org/repo");
+      expect(repos[0]!.repo_id).toBe("github.com/org/repo");
     });
 
     it("removes repo from registry", async () => {
@@ -209,7 +209,7 @@ describe("HubStorage", () => {
       await storage.updateRepoSync("github.com/org/repo", "new-hash");
 
       const retrieved = await storage.getRepo("github.com/org/repo");
-      expect(new Date(retrieved?.last_synced).getTime()).toBeGreaterThan(
+      expect(new Date(retrieved!.last_synced).getTime()).toBeGreaterThan(
         new Date(oldTime).getTime()
       );
     });
@@ -236,7 +236,7 @@ describe("HubStorage", () => {
 
       const repos = await storage.listRepos();
       expect(repos.length).toBe(1);
-      expect(repos[0].local_path).toBe("/path/to/new");
+      expect(repos[0]!.local_path).toBe("/path/to/new");
     });
   });
 
@@ -278,7 +278,7 @@ describe("HubStorage", () => {
         "github.com/org/repo-b:pkg:class:def456",
       ]);
       expect(retrieved.length).toBe(1);
-      expect(retrieved[0].source_entity_id).toBe("github.com/org/repo-a:pkg:function:abc123");
+      expect(retrieved[0]!.source_entity_id).toBe("github.com/org/repo-a:pkg:function:abc123");
     });
 
     it("queries cross-repo edges by source entity", async () => {
@@ -388,8 +388,8 @@ describe("HubStorage", () => {
       const retrieved = await storage.getCrossRepoDependents([
         "github.com/org/repo-b:pkg:class:def456",
       ]);
-      expect(retrieved[0].metadata).toBeDefined();
-      expect(retrieved[0].metadata?.version).toBe("^1.0.0");
+      expect(retrieved[0]!.metadata).toBeDefined();
+      expect(retrieved[0]!.metadata?.version).toBe("^1.0.0");
     });
   });
 

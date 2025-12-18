@@ -133,6 +133,10 @@ export class Service${i} {}
           moduleSpecifier: `./helpers${fileIndex}`,
           importedSymbol: `helper${fileIndex}`,
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         });
       }
 
@@ -246,6 +250,10 @@ class Service${i}:
           moduleSpecifier: `helpers${fileIndex}`,
           importedSymbol: `helper${fileIndex}`,
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         });
       }
 
@@ -340,6 +348,10 @@ namespace MyApp.Helpers${i}
           moduleSpecifier: `MyApp.Helpers${fileIndex}`,
           importedSymbol: `Helper${fileIndex}`,
           isTypeOnly: false,
+          isDefault: false,
+          isNamespace: false,
+          sourceLine: 1,
+          sourceColumn: 0,
         });
       }
 

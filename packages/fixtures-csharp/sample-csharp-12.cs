@@ -19,6 +19,10 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
+// Type aliases (C# 12) - must be at top of file
+using Point = (int X, int Y);
+using PersonTuple = (string Name, int Age, string Email);
+
 namespace DevAC.Tests.ModernCSharp;
 
 // ============================================================================
@@ -543,9 +547,8 @@ public class RefImprovementsDemo
 // ALIAS ANY TYPE (C# 12)
 // ============================================================================
 
-// Using alias for tuple type
-using Point = (int X, int Y);
-using PersonTuple = (string Name, int Age, string Email);
+// Note: The 'using' aliases for Point and PersonTuple are at the top of the file
+// (C# requires using aliases to appear before namespace/type declarations)
 
 /// <summary>
 /// Class using type aliases

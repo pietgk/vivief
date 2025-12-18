@@ -143,8 +143,8 @@ describe("RenameDetector", () => {
       const result = await detector.processEventBatch(events);
 
       expect(result.renames).toHaveLength(1);
-      expect(result.renames[0].oldPath).toBe(oldPath);
-      expect(result.renames[0].newPath).toBe(newPath);
+      expect(result.renames[0]!.oldPath).toBe(oldPath);
+      expect(result.renames[0]!.newPath).toBe(newPath);
       expect(result.adds).toHaveLength(0);
       expect(result.deletes).toHaveLength(0);
     });
@@ -160,7 +160,7 @@ describe("RenameDetector", () => {
 
       expect(result.renames).toHaveLength(0);
       expect(result.adds).toHaveLength(1);
-      expect(result.adds[0].filePath).toBe(newPath);
+      expect(result.adds[0]!.filePath).toBe(newPath);
     });
 
     it("handles delete without matching add as regular delete", async () => {
@@ -175,7 +175,7 @@ describe("RenameDetector", () => {
 
       expect(result.renames).toHaveLength(0);
       expect(result.deletes).toHaveLength(1);
-      expect(result.deletes[0].filePath).toBe(oldPath);
+      expect(result.deletes[0]!.filePath).toBe(oldPath);
     });
 
     it("handles change events as changes", async () => {
@@ -188,7 +188,7 @@ describe("RenameDetector", () => {
       const result = await detector.processEventBatch(events);
 
       expect(result.changes).toHaveLength(1);
-      expect(result.changes[0].filePath).toBe(filePath);
+      expect(result.changes[0]!.filePath).toBe(filePath);
     });
 
     it("processes multiple renames in single batch", async () => {
@@ -296,7 +296,7 @@ describe("RenameDetector", () => {
       const result = await detector.processEventBatch(events);
 
       expect(result.renames).toHaveLength(1);
-      expect(result.renames[0].oldPath).toBe(oldPath);
+      expect(result.renames[0]!.oldPath).toBe(oldPath);
     });
   });
 

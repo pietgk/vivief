@@ -22,6 +22,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0010](0010-recursive-cte-depth-limit.md) | Recursive CTE Depth Limit | Accepted | 2024-12 |
 | [0011](0011-development-workflow.md) | Development Workflow | Accepted | 2025-12 |
 | [0012](0012-claude-assisted-slash-commands.md) | Claude-Assisted Slash Commands | Accepted | 2025-12 |
+| [0013](0013-fixture-packages-per-language.md) | Fixture Packages Per Language | Accepted | 2025-12 |
 
 ## Creating a New ADR
 

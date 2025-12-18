@@ -79,13 +79,13 @@ public class ModernService
         }
         """;
 
-    // Interpolated raw string
-    public string GetConfigJson(string name, int port) => $"""
-        {{
-            "service": "{name}",
-            "port": {port},
+    // Interpolated raw string (use $$ for literal braces with interpolation)
+    public string GetConfigJson(string name, int port) => $$"""
+        {
+            "service": "{{name}}",
+            "port": {{port}},
             "enabled": true
-        }}
+        }
         """;
 
     // Static abstract members in interfaces (C# 11+)

@@ -12,7 +12,13 @@ import type { StructuralParseResult } from "../../parsers/parser-interface.js";
 import { DuckDBPool } from "../../storage/duckdb-pool.js";
 import { type SeedReader, createSeedReader } from "../../storage/seed-reader.js";
 import { type SeedWriter, createSeedWriter } from "../../storage/seed-writer.js";
-import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../../types/index.js";
+import type {
+  EdgeType,
+  NodeKind,
+  ParsedEdge,
+  ParsedExternalRef,
+  ParsedNode,
+} from "../../types/index.js";
 import {
   type EnrichedIssue,
   type EnrichmentOptions,
@@ -27,7 +33,7 @@ import {
 function createTestNode(partial: {
   entity_id: string;
   name: string;
-  kind: string;
+  kind: NodeKind;
   file_path: string;
   start_line?: number;
   end_line?: number;
@@ -72,7 +78,7 @@ function createTestNode(partial: {
 function createTestEdge(partial: {
   source_entity_id: string;
   target_entity_id: string;
-  edge_type: string;
+  edge_type: EdgeType;
   source_file_hash?: string;
 }): ParsedEdge {
   return {
@@ -80,7 +86,6 @@ function createTestEdge(partial: {
     target_entity_id: partial.target_entity_id,
     edge_type: partial.edge_type,
     source_file_path: "test.ts",
-    target_file_path: "test.ts",
     source_line: 1,
     source_column: 0,
     properties: {},
@@ -514,7 +519,7 @@ describe("IssueEnricher", () => {
 
       expect(enriched.callers).toBeDefined();
       expect(enriched.callers).toHaveLength(1);
-      expect(enriched.callers?.[0].name).toBe("callerFunction");
+      expect(enriched.callers?.[0]!.name).toBe("callerFunction");
     });
 
     it("enriches issue with dependent files when symbol is imported", async () => {
@@ -666,8 +671,8 @@ describe("IssueEnricher", () => {
       const enriched = await enricher.enrichIssues(issues, packagePath);
 
       expect(enriched).toHaveLength(2);
-      expect(enriched[0].affectedSymbol?.name).toBe("function1");
-      expect(enriched[1].affectedSymbol?.name).toBe("function2");
+      expect(enriched[0]!.affectedSymbol?.name).toBe("function1");
+      expect(enriched[1]!.affectedSymbol?.name).toBe("function2");
     });
 
     it("respects enrichment options", async () => {
@@ -713,8 +718,8 @@ describe("IssueEnricher", () => {
 
       const enriched = await enricher.enrichIssues(issues, packagePath, options);
 
-      expect(enriched[0].affectedSymbol).toBeDefined();
-      expect(enriched[0].callers).toBeUndefined(); // Disabled
+      expect(enriched[0]!.affectedSymbol).toBeDefined();
+      expect(enriched[0]!.callers).toBeUndefined(); // Disabled
     });
   });
 
