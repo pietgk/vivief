@@ -16,8 +16,10 @@ import { DEFAULT_PARSER_CONFIG } from "../src/parsers/parser-interface.js";
 import { createPythonParser } from "../src/parsers/python-parser.js";
 import { createTypeScriptParser } from "../src/parsers/typescript-parser.js";
 
-// Test fixtures path
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures paths - using the separate fixture packages
+const TS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-typescript/src");
+const PY_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-python");
+const CS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-csharp");
 
 // Default test config
 const testConfig: ParserConfig = {
@@ -106,7 +108,7 @@ describe("Parser Snapshots", () => {
     const parser = createTypeScriptParser();
 
     it("sample-class.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -114,7 +116,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-functions.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-functions.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -122,7 +124,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-jsx.tsx snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-jsx.tsx");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-jsx.tsx");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -130,7 +132,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-decorators.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-decorators.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-decorators.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -138,7 +140,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-generics.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-generics.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-generics.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -146,7 +148,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-advanced-types.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-advanced-types.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-advanced-types.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -154,7 +156,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-modules.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-modules.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-modules.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -162,7 +164,7 @@ describe("Parser Snapshots", () => {
     });
 
     it("sample-edge-cases.ts snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-edge-cases.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-edge-cases.ts");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -237,32 +239,32 @@ export type DeepPartial<T> = {
   describeFileSnapshots("Python Parser", () => {
     const parser = createPythonParser();
 
-    it("sample-class.py snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    it("sample_class.py snapshot", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
     });
 
-    it("sample-functions.py snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+    it("sample_functions.py snapshot", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
     });
 
-    it("sample-imports.py snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+    it("sample_imports.py snapshot", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
     });
 
-    it("sample-modern-python.py snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-modern-python.py");
+    it("sample_modern_python.py snapshot", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_modern_python.py");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -320,7 +322,7 @@ class Comparable(Protocol):
     const parser = createCSharpParser();
 
     it("sample-class.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-class.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -328,7 +330,7 @@ class Comparable(Protocol):
     });
 
     it("sample-interface.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-interface.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-interface.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -336,7 +338,7 @@ class Comparable(Protocol):
     });
 
     it("sample-records.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-records.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-records.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -344,7 +346,7 @@ class Comparable(Protocol):
     });
 
     it("sample-generics.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-generics.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-generics.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -352,7 +354,7 @@ class Comparable(Protocol):
     });
 
     it("sample-async.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-async.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-async.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -360,7 +362,7 @@ class Comparable(Protocol):
     });
 
     it("sample-attributes.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-attributes.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-attributes.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -368,7 +370,7 @@ class Comparable(Protocol):
     });
 
     it("sample-extension.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-extension.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-extension.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 
@@ -376,7 +378,7 @@ class Comparable(Protocol):
     });
 
     it("sample-csharp-12.cs snapshot", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-csharp-12.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-csharp-12.cs");
       const result = await parser.parse(filePath, testConfig);
       const normalized = normalizeForSnapshot(result);
 

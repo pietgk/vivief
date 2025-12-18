@@ -1,0 +1,9 @@
+{
+  "name": "@devac/fixtures-csharp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "C# test fixtures for DevAC parsers",
+  "scripts": {
+    "typecheck": "dotnet build --nologo --verbosity quiet"
+  }
+}

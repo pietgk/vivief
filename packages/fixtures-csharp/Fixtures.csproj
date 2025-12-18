@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DevAC.Fixtures.CSharp</RootNamespace>
+    <AssemblyName>DevAC.Fixtures.CSharp</AssemblyName>
+    <LangVersion>12.0</LangVersion>
+
+    <!-- Don't produce output, just validate compilation -->
+    <OutputType>Library</OutputType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Treat warnings as errors for quality gate -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- Allow unsafe code for edge case fixtures -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Exclude the sample-project subdirectory (SDK auto-includes *.cs) -->
+  <ItemGroup>
+    <Compile Remove="sample-project/**" />
+  </ItemGroup>
+
+  <!-- Common NuGet packages that fixtures may reference -->
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

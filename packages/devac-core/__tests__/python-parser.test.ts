@@ -14,8 +14,8 @@ import { DEFAULT_PARSER_CONFIG } from "../src/parsers/parser-interface.js";
 import type { ParserConfig } from "../src/parsers/parser-interface.js";
 import { type PythonParser, createPythonParser } from "../src/parsers/python-parser.js";
 
-// Test fixtures path
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures path - using the fixtures-python package
+const FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-python");
 
 // Default test config
 const testConfig: ParserConfig = {
@@ -82,7 +82,7 @@ describe("PythonParser", () => {
 
   describe("class parsing", () => {
     it("extracts class node with correct kind", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const classNodes = result.nodes.filter((n) => n.kind === "class");
@@ -94,7 +94,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts base class as EXTENDS edge", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // UserService extends BaseService
@@ -114,7 +114,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts methods with CONTAINS edges", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // UserService should contain methods
@@ -133,7 +133,7 @@ describe("PythonParser", () => {
     });
 
     it("handles @staticmethod decorator", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const createDefaultMethod = result.nodes.find(
@@ -144,7 +144,7 @@ describe("PythonParser", () => {
     });
 
     it("handles @classmethod decorator", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const fromConfigMethod = result.nodes.find(
@@ -159,7 +159,7 @@ describe("PythonParser", () => {
     });
 
     it("handles @property decorator", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Property can be either a 'property' kind or a method with property flag
@@ -173,7 +173,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts __init__ as method", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const initMethods = result.nodes.filter((n) => n.name === "__init__" && n.kind === "method");
@@ -181,7 +181,7 @@ describe("PythonParser", () => {
     });
 
     it("handles multiple inheritance", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // AuditableService extends UserService and LoggingMixin
@@ -204,7 +204,7 @@ describe("PythonParser", () => {
 
   describe("function parsing", () => {
     it("extracts function node with correct kind", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       const functionNodes = result.nodes.filter((n) => n.kind === "function");
@@ -216,7 +216,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts async function with is_async flag", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       const fetchDataFunc = result.nodes.find(
@@ -227,7 +227,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts generator function", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       const rangeGenFunc = result.nodes.find(
@@ -238,7 +238,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts function parameters", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Find parameter nodes for the 'add' function
@@ -251,7 +251,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts type hints on parameters", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Find the 'add' function and check parameter types
@@ -274,7 +274,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts return type hints", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check that functions have return type info
@@ -291,7 +291,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts docstrings as documentation", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       const addFunc = result.nodes.find((n) => n.kind === "function" && n.name === "add");
@@ -310,7 +310,7 @@ describe("PythonParser", () => {
 
   describe("import parsing", () => {
     it("extracts import statement as external ref", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
 
       expect(result.externalRefs.length).toBeGreaterThan(0);
@@ -321,7 +321,7 @@ describe("PythonParser", () => {
     });
 
     it("extracts from...import statement", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check for 'from typing import Optional'
@@ -332,7 +332,7 @@ describe("PythonParser", () => {
     });
 
     it("handles import aliases", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check for 'import json as json_lib'
@@ -360,7 +360,7 @@ from ..utils import helper
     });
 
     it("handles star imports", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check for 'from os.path import *'
@@ -377,7 +377,7 @@ from ..utils import helper
 
   describe("variable parsing", () => {
     it("extracts module-level variables", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const variableNodes = result.nodes.filter((n) => n.kind === "variable");
@@ -387,7 +387,7 @@ from ..utils import helper
     });
 
     it("extracts annotated assignments", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // UserId = str is a type alias (annotated assignment)
@@ -398,7 +398,7 @@ from ..utils import helper
     });
 
     it("extracts constants (UPPER_CASE convention)", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // MAX_USERS should be extracted
@@ -415,7 +415,7 @@ from ..utils import helper
 
   describe("decorator parsing", () => {
     it("creates decorator nodes", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check for decorator nodes or decorator information on functions
@@ -430,7 +430,7 @@ from ..utils import helper
     });
 
     it("creates DECORATES edges", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // @log_calls decorates decorated_function
@@ -459,7 +459,7 @@ def get_users():
 
   describe("scope handling", () => {
     it("generates correct scoped names for methods", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Methods should have qualified names like ClassName.method_name
@@ -473,7 +473,7 @@ def get_users():
     });
 
     it("generates correct scoped names for nested functions", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       // outer_function contains inner_function
@@ -511,7 +511,7 @@ class Outer:
 
   describe("entity ID generation", () => {
     it("generates stable entity IDs", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
 
       // Parse twice
       const result1 = await parser.parse(filePath, testConfig);
@@ -525,7 +525,7 @@ class Outer:
     });
 
     it("generates unique IDs for different elements", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // All entity IDs should be unique
@@ -535,7 +535,7 @@ class Outer:
     });
 
     it("entity IDs follow the v2.0 format", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Format: {repo}:{package_path}:{kind}:{scope_hash}
@@ -603,7 +603,7 @@ that spans multiple lines
 
   describe("parse result structure", () => {
     it("returns valid StructuralParseResult", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       // Check required fields
@@ -623,7 +623,7 @@ that spans multiple lines
     });
 
     it("includes source file hash", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       expect(result.sourceFileHash).toBeTruthy();
@@ -631,7 +631,7 @@ that spans multiple lines
     });
 
     it("reports parse time in milliseconds", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+      const filePath = path.join(FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       expect(result.parseTimeMs).toBeGreaterThanOrEqual(0);
@@ -1315,7 +1315,7 @@ def handle_exception_group():
 
     describe("complex modern Python patterns", () => {
       it("parses file with combined modern features", async () => {
-        const filePath = path.join(FIXTURES_DIR, "sample-modern-python.py");
+        const filePath = path.join(FIXTURES_DIR, "sample_modern_python.py");
         const result = await parser.parse(filePath, testConfig);
 
         // Should parse without errors

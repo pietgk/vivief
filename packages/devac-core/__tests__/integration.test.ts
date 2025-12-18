@@ -17,8 +17,9 @@ import { DuckDBPool } from "../src/storage/duckdb-pool.js";
 import { SeedReader } from "../src/storage/seed-reader.js";
 import { SeedWriter } from "../src/storage/seed-writer.js";
 
-// Test fixtures path
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures paths - using the separate fixture packages
+const TS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-typescript/src");
+const PY_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-python");
 
 // Helper to parse properties (may be string or object after Parquet round-trip)
 function parseProperties(props: unknown): Record<string, unknown> {
@@ -53,7 +54,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("parses a TypeScript file and extracts nodes", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -79,7 +80,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("parses and extracts class methods correctly", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -102,7 +103,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("extracts imports as external references", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -124,7 +125,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("extracts type-only imports correctly", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -143,7 +144,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("extracts edges (CONTAINS relationships)", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -168,7 +169,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
 
   it("generates unique entity IDs for all nodes", async () => {
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -188,7 +189,7 @@ describe("Integration: Parse → Write → Read Cycle", () => {
   it("writes and reads seeds correctly", async () => {
     // Parse the file
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -230,8 +231,8 @@ describe("Integration: Parse → Write → Read Cycle", () => {
     };
 
     // Parse both fixture files
-    const result1 = await parser.parse(path.join(FIXTURES_DIR, "sample-class.ts"), config);
-    const result2 = await parser.parse(path.join(FIXTURES_DIR, "sample-functions.ts"), config);
+    const result1 = await parser.parse(path.join(TS_FIXTURES_DIR, "sample-class.ts"), config);
+    const result2 = await parser.parse(path.join(TS_FIXTURES_DIR, "sample-functions.ts"), config);
 
     // Both should have nodes
     expect(result1.nodes.length).toBeGreaterThan(0);
@@ -280,7 +281,7 @@ describe("Integration: Query Capabilities", () => {
 
     // Parse and write fixture file
     const parser = new TypeScriptParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+    const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -361,7 +362,7 @@ describe("Integration: Python Parser", () => {
 
   it("parses a Python file and extracts nodes", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -385,7 +386,7 @@ describe("Integration: Python Parser", () => {
 
   it("parses Python classes with inheritance", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -407,7 +408,7 @@ describe("Integration: Python Parser", () => {
 
   it("parses Python functions with type hints", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_functions.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -430,7 +431,7 @@ describe("Integration: Python Parser", () => {
 
   it("extracts Python imports as external references", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_imports.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -452,7 +453,7 @@ describe("Integration: Python Parser", () => {
 
   it("writes Python parse results to Parquet and reads back", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -488,7 +489,7 @@ describe("Integration: Python Parser", () => {
 
   it("handles async Python functions", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_functions.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -507,7 +508,7 @@ describe("Integration: Python Parser", () => {
 
   it("handles Python methods with decorators", async () => {
     const parser = new PythonParser();
-    const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
 
     const config = {
       ...DEFAULT_PARSER_CONFIG,
@@ -551,10 +552,10 @@ describe("Integration: Mixed TypeScript/Python Package", () => {
     };
 
     // Parse TypeScript file
-    const tsResult = await tsParser.parse(path.join(FIXTURES_DIR, "sample-class.ts"), config);
+    const tsResult = await tsParser.parse(path.join(TS_FIXTURES_DIR, "sample-class.ts"), config);
 
     // Parse Python file
-    const pyResult = await pyParser.parse(path.join(FIXTURES_DIR, "sample-class.py"), config);
+    const pyResult = await pyParser.parse(path.join(PY_FIXTURES_DIR, "sample_class.py"), config);
 
     // Write both to seeds
     const writer = new SeedWriter(pool, tempDir);
@@ -593,9 +594,9 @@ describe("Integration: Mixed TypeScript/Python Package", () => {
       branch: "main",
     };
 
-    const tsResult = await tsParser.parse(path.join(FIXTURES_DIR, "sample-class.ts"), config);
+    const tsResult = await tsParser.parse(path.join(TS_FIXTURES_DIR, "sample-class.ts"), config);
 
-    const pyResult = await pyParser.parse(path.join(FIXTURES_DIR, "sample-class.py"), config);
+    const pyResult = await pyParser.parse(path.join(PY_FIXTURES_DIR, "sample_class.py"), config);
 
     // All entity IDs should be unique across both results
     const allIds = [
@@ -619,8 +620,8 @@ describe("Integration: Mixed TypeScript/Python Package", () => {
     };
 
     // Parse and write both files
-    const tsResult = await tsParser.parse(path.join(FIXTURES_DIR, "sample-class.ts"), config);
-    const pyResult = await pyParser.parse(path.join(FIXTURES_DIR, "sample-class.py"), config);
+    const tsResult = await tsParser.parse(path.join(TS_FIXTURES_DIR, "sample-class.ts"), config);
+    const pyResult = await pyParser.parse(path.join(PY_FIXTURES_DIR, "sample_class.py"), config);
 
     const writer = new SeedWriter(pool, tempDir);
     await writer.writeFile(tsResult);

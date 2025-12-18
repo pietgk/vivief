@@ -16,7 +16,8 @@ import { DEFAULT_PARSER_CONFIG } from "../src/parsers/parser-interface.js";
 // Test Fixtures
 // ============================================================================
 
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures path - using the fixtures-csharp package
+const FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-csharp");
 
 const getFixturePath = (name: string) => path.join(FIXTURES_DIR, name);
 

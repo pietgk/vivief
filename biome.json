@@ -39,6 +39,16 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "coverage", "*.d.ts", ".turbo", "test-fixtures"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "coverage",
+      "*.d.ts",
+      ".turbo",
+      "test-fixtures",
+      "packages/fixtures-typescript",
+      "packages/fixtures-python",
+      "packages/fixtures-csharp"
+    ]
   }
 }

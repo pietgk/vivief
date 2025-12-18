@@ -14,8 +14,8 @@ import { DEFAULT_PARSER_CONFIG } from "../src/parsers/parser-interface.js";
 import type { ParserConfig } from "../src/parsers/parser-interface.js";
 import { type TypeScriptParser, createTypeScriptParser } from "../src/parsers/typescript-parser.js";
 
-// Test fixtures path
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures path - using the fixtures-typescript package
+const FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-typescript/src");
 
 // Default test config
 const testConfig: ParserConfig = {

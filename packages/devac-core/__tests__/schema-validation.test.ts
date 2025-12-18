@@ -18,8 +18,10 @@ import type { ParsedEdge } from "../src/types/edges.js";
 import type { ParsedExternalRef } from "../src/types/external-refs.js";
 import type { ParsedNode } from "../src/types/nodes.js";
 
-// Test fixtures path
-const FIXTURES_DIR = path.join(__dirname, "fixtures");
+// Test fixtures paths - using the separate fixture packages
+const TS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-typescript/src");
+const PY_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-python");
+const CS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-csharp");
 
 // Default test config
 const testConfig: ParserConfig = {
@@ -302,7 +304,7 @@ describe("Schema Validation", () => {
     const parser = createTypeScriptParser();
 
     it("sample-class.ts produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -310,7 +312,7 @@ describe("Schema Validation", () => {
     });
 
     it("sample-functions.ts produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-functions.ts");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -318,7 +320,7 @@ describe("Schema Validation", () => {
     });
 
     it("sample-jsx.tsx produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-jsx.tsx");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-jsx.tsx");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -326,7 +328,7 @@ describe("Schema Validation", () => {
     });
 
     it("sample-decorators.ts produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-decorators.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-decorators.ts");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -334,7 +336,7 @@ describe("Schema Validation", () => {
     });
 
     it("sample-generics.ts produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-generics.ts");
+      const filePath = path.join(TS_FIXTURES_DIR, "sample-generics.ts");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -442,32 +444,32 @@ class Child extends Parent { childMethod() {} }
   describe("Python Parser", () => {
     const parser = createPythonParser();
 
-    it("sample-class.py produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.py");
+    it("sample_class.py produces valid schema", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_class.py");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
       expect(errors).toHaveLength(0);
     });
 
-    it("sample-functions.py produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-functions.py");
+    it("sample_functions.py produces valid schema", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_functions.py");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
       expect(errors).toHaveLength(0);
     });
 
-    it("sample-imports.py produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-imports.py");
+    it("sample_imports.py produces valid schema", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_imports.py");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
       expect(errors).toHaveLength(0);
     });
 
-    it("sample-modern-python.py produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-modern-python.py");
+    it("sample_modern_python.py produces valid schema", async () => {
+      const filePath = path.join(PY_FIXTURES_DIR, "sample_modern_python.py");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -522,7 +524,7 @@ class TestClass:
     const parser = createCSharpParser();
 
     it("sample-class.cs produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-class.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-class.cs");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -530,7 +532,7 @@ class TestClass:
     });
 
     it("sample-interface.cs produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-interface.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-interface.cs");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -538,7 +540,7 @@ class TestClass:
     });
 
     it("sample-records.cs produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-records.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-records.cs");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -546,7 +548,7 @@ class TestClass:
     });
 
     it("sample-async.cs produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-async.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-async.cs");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
@@ -554,7 +556,7 @@ class TestClass:
     });
 
     it("sample-csharp-12.cs produces valid schema", async () => {
-      const filePath = path.join(FIXTURES_DIR, "sample-csharp-12.cs");
+      const filePath = path.join(CS_FIXTURES_DIR, "sample-csharp-12.cs");
       const result = await parser.parse(filePath, testConfig);
 
       const errors = validateParseResult(result, testConfig);
