@@ -16,7 +16,7 @@ The repository scores highly across all metrics: code quality, testing, document
 **Rating: Excellent**
 
 *   **Monorepo Architecture**: The use of **Turborepo** and **pnpm workspaces** provides a clean, efficient monorepo structure. Dependencies are well-managed, and build/test pipelines are optimized.
-*   **Package Separation**: The separation into `@devac/core`, `@devac/cli`, and `@devac/mcp` is logical and enforces good separation of concerns. Core logic is isolated from interface layers.
+*   **Package Separation**: The separation into `@pietgk/devac-core`, `@pietgk/devac-cli`, and `@pietgk/devac-mcp` is logical and enforces good separation of concerns. Core logic is isolated from interface layers.
 *   **Modern Tooling**:
     *   **Linting/Formatting**: **Biome** is used for fast, unified linting and formatting.
     *   **Testing**: **Vitest** provides a fast, modern testing framework.
@@ -39,9 +39,9 @@ The repository scores highly across all metrics: code quality, testing, document
 
 The repository maintains a high standard of testing:
 *   **Coverage**:
-    *   `@devac/core`: **624 tests** covering parsers, storage, analysis, and edge cases.
-    *   `@devac/cli`: **142 tests** covering commands, flags, and interaction flows.
-    *   `@devac/mcp`: **83 tests** covering the MCP server tools and integration.
+    *   `@pietgk/devac-core`: **624 tests** covering parsers, storage, analysis, and edge cases.
+    *   `@pietgk/devac-cli`: **142 tests** covering commands, flags, and interaction flows.
+    *   `@pietgk/devac-mcp`: **83 tests** covering the MCP server tools and integration.
 *   **Test Types**: A healthy mix of unit tests (parsers, utilities) and integration tests (CLI flows, database interactions).
 *   **Performance**: Tests run quickly thanks to Vitest and the in-memory capabilities of DuckDB.
 
@@ -59,7 +59,7 @@ The repository maintains a high standard of testing:
 
 This repository is an **ideal base** for the planned extensions (LLM/human querying):
 
-1.  **MCP Integration**: The `@devac/mcp` package already implements the Model Context Protocol, making it "AI-ready" out of the box. It exposes tools like `find_symbol`, `get_dependencies`, and `query_sql` that LLMs can directly use.
+1.  **MCP Integration**: The `@pietgk/devac-mcp` package already implements the Model Context Protocol, making it "AI-ready" out of the box. It exposes tools like `find_symbol`, `get_dependencies`, and `query_sql` that LLMs can directly use.
 2.  **Query Power**: The underlying DuckDB engine allows for complex SQL queries, which is a powerful primitive for building advanced question-answering capabilities.
 3.  **Performance**: The local Parquet/DuckDB architecture scales well for typical repository sizes and supports fast, low-latency queries essential for interactive use.
 4.  **Federation**: The "Central Hub" concept (`packages/devac-core/src/hub/`) is already designed to support cross-repository analysis, a key requirement for large-scale code intelligence.

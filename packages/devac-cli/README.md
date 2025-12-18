@@ -1,17 +1,17 @@
-# @devac/cli
+# @pietgk/devac-cli
 
 Command-line interface for DevAC - analyze, query, and manage code graphs from your terminal.
 
 ## Installation
 
 ```bash
-pnpm add @devac/cli
+pnpm add @pietgk/devac-cli
 ```
 
 Or install globally:
 
 ```bash
-pnpm add -g @devac/cli
+pnpm add -g @pietgk/devac-cli
 ```
 
 ## Commands
@@ -135,7 +135,7 @@ Seeds are stored in `.devac/seed/` within your package:
 ## Programmatic Usage
 
 ```typescript
-import { analyzeCommand, watchCommand, mcpCommand } from "@devac/cli";
+import { analyzeCommand, watchCommand, mcpCommand } from "@pietgk/devac-cli";
 
 // Analyze a package
 const result = await analyzeCommand({
@@ -154,8 +154,8 @@ await watchResult.controller?.stop();
 
 ## Related Packages
 
-- [@devac/core](../devac-core) - Core analysis library
-- [@devac/mcp](../devac-mcp) - MCP server implementation
+- [@pietgk/devac-core](../devac-core) - Core analysis library
+- [@pietgk/devac-mcp](../devac-mcp) - MCP server implementation
 
 ## Documentation
 

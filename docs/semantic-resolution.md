@@ -72,7 +72,7 @@ interface SemanticResolver {
 The factory manages all language resolvers:
 
 ```typescript
-import { getSemanticResolverFactory, getSemanticResolver } from "@devac/core";
+import { getSemanticResolverFactory, getSemanticResolver } from "@pietgk/devac-core";
 
 // Get factory with custom config
 const factory = getSemanticResolverFactory({
@@ -110,7 +110,7 @@ Uses **ts-morph** for compiler-grade symbol resolution.
 **Resolution accuracy:** ~99%
 
 ```typescript
-import { TypeScriptSemanticResolver } from "@devac/core";
+import { TypeScriptSemanticResolver } from "@pietgk/devac-core";
 
 const resolver = new TypeScriptSemanticResolver({
   enabled: true,
@@ -142,7 +142,7 @@ Uses regex-based parsing with optional **Pyright** enhancement.
 **Resolution accuracy:** ~90% (regex), ~95% (with Pyright)
 
 ```typescript
-import { PythonSemanticResolver } from "@devac/core";
+import { PythonSemanticResolver } from "@pietgk/devac-core";
 
 const resolver = new PythonSemanticResolver({
   enabled: true,
@@ -173,7 +173,7 @@ Uses regex-based parsing with optional **.NET SDK** enhancement.
 **Resolution accuracy:** ~90% (regex), ~95% (with .NET SDK)
 
 ```typescript
-import { CSharpSemanticResolver } from "@devac/core";
+import { CSharpSemanticResolver } from "@pietgk/devac-core";
 
 const resolver = new CSharpSemanticResolver({
   enabled: true,
@@ -211,7 +211,7 @@ const defaultSemanticConfig = {
 ### Custom Configuration
 
 ```typescript
-import { SemanticResolverFactory } from "@devac/core";
+import { SemanticResolverFactory } from "@pietgk/devac-core";
 
 const factory = new SemanticResolverFactory({
   typescript: {

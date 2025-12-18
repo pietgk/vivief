@@ -1,5 +1,5 @@
 {
-  "name": "@devac/fixtures-typescript",
+  "name": "@pietgk/devac-fixtures-typescript",
   "version": "0.0.0",
   "private": true,
   "description": "TypeScript test fixtures for DevAC parsers",

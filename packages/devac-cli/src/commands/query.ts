@@ -5,7 +5,7 @@
  * Based on spec Section 11.2: Query Commands
  */
 
-import { DuckDBPool, executeWithRecovery } from "@devac/core";
+import { DuckDBPool, executeWithRecovery } from "@pietgk/devac-core";
 import type { QueryOptions, QueryResult } from "./types.js";
 
 /**

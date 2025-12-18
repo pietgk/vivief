@@ -5,7 +5,7 @@
 **Context:** Post-extraction review of `devac-v2` code (from `CodeGraph`) now organized as the `vivief` Turborepo monorepo. Goal is to judge readiness as a base for future LLM + human code/content querying.
 
 ## Executive Summary
-- **Overall:** Strong foundation with clean monorepo structure (`@devac/core`, `@devac/cli`, `@devac/mcp`), modern tooling, and substantial test surface. The code is readable, typed, and modular.
+- **Overall:** Strong foundation with clean monorepo structure (`@pietgk/devac-core`, `@pietgk/devac-cli`, `@pietgk/devac-mcp`), modern tooling, and substantial test surface. The code is readable, typed, and modular.
 - **Key Strengths:** Clear package boundaries; robust storage layer (DuckDB pool, atomic writes); well-factored parsing/analyzer/watcher/validation modules; comprehensive docs set; rich CLI surface; MCP server already wired for AI integration.
 - **Key Risks / Gaps:** No repo-level CI/automation; semantic resolution still partial (stub in orchestrator, evolving resolver); concurrency limiter in analysis orchestrator appears incorrect; Babel-based TS parser lacks type-level semantics; no published coverage metrics; some operational concerns (config defaults, disk layout) unvalidated at scale.
 - **Recommendation:** Proceed as a base, but address concurrency + semantic-resolution gaps and add CI+coverage to ensure reliability as the platform grows.
@@ -13,7 +13,7 @@
 ## Repository Structure & Tooling
 - **Monorepo:** Turborepo with pnpm workspaces; tasks wired for build/test/typecheck/lint/clean. Changesets ready for versioning/publishing.
 - **Tooling:** TypeScript strict/NodeNext; Vitest for tests; Biome for lint/format; DuckDB + Parquet for storage; MCP SDK present. No `.github` CI configs detected—automation missing.
-- **Packages:** `@devac/core` (engine: parsers, analyzer, storage, validation, hub), `@devac/cli` (command surface), `@devac/mcp` (Model Context Protocol tools). Export maps and typings configured; per-package tsconfig extends root.
+- **Packages:** `@pietgk/devac-core` (engine: parsers, analyzer, storage, validation, hub), `@pietgk/devac-cli` (command surface), `@pietgk/devac-mcp` (Model Context Protocol tools). Export maps and typings configured; per-package tsconfig extends root.
 
 ## Code Quality Assessment
 - **Architecture:** Modular domains (parsers → analyzer → storage → hub/watch/validation). Storage layer (`duckdb-pool.ts`, atomic seed writer) is thoughtful with recovery paths. CLI is command-per-file, composable; MCP server minimal but clear.

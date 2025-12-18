@@ -131,7 +131,7 @@ jobs:
 
       - name: Configure npm for GitHub Packages
         run: |
-          echo "@devac:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "@pietgk:registry=https://npm.pkg.github.com" >> .npmrc
           echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
 
       - name: Create Release Pull Request or Publish

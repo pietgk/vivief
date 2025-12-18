@@ -5,16 +5,16 @@
  * the Model Context Protocol SDK.
  */
 
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
   DuckDBPool,
   SeedReader,
   type SymbolAffectedAnalyzer,
   createSymbolAffectedAnalyzer,
   executeWithRecovery,
-} from "@devac/core";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+} from "@pietgk/devac-core";
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.js";
 

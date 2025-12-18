@@ -126,7 +126,7 @@ import {
   createSeedWriter,
   createSeedReader,
   createAnalysisOrchestrator,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Initialize
 const pool = new DuckDBPool();

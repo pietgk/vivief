@@ -22,14 +22,14 @@ devac/
 ## Package Dependencies
 
 ```
-@devac/cli  ────┐
-                ├──> @devac/core
-@devac/mcp  ────┘
+@pietgk/devac-cli  ────┐
+                ├──> @pietgk/devac-core
+@pietgk/devac-mcp  ────┘
 ```
 
-- **@devac/core**: Standalone, no internal dependencies
-- **@devac/cli**: Depends on @devac/core
-- **@devac/mcp**: Depends on @devac/core
+- **@pietgk/devac-core**: Standalone, no internal dependencies
+- **@pietgk/devac-cli**: Depends on @pietgk/devac-core
+- **@pietgk/devac-mcp**: Depends on @pietgk/devac-core
 
 ## Essential Commands
 
@@ -59,16 +59,16 @@ pnpm clean
 
 ```bash
 # Build specific package
-pnpm --filter @devac/core build
+pnpm --filter @pietgk/devac-core build
 
 # Run tests for specific package
-pnpm --filter @devac/cli test
+pnpm --filter @pietgk/devac-cli test
 
 # Run CLI locally
-pnpm --filter @devac/cli exec devac --help
+pnpm --filter @pietgk/devac-cli exec devac --help
 
 # Run MCP server locally
-pnpm --filter @devac/mcp exec devac-mcp --help
+pnpm --filter @pietgk/devac-mcp exec devac-mcp --help
 ```
 
 ## Code Standards
@@ -133,7 +133,7 @@ The MCP server provides these tools for AI assistants:
 ## Adding New Features
 
 When adding features:
-1. Start with @devac/core if it's core functionality
+1. Start with @pietgk/devac-core if it's core functionality
 2. Export from the package's `src/index.ts`
 3. Add tests alongside the implementation
 4. Update CLI commands if user-facing

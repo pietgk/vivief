@@ -13,7 +13,7 @@ import {
   type SymbolAffectedAnalyzer,
   createSymbolAffectedAnalyzer,
   executeWithRecovery,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 /**
  * MCP Tool definition

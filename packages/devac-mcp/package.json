@@ -1,5 +1,5 @@
 {
-  "name": "@devac/mcp",
+  "name": "@pietgk/devac-mcp",
   "version": "0.1.1",
   "description": "DevAC MCP server for AI assistants",
   "type": "module",
@@ -26,7 +26,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@devac/core": "workspace:*",
+    "@pietgk/devac-core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.8.0"
   },
   "devDependencies": {

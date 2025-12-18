@@ -5,7 +5,7 @@
  * the TypeScript parser implementation.
  *
  * Usage in tests:
- *   import { getFixturePath, FIXTURES_DIR } from "@devac/fixtures-typescript";
+ *   import { getFixturePath, FIXTURES_DIR } from "@pietgk/devac-fixtures-typescript";
  *   const filePath = getFixturePath("sample-class.ts");
  */
 

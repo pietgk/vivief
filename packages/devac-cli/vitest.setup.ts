@@ -5,7 +5,7 @@
  * to prevent flaky test behavior caused by state leakage.
  *
  * Key resources managed:
- * - DuckDB connection pool (singleton from @devac/core)
+ * - DuckDB connection pool (singleton from @pietgk/devac-core)
  * - ts-morph Project caches
  * - Semantic resolver factory singleton
  */
@@ -14,7 +14,7 @@ import {
   TypeScriptSemanticResolver,
   resetSemanticResolverFactory,
   shutdownDefaultPool,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 import { afterAll, afterEach, beforeEach } from "vitest";
 
 // Reset all shared state before each test to ensure clean state

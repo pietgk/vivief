@@ -14,10 +14,10 @@ The MCP server exposes DevAC's code analysis capabilities through the Model Cont
 
 ## Installation
 
-The MCP server is part of the `@devac/mcp` package:
+The MCP server is part of the `@pietgk/devac-mcp` package:
 
 ```bash
-pnpm add @devac/mcp
+pnpm add @pietgk/devac-mcp
 ```
 
 ## Starting the Server
@@ -31,7 +31,7 @@ devac mcp start --package /path/to/your/package
 ### Programmatically
 
 ```typescript
-import { createMCPServer } from "@devac/mcp";
+import { createMCPServer } from "@pietgk/devac-mcp";
 
 const server = await createMCPServer({
   packagePath: "/path/to/your/package",
@@ -223,7 +223,7 @@ Add the following to your Claude Desktop configuration:
 The server uses stdio transport by default, making it compatible with any MCP-compliant client:
 
 ```typescript
-import { DevacMCPServer } from "@devac/mcp";
+import { DevacMCPServer } from "@pietgk/devac-mcp";
 
 const server = new DevacMCPServer({
   packagePath: "/path/to/package"

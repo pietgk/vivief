@@ -1,5 +1,5 @@
 {
-  "name": "@devac/core",
+  "name": "@pietgk/devac-core",
   "version": "0.1.1",
   "description": "DevAC core analysis engine - DuckDB/Parquet-based code graph",
   "type": "module",

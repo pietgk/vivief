@@ -248,7 +248,7 @@ This will:
 
 ```markdown
 ---
-"@devac/core": minor
+"@pietgk/devac-core": minor
 ---
 
 Add Python AST parser with support for function definitions, class declarations, 
@@ -332,7 +332,7 @@ Users can install from GitHub Packages:
 echo "@devac:registry=https://npm.pkg.github.com" >> .npmrc
 
 # Install
-pnpm add @devac/core @devac/cli
+pnpm add @pietgk/devac-core @pietgk/devac-cli
 ```
 
 ---

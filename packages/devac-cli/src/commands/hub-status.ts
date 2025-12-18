@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type HubStatus, createCentralHub } from "@devac/core";
+import { type HubStatus, createCentralHub } from "@pietgk/devac-core";
 
 /**
  * Hub status command options

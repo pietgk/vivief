@@ -5,7 +5,7 @@
  * Based on spec Section 11.1: Package Commands - Maintenance
  */
 
-import { DuckDBPool, SeedReader } from "@devac/core";
+import { DuckDBPool, SeedReader } from "@pietgk/devac-core";
 import type { VerifyOptions, VerifyResult } from "./types.js";
 
 /**

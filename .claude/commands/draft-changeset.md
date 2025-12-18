@@ -53,8 +53,8 @@ Changesets uses random word combinations. Generate one:
 ```bash
 cat > .changeset/<filename>.md << 'EOF'
 ---
-"@devac/core": patch
-"@devac/cli": patch
+"@pietgk/devac-core": patch
+"@pietgk/devac-cli": patch
 ---
 
 Brief description of the changes for the changelog.
@@ -79,7 +79,7 @@ git add .changeset/
 
 **Contents:**
 ---
-"@devac/cli": minor
+"@pietgk/devac-cli": minor
 ---
 
 Add watch mode for incremental analysis

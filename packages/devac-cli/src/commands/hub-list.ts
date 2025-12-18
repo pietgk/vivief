@@ -7,8 +7,8 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createCentralHub } from "@devac/core";
-import type { CentralHub } from "@devac/core";
+import { createCentralHub } from "@pietgk/devac-core";
+import type { CentralHub } from "@pietgk/devac-core";
 
 // RepoInfo type from the hub
 type RepoInfo = Awaited<ReturnType<CentralHub["listRepos"]>>[number];

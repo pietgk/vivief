@@ -1,5 +1,5 @@
 {
-  "name": "@devac/fixtures-csharp",
+  "name": "@pietgk/devac-fixtures-csharp",
   "version": "0.0.0",
   "private": true,
   "description": "C# test fixtures for DevAC parsers",

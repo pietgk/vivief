@@ -10,7 +10,7 @@ import {
   createSeedWriter,
   createSeedReader,
   createAnalysisOrchestrator,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Initialize
 const pool = new DuckDBPool();
@@ -38,26 +38,26 @@ import type {
   ParsedNode,
   NodeKind,
   ExportKind,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Edge types
 import type {
   ParsedEdge,
   EdgeType,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // External reference types
 import type {
   ParsedExternalRef,
   ImportKind,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Configuration
 import type {
   DevacConfig,
   PoolConfig,
   WatchOptions,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 ```
 
 ## DuckDBPool
@@ -65,7 +65,7 @@ import type {
 Connection pool for DuckDB operations.
 
 ```typescript
-import { DuckDBPool } from "@devac/core";
+import { DuckDBPool } from "@pietgk/devac-core";
 
 const pool = new DuckDBPool({
   maxConnections: 4,      // Maximum concurrent connections
@@ -92,7 +92,7 @@ await pool.shutdown();
 ### Default Pool
 
 ```typescript
-import { getDefaultPool, shutdownDefaultPool } from "@devac/core";
+import { getDefaultPool, shutdownDefaultPool } from "@pietgk/devac-core";
 
 // Get/create default pool
 const pool = getDefaultPool();
@@ -106,7 +106,7 @@ await shutdownDefaultPool();
 Atomic writes to Parquet files.
 
 ```typescript
-import { createSeedWriter, SeedWriter } from "@devac/core";
+import { createSeedWriter, SeedWriter } from "@pietgk/devac-core";
 
 const writer: SeedWriter = createSeedWriter(pool, "/path/to/package");
 
@@ -165,7 +165,7 @@ await writer.writeFile(result, { branch: "feature-auth" });
 Query access to seed files.
 
 ```typescript
-import { createSeedReader, SeedReader } from "@devac/core";
+import { createSeedReader, SeedReader } from "@pietgk/devac-core";
 
 const reader: SeedReader = createSeedReader(pool, "/path/to/package");
 
@@ -208,7 +208,7 @@ if (!integrity.valid) {
 ### Query Multiple Packages
 
 ```typescript
-import { queryMultiplePackages } from "@devac/core";
+import { queryMultiplePackages } from "@pietgk/devac-core";
 
 const result = await queryMultiplePackages(pool, [
   "/path/to/packages/auth",
@@ -221,7 +221,7 @@ const result = await queryMultiplePackages(pool, [
 Coordinates the analysis pipeline.
 
 ```typescript
-import { createAnalysisOrchestrator, AnalysisOrchestrator } from "@devac/core";
+import { createAnalysisOrchestrator, AnalysisOrchestrator } from "@pietgk/devac-core";
 
 const orchestrator: AnalysisOrchestrator = createAnalysisOrchestrator(pool, {
   debounceMs: 100,        // Batch collection window
@@ -289,8 +289,8 @@ interface AnalysisResult {
 Routes files to appropriate parsers.
 
 ```typescript
-import { createLanguageRouter, LanguageRouter } from "@devac/core";
-import { TypeScriptParser, PythonParser, CSharpParser } from "@devac/core";
+import { createLanguageRouter, LanguageRouter } from "@pietgk/devac-core";
+import { TypeScriptParser, PythonParser, CSharpParser } from "@pietgk/devac-core";
 
 const router: LanguageRouter = createLanguageRouter([
   new TypeScriptParser(),
@@ -315,7 +315,7 @@ router.registerParser(new CustomParser());
 ### Default Router
 
 ```typescript
-import { getDefaultRouter, resetDefaultRouter } from "@devac/core";
+import { getDefaultRouter, resetDefaultRouter } from "@pietgk/devac-core";
 
 const router = getDefaultRouter(); // Pre-configured with TS, Python, C#
 resetDefaultRouter(); // Reset to fresh instance
@@ -329,7 +329,7 @@ import {
   parseEntityId,
   isValidEntityId,
   entityIdsMatch,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Generate entity ID
 const entityId = generateEntityId({
@@ -357,7 +357,7 @@ const match = entityIdsMatch(id1, id2);
 ### Atomic Write
 
 ```typescript
-import { writeFileAtomic, writeJsonAtomic } from "@devac/core";
+import { writeFileAtomic, writeJsonAtomic } from "@pietgk/devac-core";
 
 // Atomic file write
 await writeFileAtomic("/path/to/file.txt", "content");
@@ -374,7 +374,7 @@ import {
   computeFileHashes,
   hasFileChanged,
   findChangedFiles,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Single file hash
 const hash = await computeFileHash("/path/to/file.ts");
@@ -397,7 +397,7 @@ import {
   findOrphanedSeeds,
   removeAllSeeds,
   cleanupOrphanedFiles,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Clean package seeds
 await cleanupPackageSeeds("/path/to/package");
@@ -416,7 +416,7 @@ const result = await cleanupOrphanedFiles("/path/to/seed");
 ## File Locking
 
 ```typescript
-import { withSeedLock, acquireLock, releaseLock, isLockStale } from "@devac/core";
+import { withSeedLock, acquireLock, releaseLock, isLockStale } from "@pietgk/devac-core";
 
 // Recommended: use withSeedLock for automatic lock management
 await withSeedLock("/path/to/seed", async () => {
@@ -444,7 +444,7 @@ import {
   queryCommand,
   verifyCommand,
   cleanCommand,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Run analyze programmatically
 const analyzeResult = await analyzeCommand({
@@ -481,7 +481,7 @@ import {
   EXTERNAL_REFS_SCHEMA,
   PARQUET_OPTIONS,
   DEFAULT_EXTENSION_MAP,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 console.log(VERSION); // "2.0.0"
 ```

@@ -13,7 +13,7 @@ import {
   ValidationCoordinator,
   type ValidationCoordinatorResult,
   type ValidationMode,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 /**
  * Options for validate command

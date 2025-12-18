@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createCentralHub } from "@devac/core";
+import { createCentralHub } from "@pietgk/devac-core";
 
 /**
  * Hub init command options

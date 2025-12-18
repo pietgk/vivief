@@ -1,11 +1,11 @@
-# @devac/mcp
+# @pietgk/devac-mcp
 
 Model Context Protocol (MCP) server for DevAC - enable AI assistants to query and analyze your code graph.
 
 ## Installation
 
 ```bash
-pnpm add @devac/mcp
+pnpm add @pietgk/devac-mcp
 ```
 
 ## Overview
@@ -23,7 +23,7 @@ devac mcp start --package /path/to/your/package
 ### Programmatically
 
 ```typescript
-import { createMCPServer, DevacMCPServer } from "@devac/mcp";
+import { createMCPServer, DevacMCPServer } from "@pietgk/devac-mcp";
 
 // Quick start
 const server = await createMCPServer({
@@ -119,8 +119,8 @@ Convenience function that creates and starts a server in one call.
 
 ## Related Packages
 
-- [@devac/core](../devac-core) - Core analysis library
-- [@devac/cli](../devac-cli) - Command-line interface
+- [@pietgk/devac-core](../devac-core) - Core analysis library
+- [@pietgk/devac-cli](../devac-cli) - Command-line interface
 
 ## Documentation
 

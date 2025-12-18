@@ -1,4 +1,4 @@
-# @devac/core
+# @pietgk/devac-core
 
 ## 0.1.1
 

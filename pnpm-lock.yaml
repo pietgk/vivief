@@ -35,7 +35,7 @@ importers:
 
   packages/devac-cli:
     dependencies:
-      '@devac/core':
+      '@pietgk/devac-core':
         specifier: workspace:*
         version: link:../devac-core
       commander:
@@ -100,12 +100,12 @@ importers:
 
   packages/devac-mcp:
     dependencies:
-      '@devac/core':
-        specifier: workspace:*
-        version: link:../devac-core
       '@modelcontextprotocol/sdk':
         specifier: ^1.8.0
         version: 1.25.0(hono@4.11.1)(zod@3.25.76)
+      '@pietgk/devac-core':
+        specifier: workspace:*
+        version: link:../devac-core
     devDependencies:
       '@types/node':
         specifier: ^20.17.28

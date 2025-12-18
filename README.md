@@ -26,7 +26,7 @@ pnpm install
 pnpm build
 
 # Link CLI globally (optional)
-pnpm --filter @devac/cli link --global
+pnpm --filter @pietgk/devac-cli link --global
 ```
 
 ## Quick Start
@@ -49,9 +49,9 @@ devac affected src/api/user.ts src/models/user.ts
 
 | Package | Description |
 |---------|-------------|
-| [@devac/core](./packages/devac-core) | Core analysis engine |
-| [@devac/cli](./packages/devac-cli) | Command-line interface |
-| [@devac/mcp](./packages/devac-mcp) | MCP server for AI assistants |
+| [@pietgk/devac-core](./packages/devac-core) | Core analysis engine |
+| [@pietgk/devac-cli](./packages/devac-cli) | Command-line interface |
+| [@pietgk/devac-mcp](./packages/devac-mcp) | MCP server for AI assistants |
 
 ## CLI Commands
 

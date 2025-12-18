@@ -71,20 +71,20 @@ vivief/
 
 **Package Dependency Graph:**
 ```
-@devac/core (standalone - no internal dependencies)
+@pietgk/devac-core (standalone - no internal dependencies)
     ↑
-@devac/cli (depends on core)
+@pietgk/devac-cli (depends on core)
     ↑
-@devac/mcp (depends on core)
+@pietgk/devac-mcp (depends on core)
 ```
 
 ### 1.2 Package Breakdown
 
 | Package | Purpose | Lines of Code | Dependencies |
 |---------|---------|---------------|--------------|
-| `@devac/core` | Analysis engine, parsers, storage | ~15,000 | Babel, tree-sitter, DuckDB |
-| `@devac/cli` | CLI commands, hub federation | ~5,000 | Commander.js, core |
-| `@devac/mcp` | MCP server, AI tools | ~1,500 | MCP SDK, core |
+| `@pietgk/devac-core` | Analysis engine, parsers, storage | ~15,000 | Babel, tree-sitter, DuckDB |
+| `@pietgk/devac-cli` | CLI commands, hub federation | ~5,000 | Commander.js, core |
+| `@pietgk/devac-mcp` | MCP server, AI tools | ~1,500 | MCP SDK, core |
 
 ---
 

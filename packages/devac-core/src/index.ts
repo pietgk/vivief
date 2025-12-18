@@ -4,7 +4,7 @@
  * DuckDB + Parquet based code analysis system.
  * Replaces Neo4j with file-based storage.
  *
- * @module @devac/core
+ * @module @pietgk/devac-core
  */
 
 // Types (base types)
@@ -137,7 +137,7 @@ export type {
   ValidationCoordinatorResult,
 } from "./validation/index.js";
 // Note: SymbolInfo from validation is not exported to avoid conflict with parsers/SymbolInfo
-// Use: import { SymbolInfo as ValidationSymbolInfo } from "@devac/core/validation" if needed
+// Use: import { SymbolInfo as ValidationSymbolInfo } from "@pietgk/devac-core/validation" if needed
 
 // Utils (excludes generateScopeHash which is also in analyzer)
 export {

@@ -18,7 +18,7 @@ import {
   createRenameDetector,
   createUpdateManager,
   setGlobalLogLevel,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 import { analyzeCommand } from "./analyze.js";
 import type {
   WatchChangeEvent,

@@ -16,7 +16,7 @@ import {
   computeFileHash,
   getSemanticResolverFactory,
   toUnresolvedRef,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 import { glob } from "glob";
 import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
 

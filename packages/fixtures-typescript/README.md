@@ -1,11 +1,11 @@
-# @devac/fixtures-typescript
+# @pietgk/devac-fixtures-typescript
 
 TypeScript test fixtures for DevAC parser testing.
 
 ## Usage
 
 ```typescript
-import { getFixturePath, FIXTURES_DIR } from "@devac/fixtures-typescript";
+import { getFixturePath, FIXTURES_DIR } from "@pietgk/devac-fixtures-typescript";
 
 // Get path to a specific fixture
 const classFile = getFixturePath("sample-class.ts");
@@ -50,7 +50,7 @@ These files have been renamed to `.txt` extension to prevent IDE/editor errors:
 ## Type Checking
 
 This package is configured with its own `tsconfig.json` that type-checks most
-TypeScript fixtures. Run `pnpm --filter @devac/fixtures-typescript typecheck`
+TypeScript fixtures. Run `pnpm --filter @pietgk/devac-fixtures-typescript typecheck`
 to verify.
 
 Files excluded from type-checking:

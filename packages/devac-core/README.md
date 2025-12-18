@@ -1,11 +1,11 @@
-# @devac/core
+# @pietgk/devac-core
 
 Core library for DevAC - a federated code analysis system that extracts, stores, and queries code structure using DuckDB and Parquet.
 
 ## Installation
 
 ```bash
-pnpm add @devac/core
+pnpm add @pietgk/devac-core
 ```
 
 ## Features
@@ -24,7 +24,7 @@ import {
   TypeScriptParser,
   SeedWriter,
   SeedReader,
-} from "@devac/core";
+} from "@pietgk/devac-core";
 
 // Initialize DuckDB pool
 const pool = new DuckDBPool({ memoryLimit: "256MB" });
@@ -129,8 +129,8 @@ See the full [API Reference](../../docs/api-reference.md) for detailed documenta
 
 ## Related Packages
 
-- [@devac/cli](../devac-cli) - Command-line interface
-- [@devac/mcp](../devac-mcp) - MCP server for AI assistants
+- [@pietgk/devac-cli](../devac-cli) - Command-line interface
+- [@pietgk/devac-mcp](../devac-mcp) - MCP server for AI assistants
 
 ## License
 

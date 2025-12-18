@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type RefreshResult, createCentralHub } from "@devac/core";
+import { type RefreshResult, createCentralHub } from "@pietgk/devac-core";
 
 /**
  * Hub refresh command options

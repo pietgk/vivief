@@ -7,7 +7,7 @@
  */
 
 import * as fs from "node:fs/promises";
-import { DuckDBPool, SeedReader, createSymbolAffectedAnalyzer } from "@devac/core";
+import { DuckDBPool, SeedReader, createSymbolAffectedAnalyzer } from "@pietgk/devac-core";
 
 /**
  * Options for affected command

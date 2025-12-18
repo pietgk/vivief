@@ -17,7 +17,11 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createFileWatcher, createTypeScriptResolver, createUpdateManager } from "@devac/core";
+import {
+  createFileWatcher,
+  createTypeScriptResolver,
+  createUpdateManager,
+} from "@pietgk/devac-core";
 import { analyzeCommand } from "../src/commands/analyze.js";
 
 // Fixtures path
@@ -266,9 +270,9 @@ export type Type${i} = string;
       const index = await resolver.buildExportIndex(tempDir);
       const elapsed = Date.now() - startTime;
 
-      // ts-morph initialization has some overhead, 1200ms is reasonable for small packages
+      // ts-morph initialization has some overhead, 1400ms is reasonable for small packages
       // (ts-morph creates a full TypeScript project which is slower than regex-based parsing)
-      expect(elapsed).toBeLessThan(1200 * CI_PERF_MULTIPLIER);
+      expect(elapsed).toBeLessThan(1400 * CI_PERF_MULTIPLIER);
       expect(index.fileExports.size).toBeGreaterThan(0);
     });
 

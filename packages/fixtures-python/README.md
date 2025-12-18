@@ -1,4 +1,4 @@
-# @devac/fixtures-python
+# @pietgk/devac-fixtures-python
 
 Python test fixtures for DevAC parser testing.
 
@@ -21,7 +21,7 @@ fixtures-python/
 Run type checking with:
 
 ```bash
-pnpm --filter @devac/fixtures-python typecheck
+pnpm --filter @pietgk/devac-fixtures-python typecheck
 ```
 
 This uses pyright to validate Python type hints.

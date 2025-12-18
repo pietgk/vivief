@@ -1,4 +1,4 @@
-# @devac/fixtures-csharp
+# @pietgk/devac-fixtures-csharp
 
 C# test fixtures for DevAC parser testing.
 
@@ -29,7 +29,7 @@ fixtures-csharp/
 Run compilation check with:
 
 ```bash
-pnpm --filter @devac/fixtures-csharp typecheck
+pnpm --filter @pietgk/devac-fixtures-csharp typecheck
 ```
 
 This uses `dotnet build` to verify all C# fixtures compile correctly.
