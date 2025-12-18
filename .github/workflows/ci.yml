@@ -85,8 +85,8 @@ jobs:
           # Get list of changed files in this PR
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
 
-          # Check if any package source files changed (excluding fixture packages which are private)
-          PACKAGE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^packages/.*/src/" | grep -v "^packages/fixtures-" || true)
+          # Check if any package source files changed (excluding fixture packages and test files)
+          PACKAGE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^packages/.*/src/" | grep -v "^packages/fixtures-" | grep -v "__tests__" || true)
 
           if [ -n "$PACKAGE_CHANGES" ]; then
             echo "Package source files changed:"

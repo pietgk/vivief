@@ -94,8 +94,8 @@ describe("AffectedAnalyzer", () => {
 
       expect(result.changedEntities).toHaveLength(1);
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-a");
-      expect(result.affectedRepos[0]!.affectedEntities).toContain(
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-a");
+      expect(result.affectedRepos[0]?.affectedEntities).toContain(
         "github.com/org/repo-a:src/consumer.ts:function:useHelper"
       );
     });
@@ -118,7 +118,7 @@ describe("AffectedAnalyzer", () => {
       const result = await analyzer.analyze(["github.com/org/repo-a:src/lib.ts:function:utility"]);
 
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
     });
 
     it("finds transitive dependents up to max depth", async () => {
@@ -184,7 +184,7 @@ describe("AffectedAnalyzer", () => {
 
       // Should only find B (direct), not C (transitive at depth 2)
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
     });
   });
 
@@ -213,8 +213,8 @@ describe("AffectedAnalyzer", () => {
       const result = await analyzer.analyze(["github.com/org/repo-a:src/lib.ts:function:shared"]);
 
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
-      expect(result.affectedRepos[0]!.affectedEntities).toHaveLength(2);
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.affectedEntities).toHaveLength(2);
     });
 
     it("calculates impact level (direct/transitive)", async () => {
@@ -310,7 +310,7 @@ describe("AffectedAnalyzer", () => {
       });
 
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
     });
 
     it("excludes specified repos with excludeRepos", async () => {
@@ -340,7 +340,7 @@ describe("AffectedAnalyzer", () => {
       });
 
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
     });
   });
 
@@ -364,7 +364,7 @@ describe("AffectedAnalyzer", () => {
       const result = await analyzer.analyzeFile("src/utils.ts", "/path/to/repo-a");
 
       expect(result.affectedRepos).toHaveLength(1);
-      expect(result.affectedRepos[0]!.repoId).toBe("github.com/org/repo-b");
+      expect(result.affectedRepos[0]?.repoId).toBe("github.com/org/repo-b");
     });
   });
 
@@ -478,7 +478,7 @@ describe("AffectedAnalyzer", () => {
       ]);
 
       // Should only count the consumer once
-      expect(result.affectedRepos[0]!.affectedEntities).toHaveLength(1);
+      expect(result.affectedRepos[0]?.affectedEntities).toHaveLength(1);
       expect(result.totalAffected).toBe(1);
     });
   });

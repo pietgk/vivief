@@ -186,8 +186,8 @@ describe("FileWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events[0]!.type).toBe("add");
-      expect(events[0]!.filePath).toBe(filePath);
+      expect(events[0]?.type).toBe("add");
+      expect(events[0]?.filePath).toBe(filePath);
     });
 
     it("emits change event for modified files", async () => {
@@ -211,8 +211,8 @@ describe("FileWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events[0]!.type).toBe("change");
-      expect(events[0]!.filePath).toBe(filePath);
+      expect(events[0]?.type).toBe("change");
+      expect(events[0]?.filePath).toBe(filePath);
     });
 
     it("emits unlink event for deleted files", async () => {
@@ -236,8 +236,8 @@ describe("FileWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
 
       expect(events.length).toBeGreaterThanOrEqual(1);
-      expect(events[0]!.type).toBe("unlink");
-      expect(events[0]!.filePath).toBe(filePath);
+      expect(events[0]?.type).toBe("unlink");
+      expect(events[0]?.filePath).toBe(filePath);
     });
 
     it("debounces rapid changes to same file", async () => {
