@@ -65,6 +65,11 @@ describe("hub list command", () => {
     expect(reg1.success).toBe(true);
     expect(reg1.repoId).toBe("github.com/org/repo1");
 
+    // Verify first repo was registered before adding second
+    const afterFirst = await hubList({ hubDir });
+    expect(afterFirst.success).toBe(true);
+    expect(afterFirst.repos).toHaveLength(1);
+
     const reg2 = await hubRegister({ hubDir, repoPath: repo2 });
     expect(reg2.success).toBe(true);
     expect(reg2.repoId).toBe("github.com/org/repo2");
