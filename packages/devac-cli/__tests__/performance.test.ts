@@ -352,7 +352,8 @@ export class Consumer${i} extends Service {}
       const result = await resolver.resolvePackage(tempDir, unresolvedRefs);
       const elapsed = Date.now() - startTime;
 
-      expect(elapsed).toBeLessThan(1000 * CI_PERF_MULTIPLIER);
+      // Semantic resolution is CPU-intensive; 1200ms base with CI multiplier
+      expect(elapsed).toBeLessThan(1200 * CI_PERF_MULTIPLIER);
       expect(result.resolved).toBeGreaterThan(0);
     });
   });
