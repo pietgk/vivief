@@ -14,10 +14,31 @@ Fast, local code analysis with DuckDB + Parquet storage.
 
 ## Installation
 
+### From GitHub Packages (Recommended)
+
+Install the CLI globally from GitHub Packages:
+
+```bash
+# Configure npm for GitHub Packages (one-time setup)
+echo "@pietgk:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
+
+# Install the CLI globally
+npm install -g @pietgk/devac-cli
+
+# Verify installation
+devac --version
+```
+
+> **Note:** You need a GitHub Personal Access Token with `read:packages` scope.
+> See the [Getting Started Guide](./docs/start-asking-about-your-code-guide.md) for detailed setup instructions.
+
+### From Source
+
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/devac.git
-cd devac
+git clone https://github.com/pietgk/vivief.git
+cd vivief
 
 # Install dependencies
 pnpm install
@@ -25,7 +46,7 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Link CLI globally (optional)
+# Link CLI globally
 pnpm --filter @pietgk/devac-cli link --global
 ```
 
@@ -218,6 +239,7 @@ pnpm typecheck
 
 Comprehensive documentation is available in the [docs/](./docs/) directory:
 
+- **[Start Asking About Your Code](./docs/start-asking-about-your-code-guide.md)** - End-to-end guide for AI integration
 - [Quick Start](./docs/quick-start.md) - Get up and running
 - [Architecture Overview](./docs/architecture-overview.md) - System design
 - [CLI Reference](./docs/cli-reference.md) - Command documentation

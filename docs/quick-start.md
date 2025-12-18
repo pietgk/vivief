@@ -1,19 +1,49 @@
 # Quick Start Guide
 
-Get DevAC v2 analyzing your codebase in under 10 minutes.
+Get DevAC analyzing your codebase in under 10 minutes.
+
+> **Looking to use DevAC with AI assistants?** See the comprehensive
+> [Start Asking About Your Code](./start-asking-about-your-code-guide.md) guide.
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - A TypeScript, Python, or C# project to analyze
 
 ## Installation
 
+### From GitHub Packages (Recommended)
+
 ```bash
-# From the CodeGraph repository
-cd CodeGraph
-npm install
-npm run build
+# Configure npm for GitHub Packages (one-time setup)
+echo "@pietgk:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
+
+# Install the CLI globally
+npm install -g @pietgk/devac-cli
+
+# Verify installation
+devac --version
+```
+
+> **Note:** You need a GitHub Personal Access Token with `read:packages` scope.
+> See [Creating a Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) for instructions.
+
+### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/pietgk/vivief.git
+cd vivief
+
+# Install dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Link CLI globally
+pnpm --filter @pietgk/devac-cli link --global
 ```
 
 ## Basic Usage
