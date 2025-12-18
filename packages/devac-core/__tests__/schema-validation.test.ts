@@ -92,7 +92,7 @@ function isValidEntityId(entityId: string, config: ParserConfig, allowUnresolved
   if (parts.length < 3) return false;
 
   // First part should be repo name
-  if (!parts[0]!.includes(config.repoName)) return false;
+  if (!parts[0]?.includes(config.repoName)) return false;
 
   return true;
 }

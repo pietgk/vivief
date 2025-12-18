@@ -426,7 +426,7 @@ describe("CentralHub", () => {
       await hub.sync();
 
       const repos = await hub.listRepos();
-      expect(repos[0]!.status).toBe("missing");
+      expect(repos[0]?.status).toBe("missing");
     });
   });
 });

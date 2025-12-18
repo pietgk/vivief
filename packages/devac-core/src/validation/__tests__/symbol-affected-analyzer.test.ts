@@ -123,7 +123,7 @@ async function writeMultipleFiles(
 ): Promise<void> {
   // Write all data as a single parse result
   // The filePath is set to the first node's file_path for the result metadata
-  const filePath = nodes.length > 0 ? nodes[0]!.file_path : "test.ts";
+  const filePath = nodes.length > 0 ? nodes[0]?.file_path : "test.ts";
   const parseResult = createParseResult(nodes, edges, refs, filePath);
   await seedWriter.writeFile(parseResult);
 }
@@ -526,7 +526,7 @@ describe("SymbolAffectedAnalyzer", () => {
       );
 
       expect(affectedFiles).toHaveLength(1);
-      expect(affectedFiles[0]!.filePath).toBe("src/b.ts");
+      expect(affectedFiles[0]?.filePath).toBe("src/b.ts");
     });
 
     it("handles circular dependencies", async () => {
@@ -579,7 +579,7 @@ describe("SymbolAffectedAnalyzer", () => {
 
       // B imports A directly
       expect(affectedFiles).toHaveLength(1);
-      expect(affectedFiles[0]!.filePath).toBe("src/b.ts");
+      expect(affectedFiles[0]?.filePath).toBe("src/b.ts");
     });
 
     it("returns empty array when no importers found", async () => {
@@ -669,8 +669,8 @@ describe("SymbolAffectedAnalyzer", () => {
       });
 
       expect(result.changedSymbols).toHaveLength(1);
-      expect(result.changedSymbols[0]!.name).toBe("targetFunction");
-      expect(result.changedSymbols[0]!.changeType).toBe("modified");
+      expect(result.changedSymbols[0]?.name).toBe("targetFunction");
+      expect(result.changedSymbols[0]?.changeType).toBe("modified");
 
       expect(result.affectedFiles).toHaveLength(2);
       expect(result.affectedFiles.map((f) => f.filePath).sort()).toEqual([
@@ -730,16 +730,21 @@ describe("SymbolAffectedAnalyzer", () => {
       await writeMultipleFiles(seedWriter, nodes, [], refs);
 
       // Modify both target files (change source_file_hash to indicate content change)
+      const target1Node = nodes[0];
+      const target2Node = nodes[1];
+      if (!target1Node || !target2Node) {
+        throw new Error("Test setup error: expected nodes to be defined");
+      }
       const result = await analyzer.analyzeFileChanges(["src/target1.ts", "src/target2.ts"], {
         "src/target1.ts": [
           {
-            ...nodes[0]!,
+            ...target1Node,
             source_file_hash: "hash1-modified",
           },
         ],
         "src/target2.ts": [
           {
-            ...nodes[1]!,
+            ...target2Node,
             source_file_hash: "hash2-modified",
           },
         ],
@@ -748,7 +753,7 @@ describe("SymbolAffectedAnalyzer", () => {
       expect(result.changedSymbols).toHaveLength(2);
       // Consumer is affected by both, but should only appear once
       expect(result.affectedFiles).toHaveLength(1);
-      expect(result.affectedFiles[0]!.filePath).toBe("src/consumer.ts");
+      expect(result.affectedFiles[0]?.filePath).toBe("src/consumer.ts");
     });
 
     it("returns timing metrics", async () => {

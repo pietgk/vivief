@@ -519,7 +519,7 @@ describe("IssueEnricher", () => {
 
       expect(enriched.callers).toBeDefined();
       expect(enriched.callers).toHaveLength(1);
-      expect(enriched.callers?.[0]!.name).toBe("callerFunction");
+      expect(enriched.callers?.[0]?.name).toBe("callerFunction");
     });
 
     it("enriches issue with dependent files when symbol is imported", async () => {
@@ -671,8 +671,8 @@ describe("IssueEnricher", () => {
       const enriched = await enricher.enrichIssues(issues, packagePath);
 
       expect(enriched).toHaveLength(2);
-      expect(enriched[0]!.affectedSymbol?.name).toBe("function1");
-      expect(enriched[1]!.affectedSymbol?.name).toBe("function2");
+      expect(enriched[0]?.affectedSymbol?.name).toBe("function1");
+      expect(enriched[1]?.affectedSymbol?.name).toBe("function2");
     });
 
     it("respects enrichment options", async () => {
@@ -718,8 +718,8 @@ describe("IssueEnricher", () => {
 
       const enriched = await enricher.enrichIssues(issues, packagePath, options);
 
-      expect(enriched[0]!.affectedSymbol).toBeDefined();
-      expect(enriched[0]!.callers).toBeUndefined(); // Disabled
+      expect(enriched[0]?.affectedSymbol).toBeDefined();
+      expect(enriched[0]?.callers).toBeUndefined(); // Disabled
     });
   });
 

@@ -341,7 +341,7 @@ describe("Integration: Query Capabilities", () => {
     );
 
     expect(result.rows.length).toBe(1);
-    expect(Number(result.rows[0]!.count)).toBeGreaterThan(0);
+    expect(Number(result.rows[0]?.count)).toBeGreaterThan(0);
   });
 });
 
