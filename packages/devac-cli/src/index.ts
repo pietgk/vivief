@@ -14,6 +14,7 @@ import {
   affectedCommand,
   analyzeCommand,
   cleanCommand,
+  contextCommand,
   hubInitCommand,
   hubListCommand,
   hubRefreshCommand,
@@ -292,6 +293,32 @@ program
       }
     } else {
       console.error(`✗ Affected analysis failed: ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTEXT COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("context")
+  .description("Discover cross-repository context from current directory")
+  .option("--json", "Output as JSON")
+  .action(async (options) => {
+    const result = await contextCommand({
+      cwd: process.cwd(),
+      format: options.json ? "json" : "text",
+    });
+
+    if (result.success) {
+      if (options.json) {
+        console.log(JSON.stringify(result.context, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } else {
+      console.error(`✗ Context discovery failed: ${result.error}`);
       process.exit(1);
     }
   });

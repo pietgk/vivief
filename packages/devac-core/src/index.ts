@@ -101,6 +101,9 @@ export * from "./watcher/index.js";
 // Hub (Federation)
 export * from "./hub/index.js";
 
+// Context Discovery
+export * from "./context/index.js";
+
 // Validation (explicit exports to avoid SymbolInfo conflict with parsers)
 export {
   SymbolAffectedAnalyzer,

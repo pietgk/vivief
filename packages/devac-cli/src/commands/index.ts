@@ -25,6 +25,10 @@ export type {
   MCPToolResult,
 } from "./mcp.js";
 
+// Context command
+export { contextCommand } from "./context.js";
+export type { ContextOptions, ContextResult } from "./context.js";
+
 // Hub commands
 export { hubInit as hubInitCommand } from "./hub-init.js";
 export type { HubInitOptions, HubInitResult } from "./hub-init.js";
