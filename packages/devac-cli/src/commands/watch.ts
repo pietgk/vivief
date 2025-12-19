@@ -7,22 +7,32 @@
 
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import {
+  type CrossRepoDetector,
+  DuckDBPool,
   type FileWatcher,
   type Logger,
   type RenameDetector,
+  type RepoContext,
   type UpdateManager,
+  createCrossRepoDetector,
   createFileWatcher,
   createLogger,
   createRenameDetector,
+  createSeedReader,
   createUpdateManager,
+  discoverContext,
+  extractIssueNumber,
+  formatCrossRepoNeed,
   setGlobalLogLevel,
 } from "@pietgk/devac-core";
 import { analyzeCommand } from "./analyze.js";
 import type {
   WatchChangeEvent,
   WatchController,
+  WatchCrossRepoNeedEvent,
   WatchOptions,
   WatchResult,
   WatchStatus,
@@ -37,6 +47,8 @@ const DEFAULT_OPTIONS: Required<Omit<WatchOptions, "packagePath" | "repoName">> 
   force: false,
   verbose: false,
   debug: false,
+  detectCrossRepo: true,
+  notificationsPath: "",
 };
 
 /**
@@ -51,6 +63,12 @@ class WatchControllerImpl implements WatchController {
   private logger: Logger;
   private emitter: EventEmitter = new EventEmitter();
 
+  // Cross-repo detection
+  private context: RepoContext | null = null;
+  private crossRepoDetector: CrossRepoDetector | null = null;
+  private readerPool: DuckDBPool | null = null;
+  private issueNumber: number | undefined;
+
   constructor(options: WatchOptions) {
     this.options = {
       ...DEFAULT_OPTIONS,
@@ -64,6 +82,8 @@ class WatchControllerImpl implements WatchController {
       filesAnalyzed: 0,
       changesProcessed: 0,
       errors: 0,
+      crossRepoNeedsDetected: 0,
+      crossRepoDetectionEnabled: false,
     };
 
     this.logger = createLogger({ prefix: "[WatchCommand]" });
@@ -131,6 +151,11 @@ class WatchControllerImpl implements WatchController {
         ignoreInitial: true, // Don't process existing files on start
       });
 
+      // Setup cross-repo detection if enabled
+      if (this.options.detectCrossRepo) {
+        await this.initializeCrossRepoDetection();
+      }
+
       // Setup event handlers
       this.setupEventHandlers();
 
@@ -143,6 +168,11 @@ class WatchControllerImpl implements WatchController {
       this.status.isWatching = true;
 
       this.logger.info(`Watching for changes in ${packagePath}`);
+      if (this.status.crossRepoDetectionEnabled) {
+        this.logger.info(
+          `Cross-repo detection enabled${this.issueNumber ? ` for issue #${this.issueNumber}` : ""}`
+        );
+      }
     } catch (error) {
       this.status.error = error instanceof Error ? error.message : String(error);
       this.logger.error("Failed to initialize watch", error);
@@ -177,6 +207,14 @@ class WatchControllerImpl implements WatchController {
         this.renameDetector = null;
       }
 
+      // Clean up cross-repo detection resources
+      if (this.readerPool) {
+        await this.readerPool.shutdown();
+        this.readerPool = null;
+      }
+      this.crossRepoDetector = null;
+      this.context = null;
+
       this.status.isWatching = false;
 
       this.logger.info("Watch stopped");
@@ -206,11 +244,21 @@ class WatchControllerImpl implements WatchController {
     return { ...this.options };
   }
 
-  on(event: "change", handler: (event: WatchChangeEvent) => void): void {
+  on(event: "change", handler: (event: WatchChangeEvent) => void): void;
+  on(event: "cross-repo-need", handler: (event: WatchCrossRepoNeedEvent) => void): void;
+  on(
+    event: "change" | "cross-repo-need",
+    handler: ((event: WatchChangeEvent) => void) | ((event: WatchCrossRepoNeedEvent) => void)
+  ): void {
     this.emitter.on(event, handler);
   }
 
-  off(event: "change", handler: (event: WatchChangeEvent) => void): void {
+  off(event: "change", handler: (event: WatchChangeEvent) => void): void;
+  off(event: "cross-repo-need", handler: (event: WatchCrossRepoNeedEvent) => void): void;
+  off(
+    event: "change" | "cross-repo-need",
+    handler: ((event: WatchChangeEvent) => void) | ((event: WatchCrossRepoNeedEvent) => void)
+  ): void {
     this.emitter.off(event, handler);
   }
 
@@ -304,12 +352,134 @@ class WatchControllerImpl implements WatchController {
             filePath: event.filePath,
             timestamp: event.timestamp,
           });
+
+          // Check for cross-repo needs after add/change (not unlink)
+          if (this.crossRepoDetector && event.type !== "unlink") {
+            await this.checkForCrossRepoNeeds(event.filePath);
+          }
         }
       } catch (error) {
         this.status.errors++;
         this.logger.error("Failed to process file changes", error);
       }
     });
+  }
+
+  /**
+   * Initialize cross-repo detection
+   */
+  private async initializeCrossRepoDetection(): Promise<void> {
+    try {
+      // Discover context from package path
+      this.context = await discoverContext(this.options.packagePath, {
+        checkSeeds: true,
+      });
+
+      // Check if we're in an issue worktree
+      const dirName = path.basename(this.options.packagePath);
+      this.issueNumber = extractIssueNumber(dirName) ?? undefined;
+
+      // Only enable cross-repo detection if we have sibling repos
+      const siblingRepos = this.context.repos.filter((r) => !r.isWorktree);
+      if (siblingRepos.length <= 1) {
+        this.logger.debug("No sibling repos found, skipping cross-repo detection");
+        return;
+      }
+
+      // Create a separate DuckDB pool for reading seeds
+      this.readerPool = new DuckDBPool({
+        memoryLimit: "128MB",
+        maxConnections: 1,
+      });
+      await this.readerPool.initialize();
+
+      // Create the cross-repo detector
+      this.crossRepoDetector = createCrossRepoDetector(
+        this.context,
+        this.options.repoName,
+        this.issueNumber
+      );
+
+      this.status.crossRepoDetectionEnabled = true;
+      this.logger.debug(
+        `Cross-repo detection initialized with ${siblingRepos.length} sibling repos`
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to initialize cross-repo detection: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Non-fatal - continue without cross-repo detection
+    }
+  }
+
+  /**
+   * Check for cross-repo needs after a file change
+   */
+  private async checkForCrossRepoNeeds(filePath: string): Promise<void> {
+    if (!this.crossRepoDetector || !this.readerPool || !this.context) {
+      return;
+    }
+
+    try {
+      // Get external refs for the changed file
+      const reader = createSeedReader(this.readerPool, this.options.packagePath);
+      const relativePath = path.relative(this.options.packagePath, filePath);
+      const refs = await reader.getExternalRefsByFile(relativePath, this.options.branch);
+
+      if (refs.length === 0) {
+        return;
+      }
+
+      // Analyze refs for cross-repo needs
+      const result = this.crossRepoDetector.analyzeExternalRefs(refs, filePath);
+
+      // Emit events for each detected need
+      for (const need of result.needs) {
+        this.status.crossRepoNeedsDetected++;
+
+        // Log to console
+        this.logger.info(formatCrossRepoNeed(need));
+
+        // Emit event
+        this.emitter.emit("cross-repo-need", need as WatchCrossRepoNeedEvent);
+
+        // Write to notifications file if configured
+        if (this.options.notificationsPath) {
+          await this.writeNotification(need);
+        }
+      }
+    } catch (error) {
+      this.logger.debug(
+        `Error checking cross-repo needs for ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Non-fatal - don't affect file processing
+    }
+  }
+
+  /**
+   * Write a cross-repo need notification to file
+   */
+  private async writeNotification(need: WatchCrossRepoNeedEvent): Promise<void> {
+    const notificationsPath =
+      this.options.notificationsPath || path.join(os.homedir(), ".devac", "notifications.log");
+
+    try {
+      // Ensure directory exists
+      await fs.mkdir(path.dirname(notificationsPath), { recursive: true });
+
+      // Append notification as JSON line
+      const entry = {
+        ...need,
+        type: "cross-repo-need",
+        timestampISO: new Date(need.timestamp).toISOString(),
+      };
+
+      await fs.appendFile(notificationsPath, `${JSON.stringify(entry)}\n`);
+    } catch (error) {
+      this.logger.debug(
+        `Failed to write notification: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 }
 

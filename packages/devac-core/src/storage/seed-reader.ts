@@ -295,6 +295,47 @@ export class SeedReader {
   }
 
   /**
+   * Get external references by file path
+   */
+  async getExternalRefsByFile(filePath: string, branch = "base"): Promise<ParsedExternalRef[]> {
+    const paths = getSeedPaths(this.packagePath, branch);
+    const basePath = path.join(paths.basePath, "external_refs.parquet");
+    const branchPath = path.join(paths.branchPath, "external_refs.parquet");
+
+    return await executeWithRecovery(this.pool, async (conn) => {
+      const escapedPath = filePath.replace(/'/g, "''");
+      const baseExists = await this.fileExists(basePath);
+      const branchExists = await this.fileExists(branchPath);
+
+      if (!baseExists && !branchExists) return [];
+
+      let query: string;
+      if (branch === "base" || !branchExists) {
+        query = `SELECT * FROM read_parquet('${basePath}') WHERE source_file_path = '${escapedPath}' AND is_deleted = false`;
+      } else {
+        query = `
+          SELECT * FROM (
+            SELECT * FROM read_parquet('${branchPath}')
+            WHERE source_file_path = '${escapedPath}' AND is_deleted = false
+            UNION ALL
+            SELECT base.* FROM read_parquet('${basePath}') base
+            WHERE base.source_file_path = '${escapedPath}'
+              AND base.is_deleted = false
+              AND NOT EXISTS (
+                SELECT 1 FROM read_parquet('${branchPath}') branch
+                WHERE branch.source_entity_id = base.source_entity_id
+                  AND branch.module_specifier = base.module_specifier
+                  AND branch.imported_symbol = base.imported_symbol
+              )
+          )
+        `;
+      }
+
+      return (await conn.all(query)) as ParsedExternalRef[];
+    });
+  }
+
+  /**
    * Get unresolved external references
    */
   async getUnresolvedRefs(branch = "base"): Promise<ParsedExternalRef[]> {

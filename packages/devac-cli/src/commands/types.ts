@@ -132,6 +132,10 @@ export interface WatchOptions {
   verbose?: boolean;
   /** Enable debug output */
   debug?: boolean;
+  /** Enable cross-repo detection (default: true if in worktree context) */
+  detectCrossRepo?: boolean;
+  /** Path to write cross-repo notifications (optional) */
+  notificationsPath?: string;
 }
 
 /**
@@ -156,6 +160,10 @@ export interface WatchStatus {
   changesProcessed: number;
   errors: number;
   error?: string;
+  /** Number of cross-repo needs detected */
+  crossRepoNeedsDetected: number;
+  /** Whether cross-repo detection is enabled */
+  crossRepoDetectionEnabled: boolean;
 }
 
 /**
@@ -164,6 +172,32 @@ export interface WatchStatus {
 export interface WatchChangeEvent {
   type: "add" | "change" | "unlink";
   filePath: string;
+  timestamp: number;
+}
+
+/**
+ * Cross-repo need event from watch
+ *
+ * Emitted when an unresolved import pointing to a sibling repo is detected.
+ */
+export interface WatchCrossRepoNeedEvent {
+  /** Source repo where the unresolved import was found */
+  sourceRepo: string;
+  /** Target repo that needs changes */
+  targetRepo: string;
+  /** Human-readable reason for the need */
+  reason: string;
+  /** Unresolved symbol names */
+  symbols: string[];
+  /** Module specifier that couldn't be resolved */
+  moduleSpecifier: string;
+  /** Suggested command to fix */
+  suggestion: string;
+  /** Issue number if in an issue worktree */
+  issueNumber?: number;
+  /** Source file path where the unresolved import was found */
+  sourceFilePath: string;
+  /** Timestamp of detection */
   timestamp: number;
 }
 
@@ -177,10 +211,14 @@ export interface WatchController {
   getStatus(): WatchStatus;
   /** Get options */
   getOptions(): Required<WatchOptions>;
-  /** Register event handler */
+  /** Register event handler for file changes */
   on(event: "change", handler: (event: WatchChangeEvent) => void): void;
+  /** Register event handler for cross-repo needs */
+  on(event: "cross-repo-need", handler: (event: WatchCrossRepoNeedEvent) => void): void;
   /** Remove event handler */
   off(event: "change", handler: (event: WatchChangeEvent) => void): void;
+  /** Remove event handler */
+  off(event: "cross-repo-need", handler: (event: WatchCrossRepoNeedEvent) => void): void;
 }
 
 /**

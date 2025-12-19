@@ -12,6 +12,8 @@ export type {
   RepoContext,
   DiscoveryOptions,
   ParsedWorktreeName,
+  CrossRepoNeedEvent,
+  CrossRepoDetectorOptions,
 } from "./types.js";
 
 // Discovery
@@ -26,3 +28,12 @@ export {
   discoverContext,
   formatContext,
 } from "./discovery.js";
+
+// Cross-repo detection
+export {
+  CrossRepoDetector,
+  createCrossRepoDetector,
+  formatCrossRepoNeed,
+} from "./cross-repo-detector.js";
+
+export type { CrossRepoAnalysisResult } from "./cross-repo-detector.js";

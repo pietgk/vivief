@@ -85,3 +85,42 @@ export interface ParsedWorktreeName {
   /** Slug/description (e.g., "auth") */
   slug: string;
 }
+
+/**
+ * Event emitted when cross-repo changes are detected
+ *
+ * This is triggered when watch mode detects an unresolved import
+ * that points to a sibling repository in the context.
+ */
+export interface CrossRepoNeedEvent {
+  /** Source repo where the unresolved import was found */
+  sourceRepo: string;
+  /** Target repo that needs changes */
+  targetRepo: string;
+  /** Human-readable reason for the need */
+  reason: string;
+  /** Unresolved symbol names */
+  symbols: string[];
+  /** Module specifier that couldn't be resolved */
+  moduleSpecifier: string;
+  /** Suggested command to fix */
+  suggestion: string;
+  /** Issue number if in an issue worktree */
+  issueNumber?: number;
+  /** Source file path where the unresolved import was found */
+  sourceFilePath: string;
+  /** Timestamp of detection */
+  timestamp: number;
+}
+
+/**
+ * Options for cross-repo detection
+ */
+export interface CrossRepoDetectorOptions {
+  /** Current repo context */
+  context: RepoContext;
+  /** Current repo name */
+  currentRepoName: string;
+  /** Issue number if in a worktree */
+  issueNumber?: number;
+}
