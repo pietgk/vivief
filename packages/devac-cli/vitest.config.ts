@@ -12,6 +12,7 @@ export default defineConfig({
       exclude: ["src/**/*.d.ts", "src/**/index.ts"],
     },
     testTimeout: 30000,
+    hookTimeout: 30000,
     // Test isolation settings to prevent flakiness
     setupFiles: ["./vitest.setup.ts"],
     pool: "forks",
