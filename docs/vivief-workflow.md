@@ -1,7 +1,7 @@
 # vivief Development Workflow
 
-> **Version**: 1.2.0
-> **Last Updated**: 2025-12-17
+> **Version**: 1.3.0
+> **Last Updated**: 2025-12-19
 > **ADRs**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md), [ADR-0012: Claude-Assisted Slash Commands](adr/0012-claude-assisted-slash-commands.md)
 
 This document describes the development workflow for vivief. For the rationale behind these choices, see ADR-0011.
@@ -19,7 +19,8 @@ This document describes the development workflow for vivief. For the rationale b
 7. [Release Process](#release-process)
 8. [Claude-Assisted Slash Commands](#claude-assisted-slash-commands)
 9. [Claude Collaboration](#claude-collaboration)
-10. [Quick Reference](#quick-reference)
+10. [Multi-Repo Development](#multi-repo-development)
+11. [Quick Reference](#quick-reference)
 
 ---
 
@@ -500,6 +501,133 @@ Claude should structure responses as:
 
 ---
 
+## Multi-Repo Development
+
+When working on issues that span multiple repositories, use `devac-worktree` and `devac context` commands for a streamlined workflow.
+
+### Complete Multi-Repo Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. START ISSUE                                                  │
+│  ─────────────────                                               │
+│  devac-worktree start 123 --repos api,web                        │
+│  → Creates api-123-feature/ and web-123-feature/                 │
+│  → Claude launches in parent directory                           │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  2. WORK (Claude works across repos)                             │
+│  ─────────────────────────────────────                           │
+│  Claude can edit files in both worktrees:                        │
+│    api-123-feature/src/auth/handler.ts                           │
+│    web-123-feature/src/hooks/useAuth.ts                          │
+│                                                                  │
+│  Run commands from parent dir:                                   │
+│    git -C api-123-feature status                                 │
+│    npm --prefix web-123-feature test                             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  3. CHECK CI STATUS                                              │
+│  ──────────────────                                              │
+│  devac context ci                                                │
+│  → Shows PR status for all repos:                                │
+│    api-123-feature: PR #45 ✓ passing                             │
+│    web-123-feature: PR #46 ⏳ pending                             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  4. REVIEW CHANGES                                               │
+│  ────────────────                                                │
+│  devac context review                                            │
+│  → Gathers diffs from all repos                                  │
+│  → Generates LLM review prompt                                   │
+│  → Copy prompt to Claude for review                              │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  5. CREATE CHANGESETS                                            │
+│  ────────────────────                                            │
+│  cd api-123-feature && pnpm changeset                            │
+│  cd web-123-feature && pnpm changeset                            │
+│  → Create changeset in each repo with changes                    │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  6. COMMIT & PUSH                                                │
+│  ───────────────                                                 │
+│  git -C api-123-feature add . && git -C api-123-feature commit   │
+│  git -C api-123-feature push                                     │
+│  (repeat for each repo)                                          │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  7. CLEANUP (after PRs merged)                                   │
+│  ──────────                                                      │
+│  devac-worktree clean 123                                        │
+│  → Checks all PRs are merged                                     │
+│  → Cleans all worktrees for issue #123                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### When to Use Multi-Repo Workflow
+
+| Scenario | Approach |
+|----------|----------|
+| Change in one repo only | Standard single-repo workflow |
+| Change spans 2+ repos | Use `--repos` from parent directory |
+| Starting in a repo, need to add another | Use `--also` from inside the repo |
+| Coordinated release across repos | Create changesets in each repo |
+
+### Choosing --also vs --repos
+
+**Use `--also`** when:
+- You're already inside a git repository
+- You want to add worktrees to sibling repos incrementally
+- Example: `devac-worktree start 123 --also web`
+
+**Use `--repos`** when:
+- You're in a parent directory (not inside any repo)
+- You want to create all worktrees at once
+- You want Claude to work across all repos in a single session
+- Example: `devac-worktree start 123 --repos api,web,shared`
+
+### Parent Directory Commands
+
+When Claude runs from the parent directory, use these patterns:
+
+```bash
+# Git operations
+git -C api-123-feature status
+git -C api-123-feature add . && git -C api-123-feature commit -m "feat: add auth"
+
+# npm/pnpm operations
+npm --prefix api-123-feature test
+npm --prefix api-123-feature run build
+pnpm --filter ./api-123-feature test
+
+# Check context
+devac context              # Show all repos and worktrees
+devac context ci           # CI status for all PRs
+devac context review       # Generate review prompt
+```
+
+### ADR Considerations for Multi-Repo Changes
+
+When making changes that affect multiple repositories:
+- Consider if an ADR is needed to document the cross-repo architecture decision
+- Update ADR-0014 if the worktree workflow itself changes
+- Create repo-specific ADRs for significant changes in each repo
+
+### See Also
+
+- [devac-worktree Reference](./devac-worktree.md) - Full command reference
+- [CLI Reference - Context Commands](./cli-reference.md#context-commands) - devac context commands
+- [ADR-0014](./adr/0014-worktree-claude-workflow.md) - Worktree workflow architecture
+
+---
+
 ## Quick Reference
 
 ### Daily Development
@@ -561,6 +689,7 @@ pnpm release            # Build and publish
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2025-12-19 | 1.3.0 | Add multi-repo development section with devac-worktree and devac context |
 | 2025-12-17 | 1.2.0 | Add /issue and /start-issue commands, expand issue creation docs |
 | 2025-12-17 | 1.1.0 | Add commit-msg hook docs, fix lint-staged config, update ADR references |
 | 2025-12-17 | 1.0.0 | Add Claude-assisted slash commands (/commit, /ship, etc.) |

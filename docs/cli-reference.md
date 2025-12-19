@@ -341,6 +341,137 @@ Examples:
   devac affected --since main
 ```
 
+## Context Commands
+
+### devac context
+
+Discover cross-repository context from the current directory. Detects sibling repositories, worktrees, and issue groupings.
+
+```bash
+devac context [options]
+
+Options:
+  --json              Output as JSON
+
+Examples:
+  devac context                        # Show context in text format
+  devac context --json                 # Output as JSON
+```
+
+**Output (in a regular repo):**
+```
+Context
+
+Sibling Repos:
+  📦 api
+  📦 web
+     shared
+```
+
+**Output (in an issue worktree):**
+```
+Issue #123 Context
+
+Worktrees:
+  📦 api-123-auth (123-auth)
+     web-123-auth (123-auth)
+
+Main Repos:
+  📦 api
+  📦 web
+```
+
+**Output (in parent directory):**
+```
+Parent Directory Context
+📁 /Users/dev/projects
+
+Repositories:
+  📦 api
+  📦 web
+     shared
+
+Worktrees:
+  📦 api-123-auth (#123)
+
+Use: devac worktree start <issue> --repos api,web,shared
+```
+
+### devac context ci
+
+Check CI status for all PRs in the current context. Requires `gh` CLI to be installed and authenticated.
+
+```bash
+devac context ci [options]
+
+Options:
+  --json              Output as JSON
+  --checks            Include individual check details
+
+Examples:
+  devac context ci                     # Show CI status for all PRs
+  devac context ci --checks            # Include individual check details
+  devac context ci --json              # Output as JSON
+```
+
+**Output:**
+```
+CI Status for Issue #123
+
+  api-123-auth: PR #45 ✓ passing
+    https://github.com/org/api/pull/45
+
+  web-123-auth: PR #46 ⏳ pending
+    https://github.com/org/web/pull/46
+
+Summary: 1 passing, 0 failing, 1 pending
+```
+
+### devac context review
+
+Generate an LLM review prompt for changes in the current context. Gathers diffs from all repositories/worktrees and formats them for AI review.
+
+```bash
+devac context review [options]
+
+Options:
+  --json              Output as JSON
+  --focus <area>      Focus area: security, performance, tests, all (default: all)
+  --base <branch>     Base branch to diff against (default: main)
+
+Examples:
+  devac context review                 # Review all changes
+  devac context review --focus security
+  devac context review --base develop
+```
+
+**Output:**
+```
+# Review Prompt Generated
+
+Gathered changes from 2 repositories:
+
+  - api-123-auth: 5 files
+  - web-123-auth: 3 files
+
+Total: 8 files, 245 changes
+
+---
+
+## Prompt (copy and paste to an LLM)
+
+```
+[Generated review prompt with diffs and instructions]
+```
+
+---
+
+After getting a response, you can process it with:
+  devac context review --process-response <response-file>
+```
+
+---
+
 ## MCP Server
 
 ### devac mcp

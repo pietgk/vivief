@@ -46,7 +46,7 @@ await server.stop();
 
 ## Available Tools
 
-The MCP server exposes 7 tools for code analysis:
+The MCP server exposes 9 tools for code analysis and context discovery:
 
 ### find_symbol
 
@@ -176,6 +176,51 @@ Execute a custom SQL query against the code graph (SELECT only).
 ```
 
 **Security Note:** Only SELECT queries are allowed. INSERT, UPDATE, DELETE, DROP, and other modifying queries are rejected.
+
+### get_context
+
+Discover the current working context including sibling repositories and issue worktrees. Uses intelligent caching with automatic refresh.
+
+**Parameters:**
+- `path` (string, optional): Path to discover context from (default: current working directory)
+- `checkSeeds` (boolean, optional): Whether to check for DevAC seeds in discovered repos (default: true)
+- `refresh` (boolean, optional): Force refresh the cached context (default: false)
+
+**Example:**
+```json
+{
+  "name": "get_context",
+  "arguments": {
+    "path": "/Users/dev/projects/api-123-auth",
+    "checkSeeds": true
+  }
+}
+```
+
+**Response includes:**
+- Current directory and parent directory
+- List of sibling repositories with seed status
+- Issue number (if in an issue worktree)
+- Related worktrees for the same issue
+- Main repos associated with worktrees
+
+### list_repos
+
+List all repositories registered with the central hub (hub mode only).
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "list_repos",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns an array of registered repositories with their paths and package information.
 
 ## Server Configuration
 
