@@ -103,12 +103,153 @@ export interface StartOptions {
   skipClaude?: boolean;
   createPr?: boolean;
   verbose?: boolean;
-  /** Create worktrees in these sibling repos as well */
+  /** Create worktrees in these sibling repos as well (when in a repo) */
   also?: string[];
+  /** Create worktrees in these repos (when in parent directory) */
+  repos?: string[];
+}
+
+/**
+ * Start worktrees in multiple repos from a parent directory
+ */
+async function startFromParentDirectory(
+  options: StartOptions,
+  parentDir: string
+): Promise<StartResult> {
+  const { issueNumber, skipInstall, skipClaude, verbose, repos } = options;
+
+  if (!repos || repos.length === 0) {
+    return {
+      success: false,
+      error: "No repos specified. Use --repos to specify which repos to create worktrees in.",
+    };
+  }
+
+  // Check if Claude is installed
+  if (!skipClaude) {
+    const claudeInstalled = await isClaudeInstalled();
+    if (!claudeInstalled) {
+      return {
+        success: false,
+        error:
+          "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code",
+      };
+    }
+  }
+
+  // Fetch issue details
+  if (verbose) {
+    console.log(`Fetching issue #${issueNumber}...`);
+  }
+
+  let issue: Awaited<ReturnType<typeof fetchIssue>>;
+  try {
+    issue = await fetchIssue(issueNumber);
+  } catch (err) {
+    return {
+      success: false,
+      error: `Failed to fetch issue #${issueNumber}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  if (issue.state !== "OPEN") {
+    return {
+      success: false,
+      error: `Issue #${issueNumber} is ${issue.state.toLowerCase()}, not open`,
+    };
+  }
+
+  // Create worktrees in each specified repo
+  const results: AlsoWorktreeResult[] = [];
+  let firstWorktreePath: string | undefined;
+
+  for (const repoName of repos) {
+    const repoPath = path.join(parentDir, repoName);
+    if (verbose) {
+      console.log(`\nCreating worktree in repo: ${repoName}`);
+    }
+
+    const result = await createWorktreeInSiblingRepo(repoPath, issueNumber, issue.title, {
+      verbose,
+      skipInstall,
+    });
+    results.push(result);
+
+    if (result.success) {
+      console.log(`✓ ${repoName}: worktree created at ${result.worktreePath}`);
+      if (!firstWorktreePath) {
+        firstWorktreePath = result.worktreePath;
+      }
+
+      // Write issue context for Claude
+      if (result.worktreePath) {
+        await writeIssueContext(issue, result.worktreePath);
+      }
+    } else {
+      console.warn(`✗ ${repoName}: ${result.error}`);
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+  if (successCount === 0) {
+    return {
+      success: false,
+      error: "Failed to create worktrees in any of the specified repos.",
+    };
+  }
+
+  // Launch Claude in the parent directory (to work across all worktrees)
+  if (!skipClaude) {
+    console.log("\n✓ Created worktrees in parent directory mode");
+    console.log(`✓ ${successCount}/${repos.length} repos ready`);
+    console.log("\nLaunching Claude CLI in parent directory...\n");
+
+    try {
+      await launchClaude(parentDir);
+    } catch {
+      // Claude exited - this is normal
+      if (verbose) {
+        console.log("Claude CLI session ended");
+      }
+    }
+  }
+
+  return {
+    success: true,
+    worktreePath: firstWorktreePath,
+    issueNumber,
+  };
+}
+
+/**
+ * Check if current directory is a parent directory (not a git repo)
+ */
+async function isParentDirectory(dir: string): Promise<boolean> {
+  try {
+    const gitDir = path.join(dir, ".git");
+    await fs.stat(gitDir);
+    return false; // Has .git, so it's a repo
+  } catch {
+    return true; // No .git, so it's a parent directory
+  }
 }
 
 export async function startCommand(options: StartOptions): Promise<StartResult> {
   const { issueNumber, skipInstall, skipClaude, createPr, verbose } = options;
+  const cwd = process.cwd();
+
+  // Check if we're in a parent directory with --repos flag
+  if (options.repos && options.repos.length > 0) {
+    const isParent = await isParentDirectory(cwd);
+    if (!isParent) {
+      return {
+        success: false,
+        error:
+          "The --repos flag can only be used from a parent directory (not inside a git repository). Use --also instead to create worktrees in sibling repos.",
+      };
+    }
+    return startFromParentDirectory(options, cwd);
+  }
 
   // Check if Claude is installed
   if (!skipClaude) {

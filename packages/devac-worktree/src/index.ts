@@ -36,6 +36,16 @@ function collectAlso(value: string, previous: string[]): string[] {
   return previous.concat([value]);
 }
 
+/**
+ * Parse comma-separated repos into an array
+ */
+function parseRepos(value: string): string[] {
+  return value
+    .split(",")
+    .map((r) => r.trim())
+    .filter(Boolean);
+}
+
 program
   .command("start <issue-number>")
   .description("Create worktree and launch Claude for an issue")
@@ -48,6 +58,11 @@ program
     collectAlso,
     []
   )
+  .option(
+    "--repos <repos>",
+    "Create worktrees in these repos (comma-separated, use from parent directory)",
+    parseRepos
+  )
   .option("-v, --verbose", "Verbose output")
   .action(async (issueNumber: string, options) => {
     const result = await startCommand({
@@ -57,6 +72,7 @@ program
       createPr: options.createPr,
       verbose: options.verbose,
       also: options.also,
+      repos: options.repos,
     });
 
     if (!result.success) {
@@ -64,7 +80,7 @@ program
       process.exit(1);
     }
 
-    if (options.skipClaude) {
+    if (options.skipClaude && !options.repos) {
       console.log(`✓ Worktree created at ${result.worktreePath}`);
       console.log(`✓ Branch: ${result.branch}`);
       console.log("\nTo start working:");

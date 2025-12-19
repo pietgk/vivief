@@ -243,6 +243,89 @@ describe("discoverContext", () => {
   });
 });
 
+describe("discoverContext - parent directory mode", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "devac-context-parent-test-"));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("should detect parent directory with child repos", async () => {
+    // Create child repos inside the parent directory
+    const repo1 = path.join(tempDir, "api");
+    const repo2 = path.join(tempDir, "web");
+    await fs.mkdir(path.join(repo1, ".git"), { recursive: true });
+    await fs.mkdir(path.join(repo2, ".git"), { recursive: true });
+
+    // Discover context from the parent directory (tempDir has no .git)
+    const context = await discoverContext(tempDir);
+
+    expect(context.isParentDirectory).toBe(true);
+    expect(context.parentDir).toBe(tempDir);
+    expect(context.currentDir).toBe(tempDir);
+    expect(context.childRepos).toHaveLength(2);
+    expect(context.childRepos?.map((r) => r.name).sort()).toEqual(["api", "web"]);
+  });
+
+  it("should include both repos and worktrees in child repos", async () => {
+    // Create main repos and worktrees
+    const api = path.join(tempDir, "api");
+    const web = path.join(tempDir, "web");
+    const apiWorktree = path.join(tempDir, "api-123-auth");
+
+    await fs.mkdir(path.join(api, ".git"), { recursive: true });
+    await fs.mkdir(path.join(web, ".git"), { recursive: true });
+    await fs.mkdir(apiWorktree, { recursive: true });
+    await fs.writeFile(path.join(apiWorktree, ".git"), "gitdir: ../api/.git/worktrees/123-auth");
+
+    const context = await discoverContext(tempDir);
+
+    expect(context.isParentDirectory).toBe(true);
+    expect(context.childRepos).toHaveLength(3);
+
+    const mainRepos = context.childRepos?.filter((r) => !r.isWorktree);
+    const worktrees = context.childRepos?.filter((r) => r.isWorktree);
+
+    expect(mainRepos).toHaveLength(2);
+    expect(worktrees).toHaveLength(1);
+    expect(worktrees?.[0]?.issueNumber).toBe(123);
+  });
+
+  it("should not detect parent mode when in a git repo", async () => {
+    // Create a git repo with siblings
+    const repo1 = path.join(tempDir, "repo1");
+    const repo2 = path.join(tempDir, "repo2");
+    await fs.mkdir(path.join(repo1, ".git"), { recursive: true });
+    await fs.mkdir(path.join(repo2, ".git"), { recursive: true });
+
+    // Discover from inside repo1 - should NOT be parent mode
+    const context = await discoverContext(repo1);
+
+    expect(context.isParentDirectory).toBeUndefined();
+    expect(context.currentDir).toBe(repo1);
+    expect(context.parentDir).toBe(tempDir);
+  });
+
+  it("should return mainRepos in parent directory mode", async () => {
+    const api = path.join(tempDir, "api");
+    const apiWorktree = path.join(tempDir, "api-123-auth");
+
+    await fs.mkdir(path.join(api, ".git"), { recursive: true });
+    await fs.mkdir(apiWorktree, { recursive: true });
+    await fs.writeFile(path.join(apiWorktree, ".git"), "gitdir: ../api/.git/worktrees/123-auth");
+
+    const context = await discoverContext(tempDir);
+
+    expect(context.isParentDirectory).toBe(true);
+    expect(context.mainRepos).toHaveLength(1);
+    expect(context.mainRepos?.[0]?.name).toBe("api");
+  });
+});
+
 describe("formatContext", () => {
   it("should format context for regular repo", () => {
     const context = {
@@ -299,5 +382,28 @@ describe("formatContext", () => {
     expect(output).toContain("vivief-123-auth");
     expect(output).toContain("Main Repos");
     expect(output).toContain("vivief");
+  });
+
+  it("should format context for parent directory mode", () => {
+    const context = {
+      currentDir: "/tmp/projects",
+      parentDir: "/tmp/projects",
+      repos: [
+        { path: "/tmp/projects/api", name: "api", hasSeeds: true, isWorktree: false },
+        { path: "/tmp/projects/web", name: "web", hasSeeds: false, isWorktree: false },
+      ],
+      isParentDirectory: true,
+      childRepos: [
+        { path: "/tmp/projects/api", name: "api", hasSeeds: true, isWorktree: false },
+        { path: "/tmp/projects/web", name: "web", hasSeeds: false, isWorktree: false },
+      ],
+    };
+
+    const output = formatContext(context);
+    expect(output).toContain("Parent Directory Context");
+    expect(output).toContain("Repositories:");
+    expect(output).toContain("api");
+    expect(output).toContain("web");
+    expect(output).toContain("--repos");
   });
 });

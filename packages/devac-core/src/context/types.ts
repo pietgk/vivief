@@ -60,6 +60,11 @@ export interface RepoContext {
   worktrees?: WorktreeInfo[];
   /** Main repos that have worktrees for this issue */
   mainRepos?: RepoInfo[];
+
+  /** True if cwd is a parent directory containing repos (not a repo itself) */
+  isParentDirectory?: boolean;
+  /** Child repos when in parent directory mode */
+  childRepos?: RepoInfo[];
 }
 
 /**

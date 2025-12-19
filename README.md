@@ -73,6 +73,7 @@ devac affected src/api/user.ts src/models/user.ts
 | [@pietgk/devac-core](./packages/devac-core) | Core analysis engine |
 | [@pietgk/devac-cli](./packages/devac-cli) | Command-line interface |
 | [@pietgk/devac-mcp](./packages/devac-mcp) | MCP server for AI assistants |
+| [@pietgk/devac-worktree](./packages/devac-worktree) | Issue-based worktree workflow |
 
 ## CLI Commands
 
@@ -130,6 +131,57 @@ devac hub status
 # Refresh manifests
 devac hub refresh
 ```
+
+### Context Discovery
+
+DevAC can automatically discover related repositories in a parent directory workflow:
+
+```bash
+# Show current context (sibling repos, issue worktrees)
+devac context
+
+# Query across all repos in context
+devac context query "SELECT name, kind FROM nodes WHERE kind = 'function'"
+
+# Check CI status for all PRs in context
+devac context ci
+
+# Generate LLM review prompt for changes
+devac context review
+devac context review --focus security
+```
+
+**Parent Directory Mode**: When running from a directory containing multiple git repos (but not itself a repo), DevAC automatically detects all child repositories and enables cross-repo operations.
+
+### Worktree Commands (devac-worktree)
+
+Issue-based git worktree workflow with Claude integration:
+
+```bash
+# Create worktree and launch Claude for an issue (from inside a repo)
+devac-worktree start 123
+
+# Create worktrees in multiple sibling repos
+devac-worktree start 123 --also web --also shared
+
+# From a parent directory: create worktrees in specified repos
+devac-worktree start 123 --repos api,web,shared
+
+# List active worktrees
+devac-worktree list
+
+# Show status with PR info
+devac-worktree status
+
+# Resume work on existing worktree
+devac-worktree resume 123
+
+# Clean up merged worktrees
+devac-worktree clean 123
+devac-worktree clean-merged
+```
+
+**Parent Directory Workflow**: Use `--repos` when running from a parent directory to create worktrees in multiple repositories at once. Claude will launch in the parent directory for unified multi-repo development.
 
 ### MCP Server
 

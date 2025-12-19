@@ -189,15 +189,98 @@ async function enrichWorktreeInfo(
 }
 
 /**
+ * Check if a directory is a parent directory containing git repos
+ * (but is not itself a git repo)
+ */
+async function isParentDirectoryWithRepos(dirPath: string): Promise<boolean> {
+  // First, check if this directory is NOT a git repo
+  if (await isGitRepo(dirPath)) {
+    return false;
+  }
+
+  // Then check if it contains at least one git repo
+  try {
+    const entries = await fs.readdir(dirPath);
+    for (const entry of entries) {
+      const entryPath = path.join(dirPath, entry);
+      try {
+        const stats = await fs.stat(entryPath);
+        if (stats.isDirectory() && (await isGitRepo(entryPath))) {
+          return true;
+        }
+      } catch {
+        // Skip entries we can't stat
+      }
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Discover child repos in a parent directory
+ */
+async function discoverChildRepos(
+  parentDir: string,
+  options: DiscoveryOptions
+): Promise<RepoInfo[]> {
+  const repos: RepoInfo[] = [];
+
+  try {
+    const entries = await fs.readdir(parentDir);
+    for (const entry of entries) {
+      const entryPath = path.join(parentDir, entry);
+      try {
+        const stats = await fs.stat(entryPath);
+        if (!stats.isDirectory()) continue;
+
+        const repoInfo = await classifyRepo(entryPath, options);
+        if (repoInfo) {
+          repos.push(repoInfo);
+        }
+      } catch {
+        // Skip entries we can't stat
+      }
+    }
+  } catch {
+    // Can't read directory
+  }
+
+  return repos;
+}
+
+/**
  * Discover the context from a directory
  *
  * This scans the parent directory for sibling repos and
- * identifies issue worktrees.
+ * identifies issue worktrees. Also handles the case where
+ * cwd is a parent directory containing multiple repos.
  */
 export async function discoverContext(
   cwd: string,
   options: DiscoveryOptions = {}
 ): Promise<RepoContext> {
+  // Check if we're in a parent directory (not a repo, but contains repos)
+  const isParentDir = await isParentDirectoryWithRepos(cwd);
+
+  if (isParentDir) {
+    // Parent directory mode: scan children
+    const childRepos = await discoverChildRepos(cwd, options);
+    const mainRepos = childRepos.filter((r) => !r.isWorktree);
+
+    return {
+      currentDir: cwd,
+      parentDir: cwd, // In parent mode, parentDir === currentDir
+      repos: childRepos,
+      isParentDirectory: true,
+      childRepos,
+      mainRepos,
+    };
+  }
+
+  // Standard mode: we're in a repo, scan siblings
   const parentDir = path.dirname(cwd);
   const currentDirName = path.basename(cwd);
 
@@ -274,6 +357,41 @@ export async function discoverContext(
 export function formatContext(context: RepoContext): string {
   const lines: string[] = [];
 
+  // Parent directory mode
+  if (context.isParentDirectory) {
+    lines.push("Parent Directory Context");
+    lines.push(`📁 ${context.currentDir}`);
+    lines.push("");
+
+    const mainRepos = context.childRepos?.filter((r) => !r.isWorktree) ?? [];
+    const worktrees = context.childRepos?.filter((r) => r.isWorktree) ?? [];
+
+    if (mainRepos.length > 0) {
+      lines.push("Repositories:");
+      for (const repo of mainRepos) {
+        const seedIcon = repo.hasSeeds ? "📦" : "  ";
+        lines.push(`  ${seedIcon} ${repo.name}`);
+      }
+      lines.push("");
+    }
+
+    if (worktrees.length > 0) {
+      lines.push("Worktrees:");
+      for (const wt of worktrees) {
+        const seedIcon = wt.hasSeeds ? "📦" : "  ";
+        const issue = wt.issueNumber ? ` (#${wt.issueNumber})` : "";
+        lines.push(`  ${seedIcon} ${wt.name}${issue}`);
+      }
+      lines.push("");
+    }
+
+    lines.push(
+      `Use: devac worktree start <issue> --repos ${mainRepos.map((r) => r.name).join(",")}`
+    );
+    return lines.join("\n");
+  }
+
+  // Issue worktree mode
   if (context.issueNumber) {
     lines.push(`Issue #${context.issueNumber} Context`);
     lines.push("");
