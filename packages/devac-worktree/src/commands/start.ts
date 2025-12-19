@@ -2,6 +2,9 @@
  * Start command - Create worktree and launch Claude for an issue
  */
 
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { execa } from "execa";
 import { isClaudeInstalled, launchClaude, writeIssueContext } from "../claude.js";
 import { hasNodeModules, installDependencies } from "../deps.js";
 import { createPR, fetchIssue, generateBranchName, generateShortDescription } from "../github.js";
@@ -14,12 +17,94 @@ import {
   getRepoRoot,
 } from "../worktree.js";
 
+interface AlsoWorktreeResult {
+  repo: string;
+  success: boolean;
+  worktreePath?: string;
+  branch?: string;
+  error?: string;
+}
+
+/**
+ * Create a worktree in a sibling repository for the same issue
+ */
+async function createWorktreeInSiblingRepo(
+  siblingRepoPath: string,
+  issueNumber: number,
+  issueTitle: string,
+  options: { verbose?: boolean; skipInstall?: boolean }
+): Promise<AlsoWorktreeResult> {
+  const repoName = path.basename(siblingRepoPath);
+
+  try {
+    // Verify it's a git repo
+    const gitPath = path.join(siblingRepoPath, ".git");
+    try {
+      await fs.stat(gitPath);
+    } catch {
+      return { repo: repoName, success: false, error: `Not a git repository: ${siblingRepoPath}` };
+    }
+
+    // Generate branch and worktree path
+    const branch = generateBranchName(issueNumber, issueTitle);
+    const shortDesc = generateShortDescription(issueTitle);
+    const parentDir = path.dirname(siblingRepoPath);
+    const worktreePath = path.join(parentDir, `${repoName}-${issueNumber}-${shortDesc}`);
+
+    if (options.verbose) {
+      console.log(`Creating worktree for ${repoName} at ${worktreePath}`);
+    }
+
+    // Fetch latest and create worktree (run git from within the sibling repo)
+    await execa("git", ["fetch", "origin", "main:main"], {
+      cwd: siblingRepoPath,
+      reject: false,
+    });
+
+    await execa("git", ["worktree", "add", "-b", branch, worktreePath, "main"], {
+      cwd: siblingRepoPath,
+    });
+
+    // Install dependencies if needed
+    if (!options.skipInstall) {
+      const packageJson = path.join(worktreePath, "package.json");
+      try {
+        await fs.stat(packageJson);
+        const needsInstall = !(await hasNodeModules(worktreePath));
+        if (needsInstall) {
+          if (options.verbose) {
+            console.log(`Installing dependencies in ${repoName}...`);
+          }
+          const installResult = await installDependencies(worktreePath, {
+            verbose: options.verbose,
+          });
+          if (!installResult.success) {
+            console.warn(`Warning: Failed to install deps in ${repoName}: ${installResult.error}`);
+          }
+        }
+      } catch {
+        // No package.json, skip install
+      }
+    }
+
+    return { repo: repoName, success: true, worktreePath, branch };
+  } catch (error) {
+    return {
+      repo: repoName,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export interface StartOptions {
   issueNumber: number;
   skipInstall?: boolean;
   skipClaude?: boolean;
   createPr?: boolean;
   verbose?: boolean;
+  /** Create worktrees in these sibling repos as well */
+  also?: string[];
 }
 
 export async function startCommand(options: StartOptions): Promise<StartResult> {
@@ -146,6 +231,31 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
 
   // Write issue context for Claude
   await writeIssueContext(issue, worktreePath);
+
+  // Handle --also flag: create worktrees in sibling repos
+  const alsoResults: AlsoWorktreeResult[] = [];
+  if (options.also && options.also.length > 0) {
+    const repoRoot = await getRepoRoot();
+    const parentDir = path.dirname(repoRoot);
+
+    for (const repoName of options.also) {
+      const siblingPath = path.join(parentDir, repoName);
+      if (verbose) {
+        console.log(`\nCreating worktree in sibling repo: ${repoName}`);
+      }
+      const result = await createWorktreeInSiblingRepo(siblingPath, issueNumber, issue.title, {
+        verbose,
+        skipInstall,
+      });
+      alsoResults.push(result);
+
+      if (result.success) {
+        console.log(`✓ ${repoName}: worktree created at ${result.worktreePath}`);
+      } else {
+        console.warn(`✗ ${repoName}: ${result.error}`);
+      }
+    }
+  }
 
   // Launch Claude CLI
   if (!skipClaude) {

@@ -29,12 +29,25 @@ program
 // START COMMAND
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Collect multiple --also values into an array
+ */
+function collectAlso(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
+}
+
 program
   .command("start <issue-number>")
   .description("Create worktree and launch Claude for an issue")
   .option("--skip-install", "Skip dependency installation")
   .option("--skip-claude", "Skip launching Claude CLI")
   .option("--create-pr", "Create a draft PR immediately")
+  .option(
+    "--also <repo>",
+    "Also create worktree in sibling repo (can be repeated)",
+    collectAlso,
+    []
+  )
   .option("-v, --verbose", "Verbose output")
   .action(async (issueNumber: string, options) => {
     const result = await startCommand({
@@ -43,6 +56,7 @@ program
       skipClaude: options.skipClaude,
       createPr: options.createPr,
       verbose: options.verbose,
+      also: options.also,
     });
 
     if (!result.success) {
