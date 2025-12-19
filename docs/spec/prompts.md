@@ -64,31 +64,30 @@ what communication channels are used to contact the users of this code base.
 
 ## combine worktree and devac hub concepts
 
-lets plan upgrading the devac concept 
+what repo contains the issue, we have a bit of a mismatch with issues per repo and we have a bit of a concepts that issues can be about multiple repos. we need to be more explicit that issues are inside a repo.
 
-we have devac-worktree enabling to work on an issue in its worktree
+starting claude is no longer needed (so lets make the default that we do not start claude cli) as we only need 1 claude session that is started in the repos parent dir when we want to work on 1 or more repos in a flexible way.
+TODO determine how it works now first, also see resume and usefullness of issue-context.md 
+as without the need for starting claude the worktree concept is less needed as we can just use the parent dir context to work on multiple repos naturally and claude /commands are valid again without the cwd issue that started the idea that we needed devac-worktree. 
 
-we devac hub concept that combines the seeds from multiple repos into a single queryable hub
+the deterministic flow could we nicer than /commands so we need to try both.
 
-when we work in the context of a worktree we might want to have the hub concept to be able to query all the seeds from the main repo and the worktree repo together
+i do not understand devac-worktree --repos option.
 
-as an issue can involve making changes in multiple repos we get multiple worktrees with the <reo>-<issueid-short-issue-name>
+we need to determine why we need ~/.devac/worktrees.json
 
-this would mean that we get a kind of issue hub context that enable queryinh the seeds from all the worktrees for the issue together with the main repos seeds
 
-this should be something that does not need configuration but uses convention to determine the worktrees for the issue based on the current working directory and its parent directories
 
-this would also be an oppertunity to strengthen the concept of convention over configuration in devac cli commands context, so do we need registration of the worktree repos in the hub or can we determine this by convention based on the current working directory and its parent directories.
+devac context icons are not explained what do they mean? needs to be added to the --help.
 
-this needs toke the total flow concept into account
--(see github issue 16 checking the github action status) 
-- integrating the idea/concept of reviewing an issue or the pr by a specific llm by using the copilot cli that enables specifying a specific model to do a review of the isse or the pr or some specific concept within the context of a review where the result of the review can be used to create a sub issue within the main issue for follow up work.
-- we need to keep the human in control and be sure not to force anything but be the supporting tool that is appreciated for it helping where humans or llms forget and be helpfull in completing the flow but not forcing by being flexible where needed and automated where it helps avoiding putting work on the human and make sure the llm does not forget to follow the rules
+current review generates the prompt for copy paste.
+review does not support specifying the models that should perform the review, the original idea suggested using copilot cli with --model support ("claude-opus-4.5", "gpt-5.1-codex-max", "gemini-3-pro-preview")
+this to enable comparing the results from different models to determine which model gives the best results for specific tasks.
+also add focus areas to also include plan, code, pr and doc.
+this needs a seperate issue to see what we want.
 
-can we have a thorough recap of the 2 devac cli commands and their options to determine how to best implement this concept
-
-lets try to get some high quality clean nice and as simple and still supplying a great developer experience for this concept
-
+we need better watch support and docs and determining how it should work
+watch is now per repo.
 
 ## search extensions
 
