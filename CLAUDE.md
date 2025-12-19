@@ -13,7 +13,8 @@ devac/
 ├── packages/
 │   ├── devac-core/     # Core analysis engine (DuckDB, parsers, storage)
 │   ├── devac-cli/      # Command-line interface
-│   └── devac-mcp/      # MCP server for AI assistants
+│   ├── devac-mcp/      # MCP server for AI assistants
+│   └── devac-worktree/ # Git worktree + Claude workflow for GitHub issues
 ├── turbo.json          # Turborepo configuration
 ├── biome.json          # Linting and formatting
 └── pnpm-workspace.yaml # Workspace definition
@@ -23,13 +24,16 @@ devac/
 
 ```
 @pietgk/devac-cli  ────┐
-                ├──> @pietgk/devac-core
+                       ├──> @pietgk/devac-core
 @pietgk/devac-mcp  ────┘
+
+@pietgk/devac-worktree  (standalone)
 ```
 
 - **@pietgk/devac-core**: Standalone, no internal dependencies
 - **@pietgk/devac-cli**: Depends on @pietgk/devac-core
 - **@pietgk/devac-mcp**: Depends on @pietgk/devac-core
+- **@pietgk/devac-worktree**: Standalone CLI for issue-based workflows
 
 ## Essential Commands
 
@@ -143,6 +147,27 @@ The MCP server provides these tools for AI assistants:
 - `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from registered repos)
 - `list_repos`: List registered repositories (hub mode only)
 
+## Worktree CLI (devac-worktree)
+
+Issue-based workflow using git worktrees and Claude CLI.
+
+### Worktree Commands
+
+| Command | Description |
+|---------|-------------|
+| `devac-worktree start <issue>` | Create worktree for issue, install deps, launch Claude |
+| `devac-worktree list` | List active worktrees |
+| `devac-worktree status` | Show worktrees with issue/PR state |
+| `devac-worktree resume <issue>` | Resume work on existing worktree |
+| `devac-worktree clean <issue>` | Remove worktree after PR merged |
+| `devac-worktree clean-merged` | Clean all merged worktrees |
+
+### Worktree Naming Convention
+
+Worktrees are created with the pattern: `{repo}-{issue#}-{slug}`
+
+Example: `vivief-123-add-auth` for issue #123 "Add authentication"
+
 ## Development Workflow
 
 1. Make changes in the appropriate package
@@ -170,6 +195,45 @@ When adding features:
 - Run `pnpm clean && pnpm install` for fresh start
 - Check that all .js extensions are in imports
 - Verify tsconfig.json settings match NodeNext
+
+## Parent Directory Workflow
+
+When working from a parent directory (e.g., `~/ws/`) that contains multiple repos or worktrees, use these patterns:
+
+### Git Commands from Parent Directory
+
+```bash
+# Use -C flag to run git in a specific repo
+git -C vivief status
+git -C vivief add . && git -C vivief commit -m "feat: add feature"
+git -C vivief-123-auth push origin HEAD
+```
+
+### pnpm Commands from Parent Directory
+
+```bash
+# Use --prefix flag (note: different from npm)
+# For pnpm, use --dir or cd into the directory
+(cd vivief && pnpm typecheck)
+(cd vivief && pnpm test)
+(cd vivief-123-auth && pnpm build)
+```
+
+### When to Use Parent Directory
+
+- **Multi-repo issues**: Working on changes that span multiple repositories
+- **Cross-repo context**: Need visibility into sibling repos
+- **Issue worktrees**: Multiple worktrees for the same issue across repos
+
+### Directory Structure Example
+
+```
+~/ws/                         # Parent directory - Claude starts here
+├── vivief/                   # Main repo
+├── vivief-123-auth/          # Issue 123 worktree
+├── other-repo/               # Sibling repo
+└── other-repo-123-auth/      # Issue 123 worktree in sibling
+```
 
 ## See Also
 
