@@ -37,3 +37,35 @@ export {
 } from "./cross-repo-detector.js";
 
 export type { CrossRepoAnalysisResult } from "./cross-repo-detector.js";
+
+// CI Status
+export {
+  isGhCliAvailable,
+  getCIStatusForContext,
+  formatCIStatus,
+} from "./ci-status.js";
+
+export type {
+  CheckStatus,
+  CIStatus,
+  CIStatusResult,
+  CIStatusOptions,
+} from "./ci-status.js";
+
+// Review
+export {
+  gatherDiffs,
+  buildReviewPrompt,
+  parseReviewResponse,
+  formatReviewAsMarkdown,
+  createSubIssues,
+} from "./review.js";
+
+export type {
+  ReviewFinding,
+  SubIssueSuggestion,
+  ReviewResult,
+  ReviewOptions,
+  RepoDiff,
+  GatheredDiffs,
+} from "./review.js";

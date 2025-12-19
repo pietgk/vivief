@@ -14,7 +14,9 @@ import {
   affectedCommand,
   analyzeCommand,
   cleanCommand,
+  contextCICommand,
   contextCommand,
+  contextReviewCommand,
   hubInitCommand,
   hubListCommand,
   hubRefreshCommand,
@@ -301,7 +303,7 @@ program
 // CONTEXT COMMAND
 // ─────────────────────────────────────────────────────────────────────────────
 
-program
+const context = program
   .command("context")
   .description("Discover cross-repository context from current directory")
   .option("--json", "Output as JSON")
@@ -319,6 +321,58 @@ program
       }
     } else {
       console.error(`✗ Context discovery failed: ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+// CI subcommand
+context
+  .command("ci")
+  .description("Check CI status for all PRs in context")
+  .option("--json", "Output as JSON")
+  .option("--checks", "Include individual check details")
+  .action(async (options) => {
+    const result = await contextCICommand({
+      cwd: process.cwd(),
+      format: options.json ? "json" : "text",
+      includeChecks: options.checks,
+    });
+
+    if (result.success) {
+      if (options.json) {
+        console.log(JSON.stringify(result.result, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } else {
+      console.error(`✗ CI status check failed: ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+// Review subcommand
+context
+  .command("review")
+  .description("Generate LLM review prompt for changes in context")
+  .option("--json", "Output as JSON")
+  .option("--focus <area>", "Focus area: security, performance, tests, all", "all")
+  .option("--base <branch>", "Base branch to diff against", "main")
+  .action(async (options) => {
+    const result = await contextReviewCommand({
+      cwd: process.cwd(),
+      format: options.json ? "json" : "text",
+      focus: options.focus as "security" | "performance" | "tests" | "all",
+      baseBranch: options.base,
+    });
+
+    if (result.success) {
+      if (options.json) {
+        console.log(JSON.stringify({ prompt: result.prompt, result: result.result }, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } else {
+      console.error(`✗ Review generation failed: ${result.error}`);
       process.exit(1);
     }
   });
