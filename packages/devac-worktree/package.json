@@ -26,6 +26,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@pietgk/devac-core": "workspace:*",
     "commander": "^12.1.0",
     "execa": "^9.5.2"
   },

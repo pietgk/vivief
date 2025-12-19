@@ -40,6 +40,8 @@ export interface ListResult {
 export interface StatusResult {
   success: boolean;
   worktrees: Array<WorktreeInfo & { issueState: string; prUrl?: string }>;
+  /** When showing issue-wide status, the issue number being tracked */
+  issueNumber?: number;
   error?: string;
 }
 

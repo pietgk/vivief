@@ -104,16 +104,23 @@ program
   .description("Show worktrees with issue state and PR status")
   .option("-v, --verbose", "Show detailed information")
   .option("--json", "Output as JSON")
+  .option("--issue-wide", "Show all worktrees for current issue across repos")
   .action(async (options) => {
     const result = await statusCommand({
       verbose: options.verbose,
       json: options.json,
+      issueWide: options.issueWide,
     });
 
     if (options.json) {
-      console.log(JSON.stringify(result.worktrees, null, 2));
+      console.log(JSON.stringify(result, null, 2));
     } else {
-      console.log(formatStatus(result.worktrees, { verbose: options.verbose }));
+      console.log(
+        formatStatus(result.worktrees, {
+          verbose: options.verbose,
+          issueNumber: result.issueNumber,
+        })
+      );
     }
   });
 
