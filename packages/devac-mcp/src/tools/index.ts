@@ -110,6 +110,29 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  {
+    name: "get_context",
+    description:
+      "Discover the current working context including sibling repositories and issue worktrees. Returns information about the current directory, parent directory containing repos, and any issue-related worktrees.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Path to discover context from. Defaults to current working directory.",
+        },
+        checkSeeds: {
+          type: "boolean",
+          description: "Whether to check for DevAC seeds in discovered repos. Defaults to true.",
+        },
+        refresh: {
+          type: "boolean",
+          description: "Force refresh the cached context. Defaults to false.",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 export { MCP_TOOLS as default };

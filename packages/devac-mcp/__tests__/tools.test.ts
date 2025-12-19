@@ -28,10 +28,11 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("get_call_graph");
       expect(toolNames).toContain("query_sql");
       expect(toolNames).toContain("list_repos");
+      expect(toolNames).toContain("get_context");
     });
 
-    it("has exactly 8 tools", () => {
-      expect(MCP_TOOLS.length).toBe(8);
+    it("has exactly 9 tools", () => {
+      expect(MCP_TOOLS.length).toBe(9);
     });
   });
 

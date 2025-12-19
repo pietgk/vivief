@@ -8,9 +8,21 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { type RepoContext, discoverContext } from "@pietgk/devac-core";
 import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.js";
+
+/**
+ * Context cache entry
+ */
+interface CachedContext {
+  context: RepoContext;
+  timestamp: number;
+}
+
+/** Context cache TTL in milliseconds (30 seconds) */
+const CONTEXT_CACHE_TTL = 30_000;
 
 /**
  * DevAC MCP Server
@@ -21,6 +33,7 @@ export class DevacMCPServer {
   private options: MCPServerOptions;
   private startTime = 0;
   private running = false;
+  private contextCache: Map<string, CachedContext> = new Map();
 
   /** Get provider or throw if not initialized */
   private get provider(): DataProvider {
@@ -97,6 +110,11 @@ export class DevacMCPServer {
     toolName: string,
     input: Record<string, unknown>
   ): Promise<MCPToolResult> {
+    // get_context doesn't require the data provider
+    if (toolName === "get_context") {
+      return await this.executeGetContext(input);
+    }
+
     if (!this.provider) {
       return { success: false, error: "Server not initialized" };
     }
@@ -126,6 +144,9 @@ export class DevacMCPServer {
 
         case "list_repos":
           return await this.executeListRepos();
+
+        case "get_context":
+          return await this.executeGetContext(input);
 
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
@@ -227,6 +248,68 @@ export class DevacMCPServer {
         success: false,
         error: error instanceof Error ? error.message : String(error),
       };
+    }
+  }
+
+  /**
+   * Get context with caching
+   */
+  private async executeGetContext(input: Record<string, unknown>): Promise<MCPToolResult> {
+    const targetPath = (input.path as string) ?? process.cwd();
+    const checkSeeds = (input.checkSeeds as boolean) ?? true;
+    const refresh = (input.refresh as boolean) ?? false;
+
+    // Check cache if not forcing refresh
+    if (!refresh) {
+      const cached = this.contextCache.get(targetPath);
+      if (cached && Date.now() - cached.timestamp < CONTEXT_CACHE_TTL) {
+        return {
+          success: true,
+          data: {
+            ...cached.context,
+            cached: true,
+            cacheAge: Date.now() - cached.timestamp,
+          },
+        };
+      }
+    }
+
+    try {
+      const context = await discoverContext(targetPath, { checkSeeds });
+
+      // Update cache
+      this.contextCache.set(targetPath, {
+        context,
+        timestamp: Date.now(),
+      });
+
+      // Clean up stale cache entries
+      this.cleanupContextCache();
+
+      return {
+        success: true,
+        data: {
+          ...context,
+          cached: false,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Clean up stale context cache entries
+   */
+  private cleanupContextCache(): void {
+    const now = Date.now();
+    for (const [path, entry] of this.contextCache.entries()) {
+      if (now - entry.timestamp > CONTEXT_CACHE_TTL * 2) {
+        this.contextCache.delete(path);
+      }
     }
   }
 
