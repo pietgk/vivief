@@ -89,6 +89,47 @@ this needs a seperate issue to see what we want.
 we need better watch support and docs and determining how it should work
 watch is now per repo.
 
+## reset and step back and simplify concepts
+
+we need to take a high level view of what we are dealing with.
+it feels that the system we are creating vievief, devac developing workflow with a lot of moving parts, ideas and interpretation by me and you (claude) that it is getting complex and hard to understand.
+
+lets try to determine the concepts and the rules as clean and elegant as possible, so no code only the why, what and when NOT the how. this to have a base that is clear elegant and we have the terms, concepts and context defined in a way that is easy to understand and use.
+
+- we define tha our workspace (ws) contains multiple repos (siblings of each other)
+- parent repo is the dir above current repo (and is inherently the workspace dir)
+- if we need to modify a repo then we create a worktree from that repo and do the changes there (can be for the same issue or a different issue)
+- an issue is tied to a repo we need to talk and identify an issue by reponame-issuenumber to make it unique across multiple repos.
+- claude cwd is either the repo or its worktree of that repo or their parent (where it has access to all repos and can edit in all worktrees).
+
+- we have issues, worktrees, repos, sibling repos, parent dir context, claude sessions, prompts, commands, changesets, prs, ci/cd pipelines, cli's.
+- we can code-check, type-check, lint-check, test-check, doc-check, adr-check, changelog-check, commit-check, pr-check all grouped as validation checks.
+- we have ideas and request for changing and updating code, tests, docs, ci/cd pipelines grouped as change requests.
+- the result of a check should be handled.
+- we can determine the state of code, seeds, issues, worktrees, repos, siblings repos, parent dir context, claude sessions, prompts, commands, changesets, prs, ci/cd pipelines.
+- we can apply effectHandler = (state, effect) => (state', [effect']) to describe it all.
+- we have the concepts off seeds with a queryable version of the parts of the systems that can be extracted from the source of thruth.
+  example parts of the systems that can be extracted are (code using ast, content extracted as json, infra as yaml from ast, azure, google cloud, documents from google-drive notion, big-query tables for analytics, datadog, github, etc...)
+  seeds use an appropriate form to make them queryable (graph, relational, keyvalue, fulltext, vector, timeseries, otel spans) nd currently can be version controlled and be part of the repo.
+- to make code queryable we need to extract universal ast and effects from the code.
+- we have the concept of  hub-server (mcp server) that serves the seeds in the workspace to llm's and humans to be able to query them in a deterministic way. currently we use duckdb and seeds ar parquet files to store the data. seeds in a repo have the concept of maintaining a delta with the changes to know what has changed.
+
+some insights from the above
+
+- we can use a graph db to store all the state and effects and their relations to be able to query it all in a deterministic way.
+
+- we can describe the whole development flow as effectHandlers and use state machine with effects that change the state and trigger new effects.
+
+- we need to describe the state machine and effects in a way that is easy to understand and use for developers. so the big challenge is to make it simple and elegant and easy to understand, be able to handle the the different ways change requests from simle and fast to complex extensive changes that need careful planning and execution. and still be able to handle the need for humans and llm's to be able to work together in a productive way.
+
+- we should determine what the deterministic parts (systems can handle it) are and what the non-deterministic (humans and or llm's are good at these) parts are.
+
+- idea is to try to explain our way of working with a state machine diagram to make it clear what the concepts are and how they relate to each other.
+
+- also we know we live in a fast changing context where llm's become more powerful and new tools and ways of working appear so we need to be able to adapt quickly to these changes without breaking our way of working.
+
+
+
 ## search extensions
 
 ### Vision View Effect 
