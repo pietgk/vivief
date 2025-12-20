@@ -108,50 +108,61 @@ graph TB
 
 ## 3. Seed Taxonomy
 
+**Seeds vs Effects**: Seeds are **queryable data** extracted from sources. Effects are **events/changes** that flow through the system (see Section 9). All seed categories are updated via effects when their source changes.
+
 ```mermaid
 graph LR
     subgraph "Seed Categories"
         direction TB
 
         subgraph "Code Seeds"
-            AST[AST Nodes]
-            EDGES[Call Graph]
-            DEPS[Dependencies]
-            EFFECTS[Effects]
+            NODES[Nodes<br/>functions, classes, variables]
+            EDGES[Edges<br/>calls, imports, extends]
+            EXT_REFS[External Refs<br/>package dependencies]
         end
 
         subgraph "Content Seeds"
-            DOCS[Documents]
-            PAGES[Pages]
-            SCHEMAS[Schemas]
+            DOCS[Documents<br/>markdown, notion pages]
+            SCHEMAS[Schemas<br/>API specs, types]
+            ENTRIES[Entries<br/>CMS content]
         end
 
         subgraph "Infra Seeds"
-            RESOURCES[Resources]
-            TOPOLOGY[Topology]
-            CONFIG[Config]
+            RESOURCES[Resources<br/>services, databases]
+            TOPOLOGY[Topology<br/>connections, VPCs]
+            CONFIG[Config<br/>env vars, secrets refs]
         end
 
         subgraph "Pipeline Seeds"
-            RUNS[CI Runs]
-            WEBHOOKS[Webhooks]
-            DEPLOYS[Deploys]
+            WORKFLOWS[Workflows<br/>CI/CD definitions]
+            RUNS[Runs<br/>job executions]
+            ARTIFACTS[Artifacts<br/>builds, deployments]
         end
 
         subgraph "Observability Seeds"
-            METRICS[Metrics]
-            TRACES[Traces]
-            LOGS[Logs]
+            METRICS[Metrics<br/>counters, gauges]
+            SPANS[Spans<br/>OTEL traces]
+            LOGS[Logs<br/>structured events]
         end
 
         subgraph "Validation Seeds"
-            ERRORS[Type Errors]
-            LINT[Lint Issues]
-            TESTS[Test Results]
-            SECURITY[Security Audits]
+            DIAGNOSTICS[Diagnostics<br/>tsc, eslint errors]
+            TEST_RESULTS[Test Results<br/>pass/fail, coverage]
+            AUDITS[Audits<br/>security, deps]
         end
     end
 ```
+
+**Seed Data Structures:**
+
+| Category | Primary Tables | Key Fields |
+|----------|---------------|------------|
+| Code | nodes, edges, external_refs | entity_id, kind, file, line |
+| Content | documents, entries | id, source, content_hash |
+| Infra | resources, topology | arn/id, type, region |
+| Pipeline | workflows, runs | workflow_id, status, timestamp |
+| Observability | metrics, spans | trace_id, name, duration |
+| Validation | diagnostics, test_results | file, line, severity, message |
 
 ---
 
@@ -377,11 +388,30 @@ graph LR
     E4 --> E5
 ```
 
-**Everything is an effect:**
-- Source changes → `FileChanged`, `WebhookReceived`, `APIPolled`
-- Processing → `Extract`, `Transform`, `Merge`
-- State updates → `SeedUpdated`, `HubRefreshed`
-- Queries → `QueryRequested`, `ResultReturned`
+**The Universal Pattern:**
+
+```
+effectHandler = (state, effect) => (state', [effect'])
+```
+
+Effects are NOT specific to code - they're the universal abstraction for ALL changes in the system.
+
+**Effects by Seed Category:**
+
+| Category | Trigger Effects | Processing Effects | Result Effects |
+|----------|----------------|-------------------|----------------|
+| Code | `FileChanged`, `GitCommit` | `ParseAST`, `BuildGraph` | `NodesUpdated`, `EdgesUpdated` |
+| Content | `DocumentChanged`, `CMSWebhook` | `ParseMarkdown`, `FetchContent` | `DocumentsUpdated` |
+| Infra | `APIPolled`, `ResourceChanged` | `FetchTopology` | `ResourcesUpdated` |
+| Pipeline | `WebhookReceived`, `WorkflowTriggered` | `FetchRunStatus` | `RunsUpdated` |
+| Observability | `SpanReceived`, `MetricPushed` | `AggregateMetrics` | `SpansUpdated` |
+| Validation | `FileChanged`, `DepsChanged` | `RunTypeCheck`, `RunLint` | `DiagnosticsUpdated` |
+
+**Effect Flow Categories:**
+- **Trigger**: Something changed in a source of truth
+- **Processing**: Extract, transform, validate
+- **State Update**: Seeds updated, hub refreshed
+- **Query**: Request data, return results
 
 ---
 
@@ -436,5 +466,5 @@ graph LR
 
 ---
 
-*Document Version: 0.2 - Alignment Complete*
+*Document Version: 0.3 - Seeds vs Effects clarified*
 *Status: Ready for detailed design*
