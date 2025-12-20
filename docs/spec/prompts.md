@@ -128,6 +128,125 @@ some insights from the above
 
 - also we know we live in a fast changing context where llm's become more powerful and new tools and ways of working appear so we need to be able to adapt quickly to these changes without breaking our way of working.
 
+==> this resulted in foundation.md and ADR-0015
+
+## implement using the foundation
+
+We want to implement the ideas from foundation.md and ADR-0015 to make vivief a powerful tool to analyse code bases and content in a deterministic way using llm's and humans together.
+
+can we take a step back and use the experience and concepts and ideas from the current devac and vivief repo to create a plan to implement the ideas from foundation.md and ADR-0015 by first creating the high level documentation.
+
+lets avoid details and focus on the big picture and the main building blocks we need to create to make it work.
+lets first document it with high level diagrams so we are sure we align on getting the why/what/when right before we start thinking about the how.
+
+the seeds idea maps in my brain to include thing like
+- universal ast + effects extraction from code bases (devac-v2 code)
+- content extraction from documents (notion, google drive, etc)
+- infra extraction from cloud providers (aws, azure, gcp)
+- ci/cd pipeline extraction from github actions, azure pipelines, etc (we could for example embed a smee client directly in the DevAC server so it connects automatically on startup. The @octokit/webhooks package handles signature verification, and smee-client is tiny)
+- monitoring data extraction from datadog, prometheus, loki, jaeger, tempo, otel traces, etc
+- watching for typescript errors and linting issues (tsc, eslint, etc)
+- test issues and coverage extraction from jest, pytest, etc
+- security scan extraction from for example the yarn audit in the app repo that takes yarn audit and groups it into high level usable audit.
+
+this is not specified for the details but more to explain the concepts and how i thing they could be applied
+
+also note that we can specify at for example that a seed is usable for graph queries, relational queries, keyvalue queries, fulltext queries, vector queries, timeseries queries, otel spans queries.
+how to get support for each of these format is a seperate plan step. first we need to determine if we need them or maybe later.
+
+also lets try to simplify the concepts (generalisation could maybe help) and avoid complexity where possible.
+
+so for example registration of a repo is something we now support but is no longer needed by using convention (ie a ws dir with multiple sibling repos is a registered ws, each repo is registered by being a git repo in the ws dir, etc)
+alse watching for changes is something we now support per repo but could be simplified by having a single watcher for the whole ws that watches all repos in it (if needed we can optimize this).
+this should make the whole concept usable in a simpler way.
+also the watch context is 
+
+first can you improve this prompt in a way that makes it more clear what we want to achieve and what the main building blocks are.
+
+
+### redefined prompt 
+
+Refined Prompt: DevAC v3 High-Level Architecture Plan
+
+  Goal
+
+  Design the next generation of DevAC that implements the foundation.md concepts. Create high-level documentation with diagrams that
+  establishes alignment on why/what/when before any implementation details.
+
+  Core Thesis
+
+  Seeds are the universal abstraction - everything is a queryable extraction from a source of truth. A seed can be:
+
+  | Category       | Sources      | Examples                                          |
+  |----------------|--------------|---------------------------------------------------|
+  | Code           | Git repos    | AST, effects, call graphs, dependencies           |
+  | Content        | Docs systems | Notion pages, Google Docs, Confluence             |
+  | Infrastructure | Cloud APIs   | AWS resources, Azure services, GCP projects       |
+  | CI/CD          | Pipelines    | GitHub Actions runs, Azure Pipelines, webhooks    |
+  | Observability  | Monitoring   | Datadog metrics, OTEL traces, Prometheus          |
+  | Validation     | Dev tools    | TypeScript errors, ESLint issues, test results    |
+  | Security       | Scanners     | Yarn audit, npm audit, dependency vulnerabilities |
+
+  Query Capabilities
+
+  Seeds declare which query types they support:
+
+  | Query Type  | Use Case        | Example                          |
+  |-------------|-----------------|----------------------------------|
+  | Graph       | Relationships   | "What calls this function?"      |
+  | Relational  | Structured data | "All functions with >10 params"  |
+  | Key-Value   | Lookups         | "Get entity by ID"               |
+  | Full-text   | Search          | "Find code mentioning 'auth'"    |
+  | Vector      | Semantic        | "Code similar to this pattern"   |
+  | Time-series | Trends          | "Error rate over last week"      |
+  | OTEL/Spans  | Traces          | "Slowest paths through checkout" |
+
+  Note: Not all query types needed initially. Phase 1 focuses on core types.
+
+  Simplification Principles
+
+  Convention Over Configuration
+
+  | Before (v2)                | After (v3)                                 |
+  |----------------------------|--------------------------------------------|
+  | Explicit repo registration | Workspace directory = registered workspace |
+  | Per-repo hub registration  | Git repo in workspace = registered repo    |
+  | Manual hub refresh         | Filesystem watch auto-updates              |
+  | Per-repo watchers          | Single workspace-level watcher             |
+  | State files for worktrees  | Convention-based naming discovery          |
+
+  Single Workspace Context
+
+  ~/ws/                     ← Workspace (auto-discovered)
+  ├── api/                  ← Repo (auto-registered)
+  ├── web/                  ← Repo (auto-registered)
+  ├── api-123-auth/         ← Worktree (convention: {repo}-{issue}-{slug})
+  └── .devac/               ← Workspace-level seeds & hub
+      ├── hub.duckdb        ← Federated queries
+      └── cache/            ← Shared cache
+
+  Deliverables Requested
+
+  1. High-level architecture diagram - Main components and data flow
+  2. Seed taxonomy - Categories, sources, query capabilities
+  3. Pipeline diagram - How data flows from sources → seeds → queries → views
+  4. Component boundaries - What's core vs extension vs future
+  5. Phasing - What to build first vs defer
+
+  Constraints
+
+  - No implementation details - Focus on concepts and relationships
+  - Diagrams over text - Visual alignment before prose
+  - Simplify first - Question every concept's necessity
+  - Build on existing - Leverage devac-core's proven patterns
+
+  Questions to Answer
+
+  1. What are the minimal seed types for Phase 1?
+  2. How do seeds compose across sources (code + infra + observability)?
+  3. Where does the effect handler pattern fit?
+  4. How do we enable real-time updates (webhooks, watchers)?
+  5. What's the human/LLM/system boundary for each component?
 
 
 ## search extensions
