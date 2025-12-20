@@ -96,9 +96,6 @@ graph TB
     WEB --> WEB_SEED
     API_SEED --> HUB
     WEB_SEED --> HUB
-
-    style DEVAC fill:#e1f5fe
-    style HUB fill:#fff9c4
 ```
 
 **Convention-Based Discovery:**
@@ -160,40 +157,6 @@ graph LR
 
 ## 4. Query Capabilities Matrix
 
-```mermaid
-graph TB
-    subgraph "Query Types"
-        GRAPH[Graph<br/>Relationships]
-        REL[Relational<br/>Structured]
-        KV[Key-Value<br/>Lookups]
-        FTS[Full-Text<br/>Search]
-        VEC[Vector<br/>Semantic]
-        TS[Time-Series<br/>Trends]
-        OTEL[OTEL<br/>Traces]
-    end
-
-    subgraph "Seeds Support"
-        CODE_S[Code Seeds]
-        CONTENT_S[Content Seeds]
-        OBS_S[Observability Seeds]
-    end
-
-    CODE_S ---|graph, relational, kv, fts| GRAPH
-    CODE_S ---|graph, relational, kv, fts| REL
-    CODE_S ---|graph, relational, kv, fts| KV
-    CODE_S ---|graph, relational, kv, fts| FTS
-
-    CONTENT_S ---|fts, vector, kv| FTS
-    CONTENT_S ---|fts, vector, kv| VEC
-    CONTENT_S ---|fts, vector, kv| KV
-
-    OBS_S ---|timeseries, otel, relational| TS
-    OBS_S ---|timeseries, otel, relational| OTEL
-    OBS_S ---|timeseries, otel, relational| REL
-```
-
-**Query Type Support by Seed Category:**
-
 | Seed Category | Graph | Relational | K-V | Full-Text | Vector | Time-Series | OTEL |
 |---------------|:-----:|:----------:|:---:|:---------:|:------:|:-----------:|:----:|
 | Code          | ✓     | ✓          | ✓   | ✓         | ◐      | -           | -    |
@@ -204,6 +167,8 @@ graph TB
 | Validation    | -     | ✓          | ✓   | ✓         | -      | ✓           | -    |
 
 *✓ = Primary, ◐ = Secondary, - = Not applicable*
+
+**Query Implementation:** SQL-first with graph traversal via recursive CTEs (current DevAC v2 approach).
 
 ---
 
@@ -343,12 +308,6 @@ graph TB
     FUT_CONTENT --> CORE_SEED
     FUT_INFRA --> CORE_SEED
     FUT_OBS --> CORE_SEED
-
-    style CORE_EXT fill:#c8e6c9
-    style CORE_SEED fill:#c8e6c9
-    style CORE_HUB fill:#c8e6c9
-    style CORE_CLI fill:#c8e6c9
-    style CORE_MCP fill:#c8e6c9
 ```
 
 ---
@@ -428,51 +387,54 @@ graph LR
 
 ## 10. Phasing Summary
 
-```mermaid
-gantt
-    title DevAC v3 Phases
-    dateFormat X
-    axisFormat %s
+### Phase 1 - Core (Current Focus)
 
-    section Phase 1 - Core
-    Code Seeds (existing)      :done, p1a, 0, 1
-    Workspace Discovery        :p1b, 1, 2
-    Unified Watcher           :p1c, 2, 3
-    Hub Auto-refresh          :p1d, 3, 4
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Code Seeds | ✅ Done | AST extraction for TS, Python, C# , make sure its nicely integrated in the new context |
+| Workspace Discovery | Planned | Convention-based repo/worktree detection |
+| Unified Watcher | Planned | Single workspace-level filesystem watcher |
+| Hub Auto-refresh | Planned | Automatic hub updates on seed changes |
 
-    section Phase 2 - Validation
-    TypeScript Errors         :p2a, 4, 5
-    ESLint Issues            :p2b, 5, 6
-    Test Results             :p2c, 6, 7
-    Security Audits          :p2d, 7, 8
+### Phase 2 - Validation
 
-    section Phase 3 - CI/CD
-    GitHub Webhooks          :p3a, 8, 9
-    CI Run Seeds             :p3b, 9, 10
-    PR Status Seeds          :p3c, 10, 11
+| Component | Status | Description |
+|-----------|--------|-------------|
+| TypeScript Errors | Planned | Extract `tsc` diagnostics as seeds |
+| ESLint Issues | Planned | Extract lint results as seeds |
+| Test Results | Planned | Extract test outcomes as seeds |
+| Security Audits | Planned | Extract `npm audit` / dependency checks |
 
-    section Future
-    Content Seeds            :p4a, 11, 12
-    Infra Seeds              :p4b, 12, 13
-    Observability Seeds      :p4c, 13, 14
-    Vector Queries           :p4d, 14, 15
-```
+### Phase 3 - CI/CD
 
----
+| Component | Status | Description |
+|-----------|--------|-------------|
+| GitHub Webhooks | Planned | Receive PR/issue/CI events via smee |
+| CI Run Seeds | Planned | Extract GitHub Actions run status |
+| PR Status Seeds | Planned | Extract PR checks, reviews, merge state |
 
-## Key Questions for Alignment
+### Future
 
-1. **Phase 1 Scope**: Is workspace discovery + unified watcher + hub auto-refresh the right starting point?
-
-2. **Seed Format**: Should all seeds use the same Parquet schema, or allow seed-type-specific schemas?
-
-3. **Query Interface**: SQL-first with graph as recursive CTEs, or add a dedicated graph query language?
-
-4. **Real-time vs Batch**: Which seeds need real-time updates vs periodic refresh?
-
-5. **LLM Integration**: MCP tools for querying, or also for triggering extractions?
+| Component | Description |
+|-----------|-------------|
+| Content Seeds | Notion, Markdown docs, Contentful |
+| Infra Seeds | AWS/Azure resource topology |
+| Observability Seeds | OTEL traces, Datadog metrics |
+| Vector Queries | Semantic search over content |
 
 ---
 
-*Document Version: 0.1 - Initial Architecture Diagrams*
-*Status: Awaiting alignment feedback*
+## Alignment Decisions
+
+| Question | Decision |
+|----------|----------|
+| **Phase 1 Scope** | Yes - workspace discovery + unified watcher + hub auto-refresh. Code extraction (existing) is inherently Phase 1. |
+| **Seed Format** | Seed-type-specific schemas. Current: nodes, edges, ext_references. Generalize where logical, keep specific where needed. Effect handler pattern is generic but apply carefully. |
+| **Query Interface** | SQL-first with graph via recursive CTEs (current DevAC v2 approach). No dedicated graph language needed. |
+| **Real-time vs Batch** | Pragmatic per-seed. Real-time when possible, batch when sensible. Generic choices that make sense. |
+| **LLM Integration** | MCP for both querying AND triggering extractions. CLI/API already implement it - maintain consistency. Skills are part of the future. |
+
+---
+
+*Document Version: 0.2 - Alignment Complete*
+*Status: Ready for detailed design*
