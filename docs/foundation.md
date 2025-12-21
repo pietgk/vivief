@@ -40,9 +40,18 @@ If Effects capture complete semantics, understanding effects = understanding cod
 
 | Concept | Definition | Format |
 |---------|------------|--------|
-| **Issue** | A change request tied to a specific repo | `api-123` (repo-issue#) |
+| **issueId** | A change request with source and origin repo | `ghapi-123` → `gh:mindler/api:123` |
 | **Entity** | A code symbol (function, class, etc.) | `repo:package:kind:hash` |
 | **Seed** | Queryable extraction of a source of truth | `.devac/seed/nodes.parquet` |
+
+**issueId Format**: `{source}{originRepo}-{number}`
+- GitHub: `ghapi-123`, `ghmonorepo-3.0-789`
+- Jira: `PROJ-456`
+- Linear: `ABC-789`
+
+Parse by splitting on **last `-`** to extract number (handles repos with dashes/digits like `monorepo-3.0`).
+
+The canonical form expands to URN-style: `gh:mindler/api:123` (owner resolved from git remote).
 
 ### 2.3 Workspaces
 
@@ -51,6 +60,68 @@ If Effects capture complete semantics, understanding effects = understanding cod
 | **Claude Session** | A Claude CLI session with a specific working directory |
 | **Claude CWD** | Either a repo, a worktree, or the parent directory |
 | **Session Scope** | From parent dir: can query/edit all repos. From repo/worktree: focused scope |
+
+### 2.4 Workspace Topology & Issue-Based Development
+
+Development often spans multiple repositories. DevAC uses **convention over configuration** to discover and group related work.
+
+#### Parent Directory Workflow
+
+When working on multi-repo changes, start Claude in the **parent directory** (workspace):
+
+```
+~/ws/                          ← Claude starts HERE
+  ├── api-ghapi-123-auth/     # Issue ghapi-123 repo api worktree
+  ├── web-ghapi-123-auth/     # Issue ghapi-123 repo web worktree  
+  ├── api/                    # Main repo with the issue
+  ├── web/                    # Main repo
+  └── shared/                 # Sibling repo
+```
+
+From the parent directory, Claude can query and edit all repos naturally, eliminating the need for multi-session orchestration.
+
+#### Worktree Naming Convention
+
+Worktrees follow the pattern `{worktreeRepo}-{issueId}-{slug}`:
+
+| Component | Purpose | Example |
+|-----------|---------|---------|
+| `worktreeRepo` | Repo this worktree belongs to | `shared` |
+| `issueId` | Issue identifier (source + origin repo + number) | `ghapi-123` |
+| `slug` | Human-readable description | `auth` |
+
+**Examples:**
+- `api-ghapi-123-auth` — Worktree of `api` for GitHub issue #123 from `api`
+- `shared-ghapi-123-auth` — Worktree of `shared` for the **same** issue (from `api`)
+- `web-ghmonorepo-3.0-789-fix` — Worktree of `web` for issue #789 from `monorepo-3.0`
+
+The worktree's repo (`shared`) may differ from the issue's origin repo (`api`). This enables cross-repo work on the same issue.
+
+#### Context Discovery Rules
+
+**Rule 1: Sibling Discovery**
+Context always includes all sibling repos in the same parent directory.
+
+**Rule 2: Issue Grouping**
+When in a worktree matching `{worktreeRepo}-{issueId}-{slug}`:
+- Extract issueId (e.g., `ghapi-123`)
+- Group all worktrees with the same issueId
+- Include their corresponding main repos
+
+**Example**: In `shared-ghapi-123-auth/`, context includes:
+- All `*-ghapi-123-*` worktrees (same issue across repos)
+- Their main repos (`api/`, `shared/`)
+- Other siblings (`web/`)
+
+#### Cross-Repo Commands
+
+From parent directory or any repo:
+```bash
+git -C api-123-auth status          # Git operations
+npm --prefix api-123-auth test      # npm operations
+```
+
+This pattern enables single-session, multi-repo development.
 
 ---
 
@@ -141,7 +212,7 @@ Repo B seeds ─┘
 
 ---
 
-## 5. The Unified Pattern: Everything is an Effect Handler
+## 5. Effects: The Universal Abstraction
 
 ### 5.1 Core Formula
 
@@ -154,7 +225,7 @@ effectHandler = (state, effect) => (state', [effect'])
 - Actors: InvokeHandler effects
 - State Machines: Event effect → Action effects
 - Routing: Navigate effect → Render effects
-- Deep Links: Navigate effect → Screen effects
+- Code Analysis: AST → FunctionCall effects → Architecture understanding
 
 ### 5.2 Effects as Data
 
@@ -163,52 +234,63 @@ Effects are **immutable observations** about what happens. Two primitives:
 1. **Effect** - A description of something to do (data, not function)
 2. **Handler** - A function that processes effects and produces new effects
 
-### 5.3 Effect Taxonomy by Semantic Role
+### 5.3 Code Effects (Understanding Code)
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ DATA EFFECTS - Observations, Inputs, Outputs            │
-├─────────────────────────────────────────────────────────┤
-│ Event     │ Something happened                          │
-│ Message   │ Communication payload                       │
-│ Vision    │ High-level intent (from humans)             │
-│ Question  │ Query for reasoning (from humans)           │
-│ Answer    │ Reasoning result (from LLM)                 │
-│ View      │ Presentation format (for humans)            │
-│ Request   │ Asking for something                        │
-│ Response  │ Answering a request                         │
-└─────────────────────────────────────────────────────────┘
+Code effects describe **what code does** - extracted from static and runtime analysis. These enable documentation, diagrams, and architectural understanding.
 
-┌─────────────────────────────────────────────────────────┐
-│ DO EFFECTS - Actions                                    │
-├─────────────────────────────────────────────────────────┤
-│ FunctionCall │ Code execution                           │
-│ Send         │ Transmit data                            │
-│ Store        │ Persist data                             │
-│ Retrieve     │ Fetch data                               │
-└─────────────────────────────────────────────────────────┘
+#### Data Effects - What Happens
 
-┌─────────────────────────────────────────────────────────┐
-│ FLOW EFFECTS - Control Structures                       │
-├─────────────────────────────────────────────────────────┤
-│ Condition    │ Branching logic                          │
-│ Loop         │ Iteration                                │
-└─────────────────────────────────────────────────────────┘
+| Effect | Description | Example |
+|--------|-------------|---------|
+| `FunctionCall` | Code execution | `userService.getUser()` calls `db.query()` |
+| `Store` | Data persistence | `INSERT INTO users` |
+| `Retrieve` | Data fetching | `SELECT * FROM users` |
+| `Send` | External communication | `HTTP POST to stripe.com` |
+| `Request` | Asking for something | API request |
+| `Response` | Answering a request | API response |
 
-┌─────────────────────────────────────────────────────────┐
-│ GROUP EFFECTS - Organization Structures                 │
-├─────────────────────────────────────────────────────────┤
-│ System       │ Top-level system boundary                │
-│ Container    │ Deployment unit                          │
-│ Component    │ Code module                              │
-│ File         │ Code file                                │
-│ Class        │ Type definition                          │
-└─────────────────────────────────────────────────────────┘
-```
+#### Flow Effects - Control Structures
 
-**Relationship**: Data triggers Do, Flow controls Do, Group contains all.
+| Effect | Description | Example |
+|--------|-------------|---------|
+| `Condition` | Branching logic | `if (user.isAdmin)` |
+| `Loop` | Iteration | `for each order in orders` |
 
-### 5.4 Effect Hierarchies
+#### Group Effects - Organization
+
+| Effect | Description | Use |
+|--------|-------------|-----|
+| `System` | Top-level boundary | C4 System Context |
+| `Container` | Deployment unit | C4 Container diagram |
+| `Component` | Code module | C4 Component diagram |
+| `File` | Code file | File-level analysis |
+| `Class` | Type definition | Class diagrams |
+
+**Relationship**: Data effects describe behavior, Flow effects control execution, Group effects provide structure.
+
+### 5.4 Workflow Effects (Development Process)
+
+Workflow effects describe **development activity** - triggering pipelines and coordinating work.
+
+| Effect | Trigger | Handler |
+|--------|---------|---------|
+| `FileChanged` | Filesystem watch | Re-analyze, update seed |
+| `SeedUpdated` | Extraction complete | Refresh hub, notify dependents |
+| `ValidationResult` | Check complete | Pass/fail with diagnostics |
+| `IssueClaimed` | Human/LLM action | Create worktree, branch |
+| `PRMerged` | GitHub event | Clean worktree, update seeds |
+| `ChangeRequested` | Human/LLM action | Route to appropriate handler |
+
+**Validation as Workflow Effects**:
+
+| Check | Produces | Deterministic? |
+|-------|----------|----------------|
+| `type-check` | `ValidationResult { pass, diagnostics }` | Yes |
+| `lint-check` | `ValidationResult { pass, violations }` | Yes |
+| `test-check` | `ValidationResult { pass, failures }` | Yes |
+| `build-check` | `ValidationResult { pass, errors }` | Yes |
+
+### 5.5 Effect Hierarchies
 
 Effects form natural hierarchies - low-level compose into high-level:
 
@@ -224,21 +306,48 @@ High-Level: ChargePayment
     └── EmailSend (receipt)
 ```
 
-Hierarchies emerge through Rules that aggregate low-level effects.
+Hierarchies emerge through **Rules** that aggregate low-level effects.
 
-### 5.5 State Categories
+### 5.6 Rules: Effect Aggregation
 
-| Category | Examples | Storage |
-|----------|----------|---------|
-| **Code State** | Files, AST, symbols, edges | Seeds (Parquet) |
-| **Issue State** | Open/closed, assigned, labels | GitHub API → Seed |
-| **Worktree State** | Active worktrees, their issues | Convention-based discovery |
-| **Validation State** | Last check results, pass/fail | Cache/seed |
-| **PR State** | Draft/ready, checks, reviews | GitHub API → Seed |
+**Rules** transform low-level effects into high-level effects. They are the bridge between raw extraction and architectural understanding.
 
-### 5.6 The Effect Store
+```
+Rule: "tRPC Service Detection"
+Input:  FunctionCall { name: "router.procedure" } + File { path: "*/routers/*" }
+Output: Actor { name: "UserService", type: "tRPC" }
+```
 
-The three pipelines share data through a common **Effect Store**:
+#### Why Rules Matter
+
+1. **Bridge Extraction to Understanding**: AST gives symbols; Rules give meaning
+2. **Enable Views**: C4 diagrams need Actors, Containers - inferred by Rules
+3. **Human/LLM Collaboration Point**: LLMs propose rules, humans validate, systems execute
+4. **Customization**: Different codebases have different conventions
+
+#### Rule Properties
+
+| Property | Description |
+|----------|-------------|
+| **Pattern** | What low-level effects to match |
+| **Context** | What state conditions must hold |
+| **Output** | What high-level effect to emit |
+| **Confidence** | How certain the rule is (for LLM-proposed rules) |
+
+#### What Rules Enable
+
+- Automatic C4 diagram generation (actors, containers, components)
+- Domain effect discovery (ChargePayment from DBQuery + HTTPRequest)
+- Architecture drift detection (rules that SHOULD match but don't)
+- Convention enforcement (naming patterns, file organization)
+
+---
+
+## 6. Effect Store
+
+The **Effect Store** is a conceptual model for how effects flow through the system.
+
+### 6.1 Conceptual Model
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -254,52 +363,61 @@ The three pipelines share data through a common **Effect Store**:
 │  ├── hierarchy: [System, Container, Component]          │
 │  ├── actors: { UserService, PaymentService }            │
 │  ├── interfaces: [getUser, createPayment]               │
-│  ├── data: { ... extracted values ... }                 │
-│  └── questions: ["Why does X depend on Y?"]             │
+│  └── data: { ... extracted values ... }                 │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**How pipelines interact:**
+### 6.2 How Pipelines Interact
+
 - **Query→Data** writes effects to the stream, updates State
 - **Vision→View** reads State to generate diagrams, validate intent
 - **Question→Answer** reads State to reason, may trigger more queries
 
-### 5.7 Rules: Effect Aggregation
+### 6.3 When Is Effect Store Needed?
 
-**Rules** transform low-level effects into high-level effects:
+| Use Case | Effect Store Needed? | Alternative |
+|----------|---------------------|-------------|
+| Current state queries | No | Seeds (Parquet) |
+| Temporal queries ("when did this change?") | Yes, helps | Git diff + re-extract |
+| Debugging extraction | Yes, helps | Verbose logging |
+| Cross-pipeline coordination | Yes, helps | Seeds + invalidation signals |
+| Audit trail | Yes, helps | Git history |
 
-```
-Rule: "tRPC Service Detection"
-Input:  FunctionCall { name: "router.procedure" } + File { path: "*/routers/*" }
-Output: Actor { name: "UserService", type: "tRPC" }
-```
+### 6.4 Seeds as MVP Implementation
 
-**Rule properties:**
-- **Pattern**: What low-level effects to match
-- **Context**: What State conditions must hold
-- **Output**: What high-level effect to emit
-- **Confidence**: How certain the rule is (for LLM-proposed rules)
+**Seeds (Parquet files)** are the practical implementation of Accumulated State:
+- Query current state efficiently
+- Federate across repos via Hub
+- Incremental updates via content-hash
 
-Rules enable:
-- Automatic C4 diagram generation (actors, containers, components)
-- Domain effect discovery (ChargePayment from DBQuery + HTTPRequest)
-- Architecture drift detection (rules that SHOULD match but don't)
-
-### 5.8 Development Effects
-
-| Effect | Trigger | Handler |
-|--------|---------|---------|
-| `FileChanged` | fs watch | Re-analyze, update seed |
-| `IssueClaimed` | Human/LLM | Create worktree, branch |
-| `ValidationFailed` | Check result | Block PR, notify |
-| `PRMerged` | GitHub event | Clean worktree, update seeds |
-| `ChangeRequested` | Human/LLM | Route to appropriate handler |
+The full Effect Stream (append-only log) is optional - implement when temporal queries become important.
 
 ---
 
-## 6. Change Requests
+## 7. Extraction Completeness
 
-### 6.1 Types of Changes
+Two sources of truth combine for complete understanding:
+
+**Static Extraction** (AST Analysis): Sees all code paths, all imports, all declarations. Complete but may over-report (dead code appears live).
+
+**Runtime Extraction** (Test Execution): Sees only executed paths with real data. Precise but incomplete (only tested paths).
+
+**Gap Analysis** reveals understanding quality:
+
+| Finding | Static | Runtime | Meaning |
+|---------|:------:|:-------:|---------|
+| Both | ✓ | ✓ | **Validated** - code and tests aligned |
+| Static only | ✓ | | **Investigate** - dead code or untested? |
+| Runtime only | | ✓ | **Missing rule** - dynamic behavior |
+| Neither | | | **Missing extraction** - no coverage |
+
+This principle guides quality: validated paths are trusted, gaps require human judgment. Start with static extraction (works immediately), add runtime extraction for higher confidence.
+
+---
+
+## 8. Change Requests
+
+### 8.1 Types of Changes
 
 Changes vary in complexity and risk:
 
@@ -311,7 +429,7 @@ Changes vary in complexity and risk:
 | **Complex** | Multiple repos | Significant | Cross-cutting feature |
 | **Architectural** | System-wide | Extensive | Change auth system |
 
-### 6.2 Change Lifecycle
+### 8.2 Change Lifecycle
 
 ```
 Request ──> Understand ──> Plan ──> Execute ──> Validate ──> Ship
@@ -324,23 +442,7 @@ Where:
 - Ship: PR/merge flow
 ```
 
-### 6.3 Validation Checks
-
-All changes must pass validation before shipping:
-
-| Check | What it Validates | Deterministic? |
-|-------|-------------------|----------------|
-| `type-check` | Types are consistent | Yes |
-| `lint-check` | Code style/patterns | Yes |
-| `test-check` | Tests pass | Yes |
-| `build-check` | Compiles successfully | Yes |
-| `doc-check` | Docs are current | Partially |
-| `adr-check` | Decisions documented | Partially |
-| `changelog-check` | Changes documented | Partially |
-| `commit-check` | Commit format valid | Yes |
-| `pr-check` | PR requirements met | Mostly |
-
-### 6.4 Language Types by Pipeline
+### 8.3 Language Types by Pipeline
 
 | Pipeline | Language Type | Who Creates | Who Consumes |
 |----------|---------------|-------------|--------------|
@@ -349,12 +451,7 @@ All changes must pass validation before shipping:
 | **Query→Data** | Compiled (TypeScript, SQL) | Systems, LLMs | Systems |
 | **View/Answer** | Presentation (Diagrams, Markdown) | Systems | Humans |
 
-**Why this matters**: Each language type is optimized for its purpose:
-- Natural language for human intent (intuition, domain knowledge)
-- Compiled language for precision (types, execution)
-- Presentation language for validation (visual understanding)
-
-### 6.5 Linters as Executable Specs
+### 8.4 Linters as Executable Specs
 
 A key insight: **turn human intent into machine-enforced guarantees**.
 
@@ -367,19 +464,12 @@ A key insight: **turn human intent into machine-enforced guarantees**.
 - Agents use lint feedback to **self-heal** - iterate until clean
 - "Lint green" becomes the definition of "done"
 - Rules encode architecture, boundaries, conventions
-- Same rules run in editor, pre-commit, CI, and agent loops
-
-**Categories of agent-friendly rules**:
-- **Searchability**: Named exports, consistent naming (grep-ability)
-- **Predictability**: File organization conventions (glob-ability)
-- **Boundaries**: Module access restrictions, layer separation
-- **Safety**: Security patterns, input validation
 
 ---
 
-## 7. Human/LLM/System Division of Labor
+## 9. Human/LLM/System Division of Labor
 
-### 7.1 The Decision Matrix
+### 9.1 The Decision Matrix
 
 | Task | System | LLM | Human |
 |------|:------:|:---:|:-----:|
@@ -395,7 +485,7 @@ A key insight: **turn human intent into machine-enforced guarantees**.
 | Architecture Review | | | ✓ |
 | Convention Setting | | | ✓ |
 
-### 7.2 Confidence Thresholds
+### 9.2 Confidence Thresholds
 
 When LLM proposes actions (rules, fixes, changes):
 
@@ -405,7 +495,7 @@ When LLM proposes actions (rules, fixes, changes):
 | **80-95%** | Request human review (default accept) |
 | **< 80%** | Manual review required |
 
-### 7.3 Collaboration Patterns
+### 9.3 Collaboration Patterns
 
 **Pattern 1: Human Intent → LLM Execution → System Validation**
 ```
@@ -430,7 +520,7 @@ LLM: Proposes refactor
 Human: Approves or defers
 ```
 
-### 7.4 Context Preservation
+### 9.4 Context Preservation
 
 The challenge: LLM sessions are stateless, but development is contextual.
 
@@ -442,120 +532,7 @@ The challenge: LLM sessions are stateless, but development is contextual.
 
 ---
 
-## 8. Static vs Runtime: Complementary Extraction
-
-Two sources of truth that combine for complete understanding:
-
-### 8.1 Static Extraction (AST Analysis)
-
-**What it sees**: All code paths, all imports, all declarations
-**What it captures**: Every possible behavior
-**Strengths**: Complete, fast, works on untestable code
-**Weaknesses**: Can't resolve dynamic calls, over-reports
-
-### 8.2 Runtime Extraction (Test Execution)
-
-**What it sees**: Only executed paths
-**What it captures**: Actual behavior with real data
-**Strengths**: Proves actual behavior, resolves dynamic calls
-**Weaknesses**: Only sees tested paths, requires runnable tests
-
-### 8.3 Gap Analysis
-
-Comparing static and runtime extraction reveals:
-
-| Finding | Static | Runtime | Meaning |
-|---------|:------:|:-------:|---------|
-| Both | ✓ | ✓ | **Validated** - code and tests aligned |
-| Static only | ✓ | | **Investigate** - dead code or untested path? |
-| Runtime only | | ✓ | **Missing rule** - dynamic code or wrapper gap |
-| Neither | | | **Missing wrapper** - no effect captured |
-
-### 8.4 Progressive Instrumentation
-
-You don't need full instrumentation to get value:
-
-| Level | What to Wrap | Effort | Value |
-|-------|--------------|--------|-------|
-| **Level 1** | Nothing (baseline) | 0% | Tests pass/fail only |
-| **Level 2** | Boundaries only (tRPC, DB, APIs) | 20% | 50% value - C4 diagrams, high-level effects |
-| **Level 3** | Full wrappers | 80% | 100% value - complete tracing |
-
-**Start at Level 2** - get architecture visibility fast, expand later.
-
-### 8.5 Bootstrap: Starting with Existing Code
-
-The chicken-egg problem: seeds need rules, rules need patterns, patterns need analysis.
-
-**Solution: Progressive Bootstrap** - Start with universal extraction (zero rules), then iteratively discover patterns, propose rules, and refine. See [Appendix A.1](#a1-bootstrap-phases) for detailed phases.
-
-**Key insight**: Universal AST extraction produces seeds without requiring rules. Rules are an enhancement layer, not a prerequisite.
-
----
-
-## 9. Adaptability Principles
-
-### 9.1 Why Adaptability Matters
-
-LLM capabilities change rapidly. Our system must:
-- Not assume current LLM limitations are permanent
-- Allow human/LLM boundary to shift over time
-- Keep deterministic parts stable regardless of LLM advances
-
-### 9.2 Stability Layers
-
-| Layer | Stability | Can Change |
-|-------|-----------|------------|
-| **Concepts** (this doc) | High | Rarely |
-| **Data model** (seeds) | High | Add fields, not break |
-| **Query interface** (SQL/MCP) | High | Extend, not break |
-| **Workflow logic** | Medium | As LLMs improve |
-| **Tool implementations** | Low | Frequently |
-
-### 9.3 Future-Proofing
-
-1. **Seeds are format-agnostic**: Could switch from Parquet to something else
-2. **Effects are abstract**: Handler implementations can change
-3. **Validation is pluggable**: New checks can be added
-4. **Hub is optional**: Works without federation for simple cases
-
----
-
-## 10. Glossary
-
-| Term | Definition |
-|------|------------|
-| **CWD** | Current working directory |
-| **Data Effect** | Effect representing observations: Event, Message, Vision, Question, Answer |
-| **Do Effect** | Effect representing actions: FunctionCall, Send, Store, Retrieve |
-| **Effect** | Immutable data describing something that happened or should happen |
-| **Effect Handler** | Function: `(state, effect) => (state', [effect'])` |
-| **Effect Hierarchy** | Low-level effects composing into high-level effects |
-| **Effect Store** | Shared storage: append-only Effect Stream + accumulated State |
-| **Entity** | A code symbol with a unique ID |
-| **Executable Spec** | Lint rule that enforces architectural intent automatically |
-| **Flow Effect** | Effect for control: Condition, Loop |
-| **Gap Analysis** | Comparing static vs runtime extraction to find missing coverage |
-| **Group Effect** | Effect for organization: System, Container, Component, File, Class |
-| **Handler** | A function that processes effects and produces new effects |
-| **Hub** | Central aggregator for cross-repo queries |
-| **MCP** | Model Context Protocol (LLM tool interface) |
-| **Parent** | The workspace directory above repos |
-| **Pipeline** | Data flow path (Vision→View, Question→Answer, Query→Data) |
-| **Rule** | Pattern matcher that transforms/aggregates effects |
-| **Seed** | Queryable extraction of a source of truth |
-| **Sibling** | Another repo in the same workspace |
-| **State** | Current snapshot of the system (hierarchy, actors, interfaces, data, questions) |
-| **Static Extraction** | Getting effects from AST analysis (all possible paths) |
-| **Runtime Extraction** | Getting effects from test execution (actual paths) |
-| **Vision** | Why/What we're building (specs, intent, architecture) |
-| **View** | How it's built (implementation, diagrams, tests) |
-| **Worktree** | Git worktree for isolated development |
-| **Workspace** | Directory containing multiple repos |
-
----
-
-## 11. Design Principles
+## 10. Design Principles
 
 1. **Source of truth is sacred**: Seeds are derived, never authoritative
 2. **Deterministic when possible**: Push complexity to the deterministic world
@@ -565,120 +542,97 @@ LLM capabilities change rapidly. Our system must:
 6. **Graceful degradation**: System works without optional components
 7. **Human oversight**: LLMs propose, humans approve (for now)
 8. **Adaptability**: Design for LLM capabilities to improve
+9. **Convention over configuration**: Discover structure, don't require registration
 
 ---
 
-## 12. What This Document Is
+## 11. Adaptability Principles
+
+### 11.1 Why Adaptability Matters
+
+LLM capabilities change rapidly. Our system must:
+- Not assume current LLM limitations are permanent
+- Allow human/LLM boundary to shift over time
+- Keep deterministic parts stable regardless of LLM advances
+
+### 11.2 Stability Layers
+
+| Layer | Stability | Can Change |
+|-------|-----------|------------|
+| **Concepts** (this doc) | High | Rarely |
+| **Data model** (seeds) | High | Add fields, not break |
+| **Query interface** (SQL/MCP) | High | Extend, not break |
+| **Workflow logic** | Medium | As LLMs improve |
+| **Tool implementations** | Low | Frequently |
+
+### 11.3 Future-Proofing
+
+1. **Seeds are format-agnostic**: Could switch from Parquet to something else
+2. **Effects are abstract**: Handler implementations can change
+3. **Validation is pluggable**: New checks can be added
+4. **Hub is optional**: Works without federation for simple cases
+
+---
+
+## 12. Glossary
+
+| Term | Definition |
+|------|------------|
+| **Code Effect** | Effect describing code behavior: FunctionCall, Store, Retrieve, Send |
+| **Context** | The set of repos/worktrees relevant to current work |
+| **Context Discovery** | Convention-based detection of related repos and worktrees |
+| **CWD** | Current working directory |
+| **Effect** | Immutable data describing something that happened or should happen |
+| **Effect Handler** | Function: `(state, effect) => (state', [effect'])` |
+| **Effect Hierarchy** | Low-level effects composing into high-level effects |
+| **Effect Store** | Conceptual model: append-only Effect Stream + accumulated State |
+| **Entity** | A code symbol with a unique ID |
+| **Executable Spec** | Lint rule that enforces architectural intent automatically |
+| **Flow Effect** | Effect for control: Condition, Loop |
+| **Gap Analysis** | Comparing static vs runtime extraction to find missing coverage |
+| **Group Effect** | Effect for organization: System, Container, Component, File, Class |
+| **Handler** | A function that processes effects and produces new effects |
+| **Hub** | Central aggregator for cross-repo queries |
+| **Issue Grouping** | Collecting all worktrees for the same issueId |
+| **issueId** | Identifier for an issue: `{source}{originRepo}-{number}`. Examples: `ghapi-123` (GitHub), `PROJ-456` (Jira). Parse by splitting on last `-`. |
+| **MCP** | Model Context Protocol (LLM tool interface) |
+| **Parent Directory** | The workspace directory above repos; enables multi-repo work |
+| **Pipeline** | Data flow path (Vision→View, Question→Answer, Query→Data) |
+| **Rule** | Pattern matcher that transforms/aggregates effects |
+| **Runtime Extraction** | Getting effects from test execution (actual paths) |
+| **Seed** | Queryable extraction of a source of truth |
+| **Sibling** | Another repo in the same workspace |
+| **State** | Current snapshot of the system (hierarchy, actors, interfaces, data) |
+| **Static Extraction** | Getting effects from AST analysis (all possible paths) |
+| **ValidationResult** | Workflow effect from checks: pass/fail with diagnostics |
+| **Vision** | Why/What we're building (specs, intent, architecture) |
+| **View** | How it's built (implementation, diagrams, tests) |
+| **Workflow Effect** | Effect describing development activity: FileChanged, SeedUpdated |
+| **Worktree** | Git worktree for isolated development, named `{worktreeRepo}-{issueId}-{slug}` |
+| **Workspace** | Directory containing multiple repos |
+
+---
+
+## 13. What This Document Is
 
 This is the **conceptual foundation** - the "why" and "what" of the DevAC system.
-
-**Structure:**
-- **Sections 1-11**: Core concepts (read these to understand the system)
-- **Appendix**: Implementation details (reference when ready to build)
 
 **This document defines:**
 - Core concepts and terminology
 - The effect handler pattern as unifying abstraction
+- Code Effects (understanding code) and Workflow Effects (development process)
+- Rules as the bridge from extraction to understanding
 - Division of labor between humans, LLMs, and systems
 - Seeds as queryable state
 - Vision ↔ View loop
+- Workspace topology and issue-based development
 
 **This document does NOT define:**
+- Implementation details (see [foundation-how.md](./foundation-how.md))
 - API specifications (those belong in package docs)
 - Step-by-step procedures (those belong in workflows)
 
-**Next conceptual documents to create:**
-1. **Effect Catalog**: All effect types and their schemas (Zod definitions)
-2. **Rule Patterns**: How to write extraction and validation rules
-3. **Workflow Specifications**: Detail the change request flows
-4. **Integration Specs**: How to connect GitHub, CI, filesystem to effects
-
-*For current implementation status, see [Appendix A.2](#a2-implementation-readiness).*
-
 ---
 
-# Appendix
-
-*Implementation details and references. The main document above is the conceptual foundation; this appendix provides supporting material for those ready to build.*
-
-## A.1 Bootstrap Phases
-
-Detailed breakdown of the Progressive Bootstrap approach (see [Section 8.5](#85-bootstrap-starting-with-existing-code)):
-
-```
-Phase 1: Universal Extraction (Zero Rules)
-├── Parse all code files (AST)
-├── Extract: Files, Functions, Classes, Imports
-├── Build: Call graph, dependency graph
-└── Output: Raw structural seed (nodes, edges, external_refs)
-
-Phase 2: Pattern Discovery (LLM-Assisted)
-├── LLM analyzes raw effects
-├── Proposes initial rules (tRPC, Kysely, etc.)
-├── Human validates rule proposals
-└── Output: Initial rule set
-
-Phase 3: Rule Application
-├── Apply rules to raw effects
-├── Emit high-level effects (Actors, Components)
-├── Generate first Views (C4 diagrams)
-└── Output: Architectural seed
-
-Phase 4: Iterative Refinement
-├── Humans validate Views against Vision
-├── Gaps reveal missing rules
-├── LLM proposes new rules
-└── Loop back to Phase 3
-```
-
-## A.2 Implementation Readiness
-
-### What DevAC Already Has
-| Capability | Status | Notes |
-|------------|--------|-------|
-| Universal AST extraction | ✅ Done | TypeScript, Python, C# parsers |
-| Seeds (Parquet) | ✅ Done | nodes, edges, external_refs |
-| Hub federation | ✅ Done | Cross-repo queries via DuckDB |
-| MCP server | ✅ Done | LLM can query seeds |
-| Worktree workflow | ✅ Done | Issue-based git worktrees |
-| Incremental updates | ✅ Done | Watch mode, delta storage |
-
-### What Needs to Be Built
-| Capability | Priority | Blocker? |
-|------------|----------|----------|
-| Effect Store | High | Yes - needed for pipeline integration |
-| Effect Schemas | High | Yes - needed for serialization |
-| Rules Engine | Medium | No - can start without it |
-| Vision→View Pipeline | Medium | No - uses existing seeds |
-| Question→Answer Pipeline | Low | No - MCP provides basics |
-| Runtime Extraction | Low | No - static extraction works |
-
-### Recommended Implementation Order
-1. **Define Effect Schemas** - Zod schemas for Data/Do/Flow/Group effects
-2. **Build Effect Store** - Append-only log + State accumulator
-3. **Connect Existing Seeds** - Map DevAC output to Effect taxonomy
-4. **Add Rules Engine** - Pattern matching for effect aggregation
-5. **Build Vision→View** - Diagram generation from State
-
-## A.3 Key Sources
-
-This document synthesizes concepts from:
-
-**Core VVE System:**
-- `packages/architecture/specs/334-vision-view-effect-system-v1.1.md` - Original VVE concept
-- `packages/architecture/specs/334-vision-view-effect-system-v2.0.md` - Effect taxonomy, pipelines
-- `packages/architecture/specs/UNIFIED-PATTERN.md` - Universal effect handler pattern
-
-**Supporting Concepts:**
-- `packages/architecture/specs/335-linters-as-rules.md` - Linters as executable specs
-- `packages/architecture/specs/335-otel-overlap-analysis.md` - OTEL integration insights
-- `packages/architecture/specs/335-planning-v2.1.md` - Shared Effect Store pattern
-- `packages/architecture/specs/208-rules-interference-system.md` - Rules engine
-
-**Implementation:**
-- `vivief/` - DevAC implementation (DuckDB + Parquet seeds)
-
----
-
-*Version: 2.3 - Restructured with Appendix for implementation details*
-*This is the "why" and "what". Implementation details ("how") belong in code and the Appendix.*
+*Version: 3.0 - Restructured with Code/Workflow Effects, Rules as foundational, Effect Store clarified*
+*This is the "why" and "what". Implementation details ("how") belong in foundation-how.md.*

@@ -135,3 +135,63 @@ DevAC v3 Architecture Documentation Created
   generic choices that make sense on this one
   5 as llms get more powerfull and with skills being the new functions for claude we should have a nice pragmatic triggering extractions way. not sure if mcp
   is the best choice but for now having it seems the better option and cli and api already implement it its probbly bettter to be consistent
+
+Document updated with your feedback:
+
+  Changes made:
+  1. Removed light color styling from Workspace Model and Component Boundaries diagrams
+  2. Replaced the confusing graph in Chapter 4 with just the clear table + a note about SQL/CTE approach
+  3. Replaced unreadable Gantt chart in Chapter 10 with readable tables per phase
+  4. Converted "Key Questions for Alignment" to "Alignment Decisions" with your answers captured
+
+  Document status: v0.2 - Ready for detailed design
+
+  The architecture document now captures the alignment:
+
+  | Decision           | Answer                                                                                                                         |
+  |--------------------|--------------------------------------------------------------------------------------------------------------------------------|
+  | Phase 1 Scope      | ✓ Workspace discovery + unified watcher + hub auto-refresh (code extraction is inherently Phase 1)                             |
+  | Seed Format        | Seed-type-specific schemas (nodes, edges, ext_references). Generalize carefully, effect handler pattern applies where sensible |
+  | Query Interface    | SQL + recursive CTEs (current approach)                                                                                        |
+  | Real-time vs Batch | Pragmatic per-seed                                                                                                             |
+  | LLM Integration    | MCP for querying AND triggering extractions                                                                                    |
+
+  What's next - would you like to:
+  1. Dive into Phase 1 detailed design (workspace discovery, unified watcher, hub auto-refresh)?
+  2. Document the seed schema strategy more thoroughly given your answer about being smart between generic and specific?
+  3. Something else?
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> chapter 3 seed taxonomy specify Effects only on Code seeds. can you do a very thorough check with foundation document as i think there already is a broader
+  use mentioned, so can we have a very thoughtfull look at this and try to make this more clear and consistent as i see this as a very core decision
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Done. Here's what I clarified:
+
+  Seeds vs Effects - Now Consistent with Foundation
+
+  Key distinction made clear:
+
+  | Concept | What It Is                                | Examples                                        |
+  |---------|-------------------------------------------|-------------------------------------------------|
+  | Seeds   | Queryable data extracted from sources     | nodes, edges, documents, resources, diagnostics |
+  | Effects | Events/changes flowing through the system | FileChanged, Extract, SeedUpdated, HubRefreshed |
+
+  Changes made:
+
+  Chapter 3 (Seed Taxonomy):
+  - Added clarifying note at top: "Seeds are queryable data... Effects are events/changes"
+  - Removed "Effects" from Code Seeds (was misleading)
+  - Renamed to actual data structures: Nodes, Edges, External Refs
+  - Added "Seed Data Structures" table showing tables and key fields per category
+
+  Chapter 9 (Effect Handler Integration):
+  - Added the universal pattern formula: effectHandler = (state, effect) => (state', [effect'])
+  - Added explicit statement: "Effects are NOT specific to code"
+  - Added "Effects by Seed Category" table showing trigger/processing/result effects for ALL 6 categories
+  - This makes clear that Validation, Pipeline, Content, etc. all use the same effect pattern
+
+  Alignment with foundation.md:
+  - Section 5.3: Effect Taxonomy (Data, Do, Flow, Group) - universal
+  - Section 5.8: Development Effects (FileChanged, PRMerged, etc.) - universal
+  - All seeds are updated via effects when their source changes
