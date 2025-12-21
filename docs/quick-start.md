@@ -128,17 +128,73 @@ your-project/
 
 ## Multi-Repository Setup
 
-### 1. Register Repositories with Hub
+For projects with multiple repositories in a parent directory:
 
-```bash
-# From each repository
-devac hub register
-
-# Or register another repo
-devac hub register ~/code/other-repo
+```
+~/ws/                    ← Parent directory (workspace)
+├── api/                 ← Repository 1
+├── web/                 ← Repository 2
+├── shared/              ← Repository 3
+└── api-ghapi-123-auth/  ← Worktree for issue #123
 ```
 
-### 2. Query Across Repos
+### Step 1: Generate Seeds for Each Repo
+
+Each repository needs seeds before workspace-level monitoring works:
+
+```bash
+# Option A: Manual analysis per repo
+cd ~/ws/api && devac analyze
+cd ~/ws/web && devac analyze
+cd ~/ws/shared && devac analyze
+
+# Option B: Use watch mode (auto-analyzes if seeds missing)
+cd ~/ws/api && devac watch &
+cd ~/ws/web && devac watch &
+cd ~/ws/shared && devac watch &
+```
+
+### Step 2: Check Workspace Status
+
+```bash
+# From parent directory
+cd ~/ws
+
+# See all repos and their seed status
+devac workspace status
+```
+
+**Output:**
+```
+Workspace: /Users/you/ws
+Hub: .devac/hub.duckdb
+
+Repositories (3 main, 1 worktree):
+  ✓ api          seeds: ✓  hub: registered
+  ✓ web          seeds: ✓  hub: registered
+  ✓ shared       seeds: ✓  hub: registered
+  ↳ api-ghapi-123-auth  (issue: ghapi-123)
+
+Worktrees by Issue:
+  ghapi-123: api-ghapi-123-auth
+```
+
+### Step 3: Start Workspace Watcher
+
+```bash
+# From parent directory
+cd ~/ws
+
+# Start workspace-level monitoring
+devac workspace watch
+```
+
+**How it works:**
+1. `devac watch` (per-repo) monitors source files → updates seeds
+2. `devac workspace watch` monitors seed files → refreshes hub
+3. Hub enables cross-repo queries
+
+### Step 4: Query Across Repos
 
 ```bash
 # Find function across all registered repos
@@ -147,6 +203,16 @@ devac hub query "SELECT * FROM nodes WHERE name='handleLogin'"
 # View registered repos
 devac hub list
 ```
+
+### Workflow Summary
+
+| Task | Command | Run From |
+|------|---------|----------|
+| Analyze single repo | `devac analyze` | Inside repo |
+| Watch single repo | `devac watch` | Inside repo |
+| Check workspace status | `devac workspace status` | Parent directory |
+| Watch workspace (seeds→hub) | `devac workspace watch` | Parent directory |
+| Query across repos | `devac hub query "..."` | Anywhere |
 
 ## Programmatic Usage
 

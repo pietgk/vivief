@@ -559,6 +559,51 @@ graph LR
     CORE --> CHOKIDAR[chokidar]
 ```
 
+### 6.4 Workspace Module
+
+The workspace module (`devac-core/src/workspace/`) orchestrates multi-repo operations.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      WorkspaceManager                                │
+│                  (orchestrates all workspace operations)             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐        │
+│  │  Discovery   │   │   Watcher    │   │  Auto-Refresh    │        │
+│  │              │   │              │   │                  │        │
+│  │  - Scan dirs │   │  - Chokidar  │   │  - Debounce      │        │
+│  │  - Parse IDs │   │  - Seed globs│   │  - Hub refresh   │        │
+│  │  - Group WTs │   │  - Events    │   │  - Batch changes │        │
+│  └──────────────┘   └──────────────┘   └──────────────────┘        │
+│         │                  │                    │                   │
+│         ▼                  ▼                    ▼                   │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐        │
+│  │    State     │   │ SeedDetector │   │   CentralHub     │        │
+│  │ .devac/state │   │  *.parquet   │   │   (existing)     │        │
+│  └──────────────┘   └──────────────┘   └──────────────────┘        │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Effect Flow:**
+```
+SeedFileChanged → SeedDetector → AutoRefresher → Hub.refresh()
+```
+
+**Two-Tier Watching:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Per-Repo (devac watch)              Workspace (workspace watch)    │
+│                                                                     │
+│  Source Files ──► Seeds              Seeds ──► Hub                  │
+│  *.ts, *.py, *.cs                    *.parquet                      │
+│                                                                     │
+│  Updates on source change            Refreshes on seed change       │
+│  Run inside each repo                Run from parent directory      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 7. Human / LLM / System Boundaries

@@ -183,6 +183,31 @@ devac-worktree clean-merged
 
 **Parent Directory Workflow**: Use `--repos` when running from a parent directory to create worktrees in multiple repositories at once. Claude will launch in the parent directory for unified multi-repo development.
 
+### Workspace Commands
+
+Multi-repo workspace management for federated code analysis:
+
+```bash
+# From parent directory containing multiple repos
+cd ~/ws
+
+# Check status of all repos in workspace
+devac workspace status
+
+# Start workspace watcher (monitors seeds, auto-refreshes hub)
+devac workspace watch
+
+# Initialize workspace configuration
+devac workspace init
+```
+
+**How it works:**
+1. `devac watch` per-repo monitors source files → updates seeds
+2. `devac workspace watch` monitors seed files → refreshes hub
+3. Hub enables cross-repo queries via MCP or CLI
+
+> **Note:** Repos must have seeds (run `devac analyze` or `devac watch` first) before `devac workspace watch` can detect changes.
+
 ### MCP Server
 
 ```bash

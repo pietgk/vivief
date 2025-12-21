@@ -25,6 +25,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0013](0013-fixture-packages-per-language.md) | Fixture Packages Per Language | Accepted | 2025-12 |
 | [0014](0014-worktree-claude-workflow.md) | Git Worktree + Claude CLI Workflow | Accepted | 2025-12 |
 | [0015](0015-conceptual-foundation.md) | Conceptual Foundation - Effect Handler Pattern | Accepted | 2025-12 |
+| [0016](0016-workspace-module.md) | Workspace Module Architecture | Accepted | 2025-12 |
 
 ## Creating a New ADR
 

@@ -55,7 +55,42 @@ Phase 4: Iterative Refinement
 | Incremental updates | ✅ Done | Watch mode, delta storage |
 | Context discovery | ✅ Done | Sibling repos, issue grouping |
 | Validation coordinator | ✅ Done | Type-check, lint, test integration |
-| CLI | ✅ Done | 14+ commands |
+| **Workspace module** | ✅ Done | Multi-repo orchestration (Phase 1) |
+| CLI | ✅ Done | 17+ commands |
+
+### Phase 1: Workspace Discovery + Unified Watcher (COMPLETE)
+
+**Files:** `packages/devac-core/src/workspace/`
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Types | `types.ts` | WorkspaceInfo, WorkspaceRepoInfo, WorkspaceState |
+| Discovery | `discover.ts` | Scan directories, parse issueId, detect worktrees |
+| State | `state.ts` | Persist workspace state to `.devac/state.json` |
+| Seed Detector | `seed-detector.ts` | Watch `.devac/seed/**/*.parquet` for changes |
+| Watcher | `watcher.ts` | Unified file watcher for entire workspace |
+| Auto-Refresh | `auto-refresh.ts` | Debounced hub refresh on seed changes |
+| Manager | `manager.ts` | Orchestrate discovery, watching, refresh |
+
+**CLI Commands Added:**
+
+| Command | Purpose |
+|---------|---------|
+| `devac workspace status` | Show repos, seeds, hub registration |
+| `devac workspace watch` | Monitor seeds, auto-refresh hub |
+| `devac workspace init` | Initialize workspace configuration |
+
+**Key Architecture Decisions:**
+
+1. **Two-tier watching**: `devac watch` (per-repo, source→seeds) + `devac workspace watch` (workspace, seeds→hub)
+2. **Seed-based coordination**: Workspace watch monitors Parquet files, not source files
+3. **State persistence**: `.devac/state.json` tracks repo discovery and hub status
+4. **Event-driven**: WorkspaceEvent union type with subscription pattern
+
+**Workflow:**
+```
+Source Files → [devac watch] → Seeds → [workspace watch] → Hub → Cross-repo Queries
+```
 
 ### What Needs to Be Built
 

@@ -341,6 +341,77 @@ Examples:
   devac affected --since main
 ```
 
+## Workspace Commands
+
+Commands for managing multi-repo workspaces with federated code analysis.
+
+### devac workspace status
+
+Show status of all repositories in a workspace, including seed state and hub registration.
+
+```bash
+devac workspace status [options]
+
+Options:
+  --json              Output as JSON
+  --path <path>       Workspace path (default: current directory)
+
+Examples:
+  devac workspace status              # Show workspace status
+  devac workspace status --json       # Output as JSON
+```
+
+**Output includes:**
+- List of discovered repos (main repos and worktrees)
+- Seed status for each repo (present/missing, last modified)
+- Hub registration status
+- Worktree groupings by issue
+
+### devac workspace watch
+
+Start a workspace-level watcher that monitors seed files and auto-refreshes the hub.
+
+```bash
+devac workspace watch [options]
+
+Options:
+  --path <path>           Workspace path (default: current directory)
+  --no-auto-refresh       Disable automatic hub refresh
+  --debounce-ms <ms>      Hub refresh debounce (default: 500)
+
+Examples:
+  devac workspace watch                     # Start watching
+  devac workspace watch --debounce-ms 1000  # Longer debounce
+```
+
+**How it works:**
+1. Watches `.devac/seed/**/*.parquet` files in all repos
+2. When seeds change, triggers hub refresh
+3. Enables cross-repo queries to stay up-to-date
+
+> **Note:** This watches seed files, not source files. Run `devac watch` per-repo to monitor source changes and update seeds.
+
+### devac workspace init
+
+Initialize workspace configuration at the parent directory level.
+
+```bash
+devac workspace init [options]
+
+Options:
+  --path <path>       Workspace path (default: current directory)
+  --force             Overwrite existing configuration
+
+Examples:
+  devac workspace init              # Initialize workspace
+  devac workspace init --force      # Reinitialize
+```
+
+**Creates:**
+- `.devac/` directory at workspace root
+- Hub database for federated queries
+- State file for tracking repo discovery
+
 ## Context Commands
 
 ### devac context
