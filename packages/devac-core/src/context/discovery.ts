@@ -3,6 +3,15 @@
  *
  * Discovers sibling repositories and issue worktrees
  * in a parent directory workflow.
+ *
+ * Supports two worktree naming patterns:
+ *
+ * Legacy: {repo}-{issue#}-{slug}
+ *   Example: vivief-123-auth
+ *
+ * New (v3): {worktreeRepo}-{issueId}-{slug}
+ *   Where issueId = {source}{originRepo}-{number}
+ *   Example: api-ghapi-123-auth (source=gh, originRepo=api, number=123)
  */
 
 import * as fs from "node:fs/promises";
@@ -16,7 +25,7 @@ import type {
 } from "./types.js";
 
 /**
- * Worktree naming pattern: {repo}-{issue#}-{slug}
+ * Legacy worktree naming pattern: {repo}-{issue#}-{slug}
  * Examples:
  *   vivief-123-auth -> { repoName: "vivief", issueNumber: 123, slug: "auth" }
  *   my-app-45-fix-bug -> { repoName: "my-app", issueNumber: 45, slug: "fix-bug" }
@@ -24,7 +33,9 @@ import type {
 const WORKTREE_PATTERN = /^(.+)-(\d+)-(.+)$/;
 
 /**
- * Parse a worktree directory name into its components
+ * Parse a worktree directory name into its components (legacy format)
+ *
+ * @deprecated Use parseWorktreeNameV2 for new issueId format
  */
 export function parseWorktreeName(dirName: string): ParsedWorktreeName | null {
   const match = dirName.match(WORKTREE_PATTERN);
@@ -44,6 +55,163 @@ export function parseWorktreeName(dirName: string): ParsedWorktreeName | null {
     issueNumber: Number.parseInt(issueStr, 10),
     slug,
   };
+}
+
+// =============================================================================
+// New IssueId Format Support (v3)
+// =============================================================================
+
+/**
+ * Parsed issueId components
+ *
+ * Format: {source}{originRepo}-{number}
+ * Example: ghapi-123 -> { source: "gh", originRepo: "api", number: 123 }
+ */
+export interface ParsedIssueId {
+  /** Full issueId string */
+  full: string;
+  /** Source prefix (e.g., "gh" for GitHub) */
+  source: string;
+  /** Origin repo name */
+  originRepo: string;
+  /** Issue number */
+  number: number;
+}
+
+/**
+ * Parsed worktree name in v3 format
+ *
+ * Pattern: {worktreeRepo}-{issueId}-{slug}
+ * Where issueId = {source}{originRepo}-{number}
+ */
+export interface ParsedWorktreeNameV2 {
+  /** Repo name part (usually same as main repo) */
+  worktreeRepo: string;
+  /** Full issueId in {source}{originRepo}-{number} format */
+  issueId: string;
+  /** Issue number extracted from issueId */
+  issueNumber: number;
+  /** Slug/description part */
+  slug: string;
+}
+
+/**
+ * Parse an issueId string into its components
+ *
+ * Format: {source}{originRepo}-{number}
+ * Parse strategy: Split on LAST "-" to get the number
+ *
+ * Examples:
+ *   "ghapi-123" -> { source: "gh", originRepo: "api", number: 123 }
+ *   "ghmonorepo-3.0-456" -> { source: "gh", originRepo: "monorepo-3.0", number: 456 }
+ *
+ * @param issueId The issueId string to parse
+ * @returns Parsed issueId or null if invalid
+ */
+export function parseIssueId(issueId: string): ParsedIssueId | null {
+  // Find the last dash to split number from the rest
+  const lastDashIndex = issueId.lastIndexOf("-");
+  if (lastDashIndex === -1) {
+    return null;
+  }
+
+  const prefix = issueId.substring(0, lastDashIndex);
+  const numberStr = issueId.substring(lastDashIndex + 1);
+
+  // Validate number part
+  const number = Number.parseInt(numberStr, 10);
+  if (Number.isNaN(number) || number <= 0) {
+    return null;
+  }
+
+  // Extract source prefix (typically 2 chars like "gh" for GitHub)
+  if (prefix.length < 3) {
+    return null;
+  }
+
+  const source = prefix.substring(0, 2);
+  const originRepo = prefix.substring(2);
+
+  if (!originRepo) {
+    return null;
+  }
+
+  return {
+    full: issueId,
+    source,
+    originRepo,
+    number,
+  };
+}
+
+/**
+ * Parse a worktree directory name using the new v3 format
+ *
+ * Pattern: {worktreeRepo}-{issueId}-{slug}
+ * Where issueId contains a dash: {source}{repo}-{number}
+ *
+ * This parser works backwards to find the issueId pattern.
+ *
+ * Examples:
+ *   "api-ghapi-123-auth" -> { worktreeRepo: "api", issueId: "ghapi-123", slug: "auth" }
+ *   "my-app-ghmy-app-45-fix" -> { worktreeRepo: "my-app", issueId: "ghmy-app-45", slug: "fix" }
+ *
+ * @param dirName Directory name to parse
+ * @returns Parsed worktree name or null if not valid
+ */
+export function parseWorktreeNameV2(dirName: string): ParsedWorktreeNameV2 | null {
+  const parts = dirName.split("-");
+  if (parts.length < 4) {
+    // Minimum: repo-issueprefix-number-slug
+    return null;
+  }
+
+  // Try to find a valid issueId by scanning from position 1
+  for (let i = 1; i < parts.length - 1; i++) {
+    for (let j = i + 1; j < parts.length; j++) {
+      const potentialIssueIdParts = parts.slice(i, j + 1);
+      const potentialIssueId = potentialIssueIdParts.join("-");
+
+      const parsed = parseIssueId(potentialIssueId);
+      if (parsed) {
+        // Check if there's at least one part after for slug
+        if (j < parts.length - 1) {
+          const worktreeRepo = parts.slice(0, i).join("-");
+          const slug = parts.slice(j + 1).join("-");
+
+          if (worktreeRepo && slug) {
+            return {
+              worktreeRepo,
+              issueId: parsed.full,
+              issueNumber: parsed.number,
+              slug,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract issue number from a directory name using any supported format
+ *
+ * Tries v3 format first, falls back to legacy format.
+ *
+ * @param dirName Directory name
+ * @returns Issue number or null
+ */
+export function extractIssueNumberAny(dirName: string): number | null {
+  // Try v3 format first
+  const v2Parsed = parseWorktreeNameV2(dirName);
+  if (v2Parsed) {
+    return v2Parsed.issueNumber;
+  }
+
+  // Fall back to legacy format
+  return extractIssueNumber(dirName);
 }
 
 /**

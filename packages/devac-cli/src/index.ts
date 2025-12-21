@@ -28,6 +28,9 @@ import {
   validateCommand,
   verifyCommand,
   watchCommand,
+  workspaceInit,
+  workspaceStatus,
+  workspaceWatch,
 } from "./commands/index.js";
 
 const program = new Command();
@@ -560,6 +563,106 @@ hub
       for (const error of result.errors) {
         console.error(`  • ${error}`);
       }
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKSPACE COMMANDS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const workspace = program.command("workspace").description("Workspace-level operations");
+
+workspace
+  .command("status")
+  .description("Show workspace information")
+  .option("-p, --path <path>", "Workspace path", process.cwd())
+  .option("--json", "Output as JSON")
+  .option("--hub-details", "Include hub details")
+  .action(async (options) => {
+    const result = await workspaceStatus({
+      workspacePath: path.resolve(options.path),
+      json: options.json,
+      hubDetails: options.hubDetails,
+    });
+
+    if (result.success) {
+      if (options.json) {
+        console.log(JSON.stringify({ info: result.info, stats: result.stats }, null, 2));
+      } else {
+        console.log(result.formatted);
+      }
+    } else {
+      console.error(`✗ ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+workspace
+  .command("watch")
+  .description("Watch workspace for changes with auto-refresh")
+  .option("-p, --path <path>", "Workspace path", process.cwd())
+  .option("--no-auto-refresh", "Disable automatic hub refresh")
+  .option("--debounce <ms>", "Debounce time for hub refresh", "500")
+  .option("--verbose", "Enable verbose logging")
+  .action(async (options) => {
+    const result = await workspaceWatch({
+      workspacePath: path.resolve(options.path),
+      autoRefresh: options.autoRefresh,
+      refreshDebounceMs: Number.parseInt(options.debounce, 10),
+      verbose: options.verbose,
+    });
+
+    if (!result.success) {
+      console.error(`✗ ${result.error}`);
+      process.exit(1);
+    }
+
+    const controller = result.controller;
+    if (!controller) {
+      console.error("✗ No controller returned");
+      process.exit(1);
+    }
+
+    // Handle shutdown signals
+    const shutdown = async (signal: string) => {
+      console.log(`\n${signal} received, stopping watch...`);
+      await controller.stop();
+      const status = controller.getStatus();
+      console.log(
+        `\nProcessed ${status.eventsProcessed} events, ${status.hubRefreshes} hub refreshes`
+      );
+      process.exit(0);
+    };
+
+    process.on("SIGINT", () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+  });
+
+workspace
+  .command("init")
+  .description("Initialize workspace configuration")
+  .option("-p, --path <path>", "Workspace path", process.cwd())
+  .option("--no-auto-refresh", "Disable auto-refresh in config")
+  .option("--register", "Register all repos with hub")
+  .option("--force", "Overwrite existing configuration")
+  .action(async (options) => {
+    const result = await workspaceInit({
+      workspacePath: path.resolve(options.path),
+      autoRefresh: options.autoRefresh,
+      registerRepos: options.register,
+      force: options.force,
+    });
+
+    if (result.success) {
+      console.log("✓ Workspace initialized");
+      console.log(`  Config: ${result.paths.config}`);
+      console.log(`  Hub: ${result.paths.hub}`);
+      if (result.reposRegistered > 0) {
+        console.log(`  Repos registered: ${result.reposRegistered}`);
+      }
+    } else {
+      console.error(`✗ ${result.error}`);
       process.exit(1);
     }
   });

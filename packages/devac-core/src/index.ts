@@ -104,6 +104,71 @@ export * from "./hub/index.js";
 // Context Discovery
 export * from "./context/index.js";
 
+// Workspace (DevAC v3 Phase 1)
+// Note: Explicit exports to avoid conflicts with context module
+export {
+  // Core types (workspace-specific, no conflicts)
+  type WorkspaceInfo,
+  type WorkspaceRepoInfo,
+  type WorkspaceConfig,
+  type WorkspaceState,
+  type WorkspaceRepoState,
+  type RepoHubStatus,
+  // Event types
+  type WorkspaceEvent,
+  type WorkspaceEventBase,
+  type FileChangeEvent as WorkspaceFileChangeEvent,
+  type SeedChangeEvent,
+  type HubRefreshEvent,
+  type RepoDiscoveryEvent,
+  type WatcherStateEvent,
+  type WorkspaceEventHandler,
+  // Options types
+  type WorkspaceDiscoveryOptions,
+  type WorkspaceWatcherOptions,
+  type WorkspaceManagerOptions,
+  type AutoRefreshOptions,
+  // Workspace-specific functions
+  isWorkspaceDirectory,
+  discoverWorkspaceRepos,
+  discoverWorkspace,
+  loadWorkspaceConfig,
+  formatWorkspaceInfo,
+  // State management
+  getStateFilePath,
+  loadWorkspaceState,
+  saveWorkspaceState,
+  updateRepoState,
+  updateHubState,
+  removeRepoFromState,
+  isStateStale,
+  repoInfoToState,
+  syncStateWithDiscovery,
+  mergeStateIntoRepos,
+  getChangedRepos,
+  markReposAsRegistered,
+  stateFileExists,
+  // Seed detector
+  createSeedDetector,
+  type SeedDetector,
+  type SeedDetectorOptions,
+  type SeedChangeHandler,
+  type SeedDetectorStats,
+  // Workspace watcher
+  createWorkspaceWatcher,
+  type WorkspaceWatcher,
+  type WorkspaceWatcherStats,
+  // Auto-refresh
+  createAutoRefresher,
+  type AutoRefresher,
+  type RefreshEventHandler,
+  type AutoRefreshStats,
+  // Manager
+  createWorkspaceManager,
+  type WorkspaceManager,
+  type WorkspaceManagerStats,
+} from "./workspace/index.js";
+
 // Validation (explicit exports to avoid SymbolInfo conflict with parsers)
 export {
   SymbolAffectedAnalyzer,

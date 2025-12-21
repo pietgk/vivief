@@ -75,3 +75,21 @@ export type {
   AffectedOptions,
   AffectedResult,
 } from "./types.js";
+
+// Workspace commands
+export { workspaceStatus } from "./workspace-status.js";
+export type {
+  WorkspaceStatusOptions,
+  WorkspaceStatusResult,
+} from "./workspace-status.js";
+export { workspaceWatch } from "./workspace-watch.js";
+export type {
+  WorkspaceWatchOptions,
+  WorkspaceWatchResult,
+  WorkspaceWatchController,
+} from "./workspace-watch.js";
+export { workspaceInit } from "./workspace-init.js";
+export type {
+  WorkspaceInitOptions,
+  WorkspaceInitResult,
+} from "./workspace-init.js";

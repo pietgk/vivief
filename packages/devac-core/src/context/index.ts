@@ -27,6 +27,15 @@ export {
   getGitBranch,
   discoverContext,
   formatContext,
+  // v3 issueId format support
+  parseIssueId,
+  parseWorktreeNameV2,
+  extractIssueNumberAny,
+} from "./discovery.js";
+
+export type {
+  ParsedIssueId,
+  ParsedWorktreeNameV2,
 } from "./discovery.js";
 
 // Cross-repo detection

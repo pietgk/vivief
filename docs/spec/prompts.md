@@ -249,6 +249,50 @@ Refined Prompt: DevAC v3 High-Level Architecture Plan
   5. What's the human/LLM/system boundary for each component?
 
 
+
+# address foundation weakness 
+
+1. Effect Store Complexity**: Section 5.6 describes an "Effect Store" with an append-only log + accumulated state. This is **not implemented** in the current codebase and adds significant complexity. The current seed-based approach (Parquet files + DuckDB) already provides queryable state without needing a separate effect stream.
+
+   **Recommendation**: Clarify whether Effect Store is aspirational or required. Current seeds already capture the "queryable state" goal without event sourcing overhead.
+
+2. **Rules Engine Gap**: Section 5.7 describes rules that aggregate low-level effects into high-level effects. This is **not implemented** and would require significant work. The current implementation uses direct AST extraction without a rules engine.
+
+   **Recommendation**: Either deprioritize rules engine or scope it to specific use cases (e.g., C4 diagram generation rules).
+
+3. **Over-Abstraction Risk**: The effect taxonomy (Data/Do/Flow/Group effects) is comprehensive but complex. 16+ effect types may be overkill for the initial implementation.
+
+   **Recommendation**: Start with a minimal effect set (FileChanged, NodeUpdated, EdgeUpdated, SeedRefreshed) and expand as needed.
+
+4. **Runtime Extraction Dependency**: The document assumes runtime extraction via test execution will be implemented. This is a major feature that's currently not built.
+
+   **Recommendation**: Mark this as Phase 3+ and don't let it block core functionality.
+
+5. **Missing: Worktree/Context Concepts**: The document doesn't mention the worktree workflow or context discovery patterns that are central to the v2 plan. These are critical for multi-repo development.
+
+   **Recommendation**: Add a section on workspace topology and issue-based development.
+   
+Missing Context/Worktree Integration**: Like foundation.md, this document doesn't address the workspace discovery and issue-based worktree patterns that are central to the v2 plan.
+
+   **Recommendation**: Add section on "Workspace Model" that covers parent-dir workflow, worktree conventions, and context discovery.
+
+2. **Seed vs Effect Confusion**: The document says "Seeds are queryable data... Effects are events/changes" but the relationship could be clearer. Effects update seeds, but how?
+
+   **Recommendation**: Add a diagram showing: Trigger Effect → Processing Effect → Seed Update → Hub Refresh.
+
+3. **Central Hub vs Federated**: The diagram shows `~/.devac/central.duckdb` but current implementation uses federated queries over per-repo Parquet files. The document should clarify this.
+
+   **Recommendation**: Document both modes: (a) direct Parquet federation, (b) central hub with manifests.
+
+4. **Content/Infra/Observability Seeds**: These are marked as "Future" but the data structures are already defined. This creates a gap between spec and implementation reality.
+
+   **Recommendation**: Mark these as "Conceptual - not implemented" to avoid confusion.
+
+5. **LLM Integration Underspecified**: "MCP for both querying AND triggering extractions" is mentioned but not detailed. How does Claude trigger a re-extraction?
+
+   **Recommendation**: Add MCP tool specifications for `trigger_analyze`, `refresh_hub`, etc.
+
+
 ## search extensions
 
 ### Vision View Effect 
