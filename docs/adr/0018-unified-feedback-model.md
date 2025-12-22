@@ -172,10 +172,51 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 | `devac context ci --sync-to-hub` | Check CI status and sync to Hub |
 | `devac hub sync --ci` | Sync CI status from current context to Hub |
 
-**Future Phases (Planned):**
+**Phase 4: GitHub Issues Integration (Complete)**
 
-- Phase 4: GitHub issues integration (auto-sync issues on `devac context`)
-- Phase 5: PR review integration
+| File | Changes |
+|------|---------|
+| `devac-core/src/context/issues.ts` | Fetches GitHub issues via `gh` CLI |
+| `devac-core/src/context/issues-hub-sync.ts` | Syncs issues to Hub `unified_feedback` table |
+| `devac-core/src/context/index.ts` | Exported `syncIssuesToHub`, `IssueSyncOptions`, `IssueSyncResult` |
+| `devac-cli/src/commands/context.ts` | Added `devac context issues` with `--sync-to-hub` flag |
+| `devac-cli/src/commands/hub-sync.ts` | Added `--issues` flag to `devac hub sync` |
+
+**New CLI Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `devac context issues` | List GitHub issues for repos in context |
+| `devac context issues --sync-to-hub` | List issues and sync to Hub |
+| `devac hub sync --issues` | Sync GitHub issues to Hub |
+
+**Phase 5: PR Reviews Integration (Complete)**
+
+| File | Changes |
+|------|---------|
+| `devac-core/src/context/reviews.ts` | Fetches PR reviews and comments via `gh` CLI |
+| `devac-core/src/context/reviews-hub-sync.ts` | Syncs reviews to Hub `unified_feedback` table |
+| `devac-core/src/context/index.ts` | Exported `syncReviewsToHub`, `ReviewSyncOptions`, `ReviewSyncResult` |
+| `devac-cli/src/commands/context.ts` | Added `devac context reviews` with `--sync-to-hub` flag |
+| `devac-cli/src/commands/hub-sync.ts` | Added `--reviews` flag to `devac hub sync` |
+
+**New CLI Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `devac context reviews` | List PR reviews for repos in context |
+| `devac context reviews --sync-to-hub` | List reviews and sync to Hub |
+| `devac hub sync --reviews` | Sync PR reviews to Hub |
+
+**Review State to Severity Mapping:**
+
+| Review State | Severity |
+|--------------|----------|
+| `CHANGES_REQUESTED` | `warning` |
+| `PENDING` | `note` |
+| `COMMENTED` | `suggestion` |
+| `APPROVED` | `note` |
+| `DISMISSED` | `note` |
 
 ## Query Examples
 

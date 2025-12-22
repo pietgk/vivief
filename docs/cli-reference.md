@@ -306,6 +306,50 @@ Options:
   --path <path>       Hub location (default: ~/.devac/)
 ```
 
+### devac hub sync
+
+Sync external feedback (CI status, GitHub issues, PR reviews) to the Hub's unified feedback table. This enables AI assistants to query all feedback via MCP tools.
+
+```bash
+devac hub sync [options]
+
+Options:
+  --ci                Sync CI status
+  --issues            Sync GitHub issues
+  --reviews           Sync PR reviews
+  --failing-only      Only sync failing CI checks (with --ci)
+  --pending-only      Only sync pending/changes_requested reviews (with --reviews)
+  --changes-requested-only  Only sync changes_requested reviews (with --reviews)
+  --open-only         Only sync open issues (with --issues, default: true)
+  --issue-limit <n>   Maximum issues per repo (default: 50)
+  --include-comments  Include review comments with file locations (default: true)
+  --clear-existing    Clear existing feedback before syncing (default: true)
+
+Examples:
+  devac hub sync --ci                    # Sync CI status to Hub
+  devac hub sync --issues                # Sync GitHub issues to Hub
+  devac hub sync --reviews               # Sync PR reviews to Hub
+  devac hub sync --ci --issues --reviews # Sync all feedback types
+  devac hub sync --ci --failing-only     # Only sync failing CI checks
+```
+
+**Sync Patterns:**
+
+There are two ways to sync feedback to the Hub:
+
+| Method | Use Case |
+|--------|----------|
+| `devac context X --sync-to-hub` | View feedback AND sync in one step |
+| `devac hub sync --X` | Sync without viewing (e.g., in CI/automation) |
+
+```bash
+# View CI status and sync to Hub
+devac context ci --sync-to-hub
+
+# Just sync (no output) - useful for cron jobs
+devac hub sync --ci --issues --reviews
+```
+
 ## Validation Commands
 
 ### devac validate
@@ -499,11 +543,14 @@ devac context ci [options]
 Options:
   --json              Output as JSON
   --checks            Include individual check details
+  --sync-to-hub       Sync CI status to the Hub
+  --failing-only      Only sync failing checks (with --sync-to-hub)
 
 Examples:
   devac context ci                     # Show CI status for all PRs
   devac context ci --checks            # Include individual check details
   devac context ci --json              # Output as JSON
+  devac context ci --sync-to-hub       # Check CI and sync to Hub
 ```
 
 **Output:**
@@ -517,6 +564,73 @@ CI Status for Issue #123
     https://github.com/org/web/pull/46
 
 Summary: 1 passing, 0 failing, 1 pending
+```
+
+### devac context issues
+
+List GitHub issues for all repositories in the current context.
+
+```bash
+devac context issues [options]
+
+Options:
+  --json              Output as JSON
+  --open-only         Only show open issues (default: true)
+  --limit <n>         Maximum issues per repo (default: 50)
+  --labels <labels>   Filter by labels (comma-separated)
+  --sync-to-hub       Sync issues to the Hub
+
+Examples:
+  devac context issues                  # List issues for all repos
+  devac context issues --labels bug     # Filter by label
+  devac context issues --sync-to-hub    # List and sync to Hub
+```
+
+**Output:**
+```
+GitHub Issues:
+
+  api: 5 issues
+    #123 Add user authentication (open)
+    #124 Fix login timeout (open)
+
+  web: 3 issues
+    #45 Update dashboard (open)
+
+Total: 8 issues across 2 repos
+```
+
+### devac context reviews
+
+Get PR reviews for all repositories in the current context.
+
+```bash
+devac context reviews [options]
+
+Options:
+  --json                     Output as JSON
+  --pending-only             Only show pending/changes_requested reviews (default: true)
+  --include-comments         Include review comments with file locations (default: true)
+  --sync-to-hub              Sync reviews to the Hub
+  --changes-requested-only   Only sync changes_requested reviews (with --sync-to-hub)
+
+Examples:
+  devac context reviews                 # List PR reviews
+  devac context reviews --sync-to-hub   # List and sync to Hub
+```
+
+**Output:**
+```
+PR Reviews:
+
+  api-123-auth: PR #45 - 2 reviews, 3 comments
+    ✗ reviewer1: CHANGES_REQUESTED - Please add tests...
+    💬 reviewer2: COMMENTED - Looks good overall
+
+  web-123-auth: PR #46 - 1 reviews, 0 comments
+    ⏳ reviewer1: PENDING
+
+Total: 3 reviews, 3 comments
 ```
 
 ### devac context review

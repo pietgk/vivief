@@ -1,7 +1,7 @@
 /**
  * Hub Sync Command Implementation
  *
- * Syncs external feedback (CI status, issues) to the Hub's unified_feedback table.
+ * Syncs external feedback (CI status, issues, reviews) to the Hub's unified_feedback table.
  */
 
 import * as os from "node:os";
@@ -11,10 +11,12 @@ import {
   discoverContext,
   getCIStatusForContext,
   getIssuesForContext,
+  getReviewsForContext,
   syncCIStatusToHub,
   syncIssuesToHub,
+  syncReviewsToHub,
 } from "@pietgk/devac-core";
-import type { CISyncResult, IssueSyncResult } from "@pietgk/devac-core";
+import type { CISyncResult, IssueSyncResult, ReviewSyncResult } from "@pietgk/devac-core";
 
 /**
  * Get default hub directory
@@ -33,6 +35,8 @@ export interface HubSyncOptions {
   ci?: boolean;
   /** Sync GitHub issues to Hub */
   issues?: boolean;
+  /** Sync PR reviews to Hub */
+  reviews?: boolean;
   /** Only sync failing CI checks */
   failingOnly?: boolean;
   /** Only sync open issues (default: true) */
@@ -41,6 +45,12 @@ export interface HubSyncOptions {
   issueLimit?: number;
   /** Filter issues by labels */
   issueLabels?: string[];
+  /** Only sync pending/changes_requested reviews (default: true) */
+  pendingOnly?: boolean;
+  /** Only sync reviews with changes_requested state */
+  changesRequestedOnly?: boolean;
+  /** Include review comments with file locations (default: true) */
+  includeComments?: boolean;
   /** Clear existing feedback before syncing */
   clearExisting?: boolean;
   /** Include individual check details */
@@ -54,6 +64,7 @@ export interface HubSyncResult {
   success: boolean;
   ciSync?: CISyncResult;
   issuesSync?: IssueSyncResult;
+  reviewsSync?: ReviewSyncResult;
   error?: string;
 }
 
@@ -70,8 +81,9 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
     const result: HubSyncResult = { success: true };
     const errors: string[] = [];
 
-    // Discover context (needed for both CI and issues)
-    const context = options.ci || options.issues ? await discoverContext(options.cwd) : null;
+    // Discover context (needed for CI, issues, and reviews)
+    const context =
+      options.ci || options.issues || options.reviews ? await discoverContext(options.cwd) : null;
 
     // Sync CI if requested
     if (options.ci && context) {
@@ -120,11 +132,35 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
       }
     }
 
+    // Sync reviews if requested
+    if (options.reviews && context) {
+      // Get reviews
+      const reviewsResult = await getReviewsForContext(context, {
+        pendingOnly: options.pendingOnly ?? true,
+        includeComments: options.includeComments ?? true,
+      });
+
+      if (!reviewsResult.success) {
+        errors.push(reviewsResult.error ?? "Failed to get reviews");
+      } else {
+        // Sync to Hub
+        const syncResult = await syncReviewsToHub(hub, reviewsResult, {
+          clearExisting: options.clearExisting ?? true,
+          changesRequestedOnly: options.changesRequestedOnly ?? false,
+        });
+
+        result.reviewsSync = syncResult;
+        if (syncResult.errors.length > 0) {
+          errors.push(...syncResult.errors);
+        }
+      }
+    }
+
     // No sync option specified
-    if (!options.ci && !options.issues) {
+    if (!options.ci && !options.issues && !options.reviews) {
       return {
         success: false,
-        error: "No sync option specified. Use --ci or --issues to sync feedback.",
+        error: "No sync option specified. Use --ci, --issues, or --reviews to sync feedback.",
       };
     }
 

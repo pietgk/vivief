@@ -30,6 +30,7 @@ export {
   contextCommand,
   contextCICommand,
   contextIssuesCommand,
+  contextReviewsCommand,
   contextReviewCommand,
   processReviewResponse,
 } from "./context.js";
@@ -40,6 +41,8 @@ export type {
   ContextCIResult,
   ContextIssuesOptions,
   ContextIssuesResult,
+  ContextReviewsOptions,
+  ContextReviewsResult,
   ContextReviewOptions,
   ContextReviewResult,
 } from "./context.js";

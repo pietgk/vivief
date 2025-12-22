@@ -99,3 +99,19 @@ export type {
 export { syncIssuesToHub } from "./issues-hub-sync.js";
 
 export type { IssueSyncOptions, IssueSyncResult } from "./issues-hub-sync.js";
+
+// PR Reviews
+export { getReviewsForContext, formatReviews } from "./reviews.js";
+
+export type {
+  Review,
+  ReviewComment,
+  RepoReviews,
+  ReviewsResult,
+  ReviewsOptions,
+} from "./reviews.js";
+
+// Reviews Hub Sync
+export { syncReviewsToHub } from "./reviews-hub-sync.js";
+
+export type { ReviewSyncOptions, ReviewSyncResult } from "./reviews-hub-sync.js";

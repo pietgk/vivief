@@ -16,12 +16,15 @@ import {
   formatContext,
   formatIssues,
   formatReviewAsMarkdown,
+  formatReviews,
   gatherDiffs,
   getCIStatusForContext,
   getIssuesForContext,
+  getReviewsForContext,
   parseReviewResponse,
   syncCIStatusToHub,
   syncIssuesToHub,
+  syncReviewsToHub,
 } from "@pietgk/devac-core";
 import type {
   CIStatusOptions,
@@ -34,6 +37,9 @@ import type {
   RepoContext,
   ReviewOptions,
   ReviewResult,
+  ReviewSyncResult,
+  ReviewsOptions,
+  ReviewsResult,
 } from "@pietgk/devac-core";
 
 /**
@@ -310,7 +316,121 @@ export async function contextIssuesCommand(
 }
 
 // ============================================================================
-// Review Command
+// PR Reviews Command
+// ============================================================================
+
+export interface ContextReviewsOptions {
+  /** Current working directory */
+  cwd: string;
+  /** Output format */
+  format?: "text" | "json";
+  /** Only include pending/changes_requested reviews (default: true) */
+  pendingOnly?: boolean;
+  /** Include review comments with file locations (default: true) */
+  includeComments?: boolean;
+  /** Sync reviews to the central Hub */
+  syncToHub?: boolean;
+  /** Only sync reviews with changes_requested state (default: false) */
+  changesRequestedOnly?: boolean;
+  /** Reviews options */
+  reviewsOptions?: ReviewsOptions;
+}
+
+export interface ContextReviewsResult {
+  success: boolean;
+  result?: ReviewsResult;
+  syncResult?: ReviewSyncResult;
+  formatted?: string;
+  error?: string;
+}
+
+/**
+ * Get PR reviews for all repos in context
+ */
+export async function contextReviewsCommand(
+  options: ContextReviewsOptions
+): Promise<ContextReviewsResult> {
+  try {
+    // Discover context
+    const context = await discoverContext(options.cwd);
+
+    // Get reviews
+    const reviewsOptions: ReviewsOptions = {
+      pendingOnly: options.pendingOnly ?? true,
+      includeComments: options.includeComments ?? true,
+      ...options.reviewsOptions,
+    };
+
+    const result = await getReviewsForContext(context, reviewsOptions);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
+
+    // Optionally sync to Hub
+    let syncResult: ReviewSyncResult | undefined;
+    if (options.syncToHub) {
+      const hubDir = getDefaultHubDir();
+      const hub = new CentralHub({ hubDir });
+      try {
+        await hub.init();
+        syncResult = await syncReviewsToHub(hub, result, {
+          clearExisting: true,
+          changesRequestedOnly: options.changesRequestedOnly ?? false,
+        });
+      } finally {
+        await hub.close();
+      }
+    }
+
+    if (options.format === "json") {
+      return {
+        success: true,
+        result,
+        syncResult,
+      };
+    }
+
+    // Format output
+    let formatted = formatReviews(result);
+    if (syncResult) {
+      formatted += formatReviewSyncResult(syncResult);
+    }
+
+    return {
+      success: true,
+      result,
+      syncResult,
+      formatted,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Format the review sync result for display
+ */
+function formatReviewSyncResult(syncResult: ReviewSyncResult): string {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Hub Sync (Reviews):");
+  lines.push(`  Pushed ${syncResult.pushed} review items to Hub`);
+  lines.push(`  Processed ${syncResult.reposProcessed} repositories`);
+  if (syncResult.errors.length > 0) {
+    lines.push(`  Errors: ${syncResult.errors.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+// ============================================================================
+// Review Command (LLM Code Review)
 // ============================================================================
 
 export interface ContextReviewOptions {
