@@ -11,8 +11,14 @@ import { Database } from "duckdb-async";
 import { computeStringHash } from "../utils/hash.js";
 import {
   type CrossRepoEdge,
+  type FeedbackCategory,
+  type FeedbackFilter,
+  type FeedbackSeverity,
+  type FeedbackSource,
+  type FeedbackSummary,
   type HubStorage,
   type RepoRegistration,
+  type UnifiedFeedback,
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
@@ -426,10 +432,14 @@ export class CentralHub {
   }
 
   // ================== Validation Error APIs ==================
+  // These methods now write to and read from the unified_feedback table
+  // for consistency with CI status and GitHub issues.
 
   /**
-   * Push validation errors from a repository to the hub cache
+   * Push validation errors from a repository to the hub
    * Replaces existing errors for the same repo/package
+   *
+   * Note: This now writes to unified_feedback table (not validation_errors)
    */
   async pushValidationErrors(
     repoId: string,
@@ -446,7 +456,39 @@ export class CentralHub {
   ): Promise<void> {
     this.ensureInitialized();
 
-    await this.storage.upsertValidationErrors(repoId, packagePath, errors);
+    // Clear existing validation feedback for this repo (all validation sources)
+    await this.storage.clearFeedback(repoId, "tsc");
+    await this.storage.clearFeedback(repoId, "eslint");
+    await this.storage.clearFeedback(repoId, "test");
+
+    if (errors.length === 0) return;
+
+    // Convert to UnifiedFeedback format
+    const now = new Date().toISOString();
+    const feedback: UnifiedFeedback[] = errors.map((error, index) => ({
+      feedback_id: `val-${repoId}-${packagePath}-${error.file}-${error.line}-${error.source}-${index}`,
+      repo_id: repoId,
+      source: error.source as FeedbackSource,
+      file_path: error.file,
+      line_number: error.line,
+      column_number: error.column,
+      severity: error.severity as FeedbackSeverity,
+      category: this.sourceToCategory(error.source),
+      title: this.extractTitle(error.message),
+      description: error.message,
+      code: error.code,
+      suggestion: null,
+      resolved: false,
+      actionable: true,
+      created_at: now,
+      updated_at: now,
+      github_issue_number: null,
+      github_pr_number: null,
+      workflow_name: null,
+      ci_url: null,
+    }));
+
+    await this.storage.upsertFeedback(feedback);
   }
 
   /**
@@ -455,16 +497,43 @@ export class CentralHub {
   async clearValidationErrors(repoId: string): Promise<void> {
     this.ensureInitialized();
 
-    await this.storage.clearValidationErrors(repoId);
+    // Clear all validation sources from unified_feedback
+    await this.storage.clearFeedback(repoId, "tsc");
+    await this.storage.clearFeedback(repoId, "eslint");
+    await this.storage.clearFeedback(repoId, "test");
   }
 
   /**
    * Get validation errors with optional filters
+   * Reads from unified_feedback with validation sources
    */
   async getValidationErrors(filter?: ValidationFilter): Promise<ValidationError[]> {
     this.ensureInitialized();
 
-    return this.storage.queryValidationErrors(filter);
+    // Convert ValidationFilter to FeedbackFilter
+    const feedbackFilter: FeedbackFilter = {
+      repo_id: filter?.repo_id,
+      source: filter?.source ? [filter.source] : ["tsc", "eslint", "test"],
+      severity: filter?.severity ? [filter.severity] : undefined,
+      file_path: filter?.file,
+      limit: filter?.limit,
+    };
+
+    const feedback = await this.storage.queryFeedback(feedbackFilter);
+
+    // Convert back to ValidationError format for backward compatibility
+    return feedback.map((f) => ({
+      repo_id: f.repo_id,
+      package_path: "", // Not stored in unified_feedback
+      file: f.file_path || "",
+      line: f.line_number || 0,
+      column: f.column_number || 0,
+      message: f.description,
+      severity: f.severity as "error" | "warning",
+      source: f.source as "tsc" | "eslint" | "test",
+      code: f.code,
+      updated_at: f.updated_at,
+    }));
   }
 
   /**
@@ -475,7 +544,29 @@ export class CentralHub {
   ): Promise<ValidationSummary[]> {
     this.ensureInitialized();
 
-    return this.storage.getValidationSummary(groupBy);
+    // Use feedback summary with validation sources filter
+    const groupByMap: Record<
+      "repo" | "file" | "source" | "severity",
+      "repo" | "source" | "severity" | "category"
+    > = {
+      repo: "repo",
+      file: "category", // Can't group by file in feedback summary, use category
+      source: "source",
+      severity: "severity",
+    };
+
+    const feedbackSummary = await this.storage.getFeedbackSummaryFiltered(groupByMap[groupBy], [
+      "tsc",
+      "eslint",
+      "test",
+    ]);
+
+    return feedbackSummary.map((s) => ({
+      group_key: s.group_key,
+      error_count: s.error_count + s.critical_count,
+      warning_count: s.warning_count,
+      total_count: s.count,
+    }));
   }
 
   /**
@@ -484,7 +575,104 @@ export class CentralHub {
   async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
     this.ensureInitialized();
 
-    return this.storage.getValidationCounts();
+    const counts = await this.storage.getFeedbackCountsFiltered(["tsc", "eslint", "test"]);
+
+    return {
+      errors: counts.critical + counts.error,
+      warnings: counts.warning,
+      total: counts.total,
+    };
+  }
+
+  /**
+   * Map source to category
+   */
+  private sourceToCategory(source: "tsc" | "eslint" | "test"): FeedbackCategory {
+    switch (source) {
+      case "tsc":
+        return "compilation";
+      case "eslint":
+        return "linting";
+      case "test":
+        return "testing";
+    }
+  }
+
+  /**
+   * Extract a short title from a message (first ~80 chars)
+   */
+  private extractTitle(message: string): string {
+    const firstLine = message.split("\n")[0] || message;
+    if (firstLine.length <= 80) return firstLine;
+    return `${firstLine.slice(0, 77)}...`;
+  }
+
+  // ================== Unified Feedback APIs ==================
+
+  /**
+   * Push unified feedback to the hub
+   * Can be used for any feedback type: validation, CI, issues, PR reviews
+   */
+  async pushFeedback(feedback: UnifiedFeedback[]): Promise<void> {
+    this.ensureInitialized();
+
+    await this.storage.upsertFeedback(feedback);
+  }
+
+  /**
+   * Clear feedback with optional filters
+   * @param repoId - Filter by repository
+   * @param source - Filter by source type
+   */
+  async clearFeedback(repoId?: string, source?: FeedbackSource): Promise<void> {
+    this.ensureInitialized();
+
+    await this.storage.clearFeedback(repoId, source);
+  }
+
+  /**
+   * Get feedback with optional filters
+   */
+  async getFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
+    this.ensureInitialized();
+
+    return this.storage.queryFeedback(filter);
+  }
+
+  /**
+   * Get feedback summary grouped by specified field
+   */
+  async getFeedbackSummary(
+    groupBy: "repo" | "source" | "severity" | "category"
+  ): Promise<FeedbackSummary[]> {
+    this.ensureInitialized();
+
+    return this.storage.getFeedbackSummary(groupBy);
+  }
+
+  /**
+   * Get feedback counts by severity
+   */
+  async getFeedbackCounts(): Promise<{
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+    total: number;
+  }> {
+    this.ensureInitialized();
+
+    return this.storage.getFeedbackCounts();
+  }
+
+  /**
+   * Mark feedback as resolved
+   */
+  async resolveFeedback(feedbackIds: string[]): Promise<void> {
+    this.ensureInitialized();
+
+    await this.storage.resolveFeedback(feedbackIds);
   }
 
   // ================== Affected Analysis ==================

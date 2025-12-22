@@ -29,6 +29,7 @@ export type {
 export {
   contextCommand,
   contextCICommand,
+  contextIssuesCommand,
   contextReviewCommand,
   processReviewResponse,
 } from "./context.js";
@@ -37,6 +38,8 @@ export type {
   ContextResult,
   ContextCIOptions,
   ContextCIResult,
+  ContextIssuesOptions,
+  ContextIssuesResult,
   ContextReviewOptions,
   ContextReviewResult,
 } from "./context.js";
@@ -57,6 +60,8 @@ export { hubStatus as hubStatusCommand } from "./hub-status.js";
 export type { HubStatusOptions, HubStatusResult } from "./hub-status.js";
 export { hubRefresh as hubRefreshCommand } from "./hub-refresh.js";
 export type { HubRefreshOptions, HubRefreshResult } from "./hub-refresh.js";
+export { hubSyncCommand } from "./hub-sync.js";
+export type { HubSyncOptions, HubSyncResult } from "./hub-sync.js";
 
 export type {
   AnalyzeOptions,

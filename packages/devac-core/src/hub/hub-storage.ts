@@ -69,6 +69,124 @@ export interface ValidationSummary {
   total_count: number;
 }
 
+// ================== Unified Feedback Types ==================
+
+/**
+ * Feedback source types
+ */
+export type FeedbackSource = "tsc" | "eslint" | "test" | "ci-check" | "github-issue" | "pr-review";
+
+/**
+ * Feedback severity levels (ordered from most to least severe)
+ */
+export type FeedbackSeverity = "critical" | "error" | "warning" | "suggestion" | "note";
+
+/**
+ * Feedback category types
+ */
+export type FeedbackCategory =
+  | "compilation"
+  | "linting"
+  | "testing"
+  | "ci-check"
+  | "task"
+  | "feedback"
+  | "code-review";
+
+/**
+ * Unified feedback record stored in the hub
+ * Combines validation errors, CI failures, GitHub issues, and PR reviews
+ */
+export interface UnifiedFeedback {
+  /** Unique identifier for the feedback */
+  feedback_id: string;
+  /** Repository identifier */
+  repo_id: string;
+  /** Source of the feedback */
+  source: FeedbackSource;
+
+  // Location (optional for issues)
+  /** File path relative to repo root (null for issue-level feedback) */
+  file_path: string | null;
+  /** Line number (1-based, null for issue-level feedback) */
+  line_number: number | null;
+  /** Column number (0-based, null for issue-level feedback) */
+  column_number: number | null;
+
+  // Severity & Category
+  /** Severity level */
+  severity: FeedbackSeverity;
+  /** Category of feedback */
+  category: FeedbackCategory;
+
+  // Content
+  /** Short summary (max ~100 chars) */
+  title: string;
+  /** Full description/message */
+  description: string;
+  /** Error code (e.g., TS2345, no-unused-vars) */
+  code: string | null;
+  /** Suggested fix (if available) */
+  suggestion: string | null;
+
+  // Status
+  /** Whether the feedback has been resolved */
+  resolved: boolean;
+  /** Whether the feedback is actionable (can be directly fixed) */
+  actionable: boolean;
+
+  // Timestamps
+  /** When the feedback was first created */
+  created_at: string;
+  /** When the feedback was last updated */
+  updated_at: string;
+
+  // Source-specific references
+  /** GitHub issue number (for github-issue source) */
+  github_issue_number: number | null;
+  /** GitHub PR number (for ci-check or pr-review source) */
+  github_pr_number: number | null;
+  /** Workflow name (for ci-check source) */
+  workflow_name: string | null;
+  /** URL to CI details (for ci-check source) */
+  ci_url: string | null;
+}
+
+/**
+ * Filter for querying unified feedback
+ */
+export interface FeedbackFilter {
+  /** Filter by repository ID */
+  repo_id?: string;
+  /** Filter by source(s) */
+  source?: FeedbackSource | FeedbackSource[];
+  /** Filter by severity level(s) */
+  severity?: FeedbackSeverity | FeedbackSeverity[];
+  /** Filter by category */
+  category?: FeedbackCategory | FeedbackCategory[];
+  /** Filter by file path (partial match) */
+  file_path?: string;
+  /** Filter by resolved status */
+  resolved?: boolean;
+  /** Filter by actionable status */
+  actionable?: boolean;
+  /** Maximum number of results */
+  limit?: number;
+}
+
+/**
+ * Summary of feedback grouped by a dimension
+ */
+export interface FeedbackSummary {
+  group_key: string;
+  count: number;
+  critical_count: number;
+  error_count: number;
+  warning_count: number;
+  suggestion_count: number;
+  note_count: number;
+}
+
 /**
  * Hub Storage
  *
@@ -179,6 +297,65 @@ export class HubStorage {
     `);
     await this.db.run(`
       CREATE INDEX IF NOT EXISTS idx_validation_source ON validation_errors(source)
+    `);
+
+    // Unified feedback table
+    // Combines validation errors, CI failures, GitHub issues, and PR reviews
+    await this.db.run(`
+      CREATE TABLE IF NOT EXISTS unified_feedback (
+        feedback_id VARCHAR PRIMARY KEY,
+        repo_id VARCHAR NOT NULL,
+        source VARCHAR NOT NULL,
+
+        -- Location (nullable for issues)
+        file_path VARCHAR,
+        line_number INTEGER,
+        column_number INTEGER,
+
+        -- Severity & Category
+        severity VARCHAR NOT NULL,
+        category VARCHAR NOT NULL,
+
+        -- Content
+        title VARCHAR NOT NULL,
+        description VARCHAR NOT NULL,
+        code VARCHAR,
+        suggestion VARCHAR,
+
+        -- Status
+        resolved BOOLEAN DEFAULT FALSE,
+        actionable BOOLEAN DEFAULT TRUE,
+
+        -- Timestamps
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        -- Source-specific references
+        github_issue_number INTEGER,
+        github_pr_number INTEGER,
+        workflow_name VARCHAR,
+        ci_url VARCHAR
+      )
+    `);
+
+    // Create indexes for unified_feedback
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_repo ON unified_feedback(repo_id)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_source ON unified_feedback(source)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_severity ON unified_feedback(severity)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_resolved ON unified_feedback(resolved)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_file ON unified_feedback(file_path)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_feedback_category ON unified_feedback(category)
     `);
   }
 
@@ -616,6 +793,379 @@ export class HubStorage {
       return value.toISOString();
     }
     return new Date().toISOString();
+  }
+
+  // ================== Unified Feedback ==================
+
+  /**
+   * Upsert feedback items
+   * Uses INSERT OR REPLACE based on feedback_id
+   */
+  async upsertFeedback(feedback: UnifiedFeedback[]): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+    if (feedback.length === 0) return;
+
+    const now = new Date().toISOString();
+
+    for (const item of feedback) {
+      await this.db.run(
+        `
+        INSERT OR REPLACE INTO unified_feedback (
+          feedback_id, repo_id, source,
+          file_path, line_number, column_number,
+          severity, category,
+          title, description, code, suggestion,
+          resolved, actionable,
+          created_at, updated_at,
+          github_issue_number, github_pr_number, workflow_name, ci_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        item.feedback_id,
+        item.repo_id,
+        item.source,
+        item.file_path,
+        item.line_number,
+        item.column_number,
+        item.severity,
+        item.category,
+        item.title,
+        item.description,
+        item.code,
+        item.suggestion,
+        item.resolved,
+        item.actionable,
+        item.created_at || now,
+        now,
+        item.github_issue_number,
+        item.github_pr_number,
+        item.workflow_name,
+        item.ci_url
+      );
+    }
+  }
+
+  /**
+   * Clear feedback, optionally filtered by repository and/or source
+   */
+  async clearFeedback(repoId?: string, source?: FeedbackSource): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    if (repoId && source) {
+      await this.db.run(
+        "DELETE FROM unified_feedback WHERE repo_id = ? AND source = ?",
+        repoId,
+        source
+      );
+    } else if (repoId) {
+      await this.db.run("DELETE FROM unified_feedback WHERE repo_id = ?", repoId);
+    } else if (source) {
+      await this.db.run("DELETE FROM unified_feedback WHERE source = ?", source);
+    } else {
+      // Clear all feedback - use with caution
+      await this.db.run("DELETE FROM unified_feedback");
+    }
+  }
+
+  /**
+   * Query feedback with filters
+   */
+  async queryFeedback(filter: FeedbackFilter = {}): Promise<UnifiedFeedback[]> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    let sql = "SELECT * FROM unified_feedback WHERE 1=1";
+    const params: (string | number | boolean)[] = [];
+
+    if (filter.repo_id) {
+      sql += " AND repo_id = ?";
+      params.push(filter.repo_id);
+    }
+
+    if (filter.source) {
+      const sources = Array.isArray(filter.source) ? filter.source : [filter.source];
+      sql += ` AND source IN (${sources.map(() => "?").join(", ")})`;
+      params.push(...sources);
+    }
+
+    if (filter.severity) {
+      const severities = Array.isArray(filter.severity) ? filter.severity : [filter.severity];
+      sql += ` AND severity IN (${severities.map(() => "?").join(", ")})`;
+      params.push(...severities);
+    }
+
+    if (filter.category) {
+      const categories = Array.isArray(filter.category) ? filter.category : [filter.category];
+      sql += ` AND category IN (${categories.map(() => "?").join(", ")})`;
+      params.push(...categories);
+    }
+
+    if (filter.file_path) {
+      sql += " AND file_path LIKE ?";
+      params.push(`%${filter.file_path}%`);
+    }
+
+    if (filter.resolved !== undefined) {
+      sql += " AND resolved = ?";
+      params.push(filter.resolved);
+    }
+
+    if (filter.actionable !== undefined) {
+      sql += " AND actionable = ?";
+      params.push(filter.actionable);
+    }
+
+    // Order by severity (critical first), then by updated_at
+    sql += `
+      ORDER BY
+        CASE severity
+          WHEN 'critical' THEN 1
+          WHEN 'error' THEN 2
+          WHEN 'warning' THEN 3
+          WHEN 'suggestion' THEN 4
+          WHEN 'note' THEN 5
+        END,
+        updated_at DESC
+    `;
+
+    if (filter.limit) {
+      sql += " LIMIT ?";
+      params.push(filter.limit);
+    }
+
+    const rows = await this.db.all(sql, ...params);
+
+    return rows.map((row) => this.rowToFeedback(row as Record<string, unknown>));
+  }
+
+  /**
+   * Get feedback summary grouped by a dimension
+   */
+  async getFeedbackSummary(
+    groupBy: "source" | "severity" | "category" | "repo"
+  ): Promise<FeedbackSummary[]> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const columnMap: Record<string, string> = {
+      source: "source",
+      severity: "severity",
+      category: "category",
+      repo: "repo_id",
+    };
+
+    const column = columnMap[groupBy];
+
+    const sql = `
+      SELECT
+        ${column} as group_key,
+        COUNT(*) as count,
+        SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_count,
+        SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) as error_count,
+        SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_count,
+        SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion_count,
+        SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note_count
+      FROM unified_feedback
+      WHERE resolved = FALSE
+      GROUP BY ${column}
+      ORDER BY count DESC
+    `;
+
+    const rows = await this.db.all(sql);
+
+    return rows.map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        group_key: r.group_key as string,
+        count: Number(r.count),
+        critical_count: Number(r.critical_count ?? 0),
+        error_count: Number(r.error_count ?? 0),
+        warning_count: Number(r.warning_count ?? 0),
+        suggestion_count: Number(r.suggestion_count ?? 0),
+        note_count: Number(r.note_count ?? 0),
+      };
+    });
+  }
+
+  /**
+   * Get total feedback counts
+   */
+  async getFeedbackCounts(): Promise<{
+    total: number;
+    unresolved: number;
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+  }> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const rows = await this.db.all(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN resolved = FALSE THEN 1 ELSE 0 END) as unresolved,
+        SUM(CASE WHEN severity = 'critical' AND resolved = FALSE THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN severity = 'error' AND resolved = FALSE THEN 1 ELSE 0 END) as error,
+        SUM(CASE WHEN severity = 'warning' AND resolved = FALSE THEN 1 ELSE 0 END) as warning,
+        SUM(CASE WHEN severity = 'suggestion' AND resolved = FALSE THEN 1 ELSE 0 END) as suggestion,
+        SUM(CASE WHEN severity = 'note' AND resolved = FALSE THEN 1 ELSE 0 END) as note
+      FROM unified_feedback
+    `);
+
+    if (rows.length === 0) {
+      return { total: 0, unresolved: 0, critical: 0, error: 0, warning: 0, suggestion: 0, note: 0 };
+    }
+
+    const r = rows[0] as Record<string, unknown>;
+    return {
+      total: Number(r.total ?? 0),
+      unresolved: Number(r.unresolved ?? 0),
+      critical: Number(r.critical ?? 0),
+      error: Number(r.error ?? 0),
+      warning: Number(r.warning ?? 0),
+      suggestion: Number(r.suggestion ?? 0),
+      note: Number(r.note ?? 0),
+    };
+  }
+
+  /**
+   * Mark feedback as resolved
+   */
+  async resolveFeedback(feedbackIds: string[]): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+    if (feedbackIds.length === 0) return;
+
+    const placeholders = feedbackIds.map(() => "?").join(", ");
+    const now = new Date().toISOString();
+
+    await this.db.run(
+      `UPDATE unified_feedback SET resolved = TRUE, updated_at = ? WHERE feedback_id IN (${placeholders})`,
+      now,
+      ...feedbackIds
+    );
+  }
+
+  /**
+   * Get feedback summary filtered by sources
+   * Used by validation API to get summary for only validation sources
+   */
+  async getFeedbackSummaryFiltered(
+    groupBy: "source" | "severity" | "category" | "repo",
+    sources: FeedbackSource[]
+  ): Promise<FeedbackSummary[]> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const columnMap: Record<string, string> = {
+      source: "source",
+      severity: "severity",
+      category: "category",
+      repo: "repo_id",
+    };
+
+    const column = columnMap[groupBy];
+    const sourcePlaceholders = sources.map(() => "?").join(", ");
+
+    const sql = `
+      SELECT
+        ${column} as group_key,
+        COUNT(*) as count,
+        SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_count,
+        SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) as error_count,
+        SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_count,
+        SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion_count,
+        SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note_count
+      FROM unified_feedback
+      WHERE resolved = FALSE AND source IN (${sourcePlaceholders})
+      GROUP BY ${column}
+      ORDER BY count DESC
+    `;
+
+    const rows = await this.db.all(sql, ...sources);
+
+    return rows.map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        group_key: r.group_key as string,
+        count: Number(r.count),
+        critical_count: Number(r.critical_count ?? 0),
+        error_count: Number(r.error_count ?? 0),
+        warning_count: Number(r.warning_count ?? 0),
+        suggestion_count: Number(r.suggestion_count ?? 0),
+        note_count: Number(r.note_count ?? 0),
+      };
+    });
+  }
+
+  /**
+   * Get feedback counts filtered by sources
+   * Used by validation API to get counts for only validation sources
+   */
+  async getFeedbackCountsFiltered(sources: FeedbackSource[]): Promise<{
+    total: number;
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+  }> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const sourcePlaceholders = sources.map(() => "?").join(", ");
+
+    const rows = await this.db.all(
+      `
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) as error,
+        SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
+        SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion,
+        SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note
+      FROM unified_feedback
+      WHERE resolved = FALSE AND source IN (${sourcePlaceholders})
+    `,
+      ...sources
+    );
+
+    if (rows.length === 0) {
+      return { total: 0, critical: 0, error: 0, warning: 0, suggestion: 0, note: 0 };
+    }
+
+    const r = rows[0] as Record<string, unknown>;
+    return {
+      total: Number(r.total ?? 0),
+      critical: Number(r.critical ?? 0),
+      error: Number(r.error ?? 0),
+      warning: Number(r.warning ?? 0),
+      suggestion: Number(r.suggestion ?? 0),
+      note: Number(r.note ?? 0),
+    };
+  }
+
+  /**
+   * Convert a database row to UnifiedFeedback
+   */
+  private rowToFeedback(r: Record<string, unknown>): UnifiedFeedback {
+    return {
+      feedback_id: r.feedback_id as string,
+      repo_id: r.repo_id as string,
+      source: r.source as FeedbackSource,
+      file_path: r.file_path as string | null,
+      line_number: r.line_number as number | null,
+      column_number: r.column_number as number | null,
+      severity: r.severity as FeedbackSeverity,
+      category: r.category as FeedbackCategory,
+      title: r.title as string,
+      description: r.description as string,
+      code: r.code as string | null,
+      suggestion: r.suggestion as string | null,
+      resolved: Boolean(r.resolved),
+      actionable: Boolean(r.actionable),
+      created_at: this.formatTimestamp(r.created_at),
+      updated_at: this.formatTimestamp(r.updated_at),
+      github_issue_number: r.github_issue_number as number | null,
+      github_pr_number: r.github_pr_number as number | null,
+      workflow_name: r.workflow_name as string | null,
+      ci_url: r.ci_url as string | null,
+    };
   }
 }
 

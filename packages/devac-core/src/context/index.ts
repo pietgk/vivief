@@ -78,3 +78,24 @@ export type {
   RepoDiff,
   GatheredDiffs,
 } from "./review.js";
+
+// CI Hub Sync
+export { syncCIStatusToHub } from "./ci-hub-sync.js";
+
+export type { CISyncOptions, CISyncResult } from "./ci-hub-sync.js";
+
+// Issues
+export { getIssuesForContext, formatIssues } from "./issues.js";
+
+export type {
+  GitHubIssue,
+  IssueLabel,
+  RepoIssues,
+  IssuesResult,
+  IssuesOptions,
+} from "./issues.js";
+
+// Issues Hub Sync
+export { syncIssuesToHub } from "./issues-hub-sync.js";
+
+export type { IssueSyncOptions, IssueSyncResult } from "./issues-hub-sync.js";

@@ -16,12 +16,14 @@ import {
   cleanCommand,
   contextCICommand,
   contextCommand,
+  contextIssuesCommand,
   contextReviewCommand,
   hubInitCommand,
   hubListCommand,
   hubRefreshCommand,
   hubRegisterCommand,
   hubStatusCommand,
+  hubSyncCommand,
   hubUnregisterCommand,
   mcpCommand,
   queryCommand,
@@ -334,21 +336,60 @@ context
   .description("Check CI status for all PRs in context")
   .option("--json", "Output as JSON")
   .option("--checks", "Include individual check details")
+  .option("--sync-to-hub", "Sync CI status to the central Hub for LLM querying")
+  .option("--failing-only", "When syncing to Hub, only sync failing checks")
   .action(async (options) => {
     const result = await contextCICommand({
       cwd: process.cwd(),
       format: options.json ? "json" : "text",
       includeChecks: options.checks,
+      syncToHub: options.syncToHub,
+      failingOnly: options.failingOnly,
     });
 
     if (result.success) {
       if (options.json) {
-        console.log(JSON.stringify(result.result, null, 2));
+        console.log(
+          JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+        );
       } else {
         console.log(result.formatted);
       }
     } else {
       console.error(`✗ CI status check failed: ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+// Issues subcommand
+context
+  .command("issues")
+  .description("List GitHub issues for all repos in context")
+  .option("--json", "Output as JSON")
+  .option("--limit <n>", "Maximum issues per repo", "50")
+  .option("--label <labels...>", "Filter by labels")
+  .option("--include-closed", "Include closed issues")
+  .option("--sync-to-hub", "Sync issues to the central Hub for LLM querying")
+  .action(async (options) => {
+    const result = await contextIssuesCommand({
+      cwd: process.cwd(),
+      format: options.json ? "json" : "text",
+      openOnly: !options.includeClosed,
+      limit: Number.parseInt(options.limit, 10),
+      labels: options.label,
+      syncToHub: options.syncToHub,
+    });
+
+    if (result.success) {
+      if (options.json) {
+        console.log(
+          JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+        );
+      } else {
+        console.log(result.formatted);
+      }
+    } else {
+      console.error(`✗ Issues fetch failed: ${result.error}`);
       process.exit(1);
     }
   });
@@ -563,6 +604,58 @@ hub
       for (const error of result.errors) {
         console.error(`  • ${error}`);
       }
+      process.exit(1);
+    }
+  });
+
+hub
+  .command("sync")
+  .description("Sync external feedback (CI status, issues) to Hub")
+  .option("--ci", "Sync CI status from GitHub Actions")
+  .option("--issues", "Sync GitHub issues")
+  .option("--failing-only", "Only sync failing CI checks")
+  .option("--open-only", "Only sync open issues (default: true)")
+  .option("--issue-limit <n>", "Maximum issues per repo", "50")
+  .option("--issue-label <labels...>", "Filter issues by labels")
+  .option("--no-clear", "Don't clear existing feedback before syncing")
+  .action(async (options) => {
+    const result = await hubSyncCommand({
+      cwd: process.cwd(),
+      ci: options.ci,
+      issues: options.issues,
+      failingOnly: options.failingOnly,
+      openOnly: options.openOnly !== false,
+      issueLimit: options.issueLimit ? Number.parseInt(options.issueLimit, 10) : undefined,
+      issueLabels: options.issueLabel,
+      clearExisting: options.clear !== false,
+      includeChecks: true,
+    });
+
+    if (result.success) {
+      if (result.ciSync) {
+        console.log("✓ CI status synced to Hub");
+        console.log(`  Feedback items pushed: ${result.ciSync.pushed}`);
+        console.log(`  Repos processed: ${result.ciSync.reposProcessed}`);
+        if (result.ciSync.errors.length > 0) {
+          console.log("\nWarnings:");
+          for (const error of result.ciSync.errors) {
+            console.log(`  ⚠ ${error}`);
+          }
+        }
+      }
+      if (result.issuesSync) {
+        console.log("✓ Issues synced to Hub");
+        console.log(`  Feedback items pushed: ${result.issuesSync.pushed}`);
+        console.log(`  Repos processed: ${result.issuesSync.reposProcessed}`);
+        if (result.issuesSync.errors.length > 0) {
+          console.log("\nWarnings:");
+          for (const error of result.issuesSync.errors) {
+            console.log(`  ⚠ ${error}`);
+          }
+        }
+      }
+    } else {
+      console.error(`✗ Sync failed: ${result.error}`);
       process.exit(1);
     }
   });

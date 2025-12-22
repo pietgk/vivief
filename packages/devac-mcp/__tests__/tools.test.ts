@@ -29,10 +29,14 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("query_sql");
       expect(toolNames).toContain("list_repos");
       expect(toolNames).toContain("get_context");
+      // Unified feedback tools
+      expect(toolNames).toContain("get_all_feedback");
+      expect(toolNames).toContain("get_feedback_summary");
+      expect(toolNames).toContain("get_feedback_counts");
     });
 
-    it("has exactly 12 tools", () => {
-      expect(MCP_TOOLS.length).toBe(12);
+    it("has exactly 15 tools", () => {
+      expect(MCP_TOOLS.length).toBe(15);
     });
   });
 

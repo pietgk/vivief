@@ -8,7 +8,14 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { type RepoContext, discoverContext } from "@pietgk/devac-core";
+import {
+  type FeedbackCategory,
+  type FeedbackFilter,
+  type FeedbackSeverity,
+  type FeedbackSource,
+  type RepoContext,
+  discoverContext,
+} from "@pietgk/devac-core";
 import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.js";
@@ -156,6 +163,16 @@ export class DevacMCPServer {
 
         case "get_validation_counts":
           return await this.executeGetValidationCounts();
+
+        // Unified Feedback tools
+        case "get_all_feedback":
+          return await this.executeGetAllFeedback(input);
+
+        case "get_feedback_summary":
+          return await this.executeGetFeedbackSummary(input);
+
+        case "get_feedback_counts":
+          return await this.executeGetFeedbackCounts();
 
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
@@ -311,6 +328,68 @@ export class DevacMCPServer {
   private async executeGetValidationCounts(): Promise<MCPToolResult> {
     try {
       const counts = await this.provider.getValidationCounts();
+      return { success: true, data: counts };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  // ================== Unified Feedback Tool Handlers ==================
+
+  /**
+   * Get all feedback (unified view)
+   */
+  private async executeGetAllFeedback(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const filter: FeedbackFilter = {
+        repo_id: input.repo_id as string | undefined,
+        source: input.source as FeedbackSource[] | undefined,
+        severity: input.severity as FeedbackSeverity[] | undefined,
+        category: input.category as FeedbackCategory[] | undefined,
+        file_path: input.file_path as string | undefined,
+        resolved: input.resolved as boolean | undefined,
+        limit: input.limit as number | undefined,
+      };
+
+      const feedback = await this.provider.getAllFeedback(filter);
+      return { success: true, data: feedback };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get feedback summary grouped by a field
+   */
+  private async executeGetFeedbackSummary(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const groupBy = input.groupBy as "repo" | "source" | "severity" | "category";
+      if (!groupBy) {
+        return { success: false, error: "groupBy is required" };
+      }
+
+      const summary = await this.provider.getFeedbackSummary(groupBy);
+      return { success: true, data: summary };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get feedback counts by severity
+   */
+  private async executeGetFeedbackCounts(): Promise<MCPToolResult> {
+    try {
+      const counts = await this.provider.getFeedbackCounts();
       return { success: true, data: counts };
     } catch (error) {
       return {

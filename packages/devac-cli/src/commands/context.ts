@@ -5,25 +5,43 @@
  * Includes CI status and LLM review subcommands.
  */
 
+import * as os from "node:os";
+import * as path from "node:path";
 import {
+  CentralHub,
   buildReviewPrompt,
   createSubIssues,
   discoverContext,
   formatCIStatus,
   formatContext,
+  formatIssues,
   formatReviewAsMarkdown,
   gatherDiffs,
   getCIStatusForContext,
+  getIssuesForContext,
   parseReviewResponse,
+  syncCIStatusToHub,
+  syncIssuesToHub,
 } from "@pietgk/devac-core";
 import type {
   CIStatusOptions,
   CIStatusResult,
+  CISyncResult,
   DiscoveryOptions,
+  IssueSyncResult,
+  IssuesOptions,
+  IssuesResult,
   RepoContext,
   ReviewOptions,
   ReviewResult,
 } from "@pietgk/devac-core";
+
+/**
+ * Get default hub directory
+ */
+function getDefaultHubDir(): string {
+  return path.join(os.homedir(), ".devac");
+}
 
 export interface ContextOptions {
   /** Current working directory */
@@ -79,6 +97,10 @@ export interface ContextCIOptions {
   format?: "text" | "json";
   /** Include individual check details */
   includeChecks?: boolean;
+  /** Sync CI status to the central Hub */
+  syncToHub?: boolean;
+  /** Only sync failing checks to Hub (default: false) */
+  failingOnly?: boolean;
   /** CI status options */
   ciOptions?: CIStatusOptions;
 }
@@ -86,6 +108,7 @@ export interface ContextCIOptions {
 export interface ContextCIResult {
   success: boolean;
   result?: CIStatusResult;
+  syncResult?: CISyncResult;
   formatted?: string;
   error?: string;
 }
@@ -113,17 +136,170 @@ export async function contextCICommand(options: ContextCIOptions): Promise<Conte
       };
     }
 
+    // Optionally sync to Hub
+    let syncResult: CISyncResult | undefined;
+    if (options.syncToHub) {
+      const hubDir = getDefaultHubDir();
+      const hub = new CentralHub({ hubDir });
+      try {
+        await hub.init();
+        syncResult = await syncCIStatusToHub(hub, result, {
+          failingOnly: options.failingOnly ?? false,
+          clearExisting: true,
+        });
+      } finally {
+        await hub.close();
+      }
+    }
+
     if (options.format === "json") {
       return {
         success: true,
         result,
+        syncResult,
       };
+    }
+
+    // Format output
+    let formatted = formatCIStatus(result);
+    if (syncResult) {
+      formatted += formatSyncResult(syncResult);
     }
 
     return {
       success: true,
       result,
-      formatted: formatCIStatus(result),
+      syncResult,
+      formatted,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Format the sync result for display
+ */
+function formatSyncResult(syncResult: CISyncResult): string {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Hub Sync:");
+  lines.push(`  Pushed ${syncResult.pushed} feedback items to Hub`);
+  lines.push(`  Processed ${syncResult.reposProcessed} repositories`);
+  if (syncResult.errors.length > 0) {
+    lines.push(`  Errors: ${syncResult.errors.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Format the issue sync result for display
+ */
+function formatIssueSyncResult(syncResult: IssueSyncResult): string {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Hub Sync (Issues):");
+  lines.push(`  Pushed ${syncResult.pushed} issues to Hub`);
+  lines.push(`  Processed ${syncResult.reposProcessed} repositories`);
+  if (syncResult.errors.length > 0) {
+    lines.push(`  Errors: ${syncResult.errors.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+// ============================================================================
+// Issues Command
+// ============================================================================
+
+export interface ContextIssuesOptions {
+  /** Current working directory */
+  cwd: string;
+  /** Output format */
+  format?: "text" | "json";
+  /** Only fetch open issues (default: true) */
+  openOnly?: boolean;
+  /** Maximum issues per repo */
+  limit?: number;
+  /** Filter by labels */
+  labels?: string[];
+  /** Sync issues to the central Hub */
+  syncToHub?: boolean;
+  /** Issues options */
+  issuesOptions?: IssuesOptions;
+}
+
+export interface ContextIssuesResult {
+  success: boolean;
+  result?: IssuesResult;
+  syncResult?: IssueSyncResult;
+  formatted?: string;
+  error?: string;
+}
+
+/**
+ * Get GitHub issues for all repos in context
+ */
+export async function contextIssuesCommand(
+  options: ContextIssuesOptions
+): Promise<ContextIssuesResult> {
+  try {
+    // Discover context
+    const context = await discoverContext(options.cwd);
+
+    // Get issues
+    const issuesOptions: IssuesOptions = {
+      openOnly: options.openOnly ?? true,
+      limit: options.limit ?? 50,
+      labels: options.labels,
+      ...options.issuesOptions,
+    };
+
+    const result = await getIssuesForContext(context, issuesOptions);
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
+
+    // Optionally sync to Hub
+    let syncResult: IssueSyncResult | undefined;
+    if (options.syncToHub) {
+      const hubDir = getDefaultHubDir();
+      const hub = new CentralHub({ hubDir });
+      try {
+        await hub.init();
+        syncResult = await syncIssuesToHub(hub, result, {
+          clearExisting: true,
+        });
+      } finally {
+        await hub.close();
+      }
+    }
+
+    if (options.format === "json") {
+      return {
+        success: true,
+        result,
+        syncResult,
+      };
+    }
+
+    // Format output
+    let formatted = formatIssues(result);
+    if (syncResult) {
+      formatted += formatIssueSyncResult(syncResult);
+    }
+
+    return {
+      success: true,
+      result,
+      syncResult,
+      formatted,
     };
   } catch (error) {
     return {

@@ -192,6 +192,92 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  // ================== Unified Feedback Tools ==================
+  {
+    name: "get_all_feedback",
+    description:
+      "Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Filter by source, severity, category, and more. Use this to answer 'What do I need to fix?' across all feedback types. Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        repo_id: {
+          type: "string",
+          description: "Filter by repository ID (e.g., 'github.com/org/repo')",
+        },
+        source: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["tsc", "eslint", "test", "ci-check", "github-issue", "pr-review"],
+          },
+          description: "Filter by feedback sources (validation, CI, issues, reviews)",
+        },
+        severity: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["critical", "error", "warning", "suggestion", "note"],
+          },
+          description: "Filter by severity levels",
+        },
+        category: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: [
+              "compilation",
+              "linting",
+              "testing",
+              "ci-check",
+              "task",
+              "feedback",
+              "code-review",
+            ],
+          },
+          description: "Filter by feedback categories",
+        },
+        file_path: {
+          type: "string",
+          description: "Filter by file path (partial match)",
+        },
+        resolved: {
+          type: "boolean",
+          description: "Filter by resolution status (true = resolved, false = unresolved)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of feedback items to return",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_feedback_summary",
+    description:
+      "Get a summary of all feedback grouped by source, severity, category, or repository. Provides an overview of what needs attention. Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        groupBy: {
+          type: "string",
+          enum: ["repo", "source", "severity", "category"],
+          description: "How to group the feedback counts",
+        },
+      },
+      required: ["groupBy"],
+    },
+  },
+  {
+    name: "get_feedback_counts",
+    description:
+      "Get total counts of feedback by severity (critical, error, warning, suggestion, note). Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 export { MCP_TOOLS as default };

@@ -10,8 +10,11 @@ import * as path from "node:path";
 import {
   type CentralHub,
   DuckDBPool,
+  type FeedbackFilter,
+  type FeedbackSummary,
   type SeedReader,
   type SymbolAffectedAnalyzer,
+  type UnifiedFeedback,
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
@@ -94,6 +97,26 @@ export interface DataProvider {
 
   /** Get validation error counts (hub mode only) */
   getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }>;
+
+  // ================== Unified Feedback Methods ==================
+
+  /** Get all feedback (unified view, hub mode only) */
+  getAllFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]>;
+
+  /** Get feedback summary (hub mode only) */
+  getFeedbackSummary(
+    groupBy: "repo" | "source" | "severity" | "category"
+  ): Promise<FeedbackSummary[]>;
+
+  /** Get feedback counts by severity (hub mode only) */
+  getFeedbackCounts(): Promise<{
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+    total: number;
+  }>;
 }
 
 /**
@@ -274,6 +297,27 @@ export class PackageDataProvider implements DataProvider {
 
   async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
     throw new Error("get_validation_counts is only available in hub mode");
+  }
+
+  async getAllFeedback(_filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
+    throw new Error("get_all_feedback is only available in hub mode");
+  }
+
+  async getFeedbackSummary(
+    _groupBy: "repo" | "source" | "severity" | "category"
+  ): Promise<FeedbackSummary[]> {
+    throw new Error("get_feedback_summary is only available in hub mode");
+  }
+
+  async getFeedbackCounts(): Promise<{
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+    total: number;
+  }> {
+    throw new Error("get_feedback_counts is only available in hub mode");
   }
 }
 
@@ -530,6 +574,29 @@ export class HubDataProvider implements DataProvider {
 
   async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
     return await this.hub.getValidationCounts();
+  }
+
+  // ================== Unified Feedback Methods ==================
+
+  async getAllFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
+    return await this.hub.getFeedback(filter);
+  }
+
+  async getFeedbackSummary(
+    groupBy: "repo" | "source" | "severity" | "category"
+  ): Promise<FeedbackSummary[]> {
+    return await this.hub.getFeedbackSummary(groupBy);
+  }
+
+  async getFeedbackCounts(): Promise<{
+    critical: number;
+    error: number;
+    warning: number;
+    suggestion: number;
+    note: number;
+    total: number;
+  }> {
+    return await this.hub.getFeedbackCounts();
   }
 }
 
