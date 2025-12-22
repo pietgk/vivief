@@ -1,8 +1,36 @@
 /**
  * CLI Commands Index
  *
- * Re-exports all CLI command implementations.
+ * Re-exports all CLI command implementations and registration functions.
  */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command registration functions (for use in index.ts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export { registerAnalyzeCommand } from "./analyze.js";
+export { registerQueryCommand } from "./query.js";
+export { registerVerifyCommand } from "./verify.js";
+export { registerCleanCommand } from "./clean.js";
+export { registerWatchCommand } from "./watch.js";
+export { registerValidateCommand } from "./validate.js";
+export { registerAffectedCommand } from "./affected.js";
+export { registerMcpCommand } from "./mcp.js";
+export { registerContextCommand } from "./context.js";
+export { registerHubCommand } from "./hub-init.js";
+export { registerWorkspaceCommand } from "./workspace-status.js";
+export { registerTypecheckCommand } from "./typecheck.js";
+export { registerLintCommand } from "./lint.js";
+export { registerTestCommand } from "./test-cmd.js";
+export { registerFindSymbolCommand } from "./find-symbol.js";
+export { registerDepsCommand } from "./deps.js";
+export { registerDependentsCommand } from "./dependents.js";
+export { registerFileSymbolsCommand } from "./file-symbols.js";
+export { registerCallGraphCommand } from "./call-graph.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command function exports (for programmatic use)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export { analyzeCommand } from "./analyze.js";
 export { queryCommand } from "./query.js";

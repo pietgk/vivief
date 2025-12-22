@@ -5,11 +5,15 @@
  * worktrees, and hub status.
  */
 
+import * as path from "node:path";
 import {
   type WorkspaceInfo,
   type WorkspaceManagerStats,
   createWorkspaceManager,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
+import { workspaceInit } from "./workspace-init.js";
+import { workspaceWatch } from "./workspace-watch.js";
 
 /**
  * Workspace status command options
@@ -141,4 +145,101 @@ export async function workspaceStatus(
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+/**
+ * Register the workspace command with all subcommands
+ */
+export function registerWorkspaceCommand(program: Command): void {
+  const workspace = program
+    .command("workspace")
+    .description("Workspace-level operations for multi-repo development");
+
+  // workspace status
+  workspace
+    .command("status")
+    .description("Show workspace status and discovered repos")
+    .option("-w, --workspace <path>", "Workspace path", process.cwd())
+    .option("--json", "Output as JSON")
+    .option("--hub-details", "Include hub details")
+    .action(async (options) => {
+      const result = await workspaceStatus({
+        workspacePath: path.resolve(options.workspace),
+        json: options.json,
+        hubDetails: options.hubDetails,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(JSON.stringify({ info: result.info, stats: result.stats }, null, 2));
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // workspace watch
+  workspace
+    .command("watch")
+    .description("Watch workspace for changes and auto-refresh hub")
+    .option("-w, --workspace <path>", "Workspace path", process.cwd())
+    .option("--no-auto-refresh", "Disable auto-refresh of hub")
+    .option("--debounce <ms>", "Refresh debounce time in ms", "500")
+    .action(async (options) => {
+      const result = await workspaceWatch({
+        workspacePath: path.resolve(options.workspace),
+        autoRefresh: options.autoRefresh,
+        refreshDebounceMs: Number.parseInt(options.debounce, 10),
+      });
+
+      if (result.success && result.controller) {
+        // Handle Ctrl+C
+        process.on("SIGINT", async () => {
+          console.log("\nStopping workspace watch...");
+          await result.controller?.stop();
+          const status = result.controller?.getStatus();
+          if (status) {
+            console.log(
+              `Processed ${status.eventsProcessed} events, ${status.hubRefreshes} hub refreshes`
+            );
+          }
+          process.exit(0);
+        });
+      } else {
+        console.error(`✗ ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // workspace init
+  workspace
+    .command("init")
+    .description("Initialize workspace configuration and hub")
+    .option("-w, --workspace <path>", "Workspace path", process.cwd())
+    .option("--auto-refresh", "Enable auto-refresh on seed changes", true)
+    .option("--register", "Register all repos with hub")
+    .option("--force", "Force overwrite existing config")
+    .action(async (options) => {
+      const result = await workspaceInit({
+        workspacePath: path.resolve(options.workspace),
+        autoRefresh: options.autoRefresh,
+        registerRepos: options.register,
+        force: options.force,
+      });
+
+      if (result.success) {
+        console.log("✓ Workspace initialized");
+        console.log(`  Config: ${result.paths.config}`);
+        console.log(`  Hub: ${result.paths.hub}`);
+        if (result.reposRegistered > 0) {
+          console.log(`  Registered ${result.reposRegistered} repos with hub`);
+        }
+      } else {
+        console.error(`✗ ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

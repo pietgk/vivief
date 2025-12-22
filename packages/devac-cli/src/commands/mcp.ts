@@ -7,6 +7,7 @@
  */
 
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import {
   DuckDBPool,
   SeedReader,
@@ -14,6 +15,7 @@ import {
   createSymbolAffectedAnalyzer,
   executeWithRecovery,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 
 /**
  * MCP Tool definition
@@ -357,4 +359,44 @@ export async function mcpCommand(options: MCPCommandOptions): Promise<MCPCommand
       error: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+/**
+ * Register the mcp command with the CLI program
+ */
+export function registerMcpCommand(program: Command): void {
+  program
+    .command("mcp")
+    .description("Start MCP server for AI assistant integration")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-a, --action <action>", "Action (start, stop)", "start")
+    .action(async (options) => {
+      const result = await mcpCommand({
+        packagePath: path.resolve(options.package),
+        action: options.action,
+      });
+
+      if (result.success) {
+        if (result.controller) {
+          console.log(`✓ MCP server started with ${result.toolCount} tools`);
+          console.log("Available tools:");
+          for (const tool of result.controller.getTools()) {
+            console.log(`  - ${tool.name}: ${tool.description}`);
+          }
+          console.log("\nPress Ctrl+C to stop.\n");
+
+          process.on("SIGINT", async () => {
+            console.log("\nStopping MCP server...");
+            await result.controller?.stop();
+            console.log("MCP server stopped.");
+            process.exit(0);
+          });
+        } else {
+          console.log("MCP server stopped.");
+        }
+      } else {
+        console.error(`✗ MCP failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

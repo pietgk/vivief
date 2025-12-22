@@ -14,6 +14,7 @@ import {
   createSeedReader,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatOutput, formatSymbols } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
@@ -153,4 +154,35 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
       await pool.shutdown();
     }
   }
+}
+
+/**
+ * Register the find-symbol command with the CLI program
+ */
+export function registerFindSymbolCommand(program: Command): void {
+  program
+    .command("find-symbol <name>")
+    .description("Find symbol by name")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-k, --kind <kind>", "Symbol kind filter")
+    .option("--hub", "Query all registered repos via Hub")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("-l, --limit <count>", "Maximum results", "100")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (name, options) => {
+      const result = await findSymbolCommand({
+        name,
+        kind: options.kind,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
+        hub: options.hub,
+        hubDir: options.hubDir,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

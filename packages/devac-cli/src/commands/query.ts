@@ -5,7 +5,9 @@
  * Based on spec Section 11.2: Query Commands
  */
 
+import * as path from "node:path";
 import { DuckDBPool, executeWithRecovery } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import type { QueryOptions, QueryResult } from "./types.js";
 
 /**
@@ -167,4 +169,42 @@ function formatAsTable(rows: Record<string, unknown>[]): string {
   lines.push(sep);
 
   return lines.join("\n");
+}
+
+/**
+ * Register the query command with the CLI program
+ */
+export function registerQueryCommand(program: Command): void {
+  program
+    .command("query <sql>")
+    .description("Execute SQL query against seed files")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-f, --format <type>", "Output format (json, csv, table)", "json")
+    .action(async (sql, options) => {
+      const result = await queryCommand({
+        sql,
+        packagePath: path.resolve(options.package),
+        format: options.format,
+      });
+
+      if (result.success) {
+        switch (options.format) {
+          case "csv":
+            console.log(result.csv);
+            break;
+          case "table":
+            console.log(result.table);
+            break;
+          default:
+            console.log(JSON.stringify(result.rows, null, 2));
+        }
+
+        if (result.timeMs !== undefined) {
+          console.error(`\n(${result.rowCount} rows, ${result.timeMs}ms)`);
+        }
+      } else {
+        console.error(`✗ Query failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

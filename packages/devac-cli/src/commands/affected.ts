@@ -7,7 +7,9 @@
  */
 
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { DuckDBPool, SeedReader, createSymbolAffectedAnalyzer } from "@pietgk/devac-core";
+import type { Command } from "commander";
 
 /**
  * Options for affected command
@@ -132,4 +134,51 @@ function createErrorResult(error: string, startTime: number): AffectedCommandRes
     analysisTimeMs: Date.now() - startTime,
     error,
   };
+}
+
+/**
+ * Register the affected command with the CLI program
+ */
+export function registerAffectedCommand(program: Command): void {
+  program
+    .command("affected")
+    .description("Find files affected by changes")
+    .option("-p, --package <path>", "Package path to analyze", process.cwd())
+    .option("-f, --files <files...>", "Changed files to analyze")
+    .option("-d, --max-depth <depth>", "Maximum traversal depth", "10")
+    .option("--format <format>", "Output format (json, list, tree)", "json")
+    .action(async (options) => {
+      const result = await affectedCommand({
+        packagePath: path.resolve(options.package),
+        changedFiles: options.files || [],
+        maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
+        format: options.format,
+      });
+
+      if (result.success) {
+        switch (options.format) {
+          case "list":
+            for (const file of result.affectedFiles) {
+              console.log(`${file.filePath} (${file.impactLevel}, depth=${file.depth})`);
+            }
+            break;
+          case "tree":
+            console.log(`Changed symbols: ${result.changedSymbols.length}`);
+            for (const sym of result.changedSymbols) {
+              console.log(`  ${sym.kind} ${sym.name} (${sym.filePath})`);
+            }
+            console.log(`\nAffected files: ${result.totalAffected}`);
+            for (const file of result.affectedFiles) {
+              console.log(`  ${"  ".repeat(file.depth)}${file.filePath}`);
+            }
+            break;
+          default:
+            console.log(JSON.stringify(result, null, 2));
+        }
+        console.error(`\n(${result.analysisTimeMs}ms)`);
+      } else {
+        console.error(`✗ Analysis failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

@@ -18,6 +18,7 @@ import {
   getSemanticResolverFactory,
   toUnresolvedRef,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 
 import { glob } from "glob";
 import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
@@ -300,4 +301,48 @@ async function checkForChanges(packagePath: string, sourceFiles: string[]): Prom
     // If we can't check, assume changes
     return true;
   }
+}
+
+/**
+ * Register the analyze command with the CLI program
+ */
+export function registerAnalyzeCommand(program: Command): void {
+  program
+    .command("analyze")
+    .description("Analyze package and generate seed files")
+    .option("-p, --package <path>", "Package path to analyze", process.cwd())
+    .option("-r, --repo <name>", "Repository name", "repo")
+    .option("-b, --branch <name>", "Git branch name", "main")
+    .option("--if-changed", "Only analyze if source files changed")
+    .option("--force", "Force full reanalysis")
+    .option("--all", "Analyze all packages in repository")
+    .option("--resolve", "Run semantic resolution after structural analysis")
+    .action(async (options) => {
+      const result = await analyzeCommand({
+        packagePath: path.resolve(options.package),
+        repoName: options.repo,
+        branch: options.branch,
+        ifChanged: options.ifChanged,
+        force: options.force,
+        all: options.all,
+        resolve: options.resolve,
+      });
+
+      if (result.success) {
+        if (result.skipped) {
+          console.log("No changes detected - skipped analysis");
+        } else {
+          console.log(`✓ Analyzed ${result.filesAnalyzed} files in ${result.timeMs}ms`);
+          console.log(`  Nodes: ${result.nodesCreated}`);
+          console.log(`  Edges: ${result.edgesCreated}`);
+          console.log(`  External refs: ${result.refsCreated}`);
+          if (result.refsResolved !== undefined) {
+            console.log(`  Refs resolved: ${result.refsResolved}`);
+          }
+        }
+      } else {
+        console.error(`✗ Analysis failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

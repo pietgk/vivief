@@ -14,6 +14,7 @@ import {
   createSeedReader,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatDependencies, formatOutput } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
@@ -161,4 +162,35 @@ export async function dependentsCommand(
       await pool.shutdown();
     }
   }
+}
+
+/**
+ * Register the dependents command with the CLI program
+ */
+export function registerDependentsCommand(program: Command): void {
+  program
+    .command("dependents <entityId>")
+    .description("Get dependents of an entity (reverse dependencies)")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-t, --type <type>", "Filter by edge type (CALLS, IMPORTS, etc.)")
+    .option("--hub", "Query all registered repos via Hub")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("-l, --limit <count>", "Maximum results", "100")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (entityId, options) => {
+      const result = await dependentsCommand({
+        entityId,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
+        hub: options.hub,
+        hubDir: options.hubDir,
+        edgeType: options.type,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

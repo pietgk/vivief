@@ -13,6 +13,7 @@ import {
   createSeedReader,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatOutput } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
@@ -240,4 +241,37 @@ export async function callGraphCommand(
       await pool.shutdown();
     }
   }
+}
+
+/**
+ * Register the call-graph command with the CLI program
+ */
+export function registerCallGraphCommand(program: Command): void {
+  program
+    .command("call-graph <entityId>")
+    .description("Get call graph for a function")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-d, --direction <dir>", "Direction (callers, callees, both)", "both")
+    .option("--hub", "Query all registered repos via Hub")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--max-depth <depth>", "Maximum depth", "3")
+    .option("-l, --limit <count>", "Maximum results per direction", "100")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (entityId, options) => {
+      const result = await callGraphCommand({
+        entityId,
+        direction: options.direction as "callers" | "callees" | "both",
+        packagePath: options.package ? path.resolve(options.package) : undefined,
+        hub: options.hub,
+        hubDir: options.hubDir,
+        maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

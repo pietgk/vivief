@@ -11,6 +11,7 @@ import {
   type LintResult as CoreLintResult,
   createLintValidator,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatOutput, formatValidationIssues } from "./output-formatter.js";
 
 /**
@@ -122,4 +123,34 @@ export async function lintCommand(options: LintCommandOptions): Promise<LintComm
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Register the lint command with the CLI program
+ */
+export function registerLintCommand(program: Command): void {
+  program
+    .command("lint")
+    .description("Run ESLint on a package")
+    .option("-p, --package <path>", "Package path to lint", process.cwd())
+    .option("-f, --files <files...>", "Specific files to lint")
+    .option("-c, --config <path>", "Path to ESLint config")
+    .option("-t, --timeout <ms>", "Timeout in milliseconds")
+    .option("--fix", "Fix auto-fixable issues")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (options) => {
+      const result = await lintCommand({
+        packagePath: path.resolve(options.package),
+        files: options.files,
+        config: options.config,
+        timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
+        fix: options.fix,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

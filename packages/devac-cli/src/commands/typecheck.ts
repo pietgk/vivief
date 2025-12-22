@@ -11,6 +11,7 @@ import {
   type TypecheckResult as CoreTypecheckResult,
   createTypecheckValidator,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatOutput, formatValidationIssues } from "./output-formatter.js";
 
 /**
@@ -116,4 +117,32 @@ export async function typecheckCommand(
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Register the typecheck command with the CLI program
+ */
+export function registerTypecheckCommand(program: Command): void {
+  program
+    .command("typecheck")
+    .description("Run TypeScript type checking")
+    .option("-p, --package <path>", "Package path to check", process.cwd())
+    .option("-f, --files <files...>", "Specific files to check")
+    .option("-c, --config <path>", "Path to tsconfig.json")
+    .option("-t, --timeout <ms>", "Timeout in milliseconds")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (options) => {
+      const result = await typecheckCommand({
+        packagePath: path.resolve(options.package),
+        files: options.files,
+        tsconfig: options.config,
+        timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

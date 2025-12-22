@@ -27,6 +27,7 @@ import {
   extractIssueNumber,
   formatCrossRepoNeed,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { analyzeCommand } from "./analyze.js";
 import type {
   WatchChangeEvent,
@@ -488,3 +489,66 @@ export async function watchCommand(options: WatchOptions): Promise<WatchControll
 
 // Re-export types for convenience
 export type { WatchOptions, WatchResult, WatchController };
+
+/**
+ * Register the watch command with the CLI program
+ */
+export function registerWatchCommand(program: Command): void {
+  program
+    .command("watch")
+    .description("Watch for file changes and update incrementally")
+    .option("-p, --package <path>", "Package path to watch", process.cwd())
+    .option("-r, --repo <name>", "Repository name", "repo")
+    .option("-b, --branch <name>", "Git branch name", "main")
+    .option("--debounce <ms>", "Debounce time in milliseconds", "100")
+    .option("--force", "Force initial analysis")
+    .option("--no-cross-repo", "Disable cross-repo detection")
+    .option("--notifications <path>", "Path for cross-repo notifications")
+    .action(async (options) => {
+      const controller = await watchCommand({
+        packagePath: path.resolve(options.package),
+        repoName: options.repo,
+        branch: options.branch,
+        debounceMs: options.debounce ? Number.parseInt(options.debounce, 10) : undefined,
+        force: options.force,
+        detectCrossRepo: options.crossRepo,
+        notificationsPath: options.notifications,
+      });
+
+      const status = controller.getStatus();
+
+      if (status.error) {
+        console.error(`✗ Watch failed: ${status.error}`);
+        process.exit(1);
+      }
+
+      console.log(`Watching ${options.package}...`);
+      console.log(
+        `  Initial analysis: ${status.initialAnalysisSkipped ? "skipped (seeds current)" : `${status.filesAnalyzed} files`}`
+      );
+      if (status.crossRepoDetectionEnabled) {
+        console.log("  Cross-repo detection: enabled");
+      }
+      console.log("\nPress Ctrl+C to stop.\n");
+
+      controller.on("change", (event) => {
+        console.log(`[${new Date().toISOString()}] ${event.type}: ${event.filePath}`);
+      });
+
+      controller.on("cross-repo-need", (event) => {
+        console.log(`\n⚠️  Cross-repo need detected: ${event.targetRepo}`);
+        console.log(`   Symbols: ${event.symbols.join(", ")}`);
+        if (event.issueNumber) {
+          console.log(`   Issue: #${event.issueNumber}`);
+        }
+      });
+
+      // Keep process running
+      process.on("SIGINT", async () => {
+        console.log("\nStopping watch...");
+        const result = await controller.stop({ flush: true });
+        console.log(`Processed ${result.eventsProcessed} events`);
+        process.exit(0);
+      });
+    });
+}

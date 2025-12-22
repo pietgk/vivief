@@ -39,6 +39,9 @@ pnpm-debug.log*
 *.bak
 *.tmp
 
+# Generated version files
+packages/*/src/version.ts
+
 # Test fixtures - generated .ts files from .ts.txt templates
 # These are intentionally broken TypeScript files for error handling tests
 packages/fixtures-typescript/src/error.ts

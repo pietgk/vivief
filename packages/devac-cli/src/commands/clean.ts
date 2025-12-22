@@ -7,6 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import type { Command } from "commander";
 import type { CleanOptions, CleanResult } from "./types.js";
 
 /**
@@ -129,4 +130,41 @@ async function cleanTempFiles(dirPath: string): Promise<void> {
   } catch {
     // Directory might not exist
   }
+}
+
+/**
+ * Format bytes for human-readable display
+ */
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / k ** i).toFixed(1)} ${sizes[i]}`;
+}
+
+/**
+ * Register the clean command with the CLI program
+ */
+export function registerCleanCommand(program: Command): void {
+  program
+    .command("clean")
+    .description("Remove seed files")
+    .option("-p, --package <path>", "Package path to clean", process.cwd())
+    .option("--config", "Also remove .devac configuration directory")
+    .action(async (options) => {
+      const result = await cleanCommand({
+        packagePath: path.resolve(options.package),
+        cleanConfig: options.config,
+      });
+
+      if (result.success) {
+        console.log(
+          `✓ Cleaned ${result.filesRemoved} files (${formatBytes(result.bytesFreed)} freed)`
+        );
+      } else {
+        console.error(`✗ Clean failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }

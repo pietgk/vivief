@@ -13,6 +13,7 @@ import {
   type TestResult as CoreTestResult,
   createTestValidator,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 import { formatOutput } from "./output-formatter.js";
 
 /**
@@ -132,4 +133,34 @@ export async function testCommand(options: TestCommandOptions): Promise<TestComm
       error: errorMessage,
     };
   }
+}
+
+/**
+ * Register the test command with the CLI program
+ */
+export function registerTestCommand(program: Command): void {
+  program
+    .command("test")
+    .description("Run test suite on a package")
+    .option("-p, --package <path>", "Package path to test", process.cwd())
+    .option("-f, --files <files...>", "Specific test files to run")
+    .option("-r, --runner <runner>", "Test runner (vitest, jest, npm-test)")
+    .option("-t, --timeout <ms>", "Timeout in milliseconds")
+    .option("-u, --update-snapshots", "Update snapshots")
+    .option("--pretty", "Human-readable output", true)
+    .action(async (options) => {
+      const result = await testCommand({
+        packagePath: path.resolve(options.package),
+        files: options.files,
+        runner: options.runner,
+        timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
+        updateSnapshots: options.updateSnapshots,
+        pretty: options.pretty,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }

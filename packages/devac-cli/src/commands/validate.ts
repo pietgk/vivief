@@ -18,6 +18,7 @@ import {
   type ValidationMode,
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 
 /**
  * Get the default Hub directory path
@@ -245,4 +246,56 @@ function createErrorResult(mode: ValidationMode, error: string, startTime: numbe
     totalTimeMs: Date.now() - startTime,
     error,
   };
+}
+
+/**
+ * Register the validate command with the CLI program
+ */
+export function registerValidateCommand(program: Command): void {
+  program
+    .command("validate")
+    .description("Validate changed files with affected detection")
+    .option("-p, --package <path>", "Package path to validate", process.cwd())
+    .option("-f, --files <files...>", "Changed files to validate")
+    .option("-m, --mode <mode>", "Validation mode (quick, full)", "quick")
+    .option("--skip-typecheck", "Skip type checking")
+    .option("--skip-lint", "Skip linting")
+    .option("--force-tests", "Force tests even in quick mode")
+    .option("--max-depth <depth>", "Maximum affected depth", "10")
+    .option("-t, --timeout <ms>", "Timeout in milliseconds")
+    .option("--push-to-hub", "Push results to central Hub")
+    .option("--repo-id <id>", "Repository ID for Hub push")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const result = await validateCommand({
+        packagePath: path.resolve(options.package),
+        changedFiles: options.files || [],
+        mode: options.mode as ValidationMode,
+        skipTypecheck: options.skipTypecheck,
+        skipLint: options.skipLint,
+        forceTests: options.forceTests,
+        maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
+        timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
+        pushToHub: options.pushToHub,
+        repoId: options.repoId,
+        hubDir: options.hubDir,
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        if (result.success) {
+          console.log(`✓ Validation passed (${result.mode} mode, ${result.totalTimeMs}ms)`);
+          console.log(`  Affected files: ${result.affected.totalAffected}`);
+          console.log(`  Issues found: ${result.totalIssues}`);
+          if (result.pushedToHub !== undefined) {
+            console.log(`  Pushed to Hub: ${result.pushedToHub}`);
+          }
+        } else {
+          console.error(`✗ Validation failed: ${result.error || `${result.totalIssues} issues`}`);
+          process.exit(1);
+        }
+      }
+    });
 }

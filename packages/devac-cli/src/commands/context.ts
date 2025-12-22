@@ -41,6 +41,7 @@ import type {
   ReviewsOptions,
   ReviewsResult,
 } from "@pietgk/devac-core";
+import type { Command } from "commander";
 
 /**
  * Get default hub directory
@@ -618,4 +619,124 @@ function formatReviewPromptOutput(
   lines.push("");
 
   return lines.join("\n");
+}
+
+/**
+ * Register the context command with the CLI program
+ */
+export function registerContextCommand(program: Command): void {
+  const context = program
+    .command("context")
+    .description("Discover and display cross-repository context")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const result = await contextCommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(JSON.stringify(result.context, null, 2));
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ Context discovery failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // CI subcommand
+  context
+    .command("ci")
+    .description("Get CI status for repos in context")
+    .option("--json", "Output as JSON")
+    .option("--include-checks", "Include individual check details")
+    .option("--sync-to-hub", "Sync CI status to central Hub")
+    .option("--failing-only", "Only sync failing checks to Hub")
+    .action(async (options) => {
+      const result = await contextCICommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        includeChecks: options.includeChecks,
+        syncToHub: options.syncToHub,
+        failingOnly: options.failingOnly,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+          );
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ CI status failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // Issues subcommand
+  context
+    .command("issues")
+    .description("Get GitHub issues for repos in context")
+    .option("--json", "Output as JSON")
+    .option("--all", "Include closed issues")
+    .option("-l, --limit <count>", "Maximum issues per repo", "50")
+    .option("--labels <labels...>", "Filter by labels")
+    .option("--sync-to-hub", "Sync issues to central Hub")
+    .action(async (options) => {
+      const result = await contextIssuesCommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        openOnly: !options.all,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        labels: options.labels,
+        syncToHub: options.syncToHub,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+          );
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ Issues fetch failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // Review subcommand
+  context
+    .command("review")
+    .description("Generate LLM review prompt for changes")
+    .option("--json", "Output as JSON")
+    .option("--focus <area>", "Focus area (security, performance, tests, all)", "all")
+    .option("--base <branch>", "Base branch to diff against", "main")
+    .option("--create-sub-issues", "Create sub-issues for follow-up work")
+    .action(async (options) => {
+      const result = await contextReviewCommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        focus: options.focus as "security" | "performance" | "tests" | "all",
+        baseBranch: options.base,
+        createSubIssues: options.createSubIssues,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(JSON.stringify({ prompt: result.prompt, result: result.result }, null, 2));
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ Review generation failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
 }
