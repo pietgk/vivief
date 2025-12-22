@@ -42,11 +42,23 @@ The orchestrator coordinates the entire analysis flow:
 
 ```typescript
 import { createAnalysisOrchestrator } from "./analyzer/analysis-orchestrator";
+import { createLanguageRouter } from "./analyzer/language-router";
+import { createSeedWriter } from "./storage/seed-writer";
+import { DuckDBPool } from "./storage/duckdb-pool";
 
-const orchestrator = createAnalysisOrchestrator(pool, {
-  debounceMs: 100,       // Batch collection window
-  semanticSettleMs: 5000, // Wait before semantic resolution
-  maxConcurrency: 4       // Parallel parse limit
+// Create dependencies
+const pool = new DuckDBPool();
+await pool.initialize();
+const router = createLanguageRouter();
+const writer = createSeedWriter(pool, "/path/to/package");
+
+// Create orchestrator
+const orchestrator = createAnalysisOrchestrator(router, writer, pool, {
+  batchSize: 50,      // Files per batch (default: 50)
+  concurrency: 10,    // Parallel file operations (default: 10)
+  repoName: "my-repo", // Repository name for entity IDs
+  branch: "main",     // Branch name (default: "main")
+  verbose: false      // Enable verbose logging
 });
 
 // Analyze a package
@@ -260,14 +272,14 @@ const entityId = generateEntityId({
 // "repo-api:packages/auth:function:a1b2c3d4"
 ```
 
-### Scoped Name Generation
+### Qualified Name Generation
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  SCOPED NAME RULES                                                          │
+│  QUALIFIED NAME RULES                                                       │
 │                                                                             │
-│  Code Pattern                      Scoped Name                              │
-│  ──────────────────────────────────────────────────                        │
+│  Code Pattern                      Qualified Name                           │
+│  ─────────────────────────────────────────────────                          │
 │  function handleLogin() {}         handleLogin                              │
 │                                                                             │
 │  class AuthService {                                                        │

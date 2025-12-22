@@ -17,15 +17,15 @@ DevAC uses a **Universal AST** model that normalizes code structures from multip
 │  TypeScript ──┐                                                             │
 │               │      ┌──────────────────────┐      ┌───────────────────┐   │
 │  Python ──────┼────► │  Universal Node/Edge │ ────►│  Parquet Storage  │   │
-│               │      │  (16 kinds, 19 types)│      │  + DuckDB Queries │   │
+│               │      │  (17 kinds, 19 types)│      │  + DuckDB Queries │   │
 │  C# ──────────┘      └──────────────────────┘      └───────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Universal Node Kinds (16 types)
+## Universal Node Kinds (17 types)
 
-All code elements are classified into one of 16 universal kinds:
+All code elements are classified into one of 17 universal kinds:
 
 | Kind | Description | TypeScript Example | Python Example | C# Example |
 |------|-------------|-------------------|----------------|------------|
@@ -191,7 +191,7 @@ The scope hash is computed from the fully-qualified name (e.g., `AuthService.log
 
 ### 1. Language-Agnostic Core
 
-The 16 node kinds and 19 edge types cover common programming concepts across all supported languages. This enables queries like:
+The 17 node kinds and 19 edge types cover common programming concepts across all supported languages. This enables queries like:
 
 ```sql
 -- Find all classes across all languages

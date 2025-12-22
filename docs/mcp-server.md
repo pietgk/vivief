@@ -25,9 +25,19 @@ pnpm add @pietgk/devac-mcp
 
 ### Via CLI
 
+The MCP server supports two modes:
+
+**Package Mode** - Query a single package:
 ```bash
 devac mcp start --package /path/to/your/package
 ```
+
+**Hub Mode** - Query across all registered repositories:
+```bash
+devac mcp start --hub
+```
+
+The `--hub` and `--package` flags are mutually exclusive. Hub mode is the default if neither is specified.
 
 ### Programmatically
 
@@ -47,7 +57,7 @@ await server.stop();
 
 ## Available Tools
 
-The MCP server exposes 12 tools for code analysis, context discovery, and validation:
+The MCP server exposes 15 tools for code analysis, context discovery, validation, and unified feedback:
 
 ### find_symbol
 
@@ -287,14 +297,83 @@ Get total counts of validation errors and warnings across all repositories. Only
 **Response:**
 Returns `{ "errors": 18, "warnings": 7 }`.
 
+### get_all_feedback
+
+Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Use this to answer "What do I need to fix?" across all feedback types. Only available in hub mode.
+
+**Parameters:**
+- `repo_id` (string, optional): Filter by repository ID
+- `source` (string[], optional): Filter by sources ("tsc", "eslint", "test", "ci-check", "github-issue", "pr-review")
+- `severity` (string[], optional): Filter by severity ("critical", "error", "warning", "suggestion", "note")
+- `category` (string[], optional): Filter by category ("compilation", "linting", "testing", "ci-check", "task", "feedback", "code-review")
+- `file_path` (string, optional): Filter by file path (partial match)
+- `resolved` (boolean, optional): Filter by resolution status
+- `limit` (number, optional): Maximum number of items to return
+
+**Example:**
+```json
+{
+  "name": "get_all_feedback",
+  "arguments": {
+    "severity": ["error", "critical"],
+    "source": ["tsc", "eslint"],
+    "limit": 20
+  }
+}
+```
+
+### get_feedback_summary
+
+Get a summary of all feedback grouped by source, severity, category, or repository. Only available in hub mode.
+
+**Parameters:**
+- `groupBy` (string, required): How to group counts ("repo", "source", "severity", or "category")
+
+**Example:**
+```json
+{
+  "name": "get_feedback_summary",
+  "arguments": {
+    "groupBy": "category"
+  }
+}
+```
+
+**Response:**
+Returns grouped counts like `{ "compilation": 5, "linting": 3, "testing": 2 }`.
+
+### get_feedback_counts
+
+Get total counts of feedback by severity level. Only available in hub mode.
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "get_feedback_counts",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns `{ "critical": 0, "error": 18, "warning": 7, "suggestion": 2, "note": 1 }`.
+
 ## Server Configuration
 
 ### MCPServerOptions
 
 ```typescript
 interface MCPServerOptions {
-  packagePath: string;     // Path to the package to analyze
-  memoryLimit?: string;    // DuckDB memory limit (default: "256MB")
+  /** Server mode: "package" for single package, "hub" for federated queries */
+  mode: "package" | "hub";
+  /** Path to the package to analyze (required in package mode) */
+  packagePath?: string;
+  /** Hub directory path (default: ~/.devac, used in hub mode) */
+  hubDir?: string;
+  /** DuckDB memory limit (default: "256MB") */
+  memoryLimit?: string;
 }
 ```
 
@@ -305,7 +384,9 @@ const status = server.getStatus();
 // Returns:
 // {
 //   isRunning: boolean;
-//   packagePath: string;
+//   mode: "package" | "hub";
+//   packagePath?: string;
+//   hubDir?: string;
 //   toolCount: number;
 //   uptime: number;  // milliseconds since start
 // }
@@ -317,6 +398,19 @@ const status = server.getStatus();
 
 Add the following to your Claude Desktop configuration:
 
+**Hub Mode (recommended for multi-repo):**
+```json
+{
+  "mcpServers": {
+    "devac": {
+      "command": "npx",
+      "args": ["devac", "mcp", "start", "--hub"]
+    }
+  }
+}
+```
+
+**Package Mode (single package):**
 ```json
 {
   "mcpServers": {
@@ -335,11 +429,18 @@ The server uses stdio transport by default, making it compatible with any MCP-co
 ```typescript
 import { DevacMCPServer } from "@pietgk/devac-mcp";
 
-const server = new DevacMCPServer({
+// Hub mode - federated queries across registered repos
+const hubServer = new DevacMCPServer({
+  mode: "hub"
+});
+
+// Package mode - single package queries
+const packageServer = new DevacMCPServer({
+  mode: "package",
   packagePath: "/path/to/package"
 });
 
-await server.start();
+await hubServer.start();
 // Server now accepts MCP messages via stdin/stdout
 ```
 

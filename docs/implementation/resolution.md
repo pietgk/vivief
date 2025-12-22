@@ -287,6 +287,10 @@ interface UnresolvedRef {
   moduleSpecifier: string;   // "./utils", "@org/pkg"
   importedSymbol: string;    // Symbol name
   isTypeOnly: boolean;       // Type import?
+  isDefault: boolean;        // Default import?
+  isNamespace: boolean;      // Namespace import (import * as)?
+  sourceLine: number;        // Source line number
+  sourceColumn: number;      // Source column
 }
 
 interface ResolvedRef {
@@ -294,7 +298,7 @@ interface ResolvedRef {
   targetEntityId: string;    // Resolved target
   targetFilePath: string;    // Target file
   confidence: number;        // 0-1 confidence score
-  method: "index" | "heuristic";
+  method: "compiler" | "index" | "heuristic";  // Resolution method
 }
 ```
 

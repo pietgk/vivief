@@ -426,6 +426,7 @@ Effects are NOT specific to code - they're the universal abstraction for ALL cha
 | Unified Watcher | ✅ Done | Workspace-level filesystem watcher for seeds |
 | Hub Auto-refresh | ✅ Done | Automatic hub updates on seed changes |
 | Context Discovery | ✅ Done | Sibling repos, issue grouping, MCP tool |
+| Hub Mode MCP | ✅ Done | Federated cross-repo queries via MCP server |
 
 See [ADR-0016: Workspace Module](../adr/0016-workspace-module.md) for implementation details.
 
@@ -442,22 +443,44 @@ See [ADR-0016: Workspace Module](../adr/0016-workspace-module.md) for implementa
 
 See [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) for implementation details.
 
-### Phase 3 - CI/CD
+### Phase 3 - CI Status (PARTIAL)
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| GitHub Webhooks | Planned | Receive PR/issue/CI events via smee |
-| CI Run Seeds | Planned | Extract GitHub Actions run status |
-| PR Status Seeds | Planned | Extract PR checks, reviews, merge state |
+| CI Status Commands | ✅ Done | `devac context ci` - view GitHub Actions status |
+| Issue Commands | ✅ Done | `devac context issues` - view GitHub issues |
+| Review Commands | ✅ Done | `devac context reviews` - view PR reviews |
+| GitHub Webhooks | Planned | Receive PR/issue/CI events via smee for real-time updates |
+| CI Run Seeds | Planned | Store CI run history in hub for queries |
 
-### Future
+### Phase 4 - Issues Integration (PARTIAL)
 
-| Component | Description |
-|-----------|-------------|
-| Content Seeds | Notion, Markdown docs, Contentful |
-| Infra Seeds | AWS/Azure resource topology |
-| Observability Seeds | OTEL traces, Datadog metrics |
-| Vector Queries | Semantic search over content |
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Issue Worktrees | ✅ Done | Create worktrees from issues via `devac-worktree start` |
+| Cross-repo Worktrees | ✅ Done | `--also` flag for multi-repo issue work |
+| Issue Status View | ✅ Done | View issue/PR state across worktrees |
+| Issue Seeds | Planned | Store issue data in hub for queries |
+
+### Phase 5 - Unified Feedback (COMPLETE)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Feedback Model | ✅ Done | Unified model for validation, CI, issues, reviews |
+| PR Reviews Sync | ✅ Done | Extract and store PR review comments |
+| MCP Tools | ✅ Done | `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts` |
+| Severity Levels | ✅ Done | critical, error, warning, suggestion, note |
+| Category Grouping | ✅ Done | compilation, linting, testing, ci-check, task, feedback, code-review |
+
+### Future Phases
+
+| Phase | Component | Description |
+|-------|-----------|-------------|
+| 6 | Content Seeds | Notion, Markdown docs, Contentful integration |
+| 7 | Infra Seeds | AWS/Azure resource topology extraction |
+| 8 | Observability Seeds | OTEL traces, Datadog metrics integration |
+| 9 | Vector Queries | Semantic search over code and content |
+| 10 | Rules Engine | Pattern matching and effect aggregation |
 
 ---
 
@@ -473,5 +496,5 @@ See [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) for im
 
 ---
 
-*Document Version: 0.4 - Phase 1 & 2 Complete*
-*Status: Phase 3 (CI/CD) ready for implementation*
+*Document Version: 0.5 - Phases 1, 2, 5 Complete; Phases 3, 4 Partial*
+*Status: Phases 3-4 have core functionality; Phases 6+ are future work*

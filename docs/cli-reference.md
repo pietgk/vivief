@@ -680,31 +680,53 @@ After getting a response, you can process it with:
 
 ## MCP Server
 
-### devac mcp
+### devac mcp start
 
 Start the MCP server for AI assistant integration.
 
 ```bash
-devac mcp [options]
+devac mcp start [options]
 
 Options:
-  --port <port>       Server port (default: stdio)
-  --package <path>    Package context
+  --hub               Hub mode: federated queries across all registered repos (default)
+  --package <path>    Package mode: query a single package
 
 Examples:
-  devac mcp                            # Start on stdio
-  devac mcp --package ./packages/auth
+  devac mcp start                      # Start in hub mode (default)
+  devac mcp start --hub                # Explicit hub mode
+  devac mcp start --package ./pkg      # Start in package mode
 ```
+
+**Modes:**
+
+| Mode | Description |
+|------|-------------|
+| Hub | Queries across all registered repos via central hub. Use `get_context`, `query_sql`, `list_repos`, validation tools, and unified feedback tools. |
+| Package | Queries a single package. Useful for isolated analysis. |
+
+The `--hub` and `--package` flags are mutually exclusive. Hub mode is the default if neither is specified.
+
+**MCP Tools Available:**
+- Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
+- Context discovery: `get_context`, `list_repos`
+- Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
+- Unified feedback: `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts`
+
+See [MCP Server documentation](./mcp-server.md) for full tool reference.
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEVAC_HUB_PATH` | `~/.devac/` | Central hub location |
-| `DEVAC_DUCKDB_MEMORY` | `512MB` | DuckDB memory limit |
-| `DEVAC_DUCKDB_THREADS` | `CPU-1` | DuckDB parallel threads |
+| `DEVAC_DUCKDB_MEMORY` | `512MB` | DuckDB memory limit per connection |
+| `DEVAC_DUCKDB_TEMP` | System temp | Spill directory for large operations |
 | `DEVAC_LOG_LEVEL` | `info` | Log level: debug, info, warn, error |
 | `DEBUG` | - | Enable debug namespaces (e.g., `devac:*`) |
+
+**Note:** Pool size and thread count are not configurable via environment variables. They use sensible defaults:
+- `maxConnections`: 4
+- `threads`: `Math.floor(os.cpus().length / 2)`
 
 ## Exit Codes
 

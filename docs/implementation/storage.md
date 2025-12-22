@@ -45,18 +45,22 @@ import { DuckDBPool } from "./storage/duckdb-pool";
 
 // Create pool with configuration
 const pool = new DuckDBPool({
-  maxConnections: 4,      // Maximum concurrent connections
-  minConnections: 1,      // Keep 1 warm
-  idleTimeoutMs: 60000,   // Close idle after 1 minute
-  acquireTimeoutMs: 30000 // Fail if can't acquire in 30s
+  maxConnections: 4,         // Maximum concurrent connections (default: 4)
+  memoryLimit: "512MB",      // Memory limit per connection
+  tempDirectory: "/tmp",     // Spill directory for large operations
+  threads: 4,                // Number of DuckDB threads (default: CPU/2)
+  idleTimeoutMs: 30000       // Close idle connections after 30s
 });
 
 await pool.initialize();
 
-// Use connection
-const result = await pool.execute(async (conn) => {
-  return await conn.all("SELECT * FROM nodes LIMIT 10");
-});
+// Acquire and use connection
+const conn = await pool.acquire();
+try {
+  const result = await conn.all("SELECT * FROM nodes LIMIT 10");
+} finally {
+  pool.release(conn);  // Always release back to pool
+}
 
 // Cleanup
 await pool.shutdown();
@@ -68,21 +72,23 @@ await pool.shutdown();
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  CONNECTION LIFECYCLE                                                       │
 │                                                                             │
-│  CLI Mode (ephemeral):                                                      │
-│  ┌─────────┐     ┌─────────┐     ┌─────────┐                               │
-│  │ Create  │ ──► │ Execute │ ──► │ Close   │                               │
-│  │ conn    │     │ query   │     │ conn    │                               │
-│  └─────────┘     └─────────┘     └─────────┘                               │
+│  Pool starts empty, creates connections on demand up to maxConnections     │
 │                                                                             │
-│  Watch Mode (pooled):                                                       │
+│  Acquire Flow:                                                              │
 │  ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐              │
-│  │ Acquire │ ──► │ Execute │ ──► │ Release │ ──► │ Reuse   │              │
-│  │ conn    │     │ query   │     │ to pool │     │ later   │              │
+│  │ Request │ ──► │ Check   │ ──► │ Create  │ ──► │ Return  │              │
+│  │ conn    │     │ pool    │     │ if room │     │ conn    │              │
 │  └─────────┘     └─────────┘     └─────────┘     └─────────┘              │
+│                       │                                                     │
+│                       ▼ (if at max)                                         │
+│                  ┌─────────┐                                                │
+│                  │ Wait    │ (30s timeout)                                  │
+│                  │ queue   │                                                │
+│                  └─────────┘                                                │
 │                                                                             │
-│  Warm Start Benefit:                                                        │
-│  Cold: ~100-200ms (connection + metadata load)                             │
-│  Warm: ~10-20ms (connection reuse)                                         │
+│  Idle Cleanup:                                                              │
+│  - Connections idle > 30s are closed (keeps at least 1)                    │
+│  - Cleanup runs every 30s via interval                                     │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -283,17 +289,19 @@ const PARQUET_OPTIONS = {
 
 ### Corrupt Parquet Detection
 
+DuckDB automatically validates the Parquet footer on read. If a file is corrupted, the read operation will throw an error:
+
 ```typescript
-// DuckDB validates Parquet footer on read
-async function validateParquet(filePath: string): Promise<boolean> {
-  try {
-    await pool.execute(async (conn) => {
-      await conn.run(`SELECT COUNT(*) FROM read_parquet('${filePath}') LIMIT 0`);
-    });
-    return true;
-  } catch {
-    return false; // Corrupted
-  }
+// Example pattern for detecting corrupt Parquet files
+// DuckDB throws on read if the Parquet file is invalid
+const conn = await pool.acquire();
+try {
+  await conn.run(`SELECT COUNT(*) FROM read_parquet('${filePath}') LIMIT 0`);
+  // File is valid
+} catch (error) {
+  // File is corrupted - handle accordingly
+} finally {
+  pool.release(conn);
 }
 ```
 
@@ -358,9 +366,11 @@ const duckdbConfig = {
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEVAC_DUCKDB_MEMORY` | `512MB` | Memory limit per connection |
-| `DEVAC_DUCKDB_THREADS` | `CPU count - 1` | Parallel threads |
-| `DEVAC_DUCKDB_POOL_SIZE` | `4` | Max pool connections |
-| `DEVAC_DUCKDB_TEMP_DIR` | System temp | Spill directory |
+| `DEVAC_DUCKDB_TEMP` | System temp | Spill directory for large operations |
+
+Note: Pool size and thread count are not configurable via environment variables. They use sensible defaults:
+- `maxConnections`: 4
+- `threads`: `Math.floor(os.cpus().length / 2)`
 
 ---
 
