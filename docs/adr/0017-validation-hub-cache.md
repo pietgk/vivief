@@ -131,4 +131,4 @@ Per-Repo Validation                 Central Hub
 
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Original hub architecture
 - [ADR-0016: Workspace Module](0016-workspace-module.md) - Two-tier watching model
-- [Foundation Architecture](../foundation-architecture.md) - System overview
+- [Foundation Visual](../vision/foundation-visual.md) - System overview diagrams

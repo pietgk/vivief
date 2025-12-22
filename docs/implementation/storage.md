@@ -364,4 +364,4 @@ const duckdbConfig = {
 
 ---
 
-*Next: [Parsing Pipeline](./parsing-pipeline.md) for analysis flow*
+*Next: [Parsing Pipeline](./parsing.md) for analysis flow*

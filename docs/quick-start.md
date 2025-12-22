@@ -313,4 +313,4 @@ devac query "SELECT DISTINCT file_path FROM nodes"
 
 ---
 
-*Next: [Data Model](./data-model.md) for understanding the schema*
+*Next: [Data Model](./implementation/data-model.md) for understanding the schema*

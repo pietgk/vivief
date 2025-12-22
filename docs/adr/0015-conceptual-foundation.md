@@ -84,8 +84,8 @@ This separation ensures the conceptual foundation remains stable while implement
 
 ## References
 
-- [Conceptual Foundation Document](../foundation.md)
-- [VVE System v2.0](../architecture/foundation-v2.md) - Effect taxonomy source
+- [Conceptual Foundation Document](../vision/foundation.md)
+- [VVE System v2.0](../archive/foundation-v2.md) - Effect taxonomy source
 - [Linters as Rules](mindler/packages/architecture/specs/335-linters-as-rules.md) - Executable specs concept
 - [OTEL Overlap Analysis](mindler/packages/architecture/specs/335-otel-overlap-analysis.md) - Runtime extraction insights
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub concept implementation

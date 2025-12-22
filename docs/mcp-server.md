@@ -378,5 +378,5 @@ Common errors:
 
 - [CLI Reference](./cli-reference.md) - Full CLI documentation
 - [API Reference](./api-reference.md) - Programmatic API
-- [Data Model](./data-model.md) - Understanding nodes, edges, and refs
-- [Architecture Overview](./architecture-overview.md) - System design
+- [Data Model](./implementation/data-model.md) - Understanding nodes, edges, and refs
+- [Architecture Overview](./implementation/overview.md) - System design

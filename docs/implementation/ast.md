@@ -348,5 +348,5 @@ WHERE kind = 'interface' AND language = 'csharp';
 ## Related Documentation
 
 - [Data Model](./data-model.md) - Schema details for nodes, edges, external_refs
-- [Parsing Pipeline](./parsing-pipeline.md) - Two-pass analysis architecture
-- [Semantic Resolution](./semantic-resolution.md) - Cross-file symbol resolution
+- [Parsing Pipeline](./parsing.md) - Two-pass analysis architecture
+- [Semantic Resolution](./resolution.md) - Cross-file symbol resolution

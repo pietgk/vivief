@@ -146,8 +146,8 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 
 ## References
 
-- [Foundation Document](../foundation.md) - Workspace topology concepts (Section 2.3-2.4)
-- [Foundation Architecture](../foundation-architecture.md) - Component diagram (Section 6.4)
-- [Foundation How](../foundation-how.md) - Implementation status
+- [Foundation Document](../vision/foundation.md) - Workspace topology concepts (Section 2.3-2.4)
+- [Foundation Visual](../vision/foundation-visual.md) - Component diagram (Section 6.4)
+- [Foundation Implementation Guide](../vision/foundation-impl-guide.md) - Implementation status
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture
 - [ADR-0014: Worktree Claude Workflow](0014-worktree-claude-workflow.md) - Worktree naming convention

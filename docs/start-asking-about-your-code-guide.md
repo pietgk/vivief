@@ -318,8 +318,8 @@ devac watch
 
 - [CLI Reference](./cli-reference.md) - Full command documentation
 - [MCP Server Guide](./mcp-server.md) - Advanced MCP configuration
-- [Data Model](./data-model.md) - Understanding nodes, edges, and refs
-- [Federation](./federation.md) - Analyze multiple repositories together
+- [Data Model](./implementation/data-model.md) - Understanding nodes, edges, and refs
+- [Federation](./implementation/federation.md) - Analyze multiple repositories together
 
 ## Getting Help
 

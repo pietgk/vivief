@@ -1,4 +1,4 @@
-# DevAC Architecture
+# Foundation Visual Vision Architecture
 
 > Visual architecture companion to [foundation.md](./foundation.md)
 > This document shows system structure through diagrams - the "what" in visual form.

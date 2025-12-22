@@ -483,6 +483,6 @@ devac analyze --resolve --verbose
 
 ## Related Documentation
 
-- [Parsing Pipeline](./parsing-pipeline.md) - Two-pass architecture overview
-- [AST Architecture](./ast-architecture.md) - Universal node/edge model
+- [Parsing Pipeline](./parsing.md) - Two-pass architecture overview
+- [AST Architecture](./ast.md) - Universal node/edge model
 - [Data Model](./data-model.md) - Schema for nodes, edges, external_refs

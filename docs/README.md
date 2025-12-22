@@ -1,24 +1,56 @@
-# DevAC v2 Documentation
+# DevAC Documentation
 
 **DevAC** (Developer Analysis & Codebase) is a federated code analysis system that parses codebases into queryable knowledge graphs using DuckDB + Parquet.
 
-## Quick Navigation
+## Documentation Structure
 
-| Level | Document | Description |
-|-------|----------|-------------|
-| **Overview** | [Architecture Overview](./architecture-overview.md) | High-level system design (5 min read) |
-| **Getting Started** | [Quick Start Guide](./quick-start.md) | Get up and running (10 min) |
-| **Deep Dives** | [Data Model](./data-model.md) | Nodes, edges, refs schema |
-| | [Storage System](./storage-system.md) | DuckDB + Parquet internals |
-| | [Parsing Pipeline](./parsing-pipeline.md) | Two-pass analysis flow |
-| | [Federation](./federation.md) | Multi-repo queries |
-| **Reference** | [CLI Reference](./cli-reference.md) | All commands |
-| | [API Reference](./api-reference.md) | Programmatic usage |
-| **History** | [Specification](./spec/) | Original spec + research |
+### Vision (Conceptual Foundation)
 
-## What is DevAC v2?
+What we're building and why. Start here to understand the concepts and philosophy.
 
-DevAC v2 is a complete architectural redesign that replaces Neo4j with a **file-based, federated storage model**:
+| Document | Description |
+|----------|-------------|
+| [Foundation](./vision/foundation.md) | Core concepts: Effect Handler pattern, Seeds, Vision↔View loop |
+| [Visual Guide](./vision/foundation-visual.md) | Architecture diagrams and visual explanations |
+| [Implementation Guide](./vision/foundation-impl-guide.md) | How to implement foundation concepts |
+
+### Implementation (What's Built)
+
+Technical details of the current implementation.
+
+| Document | Description |
+|----------|-------------|
+| [Overview](./implementation/overview.md) | High-level system architecture |
+| [Roadmap](./implementation/roadmap.md) | Implementation phases and progress |
+| [Data Model](./implementation/data-model.md) | Nodes, edges, refs schema |
+| [Storage](./implementation/storage.md) | DuckDB + Parquet internals |
+| [Parsing](./implementation/parsing.md) | Two-pass analysis flow |
+| [Resolution](./implementation/resolution.md) | Semantic resolution details |
+| [Federation](./implementation/federation.md) | Multi-repo queries |
+| [Context Discovery](./implementation/context-discovery.md) | Workspace context detection |
+| [AST](./implementation/ast.md) | AST extraction architecture |
+
+### User Guides
+
+Getting started and reference documentation.
+
+| Document | Description |
+|----------|-------------|
+| [Quick Start](./quick-start.md) | Get up and running (10 min) |
+| [CLI Reference](./cli-reference.md) | All commands |
+| [API Reference](./api-reference.md) | Programmatic usage |
+| [MCP Server](./mcp-server.md) | AI assistant integration |
+| [Worktree Workflow](./devac-worktree.md) | Issue-based git worktrees |
+
+### Archive
+
+[Historical foundation versions](./archive/) - preserved for reference.
+
+---
+
+## What is DevAC?
+
+DevAC is a **file-based, federated code analysis system** that replaces traditional graph databases with a more portable approach:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -51,25 +83,6 @@ DevAC v2 is a complete architectural redesign that replaces Neo4j with a **file-
 - **Symbol-Level Precision**: Track individual function/class usage
 - **Affected Detection**: Know exactly what changes impact
 
-## Directory Structure
-
-```
-docs/
-├── README.md                    ← You are here
-├── architecture-overview.md     ← Start here
-├── quick-start.md              ← Hands-on tutorial
-├── data-model.md               ← Schema details
-├── storage-system.md           ← DuckDB/Parquet internals
-├── parsing-pipeline.md         ← How analysis works
-├── federation.md               ← Multi-repo setup
-├── cli-reference.md            ← Command reference
-├── api-reference.md            ← Programmatic API
-└── spec/                       ← Historical specification
-    ├── devac-spec-v2.0.md      ← Full specification
-    ├── design-decisions.md     ← Why decisions were made
-    └── implementation-log.md   ← Phase-by-phase history
-```
-
 ## Version
 
 - **Current Version**: 2.0.0
@@ -78,4 +91,4 @@ docs/
 
 ---
 
-*See [Architecture Overview](./architecture-overview.md) to understand the system design.*
+*Start with [Vision Foundation](./vision/foundation.md) to understand the concepts, or [Quick Start](./quick-start.md) to dive in.*

@@ -307,4 +307,4 @@ Entity IDs are globally unique identifiers for code elements:
 
 ---
 
-*Next: [Storage System](./storage-system.md) for DuckDB/Parquet details*
+*Next: [Storage](./storage.md) for DuckDB/Parquet details*
