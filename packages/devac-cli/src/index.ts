@@ -8,25 +8,37 @@
  */
 
 import * as path from "node:path";
+import { setGlobalLogLevel } from "@pietgk/devac-core";
 import { Command } from "commander";
 import { getDefaultHubDir } from "./commands/hub-init.js";
 import {
   affectedCommand,
   analyzeCommand,
+  callGraphCommand,
   cleanCommand,
   contextCICommand,
   contextCommand,
   contextIssuesCommand,
   contextReviewCommand,
+  dependentsCommand,
+  depsCommand,
+  fileSymbolsCommand,
+  findSymbolCommand,
+  hubErrorsCommand,
+  hubFeedbackCommand,
   hubInitCommand,
   hubListCommand,
   hubRefreshCommand,
   hubRegisterCommand,
   hubStatusCommand,
+  hubSummaryCommand,
   hubSyncCommand,
   hubUnregisterCommand,
+  lintCommand,
   mcpCommand,
   queryCommand,
+  testCommand,
+  typecheckCommand,
   validateCommand,
   verifyCommand,
   watchCommand,
@@ -37,7 +49,20 @@ import {
 
 const program = new Command();
 
-program.name("devac").description("DevAC - Code analysis with DuckDB + Parquet").version("0.1.0");
+program
+  .name("devac")
+  .description("DevAC - Code analysis with DuckDB + Parquet")
+  .version("0.1.0")
+  .option("--verbose", "Enable verbose logging (shows debug messages)")
+  .option("--debug", "Enable debug logging (maximum verbosity)")
+  .hook("preAction", (thisCommand) => {
+    const opts = thisCommand.optsWithGlobals();
+    if (opts.debug) {
+      setGlobalLogLevel("debug");
+    } else if (opts.verbose) {
+      setGlobalLogLevel("verbose");
+    }
+  });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANALYZE COMMAND
@@ -53,7 +78,6 @@ program
   .option("--force", "Force full reanalysis")
   .option("--all", "Analyze all packages in repository")
   .option("--resolve", "Run semantic resolution after structural analysis")
-  .option("--verbose", "Enable verbose output")
   .action(async (options) => {
     const result = await analyzeCommand({
       packagePath: path.resolve(options.package),
@@ -63,7 +87,6 @@ program
       force: options.force,
       all: options.all,
       resolve: options.resolve,
-      verbose: options.verbose,
     });
 
     if (result.success) {
@@ -206,8 +229,6 @@ program
   .option("-p, --package <path>", "Package path to watch", process.cwd())
   .option("-r, --repo <name>", "Repository name", "repo")
   .option("-b, --branch <name>", "Git branch name", "main")
-  .option("--verbose", "Enable verbose logging")
-  .option("--debug", "Enable debug logging")
   .option("--debounce <ms>", "Debounce interval in milliseconds", "100")
   .option("--force", "Force initial analysis")
   .action(async (options) => {
@@ -218,8 +239,6 @@ program
       packagePath: path.resolve(options.package),
       repoName: options.repo,
       branch: options.branch,
-      verbose: options.verbose,
-      debug: options.debug,
       debounceMs: Number.parseInt(options.debounce, 10),
       force: options.force,
     });
@@ -235,6 +254,88 @@ program
 
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPECHECK COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("typecheck")
+  .description("Run TypeScript type checking")
+  .option("-p, --package <path>", "Package path to check", process.cwd())
+  .option("--tsconfig <path>", "Path to tsconfig.json")
+  .option("--timeout <ms>", "Timeout in milliseconds", "60000")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await typecheckCommand({
+      packagePath: path.resolve(options.package),
+      tsconfig: options.tsconfig,
+      timeout: Number.parseInt(options.timeout, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LINT COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("lint")
+  .description("Run ESLint on a package")
+  .option("-p, --package <path>", "Package path to lint", process.cwd())
+  .option("--config <path>", "Path to ESLint config")
+  .option("--fix", "Fix auto-fixable issues")
+  .option("--timeout <ms>", "Timeout in milliseconds", "60000")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await lintCommand({
+      packagePath: path.resolve(options.package),
+      config: options.config,
+      fix: options.fix,
+      timeout: Number.parseInt(options.timeout, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEST COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("test")
+  .description("Run test suite on a package")
+  .option("-p, --package <path>", "Package path to test", process.cwd())
+  .option("--runner <type>", "Test runner (vitest, jest, npm-test)")
+  .option("--update-snapshots", "Update snapshots")
+  .option("--timeout <ms>", "Timeout in milliseconds", "300000")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await testCommand({
+      packagePath: path.resolve(options.package),
+      runner: options.runner,
+      updateSnapshots: options.updateSnapshots,
+      timeout: Number.parseInt(options.timeout, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
   });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -300,6 +401,163 @@ program
       }
     } else {
       console.error(`✗ Affected analysis failed: ${result.error}`);
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIND-SYMBOL COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("find-symbol <name>")
+  .description("Find symbols by name")
+  .option("-p, --package <path>", "Package path", process.cwd())
+  .option("--hub", "Query all registered repos (hub mode)")
+  .option("--hub-dir <path>", "Hub directory")
+  .option("--kind <type>", "Filter by kind (function, class, variable, etc.)")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (name, options) => {
+    const result = await findSymbolCommand({
+      name,
+      kind: options.kind,
+      packagePath: options.hub ? undefined : path.resolve(options.package),
+      hub: options.hub,
+      hubDir: options.hubDir,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEPS COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("deps <entity-id>")
+  .description("Get dependencies (outgoing edges) for an entity")
+  .option("-p, --package <path>", "Package path", process.cwd())
+  .option("--hub", "Query all registered repos (hub mode)")
+  .option("--hub-dir <path>", "Hub directory")
+  .option("--edge-type <type>", "Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (entityId, options) => {
+    const result = await depsCommand({
+      entityId,
+      packagePath: options.hub ? undefined : path.resolve(options.package),
+      hub: options.hub,
+      hubDir: options.hubDir,
+      edgeType: options.edgeType,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEPENDENTS COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("dependents <entity-id>")
+  .description("Get dependents (incoming edges) for an entity")
+  .option("-p, --package <path>", "Package path", process.cwd())
+  .option("--hub", "Query all registered repos (hub mode)")
+  .option("--hub-dir <path>", "Hub directory")
+  .option("--edge-type <type>", "Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (entityId, options) => {
+    const result = await dependentsCommand({
+      entityId,
+      packagePath: options.hub ? undefined : path.resolve(options.package),
+      hub: options.hub,
+      hubDir: options.hubDir,
+      edgeType: options.edgeType,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE-SYMBOLS COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("file-symbols <file-path>")
+  .description("Get symbols defined in a file")
+  .option("-p, --package <path>", "Package path", process.cwd())
+  .option("--hub", "Query all registered repos (hub mode)")
+  .option("--hub-dir <path>", "Hub directory")
+  .option("--kind <type>", "Filter by kind (function, class, variable, etc.)")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (filePath, options) => {
+    const result = await fileSymbolsCommand({
+      filePath,
+      kind: options.kind,
+      packagePath: options.hub ? undefined : path.resolve(options.package),
+      hub: options.hub,
+      hubDir: options.hubDir,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALL-GRAPH COMMAND
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command("call-graph <entity-id>")
+  .description("Get call graph for a function")
+  .option("-p, --package <path>", "Package path", process.cwd())
+  .option("--hub", "Query all registered repos (hub mode)")
+  .option("--hub-dir <path>", "Hub directory")
+  .option("--direction <dir>", "Direction: callers, callees, or both", "both")
+  .option("--max-depth <n>", "Maximum depth", "3")
+  .option("--limit <n>", "Maximum results per direction", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (entityId, options) => {
+    const result = await callGraphCommand({
+      entityId,
+      direction: options.direction as "callers" | "callees" | "both",
+      packagePath: options.hub ? undefined : path.resolve(options.package),
+      hub: options.hub,
+      hubDir: options.hubDir,
+      maxDepth: Number.parseInt(options.maxDepth, 10),
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
       process.exit(1);
     }
   });
@@ -660,6 +918,90 @@ hub
     }
   });
 
+hub
+  .command("errors")
+  .description("Query validation errors from hub")
+  .option("--repo <id>", "Filter by repository ID")
+  .option("--severity <level>", "Filter by severity (error, warning)")
+  .option("--source <type>", "Filter by source (tsc, eslint, test)")
+  .option("--file <path>", "Filter by file path")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await hubErrorsCommand({
+      hubDir: getDefaultHubDir(),
+      repoId: options.repo,
+      severity: options.severity as "error" | "warning" | undefined,
+      source: options.source as "tsc" | "eslint" | "test" | undefined,
+      file: options.file,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+hub
+  .command("feedback")
+  .description("Query unified feedback from hub")
+  .option("--repo <id>", "Filter by repository ID")
+  .option(
+    "--source <type>",
+    "Filter by source (tsc, eslint, test, ci-check, github-issue, pr-review)"
+  )
+  .option("--severity <level>", "Filter by severity (critical, error, warning, suggestion, note)")
+  .option("--category <cat>", "Filter by category")
+  .option("--file <path>", "Filter by file path (partial match)")
+  .option("--resolved", "Show only resolved items")
+  .option("--actionable", "Show only actionable items")
+  .option("--limit <n>", "Maximum results", "100")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await hubFeedbackCommand({
+      hubDir: getDefaultHubDir(),
+      repoId: options.repo,
+      source: options.source,
+      severity: options.severity,
+      category: options.category,
+      filePath: options.file,
+      resolved: options.resolved,
+      actionable: options.actionable,
+      limit: Number.parseInt(options.limit, 10),
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+hub
+  .command("summary")
+  .description("Get summary counts from hub")
+  .option("--type <type>", "Summary type: validation, feedback, or counts", "counts")
+  .option("--group-by <field>", "Group by field (repo, file, source, severity, category)")
+  .option("--pretty", "Output in human-readable format")
+  .action(async (options) => {
+    const result = await hubSummaryCommand({
+      hubDir: getDefaultHubDir(),
+      type: options.type as "validation" | "feedback" | "counts",
+      groupBy: options.groupBy,
+      pretty: options.pretty,
+    });
+
+    console.log(result.output);
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // WORKSPACE COMMANDS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -697,13 +1039,11 @@ workspace
   .option("-p, --path <path>", "Workspace path", process.cwd())
   .option("--no-auto-refresh", "Disable automatic hub refresh")
   .option("--debounce <ms>", "Debounce time for hub refresh", "500")
-  .option("--verbose", "Enable verbose logging")
   .action(async (options) => {
     const result = await workspaceWatch({
       workspacePath: path.resolve(options.path),
       autoRefresh: options.autoRefresh,
       refreshDebounceMs: Number.parseInt(options.debounce, 10),
-      verbose: options.verbose,
     });
 
     if (!result.success) {

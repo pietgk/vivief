@@ -2,6 +2,24 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+
+## open issues detected while testing
+
+make cli commands consistent regarding logging options --verbose --debug propose a consistent way after reviewing current practice
+
+to make the developers experience while updating vivief and avoid the manual need to stop and restart the hub and repo devac commands like
+
+  1. Stop devac workspace watch (in ~/ws)
+  2. Stop devac watch (in ~/ws/vivief/packages/devac-cli/)
+  3. Start devac workspace watch --verbose again from ~/ws
+  4. Start devac watch --verbose again from your package directory
+
+because the running processes are using the old compiled JavaScript. The rebuild created new .js
+  files in dist/, but the running Node processes have the old code loaded in memory.
+
+can we create a better developer experience to avoid the manual steps needed to restart the hub and repo devac commands after code changes?
+
+
 ## review test code
 
 can you do a very thorough review of the current tests in the vivief repo

@@ -9,6 +9,7 @@
  */
 
 import { EventEmitter } from "node:events";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import * as chokidar from "chokidar";
 import { getRepoId } from "./discover.js";
@@ -275,6 +276,9 @@ class SeedDetectorImpl implements SeedDetector {
 
   /**
    * Extract the repo path from a seed file path
+   *
+   * In a monorepo, seeds may be stored at package level (e.g., packages/foo/.devac/seed/)
+   * but the repo root is the parent containing .git. We walk up to find the actual git root.
    */
   private extractRepoPath(filePath: string): string | null {
     // Find .devac/seed in the path
@@ -283,6 +287,22 @@ class SeedDetectorImpl implements SeedDetector {
       return null;
     }
 
+    // Start from the directory containing .devac and walk up to find git root
+    let currentPath = filePath.substring(0, devacIndex);
+
+    while (currentPath && currentPath !== "/" && currentPath !== path.parse(currentPath).root) {
+      // Check if this is a git root
+      const gitPath = path.join(currentPath, ".git");
+      try {
+        fs.accessSync(gitPath);
+        return currentPath; // Found git root
+      } catch {
+        // Not a git root, walk up
+        currentPath = path.dirname(currentPath);
+      }
+    }
+
+    // Fallback to original behavior if no git root found
     return filePath.substring(0, devacIndex);
   }
 

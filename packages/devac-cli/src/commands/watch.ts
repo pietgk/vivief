@@ -26,7 +26,6 @@ import {
   discoverContext,
   extractIssueNumber,
   formatCrossRepoNeed,
-  setGlobalLogLevel,
 } from "@pietgk/devac-core";
 import { analyzeCommand } from "./analyze.js";
 import type {
@@ -45,8 +44,6 @@ const DEFAULT_OPTIONS: Required<Omit<WatchOptions, "packagePath" | "repoName">> 
   branch: "base",
   debounceMs: 100,
   force: false,
-  verbose: false,
-  debug: false,
   detectCrossRepo: true,
   notificationsPath: "",
 };
@@ -86,14 +83,8 @@ class WatchControllerImpl implements WatchController {
       crossRepoDetectionEnabled: false,
     };
 
+    // Global log level is set by CLI preAction hook
     this.logger = createLogger({ prefix: "[WatchCommand]" });
-
-    // Set log level based on options
-    if (options.debug) {
-      setGlobalLogLevel("debug");
-    } else if (options.verbose) {
-      setGlobalLogLevel("verbose");
-    }
   }
 
   async initialize(): Promise<void> {

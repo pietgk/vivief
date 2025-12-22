@@ -1,0 +1,243 @@
+/**
+ * Call Graph Command Implementation
+ *
+ * Gets call graph (callers and/or callees) for a function.
+ * Based on MCP get_call_graph tool.
+ */
+
+import * as os from "node:os";
+import * as path from "node:path";
+import {
+  DuckDBPool,
+  createCentralHub,
+  createSeedReader,
+  queryMultiplePackages,
+} from "@pietgk/devac-core";
+import { formatOutput } from "./output-formatter.js";
+
+function getDefaultHubDir(): string {
+  return path.join(os.homedir(), ".devac");
+}
+
+/**
+ * Options for call-graph command
+ */
+export interface CallGraphCommandOptions {
+  /** Entity ID of the function */
+  entityId: string;
+  /** Direction of the call graph */
+  direction: "callers" | "callees" | "both";
+  /** Package path (for package mode) */
+  packagePath?: string;
+  /** Use hub mode for federated queries */
+  hub?: boolean;
+  /** Hub directory (default: ~/.devac) */
+  hubDir?: string;
+  /** Maximum depth for recursive queries (default: 3) */
+  maxDepth?: number;
+  /** Maximum results per direction */
+  limit?: number;
+  /** Output in human-readable format */
+  pretty?: boolean;
+}
+
+/**
+ * Result from call-graph command
+ */
+export interface CallGraphCommandResult {
+  /** Whether the command succeeded */
+  success: boolean;
+  /** Formatted output */
+  output: string;
+  /** Total number of callers/callees found */
+  count: number;
+  /** Time taken in milliseconds */
+  timeMs: number;
+  /** Callers if requested */
+  callers?: unknown[];
+  /** Callees if requested */
+  callees?: unknown[];
+  /** Error message if failed */
+  error?: string;
+}
+
+/**
+ * Format call graph for pretty output
+ */
+function formatCallGraph(
+  callers: unknown[] | undefined,
+  callees: unknown[] | undefined,
+  options: { pretty: boolean }
+): string {
+  if (!options.pretty) {
+    return formatOutput({ callers, callees }, { pretty: false });
+  }
+
+  const lines: string[] = [];
+
+  if (callers !== undefined) {
+    lines.push(`Callers (${callers.length}):`);
+    if (callers.length === 0) {
+      lines.push("  No callers found");
+    } else {
+      for (const caller of callers) {
+        const c = caller as Record<string, unknown>;
+        const name = c.name || c.source_entity_id || "unknown";
+        const file = c.source_file || "";
+        const kind = c.kind || "";
+        lines.push(`  ${name} (${kind}) - ${file}`);
+      }
+    }
+  }
+
+  if (callees !== undefined) {
+    if (lines.length > 0) lines.push("");
+    lines.push(`Callees (${callees.length}):`);
+    if (callees.length === 0) {
+      lines.push("  No callees found");
+    } else {
+      for (const callee of callees) {
+        const c = callee as Record<string, unknown>;
+        const name = c.name || c.target_entity_id || "unknown";
+        const file = c.source_file || "";
+        const kind = c.kind || "";
+        lines.push(`  ${name} (${kind}) - ${file}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Run call-graph command
+ */
+export async function callGraphCommand(
+  options: CallGraphCommandOptions
+): Promise<CallGraphCommandResult> {
+  const startTime = Date.now();
+  let pool: DuckDBPool | null = null;
+
+  try {
+    pool = new DuckDBPool({ memoryLimit: "256MB" });
+    await pool.initialize();
+
+    const limit = options.limit || 100;
+    let callers: unknown[] | undefined;
+    let callees: unknown[] | undefined;
+
+    if (options.hub) {
+      // Hub mode: query all registered repos
+      const hubDir = options.hubDir || getDefaultHubDir();
+      const hub = createCentralHub({ hubDir });
+
+      try {
+        await hub.init();
+        const repos = await hub.listRepos();
+        const packagePaths = repos.map((r) => r.localPath);
+
+        if (packagePaths.length === 0) {
+          return {
+            success: true,
+            output: options.pretty
+              ? "No repositories registered in hub"
+              : formatOutput({ callers: [], callees: [] }, { pretty: false }),
+            count: 0,
+            timeMs: Date.now() - startTime,
+            callers: [],
+            callees: [],
+          };
+        }
+
+        if (options.direction === "callers" || options.direction === "both") {
+          const sql = `
+            SELECT e.*, n.name, n.kind, n.source_file
+            FROM {edges} e
+            JOIN {nodes} n ON e.source_entity_id = n.entity_id
+            WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
+            AND e.edge_type = 'CALLS'
+            LIMIT ${limit}
+          `;
+          const result = await queryMultiplePackages(pool, packagePaths, sql);
+          callers = result.rows;
+        }
+
+        if (options.direction === "callees" || options.direction === "both") {
+          const sql = `
+            SELECT e.*, n.name, n.kind, n.source_file
+            FROM {edges} e
+            JOIN {nodes} n ON e.target_entity_id = n.entity_id
+            WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
+            AND e.edge_type = 'CALLS'
+            LIMIT ${limit}
+          `;
+          const result = await queryMultiplePackages(pool, packagePaths, sql);
+          callees = result.rows;
+        }
+      } finally {
+        await hub.close();
+      }
+    } else {
+      // Package mode: query single package
+      const pkgPath = options.packagePath
+        ? path.resolve(options.packagePath)
+        : path.resolve(process.cwd());
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      if (options.direction === "callers" || options.direction === "both") {
+        const sql = `
+          SELECT e.*, n.name, n.kind, n.source_file
+          FROM edges e
+          JOIN nodes n ON e.source_entity_id = n.entity_id
+          WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
+          AND e.edge_type = 'CALLS'
+          LIMIT ${limit}
+        `;
+        const result = await seedReader.querySeeds(sql);
+        callers = result.rows;
+      }
+
+      if (options.direction === "callees" || options.direction === "both") {
+        const sql = `
+          SELECT e.*, n.name, n.kind, n.source_file
+          FROM edges e
+          JOIN nodes n ON e.target_entity_id = n.entity_id
+          WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
+          AND e.edge_type = 'CALLS'
+          LIMIT ${limit}
+        `;
+        const result = await seedReader.querySeeds(sql);
+        callees = result.rows;
+      }
+    }
+
+    const count = (callers?.length || 0) + (callees?.length || 0);
+    const output = formatCallGraph(callers, callees, { pretty: options.pretty || false });
+
+    return {
+      success: true,
+      output,
+      count,
+      timeMs: Date.now() - startTime,
+      callers,
+      callees,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const output = options.pretty
+      ? `Error: ${errorMessage}`
+      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+
+    return {
+      success: false,
+      output,
+      count: 0,
+      timeMs: Date.now() - startTime,
+      error: errorMessage,
+    };
+  } finally {
+    if (pool) {
+      await pool.shutdown();
+    }
+  }
+}

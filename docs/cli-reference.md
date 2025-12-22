@@ -136,70 +136,174 @@ Examples:
   devac clean --dry-run                # Preview
 ```
 
-## Query Commands
+## Validation Commands
 
-### devac find
+### devac typecheck
+
+Run TypeScript type checking on a package.
+
+```bash
+devac typecheck [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --tsconfig <path>       Path to tsconfig.json
+  --timeout <ms>          Timeout in milliseconds (default: 60000)
+  --pretty                Human-readable output
+
+Examples:
+  devac typecheck                          # Check current package
+  devac typecheck -p ./packages/auth       # Check specific package
+  devac typecheck --pretty                 # Human-readable output
+```
+
+### devac lint
+
+Run ESLint on a package.
+
+```bash
+devac lint [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --config <path>         Path to ESLint config
+  --fix                   Auto-fix issues
+  --timeout <ms>          Timeout in milliseconds (default: 60000)
+  --pretty                Human-readable output
+
+Examples:
+  devac lint                               # Lint current package
+  devac lint --fix                         # Auto-fix issues
+  devac lint --pretty                      # Human-readable output
+```
+
+### devac test
+
+Run test suite on a package.
+
+```bash
+devac test [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --runner <type>         Test runner: vitest, jest, npm-test
+  --update-snapshots      Update test snapshots
+  --timeout <ms>          Timeout in milliseconds (default: 300000)
+  --pretty                Human-readable output
+
+Examples:
+  devac test                               # Run tests
+  devac test --runner vitest               # Use specific runner
+  devac test --update-snapshots            # Update snapshots
+```
+
+## Code Graph Commands
+
+### devac find-symbol
 
 Find symbols by name.
 
 ```bash
-devac find <name> [options]
+devac find-symbol <name> [options]
 
 Options:
-  --kind <kind>       Filter by kind (function, class, method, etc.)
-  --exported          Only exported symbols
-  --file <path>       Filter by file path
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --hub-dir <path>        Hub directory
+  --kind <type>           Filter by kind (function, class, variable, etc.)
+  --limit <n>             Maximum results (default: 100)
+  --pretty                Human-readable output
 
 Examples:
-  devac find handleLogin
-  devac find User --kind class
-  devac find login --exported
+  devac find-symbol handleLogin                # Find in current package
+  devac find-symbol User --kind class          # Filter by kind
+  devac find-symbol auth --hub                 # Search all repos
+  devac find-symbol login --pretty             # Human-readable output
 ```
 
 ### devac deps
 
-Show dependencies of a file or symbol.
+Get dependencies (outgoing edges) for an entity.
 
 ```bash
-devac deps <file|symbol> [options]
+devac deps <entity-id> [options]
 
 Options:
-  --depth <n>         Traversal depth (default: 1)
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --hub-dir <path>        Hub directory
+  --edge-type <type>      Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)
+  --limit <n>             Maximum results (default: 100)
+  --pretty                Human-readable output
 
 Examples:
-  devac deps src/auth.ts
-  devac deps handleLogin --depth 3
+  devac deps myrepo:pkg:function:abc123        # Get dependencies
+  devac deps entity-id --edge-type CALLS       # Filter by edge type
+  devac deps entity-id --hub                   # Cross-repo query
 ```
 
-### devac rdeps
+### devac dependents
 
-Show reverse dependencies (who imports/calls this).
+Get dependents (incoming edges) for an entity.
 
 ```bash
-devac rdeps <file|symbol> [options]
+devac dependents <entity-id> [options]
 
 Options:
-  --depth <n>         Traversal depth (default: 1)
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --hub-dir <path>        Hub directory
+  --edge-type <type>      Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)
+  --limit <n>             Maximum results (default: 100)
+  --pretty                Human-readable output
 
 Examples:
-  devac rdeps src/types.ts
-  devac rdeps User --depth 2
+  devac dependents entity-id                   # Who uses this?
+  devac dependents entity-id --edge-type IMPORTS
+  devac dependents entity-id --hub             # Cross-repo query
 ```
 
-### devac calls
+### devac file-symbols
 
-Show call graph for a function.
+Get symbols defined in a file.
 
 ```bash
-devac calls <function> [options]
+devac file-symbols <file-path> [options]
 
 Options:
-  --depth <n>         Max depth (default: 3, max: 6)
-  --direction <dir>   callers, callees, or both (default: both)
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --hub-dir <path>        Hub directory
+  --kind <type>           Filter by kind (function, class, variable, etc.)
+  --limit <n>             Maximum results (default: 100)
+  --pretty                Human-readable output
 
 Examples:
-  devac calls handleLogin
-  devac calls handleLogin --depth 5 --direction callees
+  devac file-symbols src/auth.ts               # All symbols in file
+  devac file-symbols src/auth.ts --kind function
+  devac file-symbols src/auth.ts --pretty      # Human-readable
+```
+
+### devac call-graph
+
+Get call graph for a function.
+
+```bash
+devac call-graph <entity-id> [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --hub-dir <path>        Hub directory
+  --direction <dir>       Direction: callers, callees, or both (default: both)
+  --max-depth <n>         Maximum depth (default: 3)
+  --limit <n>             Maximum results per direction (default: 100)
+  --pretty                Human-readable output
+
+Examples:
+  devac call-graph entity-id                   # Both callers and callees
+  devac call-graph entity-id --direction callers
+  devac call-graph entity-id --max-depth 5     # Deeper traversal
 ```
 
 ## Hub Commands
@@ -350,7 +454,81 @@ devac context ci --sync-to-hub
 devac hub sync --ci --issues --reviews
 ```
 
-## Validation Commands
+### devac hub errors
+
+Query validation errors from the hub.
+
+```bash
+devac hub errors [options]
+
+Options:
+  --repo <id>           Filter by repository ID
+  --severity <level>    Filter by severity (error, warning)
+  --source <type>       Filter by source (tsc, eslint, test)
+  --file <path>         Filter by file path
+  --limit <n>           Maximum results (default: 100)
+  --pretty              Human-readable output
+
+Examples:
+  devac hub errors                          # All validation errors
+  devac hub errors --severity error         # Only errors
+  devac hub errors --source tsc --pretty    # TypeScript errors, pretty
+  devac hub errors --file auth.ts           # Errors in specific file
+```
+
+### devac hub feedback
+
+Query unified feedback from the hub. Includes validation errors, CI checks, GitHub issues, and PR reviews.
+
+```bash
+devac hub feedback [options]
+
+Options:
+  --repo <id>           Filter by repository ID
+  --source <type>       Filter by source (tsc, eslint, test, ci-check, github-issue, pr-review)
+  --severity <level>    Filter by severity (critical, error, warning, suggestion, note)
+  --category <cat>      Filter by category (compilation, linting, testing, ci-check, task, code-review)
+  --file <path>         Filter by file path (partial match)
+  --resolved            Show only resolved items
+  --actionable          Show only actionable items
+  --limit <n>           Maximum results (default: 100)
+  --pretty              Human-readable output
+
+Examples:
+  devac hub feedback                        # All feedback
+  devac hub feedback --source ci-check      # Only CI failures
+  devac hub feedback --severity error       # All errors from any source
+  devac hub feedback --actionable --pretty  # What needs fixing?
+```
+
+### devac hub summary
+
+Get summary counts from the hub.
+
+```bash
+devac hub summary [options]
+
+Options:
+  --type <type>         Summary type: validation, feedback, or counts (default: counts)
+  --group-by <field>    Group by: repo, file, source, severity, category
+  --pretty              Human-readable output
+
+Examples:
+  devac hub summary                         # Total counts
+  devac hub summary --type validation       # Validation summary
+  devac hub summary --type feedback --group-by source
+  devac hub summary --pretty                # Human-readable counts
+```
+
+**Output (counts mode):**
+```
+{
+  "validation": { "errors": 5, "warnings": 12, "total": 17 },
+  "feedback": { "critical": 0, "error": 8, "warning": 15, "suggestion": 3, "note": 2, "total": 28 }
+}
+```
+
+## Integrated Validation Commands
 
 ### devac validate
 

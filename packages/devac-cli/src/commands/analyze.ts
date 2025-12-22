@@ -14,11 +14,15 @@ import {
   SeedWriter,
   TypeScriptParser,
   computeFileHash,
+  createLogger,
   getSemanticResolverFactory,
   toUnresolvedRef,
 } from "@pietgk/devac-core";
+
 import { glob } from "glob";
 import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
+
+const logger = createLogger({ prefix: "[Analyze]" });
 
 /**
  * Analyze a package and generate seed files
@@ -106,7 +110,9 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
           filesAnalyzed++;
         }
       } catch (error) {
-        console.error(`Error parsing ${filePath}:`, error);
+        logger.warn(
+          `Error parsing ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        );
         // Continue with other files
       }
     }
@@ -115,16 +121,11 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
     let refsResolved = 0;
     if (options.resolve && totalRefs > 0) {
       try {
-        refsResolved = await runSemanticResolution(
-          pool,
-          options.packagePath,
-          options.branch,
-          options.verbose
-        );
+        refsResolved = await runSemanticResolution(pool, options.packagePath, options.branch);
       } catch (error) {
-        if (options.verbose) {
-          console.error("Semantic resolution failed:", error);
-        }
+        logger.debug(
+          `Semantic resolution failed: ${error instanceof Error ? error.message : String(error)}`
+        );
         // Continue - structural analysis succeeded
       }
     }
@@ -161,8 +162,7 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
 async function runSemanticResolution(
   pool: DuckDBPool,
   packagePath: string,
-  branch: string,
-  verbose?: boolean
+  branch: string
 ): Promise<number> {
   // 1. Read unresolved refs from seeds
   const reader = new SeedReader(pool, packagePath);
@@ -177,25 +177,19 @@ async function runSemanticResolution(
   const language = factory.detectPackageLanguage(packagePath);
 
   if (!language) {
-    if (verbose) {
-      console.warn(`Could not detect language for package: ${packagePath}`);
-    }
+    logger.debug(`Could not detect language for package: ${packagePath}`);
     return 0;
   }
 
   const resolver = factory.getResolver(language);
   if (!resolver) {
-    if (verbose) {
-      console.warn(`No semantic resolver available for language: ${language}`);
-    }
+    logger.debug(`No semantic resolver available for language: ${language}`);
     return 0;
   }
 
   const isAvailable = await resolver.isAvailable();
   if (!isAvailable) {
-    if (verbose) {
-      console.warn(`Semantic resolver for ${language} is not available`);
-    }
+    logger.debug(`Semantic resolver for ${language} is not available`);
     return 0;
   }
 
@@ -215,14 +209,14 @@ async function runSemanticResolution(
 
     const updateResult = await writer.updateResolvedRefs(updates, { branch });
 
-    if (!updateResult.success && verbose) {
-      console.error(`Failed to update resolved refs: ${updateResult.error}`);
+    if (!updateResult.success) {
+      logger.warn(`Failed to update resolved refs: ${updateResult.error}`);
     }
   }
 
-  if (verbose && result.errors.length > 0) {
+  if (result.errors.length > 0) {
     for (const error of result.errors) {
-      console.warn(
+      logger.debug(
         `Resolution error for ${error.ref.moduleSpecifier}:${error.ref.importedSymbol}: ${error.error}`
       );
     }

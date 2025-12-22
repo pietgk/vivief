@@ -22,8 +22,6 @@ export interface AnalyzeOptions {
   all?: boolean;
   /** Run semantic resolution after structural analysis */
   resolve?: boolean;
-  /** Enable verbose output */
-  verbose?: boolean;
 }
 
 /**
@@ -128,10 +126,6 @@ export interface WatchOptions {
   debounceMs?: number;
   /** Force initial analysis even if seeds exist */
   force?: boolean;
-  /** Enable verbose output */
-  verbose?: boolean;
-  /** Enable debug output */
-  debug?: boolean;
   /** Enable cross-repo detection (default: true if in worktree context) */
   detectCrossRepo?: boolean;
   /** Path to write cross-repo notifications (optional) */

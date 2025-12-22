@@ -135,27 +135,29 @@ export async function workspaceInit(options: WorkspaceInitOptions): Promise<Work
 
     // Initialize hub
     const hub = createCentralHub({ hubDir: devacDir });
-    await hub.init({ force: options.force });
-    result.hubInitialized = true;
+    try {
+      await hub.init({ force: options.force });
+      result.hubInitialized = true;
 
-    // Register repos if requested
-    if (options.registerRepos) {
-      for (const repo of info.repos) {
-        if (repo.hasSeeds) {
-          try {
-            await hub.registerRepo(repo.path);
-            result.reposRegistered++;
-          } catch {
-            // Skip repos that fail to register
+      // Register repos if requested
+      if (options.registerRepos) {
+        for (const repo of info.repos) {
+          if (repo.hasSeeds) {
+            try {
+              await hub.registerRepo(repo.path);
+              result.reposRegistered++;
+            } catch {
+              // Skip repos that fail to register
+            }
           }
         }
       }
+
+      result.success = true;
+      return result;
+    } finally {
+      await hub.close();
     }
-
-    await hub.close();
-
-    result.success = true;
-    return result;
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
     return result;

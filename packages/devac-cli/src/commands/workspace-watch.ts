@@ -5,7 +5,9 @@
  * hub refresh when seeds change.
  */
 
-import { type WorkspaceEvent, createWorkspaceManager } from "@pietgk/devac-core";
+import { type WorkspaceEvent, createLogger, createWorkspaceManager } from "@pietgk/devac-core";
+
+const logger = createLogger({ prefix: "[WorkspaceWatch]" });
 
 /**
  * Workspace watch command options
@@ -19,9 +21,6 @@ export interface WorkspaceWatchOptions {
 
   /** Debounce time in ms for hub refresh */
   refreshDebounceMs?: number;
-
-  /** Enable verbose logging */
-  verbose?: boolean;
 }
 
 /**
@@ -87,16 +86,14 @@ export async function workspaceWatch(
     manager.on((event: WorkspaceEvent) => {
       eventsProcessed++;
 
-      if (options.verbose) {
-        const timestamp = new Date().toISOString().substring(11, 19);
-        formatEvent(event, timestamp);
-      }
+      // Log all events at verbose level
+      const timestamp = new Date().toISOString().substring(11, 19);
+      logEvent(event, timestamp);
 
+      // Always show hub refresh in normal output
       if (event.type === "hub-refresh") {
         hubRefreshes++;
-        if (!options.verbose) {
-          console.log(`🔄 Hub refreshed: ${event.refreshedRepos.join(", ")}`);
-        }
+        console.log(`🔄 Hub refreshed: ${event.refreshedRepos.join(", ")}`);
       }
     });
 
@@ -135,30 +132,30 @@ export async function workspaceWatch(
 }
 
 /**
- * Format and print an event
+ * Log an event using verbose logging
  */
-function formatEvent(event: WorkspaceEvent, timestamp: string): void {
+function logEvent(event: WorkspaceEvent, timestamp: string): void {
   switch (event.type) {
     case "file-change":
-      console.log(`[${timestamp}] 📄 ${event.changeType}: ${event.filePath}`);
+      logger.verbose(`[${timestamp}] 📄 ${event.changeType}: ${event.filePath}`);
       break;
     case "seed-change":
-      console.log(`[${timestamp}] 📦 Seeds changed: ${event.repoId}`);
+      logger.verbose(`[${timestamp}] 📦 Seeds changed: ${event.repoId}`);
       break;
     case "hub-refresh":
       if (event.errors.length > 0) {
-        console.log(`[${timestamp}] ⚠️ Hub refresh with errors: ${event.errors.join(", ")}`);
+        logger.warn(`[${timestamp}] Hub refresh with errors: ${event.errors.join(", ")}`);
       } else {
-        console.log(`[${timestamp}] 🔄 Hub refreshed: ${event.refreshedRepos.join(", ")}`);
+        logger.verbose(`[${timestamp}] 🔄 Hub refreshed: ${event.refreshedRepos.join(", ")}`);
       }
       break;
     case "repo-discovery":
-      console.log(
+      logger.verbose(
         `[${timestamp}] ${event.action === "added" ? "➕" : "➖"} Repo ${event.action}: ${event.repo.name}`
       );
       break;
     case "watcher-state":
-      console.log(`[${timestamp}] 👁️ Watcher ${event.state}`);
+      logger.verbose(`[${timestamp}] 👁️ Watcher ${event.state}`);
       break;
   }
 }

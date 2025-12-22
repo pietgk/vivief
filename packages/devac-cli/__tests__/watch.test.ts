@@ -282,33 +282,8 @@ describe("CLI: watch command", () => {
   });
 
   describe("CLI options", () => {
-    it("accepts --verbose flag", async () => {
-      const options: WatchOptions = {
-        packagePath: tempDir,
-        repoName: "test-repo",
-        verbose: true,
-      };
-
-      const controller = await watchCommand(options);
-
-      expect(controller.getOptions().verbose).toBe(true);
-
-      await controller.stop();
-    });
-
-    it("accepts --debug flag", async () => {
-      const options: WatchOptions = {
-        packagePath: tempDir,
-        repoName: "test-repo",
-        debug: true,
-      };
-
-      const controller = await watchCommand(options);
-
-      expect(controller.getOptions().debug).toBe(true);
-
-      await controller.stop();
-    });
+    // Note: --verbose and --debug are now global CLI options handled by the
+    // preAction hook in index.ts, not per-command options
 
     it("accepts --debounce flag", async () => {
       const options: WatchOptions = {
