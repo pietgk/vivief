@@ -50,7 +50,7 @@ Phase 4: Iterative Refinement
 | Universal AST extraction | ✅ Done | TypeScript, Python, C# parsers |
 | Seeds (Parquet) | ✅ Done | nodes, edges, external_refs tables |
 | Hub federation | ✅ Done | Cross-repo queries via DuckDB |
-| MCP server | ✅ Done | 8 tools for LLM querying |
+| MCP server | ✅ Done | 12 tools for LLM querying |
 | Worktree workflow | ✅ Done | Issue-based git worktrees |
 | Incremental updates | ✅ Done | Watch mode, delta storage |
 | Context discovery | ✅ Done | Sibling repos, issue grouping |
@@ -292,7 +292,7 @@ afterAll(() => {
 
 ## 6. Validation Integration
 
-Validation checks produce `ValidationResult` workflow effects.
+Validation checks produce `ValidationResult` workflow effects. Results are cached in the central Hub for fast LLM queries.
 
 ### Current Implementation
 
@@ -313,6 +313,35 @@ interface ValidationResult {
 }
 ```
 
+### Hub Cache Integration
+
+Validation errors are stored in the central Hub's DuckDB (`~/.devac/central.duckdb`) for fast querying:
+
+```typescript
+// packages/devac-core/src/validation/hub-integration.ts
+interface ValidationError {
+  repo_id: string
+  package_path: string
+  file: string
+  line: number
+  column: number
+  message: string
+  severity: "error" | "warning"
+  source: "tsc" | "eslint" | "test"
+  code?: string
+}
+
+// Push validation results to hub
+await hub.pushValidationErrors(repoId, errors)
+
+// Query via MCP tools
+// - get_validation_errors: Filter by repo, severity, source
+// - get_validation_summary: Group by repo, file, or source
+// - get_validation_counts: Total errors/warnings
+```
+
+See [ADR-0017: Validation Hub Cache](./adr/0017-validation-hub-cache.md) for the decision rationale.
+
 ### CLI Integration
 
 ```bash
@@ -321,6 +350,7 @@ devac validate --type          # Type-check only
 devac validate --lint          # Lint only
 devac validate --test          # Tests only
 devac validate --context       # Run across all context repos
+devac validate --push-to-hub --repo-id myorg/repo  # Cache for LLM queries
 ```
 
 ---
@@ -391,6 +421,10 @@ function extractRepoName(dirName: string): string {
 | `get_call_graph` | Build call graph for functions |
 | `query_sql` | Execute read-only SQL on seeds |
 | `list_repos` | List registered repositories |
+| `get_context` | Discover sibling repos, worktrees, issues |
+| `get_validation_errors` | Query validation errors from hub cache |
+| `get_validation_summary` | Get grouped error counts |
+| `get_validation_counts` | Get total error/warning counts |
 
 ### Future Tools (Planned)
 
@@ -398,7 +432,6 @@ function extractRepoName(dirName: string): string {
 |------|---------|
 | `trigger_analyze` | Re-run extraction |
 | `refresh_hub` | Sync hub with repo manifests |
-| `get_context` | Return current context info |
 | `query_cross_repo` | Federated query across context |
 
 ---

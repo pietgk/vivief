@@ -12,6 +12,9 @@ import {
   DuckDBPool,
   type SeedReader,
   type SymbolAffectedAnalyzer,
+  type ValidationError,
+  type ValidationFilter,
+  type ValidationSummary,
   createCentralHub,
   createSeedReader,
   createSymbolAffectedAnalyzer,
@@ -80,6 +83,17 @@ export interface DataProvider {
 
   /** List registered repositories (hub mode only) */
   listRepos(): Promise<RepoListItem[]>;
+
+  /** Get validation errors from hub (hub mode only) */
+  getValidationErrors(filter: ValidationFilter): Promise<ValidationError[]>;
+
+  /** Get validation error summary (hub mode only) */
+  getValidationSummary(
+    groupBy: "repo" | "file" | "source" | "severity"
+  ): Promise<ValidationSummary[]>;
+
+  /** Get validation error counts (hub mode only) */
+  getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }>;
 }
 
 /**
@@ -246,6 +260,20 @@ export class PackageDataProvider implements DataProvider {
 
   async listRepos(): Promise<RepoListItem[]> {
     throw new Error("list_repos is only available in hub mode");
+  }
+
+  async getValidationErrors(_filter: ValidationFilter): Promise<ValidationError[]> {
+    throw new Error("get_validation_errors is only available in hub mode");
+  }
+
+  async getValidationSummary(
+    _groupBy: "repo" | "file" | "source" | "severity"
+  ): Promise<ValidationSummary[]> {
+    throw new Error("get_validation_summary is only available in hub mode");
+  }
+
+  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+    throw new Error("get_validation_counts is only available in hub mode");
   }
 }
 
@@ -488,6 +516,20 @@ export class HubDataProvider implements DataProvider {
       status: repo.status,
       lastSynced: repo.lastSynced,
     }));
+  }
+
+  async getValidationErrors(filter: ValidationFilter): Promise<ValidationError[]> {
+    return await this.hub.getValidationErrors(filter);
+  }
+
+  async getValidationSummary(
+    groupBy: "repo" | "file" | "source" | "severity"
+  ): Promise<ValidationSummary[]> {
+    return await this.hub.getValidationSummary(groupBy);
+  }
+
+  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+    return await this.hub.getValidationCounts();
   }
 }
 

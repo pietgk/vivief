@@ -148,6 +148,15 @@ export class DevacMCPServer {
         case "get_context":
           return await this.executeGetContext(input);
 
+        case "get_validation_errors":
+          return await this.executeGetValidationErrors(input);
+
+        case "get_validation_summary":
+          return await this.executeGetValidationSummary(input);
+
+        case "get_validation_counts":
+          return await this.executeGetValidationCounts();
+
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
       }
@@ -243,6 +252,66 @@ export class DevacMCPServer {
     try {
       const repos = await this.provider.listRepos();
       return { success: true, data: repos };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get validation errors from hub
+   */
+  private async executeGetValidationErrors(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const filter = {
+        repo_id: input.repo_id as string | undefined,
+        severity: input.severity as "error" | "warning" | undefined,
+        source: input.source as "tsc" | "eslint" | "test" | undefined,
+        file: input.file as string | undefined,
+        limit: input.limit as number | undefined,
+      };
+
+      const errors = await this.provider.getValidationErrors(filter);
+      return { success: true, data: errors };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get validation error summary
+   */
+  private async executeGetValidationSummary(
+    input: Record<string, unknown>
+  ): Promise<MCPToolResult> {
+    try {
+      const groupBy = input.groupBy as "repo" | "file" | "source" | "severity";
+      if (!groupBy) {
+        return { success: false, error: "groupBy is required" };
+      }
+
+      const summary = await this.provider.getValidationSummary(groupBy);
+      return { success: true, data: summary };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Get validation error counts
+   */
+  private async executeGetValidationCounts(): Promise<MCPToolResult> {
+    try {
+      const counts = await this.provider.getValidationCounts();
+      return { success: true, data: counts };
     } catch (error) {
       return {
         success: false,

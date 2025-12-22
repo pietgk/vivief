@@ -26,6 +26,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0014](0014-worktree-claude-workflow.md) | Git Worktree + Claude CLI Workflow | Accepted | 2025-12 |
 | [0015](0015-conceptual-foundation.md) | Conceptual Foundation - Effect Handler Pattern | Accepted | 2025-12 |
 | [0016](0016-workspace-module.md) | Workspace Module Architecture | Accepted | 2025-12 |
+| [0017](0017-validation-hub-cache.md) | Validation Hub Cache | Accepted | 2025-12 |
 
 ## Creating a New ADR
 

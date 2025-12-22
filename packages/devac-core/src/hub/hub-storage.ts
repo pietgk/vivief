@@ -33,6 +33,43 @@ export interface CrossRepoEdge {
 }
 
 /**
+ * Validation error stored in the hub cache
+ */
+export interface ValidationError {
+  repo_id: string;
+  package_path: string;
+  file: string;
+  line: number;
+  column: number;
+  message: string;
+  severity: "error" | "warning";
+  source: "tsc" | "eslint" | "test";
+  code: string | null;
+  updated_at: string;
+}
+
+/**
+ * Filter for querying validation errors
+ */
+export interface ValidationFilter {
+  repo_id?: string;
+  severity?: "error" | "warning";
+  source?: "tsc" | "eslint" | "test";
+  file?: string;
+  limit?: number;
+}
+
+/**
+ * Summary of validation errors
+ */
+export interface ValidationSummary {
+  group_key: string;
+  error_count: number;
+  warning_count: number;
+  total_count: number;
+}
+
+/**
  * Hub Storage
  *
  * Manages the central DuckDB database for federation.
@@ -113,6 +150,35 @@ export class HubStorage {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ttl_seconds INTEGER DEFAULT 300
       )
+    `);
+
+    // Validation errors cache
+    // Note: code can be NULL, so we use COALESCE in the unique constraint via a computed column
+    await this.db.run(`
+      CREATE TABLE IF NOT EXISTS validation_errors (
+        repo_id VARCHAR NOT NULL,
+        package_path VARCHAR NOT NULL,
+        file VARCHAR NOT NULL,
+        line INTEGER NOT NULL,
+        column_num INTEGER NOT NULL,
+        message VARCHAR NOT NULL,
+        severity VARCHAR NOT NULL,
+        source VARCHAR NOT NULL,
+        code VARCHAR,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (repo_id, package_path, file, line, column_num, source)
+      )
+    `);
+
+    // Create indexes for validation_errors
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_validation_repo ON validation_errors(repo_id)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_validation_severity ON validation_errors(severity)
+    `);
+    await this.db.run(`
+      CREATE INDEX IF NOT EXISTS idx_validation_source ON validation_errors(source)
     `);
   }
 
@@ -360,6 +426,183 @@ export class HubStorage {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.run("DELETE FROM query_cache");
+  }
+
+  // ================== Validation Errors ==================
+
+  /**
+   * Upsert validation errors for a repository
+   * Clears existing errors for the repo first, then inserts new ones
+   */
+  async upsertValidationErrors(
+    repoId: string,
+    packagePath: string,
+    errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[]
+  ): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    // Clear existing errors for this repo/package
+    await this.db.run(
+      "DELETE FROM validation_errors WHERE repo_id = ? AND package_path = ?",
+      repoId,
+      packagePath
+    );
+
+    if (errors.length === 0) return;
+
+    const now = new Date().toISOString();
+
+    // Insert new errors
+    for (const error of errors) {
+      await this.db.run(
+        `
+        INSERT INTO validation_errors
+        (repo_id, package_path, file, line, column_num, message, severity, source, code, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        repoId,
+        packagePath,
+        error.file,
+        error.line,
+        error.column,
+        error.message,
+        error.severity,
+        error.source,
+        error.code ?? null,
+        now
+      );
+    }
+  }
+
+  /**
+   * Clear all validation errors for a repository
+   */
+  async clearValidationErrors(repoId: string): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    await this.db.run("DELETE FROM validation_errors WHERE repo_id = ?", repoId);
+  }
+
+  /**
+   * Query validation errors with optional filters
+   */
+  async queryValidationErrors(filter: ValidationFilter = {}): Promise<ValidationError[]> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    let sql = "SELECT * FROM validation_errors WHERE 1=1";
+    const params: (string | number)[] = [];
+
+    if (filter.repo_id) {
+      sql += " AND repo_id = ?";
+      params.push(filter.repo_id);
+    }
+
+    if (filter.severity) {
+      sql += " AND severity = ?";
+      params.push(filter.severity);
+    }
+
+    if (filter.source) {
+      sql += " AND source = ?";
+      params.push(filter.source);
+    }
+
+    if (filter.file) {
+      sql += " AND file LIKE ?";
+      params.push(`%${filter.file}%`);
+    }
+
+    sql += " ORDER BY repo_id, file, line, column_num";
+
+    if (filter.limit) {
+      sql += " LIMIT ?";
+      params.push(filter.limit);
+    }
+
+    const rows = await this.db.all(sql, ...params);
+
+    return rows.map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        repo_id: r.repo_id as string,
+        package_path: r.package_path as string,
+        file: r.file as string,
+        line: r.line as number,
+        column: r.column_num as number,
+        message: r.message as string,
+        severity: r.severity as "error" | "warning",
+        source: r.source as "tsc" | "eslint" | "test",
+        code: r.code as string | null,
+        updated_at: this.formatTimestamp(r.updated_at),
+      };
+    });
+  }
+
+  /**
+   * Get validation error summary grouped by repo, file, source, or severity
+   */
+  async getValidationSummary(
+    groupBy: "repo" | "file" | "source" | "severity"
+  ): Promise<ValidationSummary[]> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const columnMap: Record<string, string> = {
+      repo: "repo_id",
+      file: "file",
+      source: "source",
+      severity: "severity",
+    };
+
+    const column = columnMap[groupBy];
+
+    const sql = `
+      SELECT
+        ${column} as group_key,
+        SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) as error_count,
+        SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_count,
+        COUNT(*) as total_count
+      FROM validation_errors
+      GROUP BY ${column}
+      ORDER BY total_count DESC
+    `;
+
+    const rows = await this.db.all(sql);
+
+    return rows.map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        group_key: r.group_key as string,
+        error_count: Number(r.error_count),
+        warning_count: Number(r.warning_count),
+        total_count: Number(r.total_count),
+      };
+    });
+  }
+
+  /**
+   * Get total validation error counts
+   */
+  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+    if (!this.db) throw new Error("Database not initialized");
+
+    const rows = await this.db.all(`
+      SELECT
+        SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) as errors,
+        SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warnings,
+        COUNT(*) as total
+      FROM validation_errors
+    `);
+
+    if (rows.length === 0) {
+      return { errors: 0, warnings: 0, total: 0 };
+    }
+
+    const r = rows[0] as Record<string, unknown>;
+    return {
+      errors: Number(r.errors ?? 0),
+      warnings: Number(r.warnings ?? 0),
+      total: Number(r.total ?? 0),
+    };
   }
 
   /**

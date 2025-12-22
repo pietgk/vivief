@@ -7,13 +7,24 @@
  */
 
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
+  CentralHub,
   DuckDBPool,
   SeedReader,
   ValidationCoordinator,
   type ValidationCoordinatorResult,
   type ValidationMode,
+  pushValidationResultsToHub,
 } from "@pietgk/devac-core";
+
+/**
+ * Get the default Hub directory path
+ */
+function getDefaultHubDir(): string {
+  return path.join(os.homedir(), ".devac");
+}
 
 /**
  * Options for validate command
@@ -37,6 +48,12 @@ export interface ValidateOptions {
   maxDepth?: number;
   /** Timeout in milliseconds */
   timeout?: number;
+  /** Push results to central Hub cache */
+  pushToHub?: boolean;
+  /** Repository ID for Hub push (required if pushToHub is true) */
+  repoId?: string;
+  /** Hub directory (defaults to ~/.devac) */
+  hubDir?: string;
 }
 
 /**
@@ -45,6 +62,8 @@ export interface ValidateOptions {
 export interface ValidateResult extends ValidationCoordinatorResult {
   /** Error message if command failed */
   error?: string;
+  /** Number of errors pushed to Hub (if pushToHub was enabled) */
+  pushedToHub?: number;
 }
 
 /**
@@ -108,6 +127,32 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
 
     // Apply config overrides to result
     const finalResult = applyConfigOverrides(result, options, configOverrides);
+
+    // Push to Hub if requested
+    if (options.pushToHub && options.repoId) {
+      const hubDir = options.hubDir ?? getDefaultHubDir();
+      let hub: CentralHub | null = null;
+      try {
+        hub = new CentralHub({ hubDir });
+        await hub.init();
+        const pushResult = await pushValidationResultsToHub(
+          hub,
+          options.repoId,
+          options.packagePath,
+          finalResult
+        );
+        finalResult.pushedToHub = pushResult.pushed;
+      } catch (hubError) {
+        // Don't fail validation if Hub push fails - log warning
+        console.error(
+          `Warning: Failed to push validation results to Hub: ${hubError instanceof Error ? hubError.message : String(hubError)}`
+        );
+      } finally {
+        if (hub) {
+          await hub.close();
+        }
+      }
+    }
 
     return finalResult;
   } catch (error) {

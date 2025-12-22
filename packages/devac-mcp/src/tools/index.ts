@@ -133,6 +133,65 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  {
+    name: "get_validation_errors",
+    description:
+      "Get validation errors (type errors, lint issues, test failures) from the hub cache. Returns errors that need to be fixed. Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        repo_id: {
+          type: "string",
+          description: "Filter by repository ID (e.g., 'github.com/org/repo')",
+        },
+        severity: {
+          type: "string",
+          enum: ["error", "warning"],
+          description: "Filter by severity level",
+        },
+        source: {
+          type: "string",
+          enum: ["tsc", "eslint", "test"],
+          description: "Filter by error source (TypeScript, ESLint, or tests)",
+        },
+        file: {
+          type: "string",
+          description: "Filter by file path (partial match)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of errors to return",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "get_validation_summary",
+    description:
+      "Get a summary of validation errors grouped by repository, file, source, or severity. Useful for getting an overview of issues. Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        groupBy: {
+          type: "string",
+          enum: ["repo", "file", "source", "severity"],
+          description: "How to group the error counts",
+        },
+      },
+      required: ["groupBy"],
+    },
+  },
+  {
+    name: "get_validation_counts",
+    description:
+      "Get total counts of validation errors and warnings across all repositories. Only available in hub mode.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 export { MCP_TOOLS as default };

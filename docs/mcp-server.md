@@ -11,6 +11,7 @@ The MCP server exposes DevAC's code analysis capabilities through the Model Cont
 - Analyze call graphs
 - Determine affected files from changes
 - Execute custom SQL queries against the code graph
+- Query validation errors (type errors, lint issues, test failures)
 
 ## Installation
 
@@ -46,7 +47,7 @@ await server.stop();
 
 ## Available Tools
 
-The MCP server exposes 9 tools for code analysis and context discovery:
+The MCP server exposes 12 tools for code analysis, context discovery, and validation:
 
 ### find_symbol
 
@@ -221,6 +222,70 @@ List all repositories registered with the central hub (hub mode only).
 
 **Response:**
 Returns an array of registered repositories with their paths and package information.
+
+### get_validation_errors
+
+Get validation errors (type errors, lint issues, test failures) from the hub cache. Only available in hub mode.
+
+**Parameters:**
+- `repo_id` (string, optional): Filter by repository ID (e.g., "github.com/org/repo")
+- `severity` (string, optional): Filter by severity ("error" or "warning")
+- `source` (string, optional): Filter by source ("tsc", "eslint", or "test")
+- `file` (string, optional): Filter by file path (partial match)
+- `limit` (number, optional): Maximum number of errors to return
+
+**Example:**
+```json
+{
+  "name": "get_validation_errors",
+  "arguments": {
+    "severity": "error",
+    "source": "tsc",
+    "limit": 10
+  }
+}
+```
+
+**Response:**
+Returns an array of validation errors with file, line, column, message, severity, source, and code.
+
+### get_validation_summary
+
+Get a summary of validation errors grouped by repository, file, source, or severity. Only available in hub mode.
+
+**Parameters:**
+- `groupBy` (string, required): How to group error counts ("repo", "file", "source", or "severity")
+
+**Example:**
+```json
+{
+  "name": "get_validation_summary",
+  "arguments": {
+    "groupBy": "source"
+  }
+}
+```
+
+**Response:**
+Returns grouped counts like `{ "tsc": 15, "eslint": 3, "test": 0 }`.
+
+### get_validation_counts
+
+Get total counts of validation errors and warnings across all repositories. Only available in hub mode.
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "get_validation_counts",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns `{ "errors": 18, "warnings": 7 }`.
 
 ## Server Configuration
 

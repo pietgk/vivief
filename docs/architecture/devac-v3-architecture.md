@@ -417,23 +417,30 @@ Effects are NOT specific to code - they're the universal abstraction for ALL cha
 
 ## 10. Phasing Summary
 
-### Phase 1 - Core (Current Focus)
+### Phase 1 - Core (COMPLETE)
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| Code Seeds | ✅ Done | AST extraction for TS, Python, C# , make sure its nicely integrated in the new context |
-| Workspace Discovery | Planned | Convention-based repo/worktree detection |
-| Unified Watcher | Planned | Single workspace-level filesystem watcher |
-| Hub Auto-refresh | Planned | Automatic hub updates on seed changes |
+| Code Seeds | ✅ Done | AST extraction for TS, Python, C# |
+| Workspace Discovery | ✅ Done | Convention-based repo/worktree detection |
+| Unified Watcher | ✅ Done | Workspace-level filesystem watcher for seeds |
+| Hub Auto-refresh | ✅ Done | Automatic hub updates on seed changes |
+| Context Discovery | ✅ Done | Sibling repos, issue grouping, MCP tool |
 
-### Phase 2 - Validation
+See [ADR-0016: Workspace Module](../adr/0016-workspace-module.md) for implementation details.
+
+### Phase 2 - Validation (COMPLETE)
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| TypeScript Errors | Planned | Extract `tsc` diagnostics as seeds |
-| ESLint Issues | Planned | Extract lint results as seeds |
-| Test Results | Planned | Extract test outcomes as seeds |
+| TypeScript Errors | ✅ Done | Extract `tsc` diagnostics via TypecheckValidator |
+| ESLint Issues | ✅ Done | Extract lint results via LintValidator |
+| Test Results | ✅ Done | Extract test outcomes via TestValidator |
+| Hub Cache | ✅ Done | Store validation errors in central Hub for LLM queries |
+| MCP Tools | ✅ Done | `get_validation_errors`, `get_validation_summary`, `get_validation_counts` |
 | Security Audits | Planned | Extract `npm audit` / dependency checks |
+
+See [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) for implementation details.
 
 ### Phase 3 - CI/CD
 
@@ -466,5 +473,5 @@ Effects are NOT specific to code - they're the universal abstraction for ALL cha
 
 ---
 
-*Document Version: 0.3 - Seeds vs Effects clarified*
-*Status: Ready for detailed design*
+*Document Version: 0.4 - Phase 1 & 2 Complete*
+*Status: Phase 3 (CI/CD) ready for implementation*

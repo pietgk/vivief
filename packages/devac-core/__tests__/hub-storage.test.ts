@@ -14,6 +14,7 @@ import {
   type CrossRepoEdge,
   type HubStorage,
   type RepoRegistration,
+  type ValidationError,
   createHubStorage,
 } from "../src/hub/hub-storage.js";
 
@@ -507,6 +508,485 @@ describe("HubStorage", () => {
 
       const repos = await storage.listRepos();
       expect(repos.length).toBe(0);
+    });
+  });
+
+  describe("validation errors", () => {
+    beforeEach(async () => {
+      await storage.init();
+    });
+
+    it("upserts validation errors", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/auth.ts",
+          line: 42,
+          column: 5,
+          message: "Type 'string' is not assignable to type 'number'",
+          severity: "error",
+          source: "tsc",
+          code: "TS2322",
+        },
+        {
+          file: "src/auth.ts",
+          line: 50,
+          column: 10,
+          message: "Unused variable 'x'",
+          severity: "warning",
+          source: "eslint",
+          code: "no-unused-vars",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "packages/api", errors);
+
+      const retrieved = await storage.queryValidationErrors({});
+      expect(retrieved.length).toBe(2);
+      expect(retrieved[0]?.file).toBe("src/auth.ts");
+      expect(retrieved[0]?.severity).toBe("error");
+    });
+
+    it("clears validation errors for a repo", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/index.ts",
+          line: 10,
+          column: 1,
+          message: "Test error",
+          severity: "error",
+          source: "tsc",
+          code: "TS1234",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo-a", "pkg", errors);
+      await storage.upsertValidationErrors("github.com/org/repo-b", "pkg", errors);
+
+      await storage.clearValidationErrors("github.com/org/repo-a");
+
+      const retrieved = await storage.queryValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.repo_id).toBe("github.com/org/repo-b");
+    });
+
+    it("queries validation errors by severity", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/a.ts",
+          line: 1,
+          column: 1,
+          message: "Error 1",
+          severity: "error",
+          source: "tsc",
+          code: "TS1",
+        },
+        {
+          file: "src/b.ts",
+          line: 2,
+          column: 2,
+          message: "Warning 1",
+          severity: "warning",
+          source: "eslint",
+          code: "warn1",
+        },
+        {
+          file: "src/c.ts",
+          line: 3,
+          column: 3,
+          message: "Error 2",
+          severity: "error",
+          source: "tsc",
+          code: "TS2",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const onlyErrors = await storage.queryValidationErrors({ severity: "error" });
+      expect(onlyErrors.length).toBe(2);
+      expect(onlyErrors.every((e) => e.severity === "error")).toBe(true);
+
+      const onlyWarnings = await storage.queryValidationErrors({ severity: "warning" });
+      expect(onlyWarnings.length).toBe(1);
+      expect(onlyWarnings[0]?.severity).toBe("warning");
+    });
+
+    it("queries validation errors by source", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/a.ts",
+          line: 1,
+          column: 1,
+          message: "TSC error",
+          severity: "error",
+          source: "tsc",
+          code: "TS1",
+        },
+        {
+          file: "src/b.ts",
+          line: 2,
+          column: 2,
+          message: "ESLint warning",
+          severity: "warning",
+          source: "eslint",
+          code: "rule1",
+        },
+        {
+          file: "src/c.ts",
+          line: 3,
+          column: 3,
+          message: "Test failure",
+          severity: "error",
+          source: "test",
+          code: null,
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const tscErrors = await storage.queryValidationErrors({ source: "tsc" });
+      expect(tscErrors.length).toBe(1);
+      expect(tscErrors[0]?.source).toBe("tsc");
+
+      const testErrors = await storage.queryValidationErrors({ source: "test" });
+      expect(testErrors.length).toBe(1);
+      expect(testErrors[0]?.source).toBe("test");
+    });
+
+    it("queries validation errors by file", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/auth.ts",
+          line: 1,
+          column: 1,
+          message: "Error in auth",
+          severity: "error",
+          source: "tsc",
+          code: "TS1",
+        },
+        {
+          file: "src/auth.ts",
+          line: 2,
+          column: 2,
+          message: "Another error in auth",
+          severity: "error",
+          source: "tsc",
+          code: "TS2",
+        },
+        {
+          file: "src/utils.ts",
+          line: 3,
+          column: 3,
+          message: "Error in utils",
+          severity: "error",
+          source: "tsc",
+          code: "TS3",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const authErrors = await storage.queryValidationErrors({ file: "src/auth.ts" });
+      expect(authErrors.length).toBe(2);
+      expect(authErrors.every((e) => e.file === "src/auth.ts")).toBe(true);
+    });
+
+    it("queries validation errors by repo_id", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/index.ts",
+          line: 1,
+          column: 1,
+          message: "Error",
+          severity: "error",
+          source: "tsc",
+          code: "TS1",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo-a", "pkg", errors);
+      await storage.upsertValidationErrors("github.com/org/repo-b", "pkg", errors);
+
+      const repoAErrors = await storage.queryValidationErrors({ repo_id: "github.com/org/repo-a" });
+      expect(repoAErrors.length).toBe(1);
+      expect(repoAErrors[0]?.repo_id).toBe("github.com/org/repo-a");
+    });
+
+    it("gets validation summary grouped by severity", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error",
+          source: "tsc",
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "E2",
+          severity: "error",
+          source: "tsc",
+          code: "T2",
+        },
+        {
+          file: "c.ts",
+          line: 3,
+          column: 3,
+          message: "W1",
+          severity: "warning",
+          source: "eslint",
+          code: "L1",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const summary = await storage.getValidationSummary("severity");
+      expect(summary.length).toBe(2);
+
+      const errorSummary = summary.find((s) => s.group_key === "error");
+      const warningSummary = summary.find((s) => s.group_key === "warning");
+
+      expect(errorSummary?.total_count).toBe(2);
+      expect(warningSummary?.total_count).toBe(1);
+    });
+
+    it("gets validation summary grouped by source", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error",
+          source: "tsc",
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "E2",
+          severity: "error",
+          source: "tsc",
+          code: "T2",
+        },
+        {
+          file: "c.ts",
+          line: 3,
+          column: 3,
+          message: "E3",
+          severity: "error",
+          source: "eslint",
+          code: "L1",
+        },
+        {
+          file: "d.ts",
+          line: 4,
+          column: 4,
+          message: "E4",
+          severity: "error",
+          source: "test",
+          code: null,
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const summary = await storage.getValidationSummary("source");
+      expect(summary.length).toBe(3);
+
+      const tscSummary = summary.find((s) => s.group_key === "tsc");
+      const eslintSummary = summary.find((s) => s.group_key === "eslint");
+      const testSummary = summary.find((s) => s.group_key === "test");
+
+      expect(tscSummary?.total_count).toBe(2);
+      expect(eslintSummary?.total_count).toBe(1);
+      expect(testSummary?.total_count).toBe(1);
+    });
+
+    it("gets validation counts", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error",
+          source: "tsc",
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "E2",
+          severity: "error",
+          source: "tsc",
+          code: "T2",
+        },
+        {
+          file: "c.ts",
+          line: 3,
+          column: 3,
+          message: "W1",
+          severity: "warning",
+          source: "eslint",
+          code: "L1",
+        },
+        {
+          file: "d.ts",
+          line: 4,
+          column: 4,
+          message: "W2",
+          severity: "warning",
+          source: "eslint",
+          code: "L2",
+        },
+        {
+          file: "e.ts",
+          line: 5,
+          column: 5,
+          message: "W3",
+          severity: "warning",
+          source: "eslint",
+          code: "L3",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const counts = await storage.getValidationCounts();
+      expect(counts.errors).toBe(2);
+      expect(counts.warnings).toBe(3);
+      expect(counts.total).toBe(5);
+    });
+
+    it("returns empty counts when no errors exist", async () => {
+      const counts = await storage.getValidationCounts();
+      expect(counts.errors).toBe(0);
+      expect(counts.warnings).toBe(0);
+      expect(counts.total).toBe(0);
+    });
+
+    it("updates existing validation errors on upsert", async () => {
+      const initialErrors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/auth.ts",
+          line: 42,
+          column: 5,
+          message: "Initial message",
+          severity: "error",
+          source: "tsc",
+          code: "TS2322",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", initialErrors);
+
+      const updatedErrors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/auth.ts",
+          line: 42,
+          column: 5,
+          message: "Updated message",
+          severity: "error",
+          source: "tsc",
+          code: "TS2322",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", updatedErrors);
+
+      const retrieved = await storage.queryValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.message).toBe("Updated message");
+    });
+
+    it("handles empty error list", async () => {
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", []);
+
+      const retrieved = await storage.queryValidationErrors({});
+      expect(retrieved.length).toBe(0);
+    });
+
+    it("handles null code values", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/test.ts",
+          line: 1,
+          column: 1,
+          message: "Test failed: expected true to be false",
+          severity: "error",
+          source: "test",
+          code: null,
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const retrieved = await storage.queryValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.code).toBeNull();
+    });
+
+    it("queries with combined filters", async () => {
+      const errors: Omit<ValidationError, "repo_id" | "package_path" | "updated_at">[] = [
+        {
+          file: "src/auth.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error",
+          source: "tsc",
+          code: "T1",
+        },
+        {
+          file: "src/auth.ts",
+          line: 2,
+          column: 2,
+          message: "W1",
+          severity: "warning",
+          source: "tsc",
+          code: "T2",
+        },
+        {
+          file: "src/utils.ts",
+          line: 3,
+          column: 3,
+          message: "E2",
+          severity: "error",
+          source: "tsc",
+          code: "T3",
+        },
+        {
+          file: "src/auth.ts",
+          line: 4,
+          column: 4,
+          message: "E3",
+          severity: "error",
+          source: "eslint",
+          code: "L1",
+        },
+      ];
+
+      await storage.upsertValidationErrors("github.com/org/repo", "pkg", errors);
+
+      // Query errors in auth.ts from tsc
+      const filtered = await storage.queryValidationErrors({
+        file: "src/auth.ts",
+        source: "tsc",
+        severity: "error",
+      });
+
+      expect(filtered.length).toBe(1);
+      expect(filtered[0]?.file).toBe("src/auth.ts");
+      expect(filtered[0]?.source).toBe("tsc");
+      expect(filtered[0]?.severity).toBe("error");
     });
   });
 });

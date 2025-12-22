@@ -179,7 +179,7 @@ graph TB
             REFS[external_refs<br/>dependencies]
         end
 
-        subgraph "Validation Seeds"
+        subgraph "Validation Cache (Hub)"
             DIAG[diagnostics<br/>tsc, eslint]
             TEST[test_results<br/>pass/fail]
             AUDIT[audits<br/>security]
@@ -234,7 +234,33 @@ graph TB
     R --> HUB
 ```
 
-### 3.3 Federation Model
+### 3.3 Validation Cache (Hub-Based)
+
+Unlike code seeds which are stored as Parquet files per-repo, validation errors are stored directly in the Hub's DuckDB. This is because validation data is ephemeral (obsolete when fixed) and benefits from fast SQL writes over Parquet rewrites.
+
+```mermaid
+graph LR
+    subgraph "Per-Repo Validation"
+        VAL[devac validate<br/>runs tsc, eslint]
+    end
+
+    subgraph "Central Hub"
+        HUB[(~/.devac/central.duckdb)]
+        VE[validation_errors table]
+    end
+
+    subgraph "Query"
+        MCP[MCP Tools<br/>get_validation_*]
+    end
+
+    VAL -->|push| HUB
+    HUB --> VE
+    VE --> MCP
+```
+
+See [ADR-0017: Validation Hub Cache](./adr/0017-validation-hub-cache.md) for the decision rationale.
+
+### 3.4 Federation Model
 
 ```mermaid
 graph LR
@@ -731,6 +757,10 @@ graph LR
 | `get_call_graph` | Graph | Function call tree |
 | `query_sql` | SQL | Arbitrary queries |
 | `list_repos` | Relational | Hub registry |
+| `get_context` | Relational | Sibling repos, worktrees, issues |
+| `get_validation_errors` | Relational | Query cached validation errors |
+| `get_validation_summary` | Relational | Grouped error counts |
+| `get_validation_counts` | Relational | Total error/warning counts |
 
 ---
 
@@ -749,5 +779,5 @@ graph LR
 
 ---
 
-*Version: 1.0 - Initial architecture diagrams*
+*Version: 1.1 - Added validation hub cache, updated MCP tools*
 *Visual companion to [foundation.md](./foundation.md)*

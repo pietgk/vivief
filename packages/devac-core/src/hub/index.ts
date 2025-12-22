@@ -19,6 +19,9 @@ export {
   createHubStorage,
   type RepoRegistration,
   type CrossRepoEdge,
+  type ValidationError,
+  type ValidationFilter,
+  type ValidationSummary,
 } from "./hub-storage.js";
 
 export {

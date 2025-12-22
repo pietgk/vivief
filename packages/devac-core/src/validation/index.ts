@@ -49,3 +49,9 @@ export {
   type ValidationConfig,
   type ValidationCoordinatorResult,
 } from "./validation-coordinator.js";
+
+// Hub Integration
+export {
+  pushValidationResultsToHub,
+  clearValidationErrorsFromHub,
+} from "./hub-integration.js";

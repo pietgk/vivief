@@ -183,6 +183,8 @@ export {
   createTestValidator,
   ValidationCoordinator,
   createValidationCoordinator,
+  pushValidationResultsToHub,
+  clearValidationErrorsFromHub,
 } from "./validation/index.js";
 export type {
   ChangedSymbol,

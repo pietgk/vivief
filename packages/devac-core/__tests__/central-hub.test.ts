@@ -429,4 +429,182 @@ describe("CentralHub", () => {
       expect(repos[0]?.status).toBe("missing");
     });
   });
+
+  describe("validation errors", () => {
+    beforeEach(async () => {
+      hub = createCentralHub({ hubDir });
+      await hub.init();
+    });
+
+    it("pushes validation errors to hub", async () => {
+      const errors = [
+        {
+          file: "src/auth.ts",
+          line: 42,
+          column: 5,
+          message: "Type 'string' is not assignable to type 'number'",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "TS2322",
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo", "packages/api", errors);
+
+      const retrieved = await hub.getValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.file).toBe("src/auth.ts");
+    });
+
+    it("clears validation errors for a repo", async () => {
+      const errors = [
+        {
+          file: "src/index.ts",
+          line: 1,
+          column: 1,
+          message: "Error",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "TS1234",
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo-a", "pkg", errors);
+      await hub.pushValidationErrors("github.com/org/repo-b", "pkg", errors);
+
+      await hub.clearValidationErrors("github.com/org/repo-a");
+
+      const retrieved = await hub.getValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.repo_id).toBe("github.com/org/repo-b");
+    });
+
+    it("queries validation errors with filters", async () => {
+      const errors = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "W1",
+          severity: "warning" as const,
+          source: "eslint" as const,
+          code: "L1",
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const onlyErrors = await hub.getValidationErrors({ severity: "error" });
+      expect(onlyErrors.length).toBe(1);
+      expect(onlyErrors[0]?.severity).toBe("error");
+    });
+
+    it("gets validation summary", async () => {
+      const errors = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "E2",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "T2",
+        },
+        {
+          file: "c.ts",
+          line: 3,
+          column: 3,
+          message: "W1",
+          severity: "warning" as const,
+          source: "eslint" as const,
+          code: "L1",
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const summary = await hub.getValidationSummary("severity");
+      expect(summary.length).toBe(2);
+
+      const errorSummary = summary.find((s) => s.group_key === "error");
+      expect(errorSummary?.total_count).toBe(2);
+    });
+
+    it("gets validation counts", async () => {
+      const errors = [
+        {
+          file: "a.ts",
+          line: 1,
+          column: 1,
+          message: "E1",
+          severity: "error" as const,
+          source: "tsc" as const,
+          code: "T1",
+        },
+        {
+          file: "b.ts",
+          line: 2,
+          column: 2,
+          message: "W1",
+          severity: "warning" as const,
+          source: "eslint" as const,
+          code: "L1",
+        },
+        {
+          file: "c.ts",
+          line: 3,
+          column: 3,
+          message: "W2",
+          severity: "warning" as const,
+          source: "eslint" as const,
+          code: "L2",
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const counts = await hub.getValidationCounts();
+      expect(counts.errors).toBe(1);
+      expect(counts.warnings).toBe(2);
+      expect(counts.total).toBe(3);
+    });
+
+    it("handles null code values", async () => {
+      const errors = [
+        {
+          file: "src/test.ts",
+          line: 1,
+          column: 1,
+          message: "Test failed",
+          severity: "error" as const,
+          source: "test" as const,
+          code: null,
+        },
+      ];
+
+      await hub.pushValidationErrors("github.com/org/repo", "pkg", errors);
+
+      const retrieved = await hub.getValidationErrors({});
+      expect(retrieved.length).toBe(1);
+      expect(retrieved[0]?.code).toBeNull();
+    });
+  });
 });

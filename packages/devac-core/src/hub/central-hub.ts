@@ -13,6 +13,9 @@ import {
   type CrossRepoEdge,
   type HubStorage,
   type RepoRegistration,
+  type ValidationError,
+  type ValidationFilter,
+  type ValidationSummary,
   createHubStorage,
 } from "./hub-storage.js";
 import {
@@ -421,6 +424,70 @@ export class CentralHub {
       await db.close();
     }
   }
+
+  // ================== Validation Error APIs ==================
+
+  /**
+   * Push validation errors from a repository to the hub cache
+   * Replaces existing errors for the same repo/package
+   */
+  async pushValidationErrors(
+    repoId: string,
+    packagePath: string,
+    errors: Array<{
+      file: string;
+      line: number;
+      column: number;
+      message: string;
+      severity: "error" | "warning";
+      source: "tsc" | "eslint" | "test";
+      code: string | null;
+    }>
+  ): Promise<void> {
+    this.ensureInitialized();
+
+    await this.storage.upsertValidationErrors(repoId, packagePath, errors);
+  }
+
+  /**
+   * Clear all validation errors for a repository
+   */
+  async clearValidationErrors(repoId: string): Promise<void> {
+    this.ensureInitialized();
+
+    await this.storage.clearValidationErrors(repoId);
+  }
+
+  /**
+   * Get validation errors with optional filters
+   */
+  async getValidationErrors(filter?: ValidationFilter): Promise<ValidationError[]> {
+    this.ensureInitialized();
+
+    return this.storage.queryValidationErrors(filter);
+  }
+
+  /**
+   * Get validation error summary grouped by specified field
+   */
+  async getValidationSummary(
+    groupBy: "repo" | "file" | "source" | "severity"
+  ): Promise<ValidationSummary[]> {
+    this.ensureInitialized();
+
+    return this.storage.getValidationSummary(groupBy);
+  }
+
+  /**
+   * Get total validation error counts
+   */
+  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+    this.ensureInitialized();
+
+    return this.storage.getValidationCounts();
+  }
+
+  // ================== Affected Analysis ==================
 
   /**
    * Get repositories affected by changes to given entities

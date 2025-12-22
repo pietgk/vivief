@@ -319,10 +319,31 @@ Options:
   --quick             Quick mode: changed + direct importers (1 hop)
   --full              Full mode: all transitively affected
   --package <path>    Validate specific package
+  --skip-typecheck    Skip TypeScript type checking
+  --skip-lint         Skip ESLint linting
+  --force-tests       Force running tests (even in quick mode)
+  --push-to-hub       Push validation results to central hub cache
+  --repo-id <id>      Repository ID for hub push (required with --push-to-hub)
+  --hub-dir <path>    Hub directory (default: ~/.devac/)
 
 Examples:
   devac validate --quick               # Fast validation
   devac validate --full                # Thorough validation
+  devac validate --push-to-hub --repo-id myorg/myrepo
+                                       # Push results to hub for LLM queries
+  devac validate --skip-lint           # Skip linting, run typecheck only
+```
+
+**Hub Integration:**
+
+When using `--push-to-hub`, validation results are stored in the central hub's DuckDB for fast querying via MCP tools. This enables AI assistants to answer questions like "what errors do I need to fix?" without re-running validation.
+
+```bash
+# Push validation errors to hub
+devac validate --push-to-hub --repo-id github.com/org/repo
+
+# Query errors via MCP
+# (get_validation_errors, get_validation_summary, get_validation_counts)
 ```
 
 ### devac affected
