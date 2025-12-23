@@ -25,7 +25,7 @@ export async function pushValidationResultsToHub(
     column: number;
     message: string;
     severity: "error" | "warning";
-    source: "tsc" | "eslint" | "test" | "coverage";
+    source: "tsc" | "eslint" | "biome" | "test" | "coverage";
     code: string | null;
   }> = [];
 

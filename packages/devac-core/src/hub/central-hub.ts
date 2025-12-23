@@ -450,7 +450,7 @@ export class CentralHub {
       column: number;
       message: string;
       severity: "error" | "warning";
-      source: "tsc" | "eslint" | "test" | "coverage";
+      source: "tsc" | "eslint" | "biome" | "test" | "coverage";
       code: string | null;
     }>
   ): Promise<void> {
@@ -501,6 +501,7 @@ export class CentralHub {
     // Clear all validation sources from unified_feedback
     await this.storage.clearFeedback(repoId, "tsc");
     await this.storage.clearFeedback(repoId, "eslint");
+    await this.storage.clearFeedback(repoId, "biome");
     await this.storage.clearFeedback(repoId, "test");
   }
 
@@ -514,7 +515,7 @@ export class CentralHub {
     // Convert ValidationFilter to FeedbackFilter
     const feedbackFilter: FeedbackFilter = {
       repo_id: filter?.repo_id,
-      source: filter?.source ? [filter.source] : ["tsc", "eslint", "test"],
+      source: filter?.source ? [filter.source] : ["tsc", "eslint", "biome", "test"],
       severity: filter?.severity ? [filter.severity] : undefined,
       file_path: filter?.file,
       limit: filter?.limit,
@@ -531,7 +532,7 @@ export class CentralHub {
       column: f.column_number || 0,
       message: f.description,
       severity: f.severity as "error" | "warning",
-      source: f.source as "tsc" | "eslint" | "test",
+      source: f.source as "tsc" | "eslint" | "biome" | "test",
       code: f.code,
       updated_at: f.updated_at,
     }));
@@ -580,7 +581,7 @@ export class CentralHub {
   }> {
     this.ensureInitialized();
 
-    const counts = await this.storage.getFeedbackCountsFiltered(["tsc", "eslint", "test"]);
+    const counts = await this.storage.getFeedbackCountsFiltered(["tsc", "eslint", "biome", "test"]);
 
     return {
       errors: counts.critical + counts.error,
@@ -592,11 +593,14 @@ export class CentralHub {
   /**
    * Map source to category
    */
-  private sourceToCategory(source: "tsc" | "eslint" | "test" | "coverage"): FeedbackCategory {
+  private sourceToCategory(
+    source: "tsc" | "eslint" | "biome" | "test" | "coverage"
+  ): FeedbackCategory {
     switch (source) {
       case "tsc":
         return "compilation";
       case "eslint":
+      case "biome":
         return "linting";
       case "test":
         return "testing";

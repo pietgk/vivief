@@ -43,7 +43,7 @@ export interface ValidationError {
   column: number;
   message: string;
   severity: "error" | "warning";
-  source: "tsc" | "eslint" | "test";
+  source: "tsc" | "eslint" | "biome" | "test";
   code: string | null;
   updated_at: string;
 }
@@ -54,7 +54,7 @@ export interface ValidationError {
 export interface ValidationFilter {
   repo_id?: string;
   severity?: "error" | "warning";
-  source?: "tsc" | "eslint" | "test";
+  source?: "tsc" | "eslint" | "biome" | "test";
   file?: string;
   limit?: number;
 }
@@ -77,6 +77,7 @@ export interface ValidationSummary {
 export type FeedbackSource =
   | "tsc"
   | "eslint"
+  | "biome"
   | "test"
   | "coverage"
   | "ci-check"
@@ -715,7 +716,7 @@ export class HubStorage {
         column: r.column_num as number,
         message: r.message as string,
         severity: r.severity as "error" | "warning",
-        source: r.source as "tsc" | "eslint" | "test",
+        source: r.source as "tsc" | "eslint" | "biome" | "test",
         code: r.code as string | null,
         updated_at: this.formatTimestamp(r.updated_at),
       };
