@@ -176,6 +176,23 @@ Example: `vivief-123-add-auth` for issue #123 "Add authentication"
 4. Run `pnpm lint` to check formatting
 5. Build with `pnpm build`
 
+## Commit and Push Rules
+
+**CRITICAL: Never bypass validation hooks.**
+
+- Always wait for `pnpm typecheck`, `pnpm test`, and `pnpm lint` to complete before committing
+- Never use `git push --no-verify` or `git commit --no-verify` to bypass hooks
+- If validation fails, fix the errors before committing
+- If validation times out, wait or investigate - do not bypass
+- If there is ever a legitimate reason to bypass validation (rare), ask the user first and explain why
+
+**Before every commit:**
+```bash
+pnpm typecheck && pnpm test && pnpm lint
+```
+
+If any of these fail, fix the issues before committing. No exceptions.
+
 ## Adding New Features
 
 When adding features:
