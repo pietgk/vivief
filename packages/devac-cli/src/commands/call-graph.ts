@@ -213,7 +213,9 @@ export async function callGraphCommand(
     }
 
     const count = (callers?.length || 0) + (callees?.length || 0);
-    const output = formatCallGraph(callers, callees, { pretty: options.pretty || false });
+    const output = formatCallGraph(callers, callees, {
+      pretty: options.pretty || false,
+    });
 
     return {
       success: true,
@@ -257,6 +259,7 @@ export function registerCallGraphCommand(program: Command): void {
     .option("--max-depth <depth>", "Maximum depth", "3")
     .option("-l, --limit <count>", "Maximum results per direction", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (entityId, options) => {
       const result = await callGraphCommand({
         entityId,

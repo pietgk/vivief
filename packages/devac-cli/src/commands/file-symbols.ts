@@ -96,7 +96,10 @@ export async function fileSymbolsCommand(
           };
         }
 
-        let sql = `SELECT * FROM {nodes} WHERE source_file = '${options.filePath.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM {nodes} WHERE source_file = '${options.filePath.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.kind) {
           sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
         }
@@ -117,7 +120,10 @@ export async function fileSymbolsCommand(
 
       if (options.kind || options.limit) {
         // Use SQL query for filtering
-        let sql = `SELECT * FROM nodes WHERE source_file = '${options.filePath.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM nodes WHERE source_file = '${options.filePath.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.kind) {
           sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
         }
@@ -128,7 +134,11 @@ export async function fileSymbolsCommand(
       } else {
         // Use optimized getNodesByFile
         const nodes = await seedReader.getNodesByFile(options.filePath);
-        result = { rows: nodes as unknown[], rowCount: nodes.length, timeMs: 0 };
+        result = {
+          rows: nodes as unknown[],
+          rowCount: nodes.length,
+          timeMs: 0,
+        };
       }
     }
 
@@ -177,6 +187,7 @@ export function registerFileSymbolsCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (filePath, options) => {
       const result = await fileSymbolsCommand({
         filePath,

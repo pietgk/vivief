@@ -96,7 +96,10 @@ export async function dependentsCommand(
           };
         }
 
-        let sql = `SELECT * FROM {edges} WHERE target_entity_id = '${options.entityId.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM {edges} WHERE target_entity_id = '${options.entityId.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.edgeType) {
           sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
         }
@@ -117,7 +120,10 @@ export async function dependentsCommand(
 
       if (options.edgeType || options.limit) {
         // Use SQL query for filtering
-        let sql = `SELECT * FROM edges WHERE target_entity_id = '${options.entityId.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM edges WHERE target_entity_id = '${options.entityId.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.edgeType) {
           sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
         }
@@ -128,7 +134,11 @@ export async function dependentsCommand(
       } else {
         // Use optimized getEdgesByTarget
         const edges = await seedReader.getEdgesByTarget(options.entityId);
-        result = { rows: edges as unknown[], rowCount: edges.length, timeMs: 0 };
+        result = {
+          rows: edges as unknown[],
+          rowCount: edges.length,
+          timeMs: 0,
+        };
       }
     }
 
@@ -177,6 +187,7 @@ export function registerDependentsCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (entityId, options) => {
       const result = await dependentsCommand({
         entityId,

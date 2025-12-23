@@ -148,6 +148,7 @@ export function registerTestCommand(program: Command): void {
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("-u, --update-snapshots", "Update snapshots")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (options) => {
       const result = await testCommand({
         packagePath: path.resolve(options.package),

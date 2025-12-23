@@ -118,7 +118,10 @@ export function registerHubCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--force", "Force reinitialization")
     .action(async (options) => {
-      const result = await hubInit({ hubDir: options.hubDir, force: options.force });
+      const result = await hubInit({
+        hubDir: options.hubDir,
+        force: options.force,
+      });
       console.log(result.message);
       if (!result.success) {
         process.exit(1);
@@ -263,6 +266,7 @@ export function registerHubCommand(program: Command): void {
     .option("--file <path>", "Filter by file path")
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (options) => {
       const result = await hubErrorsCommand({
         hubDir: options.hubDir,
@@ -293,6 +297,7 @@ export function registerHubCommand(program: Command): void {
     .option("--actionable", "Show only actionable items")
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (options) => {
       const result = await hubFeedbackCommand({
         hubDir: options.hubDir,
@@ -319,6 +324,7 @@ export function registerHubCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--group-by <field>", "Group by field")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (type, options) => {
       const result = await hubSummaryCommand({
         hubDir: options.hubDir,

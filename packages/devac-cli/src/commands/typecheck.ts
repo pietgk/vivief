@@ -131,6 +131,7 @@ export function registerTypecheckCommand(program: Command): void {
     .option("-c, --config <path>", "Path to tsconfig.json")
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (options) => {
       const result = await typecheckCommand({
         packagePath: path.resolve(options.package),

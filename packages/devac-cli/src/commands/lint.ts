@@ -138,6 +138,7 @@ export function registerLintCommand(program: Command): void {
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--fix", "Fix auto-fixable issues")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (options) => {
       const result = await lintCommand({
         packagePath: path.resolve(options.package),

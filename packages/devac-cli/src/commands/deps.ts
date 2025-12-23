@@ -94,7 +94,10 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
           };
         }
 
-        let sql = `SELECT * FROM {edges} WHERE source_entity_id = '${options.entityId.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM {edges} WHERE source_entity_id = '${options.entityId.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.edgeType) {
           sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
         }
@@ -115,7 +118,10 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
 
       if (options.edgeType || options.limit) {
         // Use SQL query for filtering
-        let sql = `SELECT * FROM edges WHERE source_entity_id = '${options.entityId.replace(/'/g, "''")}'`;
+        let sql = `SELECT * FROM edges WHERE source_entity_id = '${options.entityId.replace(
+          /'/g,
+          "''"
+        )}'`;
         if (options.edgeType) {
           sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
         }
@@ -126,7 +132,11 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
       } else {
         // Use optimized getEdgesBySource
         const edges = await seedReader.getEdgesBySource(options.entityId);
-        result = { rows: edges as unknown[], rowCount: edges.length, timeMs: 0 };
+        result = {
+          rows: edges as unknown[],
+          rowCount: edges.length,
+          timeMs: 0,
+        };
       }
     }
 
@@ -175,6 +185,7 @@ export function registerDepsCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (entityId, options) => {
       const result = await depsCommand({
         entityId,

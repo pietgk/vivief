@@ -169,6 +169,7 @@ export function registerFindSymbolCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--pretty", "Human-readable output", true)
+    .option("--no-pretty", "JSON output")
     .action(async (name, options) => {
       const result = await findSymbolCommand({
         name,
