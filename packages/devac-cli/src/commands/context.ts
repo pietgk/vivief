@@ -655,17 +655,19 @@ export function registerContextCommand(program: Command): void {
     .option("--include-checks", "Include individual check details")
     .option("--sync-to-hub", "Sync CI status to central Hub")
     .option("--failing-only", "Only sync failing checks to Hub")
-    .action(async (options) => {
+    .action(async (options, command) => {
+      // Merge parent options with subcommand options (subcommand takes precedence)
+      const opts = { ...command.parent?.opts(), ...options };
       const result = await contextCICommand({
         cwd: process.cwd(),
-        format: options.json ? "json" : "text",
-        includeChecks: options.includeChecks,
-        syncToHub: options.syncToHub,
-        failingOnly: options.failingOnly,
+        format: opts.json ? "json" : "text",
+        includeChecks: opts.includeChecks,
+        syncToHub: opts.syncToHub,
+        failingOnly: opts.failingOnly,
       });
 
       if (result.success) {
-        if (options.json) {
+        if (opts.json) {
           console.log(
             JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
           );
@@ -687,18 +689,19 @@ export function registerContextCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum issues per repo", "50")
     .option("--labels <labels...>", "Filter by labels")
     .option("--sync-to-hub", "Sync issues to central Hub")
-    .action(async (options) => {
+    .action(async (options, command) => {
+      const opts = { ...command.parent?.opts(), ...options };
       const result = await contextIssuesCommand({
         cwd: process.cwd(),
-        format: options.json ? "json" : "text",
-        openOnly: !options.all,
-        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        labels: options.labels,
-        syncToHub: options.syncToHub,
+        format: opts.json ? "json" : "text",
+        openOnly: !opts.all,
+        limit: opts.limit ? Number.parseInt(opts.limit, 10) : undefined,
+        labels: opts.labels,
+        syncToHub: opts.syncToHub,
       });
 
       if (result.success) {
-        if (options.json) {
+        if (opts.json) {
           console.log(
             JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
           );
@@ -719,17 +722,18 @@ export function registerContextCommand(program: Command): void {
     .option("--focus <area>", "Focus area (security, performance, tests, all)", "all")
     .option("--base <branch>", "Base branch to diff against", "main")
     .option("--create-sub-issues", "Create sub-issues for follow-up work")
-    .action(async (options) => {
+    .action(async (options, command) => {
+      const opts = { ...command.parent?.opts(), ...options };
       const result = await contextReviewCommand({
         cwd: process.cwd(),
-        format: options.json ? "json" : "text",
-        focus: options.focus as "security" | "performance" | "tests" | "all",
-        baseBranch: options.base,
-        createSubIssues: options.createSubIssues,
+        format: opts.json ? "json" : "text",
+        focus: opts.focus as "security" | "performance" | "tests" | "all",
+        baseBranch: opts.base,
+        createSubIssues: opts.createSubIssues,
       });
 
       if (result.success) {
-        if (options.json) {
+        if (opts.json) {
           console.log(JSON.stringify({ prompt: result.prompt, result: result.result }, null, 2));
         } else {
           console.log(result.formatted);
