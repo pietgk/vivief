@@ -251,9 +251,27 @@ export class LintValidator {
         args.push("--write");
       }
 
-      // Add files to lint
+      // Add files to lint (make paths relative to packagePath)
       if (options.files && options.files.length > 0) {
-        args.push(...options.files);
+        const relativeFiles = options.files.map((file) => {
+          // If file is absolute or starts with packagePath, make it relative
+          if (path.isAbsolute(file)) {
+            return path.relative(packagePath, file);
+          }
+          // If file path includes packagePath prefix, strip it
+          const packageBase = path.basename(packagePath);
+          const packagePrefix = packagePath.endsWith("/") ? packagePath : `${packagePath}/`;
+          if (file.startsWith(packagePrefix)) {
+            return file.slice(packagePrefix.length);
+          }
+          // Check if file starts with the package directory name pattern
+          const match = file.match(new RegExp(`^(?:.*?/)?${packageBase}/(.+)$`));
+          if (match?.[1]) {
+            return match[1];
+          }
+          return file;
+        });
+        args.push(...relativeFiles);
       } else {
         args.push(".");
       }
@@ -430,9 +448,27 @@ export class LintValidator {
         args.push("--fix");
       }
 
-      // Add files to lint
+      // Add files to lint (make paths relative to packagePath)
       if (options.files && options.files.length > 0) {
-        args.push(...options.files);
+        const relativeFiles = options.files.map((file) => {
+          // If file is absolute or starts with packagePath, make it relative
+          if (path.isAbsolute(file)) {
+            return path.relative(packagePath, file);
+          }
+          // If file path includes packagePath prefix, strip it
+          const packageBase = path.basename(packagePath);
+          const packagePrefix = packagePath.endsWith("/") ? packagePath : `${packagePath}/`;
+          if (file.startsWith(packagePrefix)) {
+            return file.slice(packagePrefix.length);
+          }
+          // Check if file starts with the package directory name pattern
+          const match = file.match(new RegExp(`^(?:.*?/)?${packageBase}/(.+)$`));
+          if (match?.[1]) {
+            return match[1];
+          }
+          return file;
+        });
+        args.push(...relativeFiles);
       } else {
         args.push(".");
       }
