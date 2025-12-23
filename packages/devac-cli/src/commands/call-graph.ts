@@ -38,8 +38,8 @@ export interface CallGraphCommandOptions {
   maxDepth?: number;
   /** Maximum results per direction */
   limit?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -68,10 +68,10 @@ export interface CallGraphCommandResult {
 function formatCallGraph(
   callers: unknown[] | undefined,
   callees: unknown[] | undefined,
-  options: { pretty: boolean }
+  options: { json: boolean }
 ): string {
-  if (!options.pretty) {
-    return formatOutput({ callers, callees }, { pretty: false });
+  if (options.json) {
+    return formatOutput({ callers, callees }, { json: true });
   }
 
   const lines: string[] = [];
@@ -140,9 +140,9 @@ export async function callGraphCommand(
         if (packagePaths.length === 0) {
           return {
             success: true,
-            output: options.pretty
-              ? "No repositories registered in hub"
-              : formatOutput({ callers: [], callees: [] }, { pretty: false }),
+            output: options.json
+              ? formatOutput({ callers: [], callees: [] }, { json: true })
+              : "No repositories registered in hub",
             count: 0,
             timeMs: Date.now() - startTime,
             callers: [],
@@ -214,7 +214,7 @@ export async function callGraphCommand(
 
     const count = (callers?.length || 0) + (callees?.length || 0);
     const output = formatCallGraph(callers, callees, {
-      pretty: options.pretty || false,
+      json: options.json || false,
     });
 
     return {
@@ -227,9 +227,9 @@ export async function callGraphCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,
@@ -258,8 +258,7 @@ export function registerCallGraphCommand(program: Command): void {
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--max-depth <depth>", "Maximum depth", "3")
     .option("-l, --limit <count>", "Maximum results per direction", "100")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (entityId, options) => {
       const result = await callGraphCommand({
         entityId,
@@ -269,7 +268,7 @@ export function registerCallGraphCommand(program: Command): void {
         hubDir: options.hubDir,
         maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);

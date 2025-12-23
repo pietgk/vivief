@@ -147,16 +147,18 @@ export function registerAffectedCommand(program: Command): void {
     .option("-f, --files <files...>", "Changed files to analyze")
     .option("-d, --max-depth <depth>", "Maximum traversal depth", "10")
     .option("--format <format>", "Output format (json, list, tree)", "json")
+    .option("--json", "Output as JSON (shorthand for --format json)")
     .action(async (options) => {
+      const format = options.json ? "json" : options.format;
       const result = await affectedCommand({
         packagePath: path.resolve(options.package),
         changedFiles: options.files || [],
         maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
-        format: options.format,
+        format,
       });
 
       if (result.success) {
-        switch (options.format) {
+        switch (format) {
           case "list":
             for (const file of result.affectedFiles) {
               console.log(`${file.filePath} (${file.impactLevel}, depth=${file.depth})`);

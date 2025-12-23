@@ -24,8 +24,8 @@ export interface HubSummaryCommandOptions {
   type: "validation" | "feedback" | "counts";
   /** Group by field (for validation/feedback) */
   groupBy?: "repo" | "file" | "source" | "severity" | "category";
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -79,7 +79,9 @@ export async function hubSummaryCommand(
       const summary = await hub.getValidationSummary(groupBy);
       result.validationSummary = summary;
 
-      if (options.pretty) {
+      if (options.json) {
+        output = formatOutput({ summary }, { json: true });
+      } else {
         const lines = [`Validation Summary (grouped by ${groupBy}):`];
         lines.push("-".repeat(40));
         for (const item of summary) {
@@ -88,15 +90,15 @@ export async function hubSummaryCommand(
           );
         }
         output = lines.join("\n");
-      } else {
-        output = formatOutput({ summary }, { pretty: false });
       }
     } else if (options.type === "feedback") {
       const groupBy = (options.groupBy || "source") as "repo" | "source" | "severity" | "category";
       const summary = await hub.getFeedbackSummary(groupBy);
       result.feedbackSummary = summary;
 
-      if (options.pretty) {
+      if (options.json) {
+        output = formatOutput({ summary }, { json: true });
+      } else {
         const lines = [`Feedback Summary (grouped by ${groupBy}):`];
         lines.push("-".repeat(40));
         for (const item of summary) {
@@ -109,8 +111,6 @@ export async function hubSummaryCommand(
           lines.push(`  ${item.group_key}: ${details.join(", ") || "0 items"}`);
         }
         output = lines.join("\n");
-      } else {
-        output = formatOutput({ summary }, { pretty: false });
       }
     } else {
       // counts mode
@@ -121,22 +121,42 @@ export async function hubSummaryCommand(
         feedback: feedbackCounts,
       };
 
-      if (options.pretty) {
-        const counts = [
-          { label: "Validation Errors", count: validationCounts.errors, icon: "❌" },
-          { label: "Validation Warnings", count: validationCounts.warnings, icon: "⚠️" },
-          { label: "Feedback Critical", count: feedbackCounts.critical, icon: "🔴" },
-          { label: "Feedback Errors", count: feedbackCounts.error, icon: "❌" },
-          { label: "Feedback Warnings", count: feedbackCounts.warning, icon: "⚠️" },
-          { label: "Feedback Suggestions", count: feedbackCounts.suggestion, icon: "💡" },
-          { label: "Feedback Notes", count: feedbackCounts.note, icon: "📝" },
-        ];
-        output = formatSummary(counts, { pretty: true });
-      } else {
+      if (options.json) {
         output = formatOutput(
           { validation: validationCounts, feedback: feedbackCounts },
-          { pretty: false }
+          { json: true }
         );
+      } else {
+        const counts = [
+          {
+            label: "Validation Errors",
+            count: validationCounts.errors,
+            icon: "❌",
+          },
+          {
+            label: "Validation Warnings",
+            count: validationCounts.warnings,
+            icon: "⚠️",
+          },
+          {
+            label: "Feedback Critical",
+            count: feedbackCounts.critical,
+            icon: "🔴",
+          },
+          { label: "Feedback Errors", count: feedbackCounts.error, icon: "❌" },
+          {
+            label: "Feedback Warnings",
+            count: feedbackCounts.warning,
+            icon: "⚠️",
+          },
+          {
+            label: "Feedback Suggestions",
+            count: feedbackCounts.suggestion,
+            icon: "💡",
+          },
+          { label: "Feedback Notes", count: feedbackCounts.note, icon: "📝" },
+        ];
+        output = formatSummary(counts, { json: false });
       }
     }
 
@@ -148,9 +168,9 @@ export async function hubSummaryCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,

@@ -37,8 +37,8 @@ export interface DepsCommandOptions {
   edgeType?: string;
   /** Maximum results to return */
   limit?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -85,9 +85,9 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
         if (packagePaths.length === 0) {
           return {
             success: true,
-            output: options.pretty
-              ? "No repositories registered in hub"
-              : formatOutput({ edges: [], count: 0 }, { pretty: false }),
+            output: options.json
+              ? formatOutput({ edges: [], count: 0 }, { json: true })
+              : "No repositories registered in hub",
             count: 0,
             timeMs: Date.now() - startTime,
             edges: [],
@@ -141,9 +141,9 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
     }
 
     const edges = result.rows as unknown[];
-    const output = options.pretty
-      ? formatDependencies(edges, { pretty: true, direction: "outgoing" })
-      : formatOutput({ edges, count: edges.length }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ edges, count: edges.length }, { json: true })
+      : formatDependencies(edges, { json: false, direction: "outgoing" });
 
     return {
       success: true,
@@ -154,9 +154,9 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,
@@ -184,8 +184,7 @@ export function registerDepsCommand(program: Command): void {
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (entityId, options) => {
       const result = await depsCommand({
         entityId,
@@ -194,7 +193,7 @@ export function registerDepsCommand(program: Command): void {
         hubDir: options.hubDir,
         edgeType: options.type,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);

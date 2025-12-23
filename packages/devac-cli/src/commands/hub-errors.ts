@@ -30,8 +30,8 @@ export interface HubErrorsCommandOptions {
   file?: string;
   /** Maximum results */
   limit?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -86,9 +86,9 @@ export async function hubErrorsCommand(
       code: e.code || undefined,
     }));
 
-    const output = options.pretty
-      ? formatValidationIssues(issues, { pretty: true })
-      : formatOutput({ errors, count: errors.length }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ errors, count: errors.length }, { json: true })
+      : formatValidationIssues(issues, { json: false });
 
     return {
       success: true,
@@ -99,9 +99,9 @@ export async function hubErrorsCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,

@@ -180,15 +180,17 @@ export function registerQueryCommand(program: Command): void {
     .description("Execute SQL query against seed files")
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("-f, --format <type>", "Output format (json, csv, table)", "json")
+    .option("--json", "Output as JSON (shorthand for --format json)")
     .action(async (sql, options) => {
+      const format = options.json ? "json" : options.format;
       const result = await queryCommand({
         sql,
         packagePath: path.resolve(options.package),
-        format: options.format,
+        format,
       });
 
       if (result.success) {
-        switch (options.format) {
+        switch (format) {
           case "csv":
             console.log(result.csv);
             break;

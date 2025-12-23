@@ -209,11 +209,10 @@ export function runService(): void {
       }
     });
 
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await findSymbolCommand({
         name: "helper",
         packagePath: tempDir,
-        pretty: true,
       });
 
       // May fail if seeds aren't available
@@ -279,24 +278,24 @@ export function runService(): void {
       expect(result.count).toBe(0);
     });
 
-    it("outputs JSON by default", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await fileSymbolsCommand({
         filePath: "src/utils.ts",
         packagePath: tempDir,
-      });
-
-      expect(result.output).toContain("{");
-    });
-
-    it("outputs pretty format when requested", async () => {
-      const result = await fileSymbolsCommand({
-        filePath: "src/utils.ts",
-        packagePath: tempDir,
-        pretty: true,
       });
 
       expect(result.success).toBe(true);
       expect(result.output.length).toBeGreaterThan(0);
+    });
+
+    it("outputs JSON when requested", async () => {
+      const result = await fileSymbolsCommand({
+        filePath: "src/utils.ts",
+        packagePath: tempDir,
+        json: true,
+      });
+
+      expect(result.output).toContain("{");
     });
   });
 
@@ -351,23 +350,23 @@ export function runService(): void {
       expect(result.success).toBe(true);
     });
 
-    it("outputs JSON by default", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await depsCommand({
         entityId: "test-entity",
         packagePath: tempDir,
-      });
-
-      expect(result.output).toContain("{");
-    });
-
-    it("outputs pretty format when requested", async () => {
-      const result = await depsCommand({
-        entityId: "test-entity",
-        packagePath: tempDir,
-        pretty: true,
       });
 
       expect(result.success).toBe(true);
+    });
+
+    it("outputs JSON when requested", async () => {
+      const result = await depsCommand({
+        entityId: "test-entity",
+        packagePath: tempDir,
+        json: true,
+      });
+
+      expect(result.output).toContain("{");
     });
   });
 
@@ -421,10 +420,20 @@ export function runService(): void {
       expect(result.success).toBe(true);
     });
 
-    it("outputs JSON by default", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await dependentsCommand({
         entityId: "test-entity",
         packagePath: tempDir,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("outputs JSON when requested", async () => {
+      const result = await dependentsCommand({
+        entityId: "test-entity",
+        packagePath: tempDir,
+        json: true,
       });
 
       expect(result.output).toContain("{");
@@ -547,12 +556,11 @@ export function runService(): void {
       }
     });
 
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await callGraphCommand({
         entityId: "test-entity",
         direction: "both",
         packagePath: tempDir,
-        pretty: true,
       });
 
       // May fail if seeds aren't available

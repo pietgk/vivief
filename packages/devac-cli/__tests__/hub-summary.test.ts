@@ -288,29 +288,29 @@ describe("hub summary command", () => {
   });
 
   describe("output formatting", () => {
-    it("outputs JSON by default", async () => {
-      await hubInit({ hubDir });
-      await createAndRegisterRepo("repo1");
-
-      const result = await hubSummaryCommand({ hubDir, type: "counts" });
-
-      expect(result.output).toContain("{");
-      expect(() => JSON.parse(result.output)).not.toThrow();
-    });
-
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       await hubInit({ hubDir });
       await createAndRegisterRepo("repo1");
       await pushValidationErrors("org/repo1");
 
-      const result = await hubSummaryCommand({
-        hubDir,
-        type: "counts",
-        pretty: true,
-      });
+      const result = await hubSummaryCommand({ hubDir, type: "counts" });
 
       expect(result.success).toBe(true);
       expect(result.output.length).toBeGreaterThan(0);
+    });
+
+    it("outputs JSON when requested", async () => {
+      await hubInit({ hubDir });
+      await createAndRegisterRepo("repo1");
+
+      const result = await hubSummaryCommand({
+        hubDir,
+        type: "counts",
+        json: true,
+      });
+
+      expect(result.output).toContain("{");
+      expect(() => JSON.parse(result.output)).not.toThrow();
     });
   });
 

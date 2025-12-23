@@ -43,8 +43,8 @@ export interface HubFeedbackCommandOptions {
   actionable?: boolean;
   /** Maximum results */
   limit?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -91,9 +91,9 @@ export async function hubFeedbackCommand(
 
     const feedback = await hub.getFeedback(filter);
 
-    const output = options.pretty
-      ? formatFeedback(feedback, { pretty: true })
-      : formatOutput({ feedback, count: feedback.length }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ feedback, count: feedback.length }, { json: true })
+      : formatFeedback(feedback, { json: false });
 
     return {
       success: true,
@@ -104,9 +104,9 @@ export async function hubFeedbackCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,

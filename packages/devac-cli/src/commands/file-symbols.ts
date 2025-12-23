@@ -37,8 +37,8 @@ export interface FileSymbolsCommandOptions {
   kind?: string;
   /** Maximum results to return */
   limit?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -87,9 +87,9 @@ export async function fileSymbolsCommand(
         if (packagePaths.length === 0) {
           return {
             success: true,
-            output: options.pretty
-              ? "No repositories registered in hub"
-              : formatOutput({ symbols: [], count: 0 }, { pretty: false }),
+            output: options.json
+              ? formatOutput({ symbols: [], count: 0 }, { json: true })
+              : "No repositories registered in hub",
             count: 0,
             timeMs: Date.now() - startTime,
             symbols: [],
@@ -143,9 +143,9 @@ export async function fileSymbolsCommand(
     }
 
     const symbols = result.rows as unknown[];
-    const output = options.pretty
-      ? formatSymbols(symbols, { pretty: true })
-      : formatOutput({ symbols, count: symbols.length }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ symbols, count: symbols.length }, { json: true })
+      : formatSymbols(symbols, { json: false });
 
     return {
       success: true,
@@ -156,9 +156,9 @@ export async function fileSymbolsCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `Error: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `Error: ${errorMessage}`;
 
     return {
       success: false,
@@ -186,8 +186,7 @@ export function registerFileSymbolsCommand(program: Command): void {
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (filePath, options) => {
       const result = await fileSymbolsCommand({
         filePath,
@@ -196,7 +195,7 @@ export function registerFileSymbolsCommand(program: Command): void {
         hubDir: options.hubDir,
         kind: options.kind,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);

@@ -139,12 +139,11 @@ const x: number = "hello";
       }
     });
 
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       await fs.writeFile(path.join(tempDir, "src", "index.ts"), "export const x = 1;");
 
       const result = await typecheckCommand({
         packagePath: tempDir,
-        pretty: true,
       });
 
       expect(result).toBeDefined();
@@ -212,12 +211,11 @@ const x: number = "hello";
       expect(result.output).toBeDefined();
     });
 
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       await fs.writeFile(path.join(tempDir, "src", "index.ts"), "export const x = 1;");
 
       const result = await lintCommand({
         packagePath: tempDir,
-        pretty: true,
       });
 
       expect(result).toBeDefined();
@@ -270,11 +268,10 @@ const x: number = "hello";
       expect(result.output).toBeDefined();
     });
 
-    it("outputs pretty format when requested", async () => {
+    it("outputs pretty format by default", async () => {
       const result = await testCommand({
         packagePath: tempDir,
         runner: "npm-test",
-        pretty: true,
       });
 
       expect(result).toBeDefined();

@@ -30,8 +30,8 @@ export interface TestCommandOptions {
   timeout?: number;
   /** Update snapshots */
   updateSnapshots?: boolean;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -76,9 +76,22 @@ export async function testCommand(options: TestCommandOptions): Promise<TestComm
 
     const result = await validator.validate(path.resolve(options.packagePath), coreOptions);
 
-    // Format output based on pretty flag
+    // Format output based on json flag
     let output: string;
-    if (options.pretty) {
+    if (options.json) {
+      output = formatOutput(
+        {
+          success: result.success,
+          passed: result.passed,
+          failed: result.failed,
+          skipped: result.skipped,
+          runner: result.runner,
+          timeMs: result.timeMs,
+        },
+        { json: true }
+      );
+    } else {
+      // Pretty output (default)
       if (result.success) {
         output = `✓ Tests passed: ${result.passed} passed`;
         if (result.skipped > 0) {
@@ -92,18 +105,6 @@ export async function testCommand(options: TestCommandOptions): Promise<TestComm
         }
         output += ` (${result.runner}, ${result.timeMs}ms)`;
       }
-    } else {
-      output = formatOutput(
-        {
-          success: result.success,
-          passed: result.passed,
-          failed: result.failed,
-          skipped: result.skipped,
-          runner: result.runner,
-          timeMs: result.timeMs,
-        },
-        { pretty: false }
-      );
     }
 
     return {
@@ -118,9 +119,9 @@ export async function testCommand(options: TestCommandOptions): Promise<TestComm
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `✗ Tests failed: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `✗ Tests failed: ${errorMessage}`;
 
     return {
       success: false,
@@ -147,8 +148,7 @@ export function registerTestCommand(program: Command): void {
     .option("-r, --runner <runner>", "Test runner (vitest, jest, npm-test)")
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("-u, --update-snapshots", "Update snapshots")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await testCommand({
         packagePath: path.resolve(options.package),
@@ -156,7 +156,7 @@ export function registerTestCommand(program: Command): void {
         runner: options.runner,
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
         updateSnapshots: options.updateSnapshots,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);

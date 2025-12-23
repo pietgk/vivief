@@ -160,26 +160,26 @@ describe("hub errors command", () => {
     expect(result.count).toBe(1);
   });
 
-  it("outputs JSON by default", async () => {
+  it("outputs pretty format by default", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
     const result = await hubErrorsCommand({ hubDir });
 
-    expect(result.output).toContain("{");
-    expect(() => JSON.parse(result.output)).not.toThrow();
+    expect(result.output).not.toContain("{");
+    expect(result.output).toContain("auth.ts");
   });
 
-  it("outputs pretty format when requested", async () => {
+  it("outputs JSON when requested", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
-    const result = await hubErrorsCommand({ hubDir, pretty: true });
+    const result = await hubErrorsCommand({ hubDir, json: true });
 
-    expect(result.output).not.toContain("{");
-    expect(result.output).toContain("auth.ts");
+    expect(result.output).toContain("{");
+    expect(() => JSON.parse(result.output)).not.toThrow();
   });
 
   it("returns empty results when hub has no data", async () => {

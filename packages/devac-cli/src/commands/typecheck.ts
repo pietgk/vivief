@@ -26,8 +26,8 @@ export interface TypecheckCommandOptions {
   tsconfig?: string;
   /** Timeout in milliseconds (optional) */
   timeout?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -72,16 +72,9 @@ export async function typecheckCommand(
     const errorCount = result.issues.filter((i) => i.severity === "error").length;
     const warningCount = result.issues.filter((i) => i.severity === "warning").length;
 
-    // Format output based on pretty flag
+    // Format output based on json flag
     let output: string;
-    if (options.pretty) {
-      if (result.success) {
-        output = `✓ Type check passed (${result.timeMs}ms)`;
-      } else {
-        output = formatValidationIssues(result.issues, { pretty: true });
-        output += `\n\n✗ Type check failed: ${errorCount} error(s), ${warningCount} warning(s) (${result.timeMs}ms)`;
-      }
-    } else {
+    if (options.json) {
       output = formatOutput(
         {
           success: result.success,
@@ -90,8 +83,16 @@ export async function typecheckCommand(
           timeMs: result.timeMs,
           issues: result.issues,
         },
-        { pretty: false }
+        { json: true }
       );
+    } else {
+      // Pretty output (default)
+      if (result.success) {
+        output = `✓ Type check passed (${result.timeMs}ms)`;
+      } else {
+        output = formatValidationIssues(result.issues, { json: false });
+        output += `\n\n✗ Type check failed: ${errorCount} error(s), ${warningCount} warning(s) (${result.timeMs}ms)`;
+      }
     }
 
     return {
@@ -104,9 +105,9 @@ export async function typecheckCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `✗ Typecheck failed: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `✗ Typecheck failed: ${errorMessage}`;
 
     return {
       success: false,
@@ -130,15 +131,14 @@ export function registerTypecheckCommand(program: Command): void {
     .option("-f, --files <files...>", "Specific files to check")
     .option("-c, --config <path>", "Path to tsconfig.json")
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await typecheckCommand({
         packagePath: path.resolve(options.package),
         files: options.files,
         tsconfig: options.config,
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);

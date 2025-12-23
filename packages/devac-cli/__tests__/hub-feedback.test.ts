@@ -235,27 +235,27 @@ describe("hub feedback command", () => {
     expect(result.count).toBe(1);
   });
 
-  it("outputs JSON by default", async () => {
+  it("outputs pretty format by default", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
     await pushFeedback("org/repo1");
 
     const result = await hubFeedbackCommand({ hubDir });
 
-    expect(result.output).toContain("{");
-    expect(() => JSON.parse(result.output)).not.toThrow();
+    expect(result.success).toBe(true);
+    // Pretty format should contain readable text
+    expect(result.output.length).toBeGreaterThan(0);
   });
 
-  it("outputs pretty format when requested", async () => {
+  it("outputs JSON when requested", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
     await pushFeedback("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, pretty: true });
+    const result = await hubFeedbackCommand({ hubDir, json: true });
 
-    expect(result.success).toBe(true);
-    // Pretty format should contain readable text
-    expect(result.output.length).toBeGreaterThan(0);
+    expect(result.output).toContain("{");
+    expect(() => JSON.parse(result.output)).not.toThrow();
   });
 
   it("returns empty results when hub has no data", async () => {

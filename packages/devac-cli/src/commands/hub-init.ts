@@ -265,8 +265,7 @@ export function registerHubCommand(program: Command): void {
     .option("--source <source>", "Filter by source (tsc, eslint, test)")
     .option("--file <path>", "Filter by file path")
     .option("-l, --limit <count>", "Maximum results", "100")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await hubErrorsCommand({
         hubDir: options.hubDir,
@@ -275,7 +274,7 @@ export function registerHubCommand(program: Command): void {
         source: options.source,
         file: options.file,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
       console.log(result.output);
       if (!result.success) {
@@ -296,8 +295,7 @@ export function registerHubCommand(program: Command): void {
     .option("--resolved", "Show only resolved items")
     .option("--actionable", "Show only actionable items")
     .option("-l, --limit <count>", "Maximum results", "100")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await hubFeedbackCommand({
         hubDir: options.hubDir,
@@ -309,7 +307,7 @@ export function registerHubCommand(program: Command): void {
         resolved: options.resolved,
         actionable: options.actionable,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
       console.log(result.output);
       if (!result.success) {
@@ -323,14 +321,13 @@ export function registerHubCommand(program: Command): void {
     .description("Get summary/counts (validation, feedback, counts)")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--group-by <field>", "Group by field")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (type, options) => {
       const result = await hubSummaryCommand({
         hubDir: options.hubDir,
         type: type as "validation" | "feedback" | "counts",
         groupBy: options.groupBy,
-        pretty: options.pretty,
+        json: options.json,
       });
       console.log(result.output);
       if (!result.success) {

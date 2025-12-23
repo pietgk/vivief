@@ -34,8 +34,8 @@ export interface CoverageCommandOptions {
   tool?: "vitest" | "jest" | "nyc";
   /** Timeout in milliseconds */
   timeout?: number;
-  /** Output in human-readable format */
-  pretty?: boolean;
+  /** Output as JSON */
+  json?: boolean;
 }
 
 /**
@@ -135,9 +135,22 @@ export async function coverageCommand(
 
     const result = await validator.validate(path.resolve(options.packagePath), coreOptions);
 
-    // Format output based on pretty flag
+    // Format output based on json flag
     let output: string;
-    if (options.pretty) {
+    if (options.json) {
+      output = formatOutput(
+        {
+          success: result.success,
+          issueCount: result.issues.length,
+          timeMs: result.timeMs,
+          summary: result.summary,
+          issues: result.issues,
+          files: result.files,
+        },
+        { json: true }
+      );
+    } else {
+      // Pretty output (default)
       const thresholdStr = options.threshold ? `(threshold: ${options.threshold}%)` : "";
       output = `📊 Coverage Report for ${path.basename(options.packagePath)} ${thresholdStr}\n\n`;
       output += formatCoverageSummary(result.summary, options.threshold ?? 0);
@@ -154,18 +167,6 @@ export async function coverageCommand(
       } else {
         output = `⚠️ ${output}`;
       }
-    } else {
-      output = formatOutput(
-        {
-          success: result.success,
-          issueCount: result.issues.length,
-          timeMs: result.timeMs,
-          summary: result.summary,
-          issues: result.issues,
-          files: result.files,
-        },
-        { pretty: false }
-      );
     }
 
     return {
@@ -179,9 +180,9 @@ export async function coverageCommand(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const output = options.pretty
-      ? `✗ Coverage failed: ${errorMessage}`
-      : formatOutput({ success: false, error: errorMessage }, { pretty: false });
+    const output = options.json
+      ? formatOutput({ success: false, error: errorMessage }, { json: true })
+      : `✗ Coverage failed: ${errorMessage}`;
 
     return {
       success: false,
@@ -207,8 +208,7 @@ export function registerCoverageCommand(program: Command): void {
     .option("--threshold-functions <percent>", "Minimum function coverage threshold")
     .option("--tool <tool>", "Coverage tool (vitest, jest, nyc)")
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
-    .option("--pretty", "Human-readable output", true)
-    .option("--no-pretty", "JSON output")
+    .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await coverageCommand({
         packagePath: path.resolve(options.package),
@@ -224,7 +224,7 @@ export function registerCoverageCommand(program: Command): void {
           : undefined,
         tool: options.tool as "vitest" | "jest" | "nyc" | undefined,
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
-        pretty: options.pretty,
+        json: options.json,
       });
 
       console.log(result.output);
