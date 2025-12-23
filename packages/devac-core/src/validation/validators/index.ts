@@ -25,3 +25,13 @@ export {
   type TestOptions,
   type TestResult,
 } from "./test-validator.js";
+
+export {
+  CoverageValidator,
+  createCoverageValidator,
+  type CoverageOptions,
+  type CoverageResult,
+  type CoverageIssue,
+  type FileCoverage,
+  type CoverageSummary,
+} from "./coverage-validator.js";

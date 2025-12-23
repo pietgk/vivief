@@ -450,7 +450,7 @@ export class CentralHub {
       column: number;
       message: string;
       severity: "error" | "warning";
-      source: "tsc" | "eslint" | "test";
+      source: "tsc" | "eslint" | "test" | "coverage";
       code: string | null;
     }>
   ): Promise<void> {
@@ -460,6 +460,7 @@ export class CentralHub {
     await this.storage.clearFeedback(repoId, "tsc");
     await this.storage.clearFeedback(repoId, "eslint");
     await this.storage.clearFeedback(repoId, "test");
+    await this.storage.clearFeedback(repoId, "coverage");
 
     if (errors.length === 0) return;
 
@@ -572,7 +573,11 @@ export class CentralHub {
   /**
    * Get total validation error counts
    */
-  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+  async getValidationCounts(): Promise<{
+    errors: number;
+    warnings: number;
+    total: number;
+  }> {
     this.ensureInitialized();
 
     const counts = await this.storage.getFeedbackCountsFiltered(["tsc", "eslint", "test"]);
@@ -587,13 +592,15 @@ export class CentralHub {
   /**
    * Map source to category
    */
-  private sourceToCategory(source: "tsc" | "eslint" | "test"): FeedbackCategory {
+  private sourceToCategory(source: "tsc" | "eslint" | "test" | "coverage"): FeedbackCategory {
     switch (source) {
       case "tsc":
         return "compilation";
       case "eslint":
         return "linting";
       case "test":
+        return "testing";
+      case "coverage":
         return "testing";
     }
   }

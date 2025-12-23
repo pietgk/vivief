@@ -15,6 +15,7 @@ import {
   registerCallGraphCommand,
   registerCleanCommand,
   registerContextCommand,
+  registerCoverageCommand,
   registerDependentsCommand,
   registerDepsCommand,
   registerFileSymbolsCommand,
@@ -58,6 +59,7 @@ registerWatchCommand(program);
 registerTypecheckCommand(program);
 registerLintCommand(program);
 registerTestCommand(program);
+registerCoverageCommand(program);
 registerValidateCommand(program);
 registerAffectedCommand(program);
 registerFindSymbolCommand(program);

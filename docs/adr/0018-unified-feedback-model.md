@@ -33,7 +33,7 @@ Create a **unified feedback model** that stores all feedback types in a single D
 CREATE TABLE unified_feedback (
   feedback_id VARCHAR PRIMARY KEY,
   repo_id VARCHAR NOT NULL,
-  source VARCHAR NOT NULL,  -- tsc | eslint | test | ci-check | github-issue | pr-review
+  source VARCHAR NOT NULL,  -- tsc | eslint | test | coverage | ci-check | github-issue | pr-review
 
   -- Location (nullable for issues)
   file_path VARCHAR,
@@ -73,6 +73,7 @@ CREATE TABLE unified_feedback (
 | TypeScript errors | `tsc` | `compilation` | `error` / `warning` |
 | ESLint issues | `eslint` | `linting` | `error` / `warning` |
 | Test failures | `test` | `testing` | `error` |
+| Coverage below threshold | `coverage` | `testing` | `warning` |
 | CI failures | `ci-check` | `ci-check` | `error` |
 | GitHub issues (task) | `github-issue` | `task` | By label |
 | GitHub issues (feedback) | `github-issue` | `feedback` | By label |
@@ -246,4 +247,5 @@ WHERE file_path LIKE '%auth.ts%';
 
 - [ADR-0017: Validation Hub Cache](0017-validation-hub-cache.md) - Original validation storage design
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture
+- [ADR-0019: Coverage Validator](0019-coverage-validator.md) - Coverage as validation source
 - [DevAC v3 Architecture](../architecture/devac-v3-architecture.md) - Overall system design

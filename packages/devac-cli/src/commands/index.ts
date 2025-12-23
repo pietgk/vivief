@@ -22,6 +22,7 @@ export { registerWorkspaceCommand } from "./workspace-status.js";
 export { registerTypecheckCommand } from "./typecheck.js";
 export { registerLintCommand } from "./lint.js";
 export { registerTestCommand } from "./test-cmd.js";
+export { registerCoverageCommand } from "./coverage.js";
 export { registerFindSymbolCommand } from "./find-symbol.js";
 export { registerDepsCommand } from "./deps.js";
 export { registerDependentsCommand } from "./dependents.js";
@@ -144,11 +145,19 @@ export {
 
 // Validation commands
 export { typecheckCommand } from "./typecheck.js";
-export type { TypecheckCommandOptions, TypecheckCommandResult } from "./typecheck.js";
+export type {
+  TypecheckCommandOptions,
+  TypecheckCommandResult,
+} from "./typecheck.js";
 export { lintCommand } from "./lint.js";
 export type { LintCommandOptions, LintCommandResult } from "./lint.js";
 export { testCommand } from "./test-cmd.js";
 export type { TestCommandOptions, TestCommandResult } from "./test-cmd.js";
+export { coverageCommand } from "./coverage.js";
+export type {
+  CoverageCommandOptions,
+  CoverageCommandResult,
+} from "./coverage.js";
 
 // Code graph commands
 export { findSymbolCommand } from "./find-symbol.js";
@@ -156,16 +165,34 @@ export type { FindSymbolOptions, FindSymbolResult } from "./find-symbol.js";
 export { depsCommand } from "./deps.js";
 export type { DepsCommandOptions, DepsCommandResult } from "./deps.js";
 export { dependentsCommand } from "./dependents.js";
-export type { DependentsCommandOptions, DependentsCommandResult } from "./dependents.js";
+export type {
+  DependentsCommandOptions,
+  DependentsCommandResult,
+} from "./dependents.js";
 export { fileSymbolsCommand } from "./file-symbols.js";
-export type { FileSymbolsCommandOptions, FileSymbolsCommandResult } from "./file-symbols.js";
+export type {
+  FileSymbolsCommandOptions,
+  FileSymbolsCommandResult,
+} from "./file-symbols.js";
 export { callGraphCommand } from "./call-graph.js";
-export type { CallGraphCommandOptions, CallGraphCommandResult } from "./call-graph.js";
+export type {
+  CallGraphCommandOptions,
+  CallGraphCommandResult,
+} from "./call-graph.js";
 
 // Hub query commands
 export { hubErrorsCommand } from "./hub-errors.js";
-export type { HubErrorsCommandOptions, HubErrorsCommandResult } from "./hub-errors.js";
+export type {
+  HubErrorsCommandOptions,
+  HubErrorsCommandResult,
+} from "./hub-errors.js";
 export { hubFeedbackCommand } from "./hub-feedback.js";
-export type { HubFeedbackCommandOptions, HubFeedbackCommandResult } from "./hub-feedback.js";
+export type {
+  HubFeedbackCommandOptions,
+  HubFeedbackCommandResult,
+} from "./hub-feedback.js";
 export { hubSummaryCommand } from "./hub-summary.js";
-export type { HubSummaryCommandOptions, HubSummaryCommandResult } from "./hub-summary.js";
+export type {
+  HubSummaryCommandOptions,
+  HubSummaryCommandResult,
+} from "./hub-summary.js";

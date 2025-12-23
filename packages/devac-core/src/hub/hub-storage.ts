@@ -74,7 +74,14 @@ export interface ValidationSummary {
 /**
  * Feedback source types
  */
-export type FeedbackSource = "tsc" | "eslint" | "test" | "ci-check" | "github-issue" | "pr-review";
+export type FeedbackSource =
+  | "tsc"
+  | "eslint"
+  | "test"
+  | "coverage"
+  | "ci-check"
+  | "github-issue"
+  | "pr-review";
 
 /**
  * Feedback severity levels (ordered from most to least severe)
@@ -759,7 +766,11 @@ export class HubStorage {
   /**
    * Get total validation error counts
    */
-  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+  async getValidationCounts(): Promise<{
+    errors: number;
+    warnings: number;
+    total: number;
+  }> {
     if (!this.db) throw new Error("Database not initialized");
 
     const rows = await this.db.all(`
@@ -1011,7 +1022,15 @@ export class HubStorage {
     `);
 
     if (rows.length === 0) {
-      return { total: 0, unresolved: 0, critical: 0, error: 0, warning: 0, suggestion: 0, note: 0 };
+      return {
+        total: 0,
+        unresolved: 0,
+        critical: 0,
+        error: 0,
+        warning: 0,
+        suggestion: 0,
+        note: 0,
+      };
     }
 
     const r = rows[0] as Record<string, unknown>;
@@ -1126,7 +1145,14 @@ export class HubStorage {
     );
 
     if (rows.length === 0) {
-      return { total: 0, critical: 0, error: 0, warning: 0, suggestion: 0, note: 0 };
+      return {
+        total: 0,
+        critical: 0,
+        error: 0,
+        warning: 0,
+        suggestion: 0,
+        note: 0,
+      };
     }
 
     const r = rows[0] as Record<string, unknown>;

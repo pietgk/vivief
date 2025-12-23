@@ -39,6 +39,13 @@ export {
   createTestValidator,
   type TestOptions,
   type TestResult,
+  CoverageValidator,
+  createCoverageValidator,
+  type CoverageOptions,
+  type CoverageResult,
+  type CoverageIssue,
+  type FileCoverage,
+  type CoverageSummary,
 } from "./validators/index.js";
 
 // Validation Coordinator

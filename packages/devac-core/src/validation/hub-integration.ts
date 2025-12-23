@@ -25,7 +25,7 @@ export async function pushValidationResultsToHub(
     column: number;
     message: string;
     severity: "error" | "warning";
-    source: "tsc" | "eslint" | "test";
+    source: "tsc" | "eslint" | "test" | "coverage";
     code: string | null;
   }> = [];
 
@@ -61,6 +61,21 @@ export async function pushValidationResultsToHub(
 
   // Note: Test failures are not individual file errors, they're aggregate stats
   // We could add test failure details if the TestValidator returns them
+
+  // Convert coverage issues
+  if (result.coverage?.issues) {
+    for (const issue of result.coverage.issues) {
+      errors.push({
+        file: issue.file,
+        line: issue.line,
+        column: issue.column,
+        message: issue.message,
+        severity: issue.severity,
+        source: "coverage",
+        code: issue.code ?? null,
+      });
+    }
+  }
 
   // Push to hub (this clears existing errors for this repo/package first)
   await hub.pushValidationErrors(repoId, packagePath, errors);

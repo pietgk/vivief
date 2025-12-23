@@ -38,7 +38,7 @@ CREATE TABLE validation_errors (
   column INTEGER NOT NULL,
   message VARCHAR NOT NULL,
   severity VARCHAR NOT NULL,     -- 'error' | 'warning'
-  source VARCHAR NOT NULL,       -- 'tsc' | 'eslint' | 'test'
+  source VARCHAR NOT NULL,       -- 'tsc' | 'eslint' | 'test' | 'coverage'
   code VARCHAR,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (repo_id, file, line, column, source, code)
@@ -131,4 +131,5 @@ Per-Repo Validation                 Central Hub
 
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Original hub architecture
 - [ADR-0016: Workspace Module](0016-workspace-module.md) - Two-tier watching model
+- [ADR-0019: Coverage Validator](0019-coverage-validator.md) - Coverage as validation source
 - [Foundation Visual](../vision/foundation-visual.md) - System overview diagrams

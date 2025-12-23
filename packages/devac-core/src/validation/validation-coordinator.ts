@@ -14,9 +14,11 @@ import {
   createSymbolAffectedAnalyzer,
 } from "./symbol-affected-analyzer.js";
 import {
+  type CoverageValidator,
   type LintValidator,
   type TestValidator,
   type TypecheckValidator,
+  createCoverageValidator,
   createLintValidator,
   createTestValidator,
   createTypecheckValidator,
@@ -39,6 +41,10 @@ export interface ValidationConfig {
   runLint: boolean;
   /** Whether to run tests */
   runTests: boolean;
+  /** Whether to run coverage analysis */
+  runCoverage: boolean;
+  /** Coverage threshold for lines (default: 0 = report all) */
+  coverageThreshold?: number;
   /** Timeout for each validator in milliseconds */
   timeout: number;
   /** Whether to enrich issues with CodeGraph context */
@@ -74,6 +80,18 @@ export interface ValidationCoordinatorResult {
     failed: number;
     timeMs: number;
   };
+  /** Coverage results (if run) */
+  coverage?: {
+    success: boolean;
+    issues: EnrichedIssue[];
+    timeMs: number;
+    summary: {
+      lines: number;
+      branches: number;
+      functions: number;
+      statements: number;
+    };
+  };
   /** Total number of issues across all validators */
   totalIssues: number;
   /** Total time taken in milliseconds */
@@ -88,6 +106,7 @@ const QUICK_MODE_CONFIG: ValidationConfig = {
   runTypecheck: true,
   runLint: true,
   runTests: false,
+  runCoverage: false,
   timeout: 5000, // 5 seconds
   enrichIssues: true,
 };
@@ -100,6 +119,8 @@ const FULL_MODE_CONFIG: ValidationConfig = {
   runTypecheck: true,
   runLint: true,
   runTests: true,
+  runCoverage: true,
+  coverageThreshold: 0,
   timeout: 300000, // 5 minutes
   enrichIssues: true,
 };
@@ -116,6 +137,7 @@ export class ValidationCoordinator {
   private typecheckValidator: TypecheckValidator;
   private lintValidator: LintValidator;
   private testValidator: TestValidator;
+  private coverageValidator: CoverageValidator;
 
   constructor(
     private pool: DuckDBPool,
@@ -127,6 +149,7 @@ export class ValidationCoordinator {
     this.typecheckValidator = createTypecheckValidator();
     this.lintValidator = createLintValidator();
     this.testValidator = createTestValidator();
+    this.coverageValidator = createCoverageValidator();
   }
 
   /**
@@ -151,6 +174,7 @@ export class ValidationCoordinator {
     let typecheckResult: ValidationCoordinatorResult["typecheck"];
     let lintResult: ValidationCoordinatorResult["lint"];
     let testsResult: ValidationCoordinatorResult["tests"];
+    let coverageResult: ValidationCoordinatorResult["coverage"];
     let totalIssues = 0;
 
     // Run typecheck if enabled
@@ -176,7 +200,14 @@ export class ValidationCoordinator {
       }
     }
 
-    // Determine overall success
+    // Run coverage if enabled
+    if (fullConfig.runCoverage) {
+      const result = await this.runCoverage(packagePath, fullConfig);
+      coverageResult = result;
+      totalIssues += result.issues.length;
+    }
+
+    // Determine overall success (coverage issues are warnings, don't fail overall)
     const success =
       (typecheckResult?.success ?? true) &&
       (lintResult?.success ?? true) &&
@@ -189,6 +220,7 @@ export class ValidationCoordinator {
       typecheck: typecheckResult,
       lint: lintResult,
       tests: testsResult,
+      coverage: coverageResult,
       totalIssues,
       totalTimeMs: Date.now() - startTime,
     };
@@ -352,6 +384,71 @@ export class ValidationCoordinator {
         passed: 0,
         failed: 1,
         timeMs: 0,
+      };
+    }
+  }
+
+  /**
+   * Run coverage validation
+   */
+  private async runCoverage(
+    packagePath: string,
+    config: ValidationConfig
+  ): Promise<NonNullable<ValidationCoordinatorResult["coverage"]>> {
+    try {
+      const result = await this.coverageValidator.validate(packagePath, {
+        timeout: config.timeout,
+        thresholdLines: config.coverageThreshold ?? 0,
+        thresholdBranches: config.coverageThreshold ?? 0,
+        thresholdFunctions: config.coverageThreshold ?? 0,
+      });
+
+      // Convert coverage issues to ValidationIssue format for enrichment
+      const validationIssues = result.issues.map((issue) => ({
+        file: issue.file,
+        line: issue.line,
+        column: issue.column,
+        message: issue.message,
+        severity: issue.severity,
+        source: "coverage" as const,
+        code: issue.code,
+      }));
+
+      let issues: EnrichedIssue[] = validationIssues.map((issue) => ({
+        ...issue,
+        promptMarkdown: this.issueEnricher.generatePrompt({
+          ...issue,
+          promptMarkdown: "",
+        }),
+      }));
+
+      // Enrich issues if enabled
+      if (config.enrichIssues && issues.length > 0) {
+        issues = await this.issueEnricher.enrichIssues(validationIssues, packagePath);
+      }
+
+      return {
+        success: result.success,
+        issues,
+        timeMs: result.timeMs,
+        summary: result.summary,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        issues: [
+          {
+            file: packagePath,
+            line: 0,
+            column: 0,
+            message: error instanceof Error ? error.message : String(error),
+            severity: "error",
+            source: "coverage",
+            promptMarkdown: "",
+          },
+        ],
+        timeMs: 0,
+        summary: { lines: 0, branches: 0, functions: 0, statements: 0 },
       };
     }
   }
