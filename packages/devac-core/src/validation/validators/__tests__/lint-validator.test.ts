@@ -172,7 +172,7 @@ export const x = 1;
         },
       ]);
 
-      const issues = validator.parseOutput(output, "/project");
+      const issues = validator.parseEslintOutput(output, "/project");
 
       expect(issues).toHaveLength(2);
 
@@ -197,7 +197,7 @@ export const x = 1;
     });
 
     it("handles empty output", () => {
-      const issues = validator.parseOutput("[]", "/project");
+      const issues = validator.parseEslintOutput("[]", "/project");
 
       expect(issues).toHaveLength(0);
     });
@@ -212,13 +212,13 @@ export const x = 1;
         },
       ]);
 
-      const issues = validator.parseOutput(output, "/project");
+      const issues = validator.parseEslintOutput(output, "/project");
 
       expect(issues).toHaveLength(0);
     });
 
     it("handles invalid JSON gracefully", () => {
-      const issues = validator.parseOutput("not valid json", "/project");
+      const issues = validator.parseEslintOutput("not valid json", "/project");
 
       expect(issues).toHaveLength(0);
     });
@@ -255,7 +255,7 @@ export const x = 1;
         },
       ]);
 
-      const issues = validator.parseOutput(output, "/project");
+      const issues = validator.parseEslintOutput(output, "/project");
 
       expect(issues).toHaveLength(2);
       expect(issues[0]?.file).toBe("src/a.js");

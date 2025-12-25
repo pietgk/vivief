@@ -1,40 +1,40 @@
 /**
- * Hub Feedback Command Implementation
+ * Hub Diagnostics Command Implementation
  *
- * Queries unified feedback from the central hub.
- * Based on MCP get_all_feedback tool.
+ * Queries unified diagnostics from the central hub.
+ * Based on MCP get_all_diagnostics tool.
  */
 
 import * as os from "node:os";
 import * as path from "node:path";
 import {
-  type FeedbackCategory,
-  type FeedbackFilter,
-  type FeedbackSeverity,
-  type FeedbackSource,
-  type UnifiedFeedback,
+  type DiagnosticsCategory,
+  type DiagnosticsFilter,
+  type DiagnosticsSeverity,
+  type DiagnosticsSource,
+  type UnifiedDiagnostics,
   createCentralHub,
 } from "@pietgk/devac-core";
-import { formatFeedback, formatOutput } from "./output-formatter.js";
+import { formatDiagnostics, formatOutput } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
   return path.join(os.homedir(), ".devac");
 }
 
 /**
- * Options for hub-feedback command
+ * Options for hub-diagnostics command
  */
-export interface HubFeedbackCommandOptions {
+export interface HubDiagnosticsCommandOptions {
   /** Hub directory (default: ~/.devac) */
   hubDir?: string;
   /** Filter by repository ID */
   repoId?: string;
   /** Filter by source(s) */
-  source?: FeedbackSource | FeedbackSource[];
+  source?: DiagnosticsSource | DiagnosticsSource[];
   /** Filter by severity level(s) */
-  severity?: FeedbackSeverity | FeedbackSeverity[];
+  severity?: DiagnosticsSeverity | DiagnosticsSeverity[];
   /** Filter by category */
-  category?: FeedbackCategory | FeedbackCategory[];
+  category?: DiagnosticsCategory | DiagnosticsCategory[];
   /** Filter by file path (partial match) */
   filePath?: string;
   /** Filter by resolved status */
@@ -48,29 +48,29 @@ export interface HubFeedbackCommandOptions {
 }
 
 /**
- * Result from hub-feedback command
+ * Result from hub-diagnostics command
  */
-export interface HubFeedbackCommandResult {
+export interface HubDiagnosticsCommandResult {
   /** Whether the command succeeded */
   success: boolean;
   /** Formatted output */
   output: string;
-  /** Number of feedback items found */
+  /** Number of diagnostic items found */
   count: number;
   /** Time taken in milliseconds */
   timeMs: number;
-  /** Feedback items */
-  feedback?: UnifiedFeedback[];
+  /** Diagnostic items */
+  diagnostics?: UnifiedDiagnostics[];
   /** Error message if failed */
   error?: string;
 }
 
 /**
- * Run hub-feedback command
+ * Run hub-diagnostics command
  */
-export async function hubFeedbackCommand(
-  options: HubFeedbackCommandOptions
-): Promise<HubFeedbackCommandResult> {
+export async function hubDiagnosticsCommand(
+  options: HubDiagnosticsCommandOptions
+): Promise<HubDiagnosticsCommandResult> {
   const startTime = Date.now();
   const hubDir = options.hubDir || getDefaultHubDir();
   const hub = createCentralHub({ hubDir });
@@ -78,7 +78,7 @@ export async function hubFeedbackCommand(
   try {
     await hub.init();
 
-    const filter: FeedbackFilter = {
+    const filter: DiagnosticsFilter = {
       repo_id: options.repoId,
       source: options.source,
       severity: options.severity,
@@ -89,18 +89,18 @@ export async function hubFeedbackCommand(
       limit: options.limit,
     };
 
-    const feedback = await hub.getFeedback(filter);
+    const diagnostics = await hub.getDiagnostics(filter);
 
     const output = options.json
-      ? formatOutput({ feedback, count: feedback.length }, { json: true })
-      : formatFeedback(feedback, { json: false });
+      ? formatOutput({ diagnostics, count: diagnostics.length }, { json: true })
+      : formatDiagnostics(diagnostics, { json: false });
 
     return {
       success: true,
       output,
-      count: feedback.length,
+      count: diagnostics.length,
       timeMs: Date.now() - startTime,
-      feedback,
+      diagnostics,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

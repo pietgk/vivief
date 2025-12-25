@@ -46,3 +46,6 @@ packages/*/src/version.ts
 # These are intentionally broken TypeScript files for error handling tests
 packages/fixtures-typescript/src/error.ts
 packages/fixtures-typescript/src/invalid.ts
+
+# zed mermaid files
+**/.mermaid/

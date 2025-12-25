@@ -8,6 +8,7 @@ This directory contains the conceptual architecture for DevAC — the aspiration
 
 | Document | Purpose |
 |----------|---------|
+| [concepts.md](./concepts.md) | **Quick reference**: Three Pillars, terminology, status command, glossary |
 | [foundation.md](./foundation.md) | Core concepts: Effect Handler pattern, Seeds, Vision↔View loop, Human/LLM/System division |
 | [foundation-visual.md](./foundation-visual.md) | Visual companion with Mermaid diagrams illustrating the concepts |
 | [foundation-impl-guide.md](./foundation-impl-guide.md) | Guidance on how to implement the foundation concepts |
@@ -15,20 +16,32 @@ This directory contains the conceptual architecture for DevAC — the aspiration
 
 ## Reading Order
 
-1. **Start with Foundation** — Understand the core concepts and philosophy
-2. **Visual Guide** — See the concepts as diagrams
-3. **Validation & Feedback** — The unified feedback model
-4. **Implementation Guide** — Learn how to build toward the vision
+1. **Start with Concepts** — Quick reference for terminology and structure
+2. **Foundation** — Deep dive into core concepts and philosophy
+3. **Visual Guide** — See the concepts as diagrams
+4. **Validation & Feedback** — The unified feedback model
+5. **Implementation Guide** — Learn how to build toward the vision
 
 ## Key Concepts
 
-The foundation defines several key concepts:
+### Three Pillars of DevAC
+
+| Pillar | What It Does | Produces |
+|--------|--------------|----------|
+| **Infra** | Runs DevAC itself | DevAC Health |
+| **Validators** | Check code health | Diagnostics |
+| **Extractors** | Extract queryable data | Seeds |
+
+Plus **Analytics** which uses Seeds + Diagnostics to answer questions.
+
+### Core Abstractions
 
 - **Effect Handler Pattern**: `(state, effect) => (state', [effect'])` — the universal abstraction
 - **Seeds**: Queryable extractions of sources of truth (Parquet files)
-- **Vision↔View Loop**: The cycle between intent and implementation
-- **Three Pipelines**: Vision→View, Question→Answer, Query→Data
+- **Diagnostics**: Validation results (errors, warnings, or "all clear")
 - **Human/LLM/System Division**: Who does what in the workflow
+
+See [concepts.md](./concepts.md) for complete terminology and glossary.
 
 ## Relationship to Implementation
 

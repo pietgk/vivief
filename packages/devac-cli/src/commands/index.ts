@@ -8,6 +8,8 @@
 // Command registration functions (for use in index.ts)
 // ─────────────────────────────────────────────────────────────────────────────
 
+export { registerStatusCommand } from "./status.js";
+export { registerDiagnosticsCommand } from "./diagnostics.js";
 export { registerAnalyzeCommand } from "./analyze.js";
 export { registerQueryCommand } from "./query.js";
 export { registerVerifyCommand } from "./verify.js";
@@ -113,6 +115,17 @@ export type {
   AffectedResult,
 } from "./types.js";
 
+// Status command
+export { statusCommand } from "./status.js";
+export type { StatusOptions, StatusResult } from "./status.js";
+
+// Diagnostics command
+export { diagnosticsCommand } from "./diagnostics.js";
+export type {
+  DiagnosticsCommandOptions,
+  DiagnosticsCommandResult,
+} from "./diagnostics.js";
+
 // Workspace commands
 export { workspaceStatus } from "./workspace-status.js";
 export type {
@@ -136,7 +149,7 @@ export {
   formatOutput,
   formatTable,
   formatValidationIssues,
-  formatFeedback,
+  formatDiagnostics,
   formatSummary,
   formatSymbols,
   formatDependencies,
@@ -186,11 +199,11 @@ export type {
   HubErrorsCommandOptions,
   HubErrorsCommandResult,
 } from "./hub-errors.js";
-export { hubFeedbackCommand } from "./hub-feedback.js";
+export { hubDiagnosticsCommand } from "./hub-diagnostics.js";
 export type {
-  HubFeedbackCommandOptions,
-  HubFeedbackCommandResult,
-} from "./hub-feedback.js";
+  HubDiagnosticsCommandOptions,
+  HubDiagnosticsCommandResult,
+} from "./hub-diagnostics.js";
 export { hubSummaryCommand } from "./hub-summary.js";
 export type {
   HubSummaryCommandOptions,

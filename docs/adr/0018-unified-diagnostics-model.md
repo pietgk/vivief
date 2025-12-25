@@ -1,4 +1,4 @@
-# ADR-0018: Unified Feedback Model
+# ADR-0018: Unified Diagnostics Model
 
 ## Status
 
@@ -6,34 +6,36 @@ Accepted
 
 ## Context
 
-With Phase 2 complete (validation errors in Hub), we identified an opportunity to unify all "feedback that needs attention" into a single queryable concept:
+With Phase 2 complete (validation errors in Hub), we identified an opportunity to unify all "things that need attention" into a single queryable concept.
+
+**Terminology note:** In DevAC's Three Pillars model (see [concepts.md](../vision/concepts.md)), **Validators** produce **Diagnostics**. The unified diagnostics model extends this concept to include workflow items (CI, issues, PR reviews). The `category` field provides granular classification: `compilation`, `linting`, `testing`, `ci-check`, `task`, `feedback`, `code-review`.
 
 | Source | Example | Storage Before |
 |--------|---------|----------------|
-| **Local validation** | tsc errors, eslint warnings | Hub (`validation_errors` table) |
+| **Local validation** | tsc errors, eslint warnings | Hub (`diagnostics` table) |
 | **CI/CD pipeline** | GitHub Actions failures | On-demand polling |
 | **GitHub issues** | Tasks, bugs to fix | On-demand API calls |
 | **PR reviews** | Change requests, suggestions | Not stored |
 
-The key insight: All of these represent "things that need to be fixed" and share common properties:
+The key insight: All of these represent "things that need attention" and share common properties:
 - Location (file:line for code-related, or issue-level)
-- Severity (critical > error > warning > suggestion > note)
-- Category (compilation, linting, testing, CI, task, review)
+- Severity (critical > error > warning > suggestion > note > info)
+- Category (validation vs workflow)
 - Status (resolved/unresolved)
 
-Currently, LLMs need to query multiple systems to answer: "What do I need to fix?"
+Currently, LLMs need to query multiple systems to answer: "What needs attention?"
 
 ## Decision
 
-Create a **unified feedback model** that stores all feedback types in a single DuckDB table with a common schema.
+Create a **unified diagnostics model** that stores all diagnostic types in a single DuckDB table with a common schema.
 
 ### Unified Schema
 
 ```sql
-CREATE TABLE unified_feedback (
-  feedback_id VARCHAR PRIMARY KEY,
+CREATE TABLE unified_diagnostics (
+  diagnostic_id VARCHAR PRIMARY KEY,
   repo_id VARCHAR NOT NULL,
-  source VARCHAR NOT NULL,  -- tsc | eslint | test | coverage | ci-check | github-issue | pr-review
+  source VARCHAR NOT NULL,  -- tsc | eslint | biome | test | coverage | ci-check | github-issue | pr-review
 
   -- Location (nullable for issues)
   file_path VARCHAR,
@@ -66,17 +68,17 @@ CREATE TABLE unified_feedback (
 );
 ```
 
-### Mapping Feedback Types
+### Mapping Diagnostic Types
 
-| Feedback Type | Source | Category | Severity |
-|---------------|--------|----------|----------|
+| Diagnostic Type | Source | Category | Severity |
+|-----------------|--------|----------|----------|
 | TypeScript errors | `tsc` | `compilation` | `error` / `warning` |
 | ESLint issues | `eslint` | `linting` | `error` / `warning` |
+| Biome issues | `biome` | `linting` | `error` / `warning` |
 | Test failures | `test` | `testing` | `error` |
 | Coverage below threshold | `coverage` | `testing` | `warning` |
 | CI failures | `ci-check` | `ci-check` | `error` |
-| GitHub issues (task) | `github-issue` | `task` | By label |
-| GitHub issues (feedback) | `github-issue` | `feedback` | By label |
+| GitHub issues | `github-issue` | `task` | By label |
 | PR reviews | `pr-review` | `code-review` | `suggestion` / `warning` |
 
 ### Issue Label to Severity Mapping
@@ -91,36 +93,36 @@ GitHub issues can be labeled with severity:
 ### Alternatives Considered
 
 1. **Separate Tables + Union View**
-   - ❌ Complex inserts, slower cross-table queries
-   - ✅ Normalized storage per source
+   - Did not choose: Complex inserts, slower cross-table queries
+   - Advantage: Normalized storage per source
 
-2. **Keep validation_errors + New Tables**
-   - ❌ Multiple query targets for LLMs
-   - ✅ No migration needed
+2. **Keep diagnostics + New Tables**
+   - Did not choose: Multiple query targets for LLMs
+   - Advantage: No migration needed
 
 3. **Unified Table (chosen)**
-   - ✅ Single query answers "what needs fixing?"
-   - ✅ Consistent severity ordering across sources
-   - ✅ Cross-source file correlation
-   - ⚠️ Wider schema with nullable fields
+   - Advantage: Single query answers "what needs attention?"
+   - Advantage: Consistent severity ordering across sources
+   - Advantage: Cross-source file correlation
+   - Tradeoff: Wider schema with nullable fields
 
 ### Backward Compatibility
 
-The existing `validation_errors` table and MCP tools continue to work unchanged. The new unified feedback is additive:
+The existing validation errors table and MCP tools continue to work unchanged. The new unified diagnostics is additive:
 
-- `get_validation_errors` → queries `validation_errors` (unchanged)
-- `get_all_feedback` → queries `unified_feedback` (new)
+- `get_validation_errors` → queries validation errors (unchanged)
+- `get_all_diagnostics` → queries `unified_diagnostics` (new)
 
-In a future phase, validation_errors could be deprecated in favor of unified_feedback.
+In a future phase, the simple validation table could be deprecated in favor of unified_diagnostics.
 
 ## Consequences
 
 ### Positive
 
-- Single query: "What do I need to fix?" returns ALL feedback
+- Single query: "What needs attention?" returns ALL diagnostics
 - Consistent severity ordering across all sources
 - Cross-linking: validation error at line 42 can correlate with issue #123
-- Enables future proactive notifications when new feedback appears
+- Enables future proactive notifications when new diagnostics appear
 - Unified counts: "3 errors, 5 warnings, 2 suggestions" across all sources
 
 ### Negative
@@ -133,7 +135,7 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 
 - Existing validation tools continue to work (no breaking changes)
 - Sync can be triggered on-demand or via webhooks (future)
-- Phase 2.5c (migration) is optional - new table coexists with old
+- Migration is optional - new table coexists with old
 
 ## Implementation
 
@@ -141,20 +143,20 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 
 | File | Changes |
 |------|---------|
-| `devac-core/src/hub/hub-storage.ts` | Added `unified_feedback` table, CRUD methods |
-| `devac-core/src/hub/central-hub.ts` | Added `pushFeedback()`, `getFeedback()`, `getFeedbackSummary()`, `getFeedbackCounts()` |
+| `devac-core/src/hub/hub-storage.ts` | Added `unified_diagnostics` table, CRUD methods |
+| `devac-core/src/hub/central-hub.ts` | Added `pushDiagnostics()`, `getDiagnostics()`, `getDiagnosticsSummary()`, `getDiagnosticsCounts()` |
 | `devac-core/src/hub/index.ts` | Exported new types |
-| `devac-mcp/src/tools/index.ts` | Added `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts` tools |
-| `devac-mcp/src/data-provider.ts` | Added `getAllFeedback()`, `getFeedbackSummary()`, `getFeedbackCounts()` methods |
+| `devac-mcp/src/tools/index.ts` | Added `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts` tools |
+| `devac-mcp/src/data-provider.ts` | Added `getAllDiagnostics()`, `getDiagnosticsSummary()`, `getDiagnosticsCounts()` methods |
 | `devac-mcp/src/server.ts` | Added tool handlers |
 
 **New MCP Tools:**
 
 | Tool | Description |
 |------|-------------|
-| `get_all_feedback` | Query feedback with filters (repo, source, severity, category, file, resolved) |
-| `get_feedback_summary` | Grouped counts by source, severity, category, or repo |
-| `get_feedback_counts` | Total counts by severity (critical, error, warning, suggestion, note) |
+| `get_all_diagnostics` | Query diagnostics with filters (repo, source, severity, category, file, resolved) |
+| `get_diagnostics_summary` | Grouped counts by source, severity, category, or repo |
+| `get_diagnostics_counts` | Total counts by severity (critical, error, warning, suggestion, note) |
 
 **Phase 3: CI/CD Integration (Complete)**
 
@@ -178,7 +180,7 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 | File | Changes |
 |------|---------|
 | `devac-core/src/context/issues.ts` | Fetches GitHub issues via `gh` CLI |
-| `devac-core/src/context/issues-hub-sync.ts` | Syncs issues to Hub `unified_feedback` table |
+| `devac-core/src/context/issues-hub-sync.ts` | Syncs issues to Hub `unified_diagnostics` table |
 | `devac-core/src/context/index.ts` | Exported `syncIssuesToHub`, `IssueSyncOptions`, `IssueSyncResult` |
 | `devac-cli/src/commands/context.ts` | Added `devac context issues` with `--sync-to-hub` flag |
 | `devac-cli/src/commands/hub-sync.ts` | Added `--issues` flag to `devac hub sync` |
@@ -196,7 +198,7 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 | File | Changes |
 |------|---------|
 | `devac-core/src/context/reviews.ts` | Fetches PR reviews and comments via `gh` CLI |
-| `devac-core/src/context/reviews-hub-sync.ts` | Syncs reviews to Hub `unified_feedback` table |
+| `devac-core/src/context/reviews-hub-sync.ts` | Syncs reviews to Hub `unified_diagnostics` table |
 | `devac-core/src/context/index.ts` | Exported `syncReviewsToHub`, `ReviewSyncOptions`, `ReviewSyncResult` |
 | `devac-cli/src/commands/context.ts` | Added `devac context reviews` with `--sync-to-hub` flag |
 | `devac-cli/src/commands/hub-sync.ts` | Added `--reviews` flag to `devac hub sync` |
@@ -222,8 +224,8 @@ In a future phase, validation_errors could be deprecated in favor of unified_fee
 ## Query Examples
 
 ```sql
--- "What do I need to fix?" (all unresolved feedback)
-SELECT * FROM unified_feedback
+-- "What needs attention?" (all unresolved diagnostics)
+SELECT * FROM unified_diagnostics
 WHERE repo_id = 'myorg/repo' AND resolved = FALSE
 ORDER BY
   CASE severity
@@ -234,18 +236,25 @@ ORDER BY
   END,
   created_at DESC;
 
--- "What's blocking CI?"
-SELECT * FROM unified_feedback
-WHERE source = 'ci-check' AND severity IN ('critical', 'error');
+-- "What compilation/linting/testing issues need fixing?"
+SELECT * FROM unified_diagnostics
+WHERE category IN ('compilation', 'linting', 'testing') 
+  AND severity IN ('critical', 'error');
+
+-- "What tasks and code reviews are pending?"
+SELECT * FROM unified_diagnostics
+WHERE category IN ('task', 'code-review') AND resolved = FALSE;
 
 -- "Show me everything related to src/auth.ts"
-SELECT * FROM unified_feedback
+SELECT * FROM unified_diagnostics
 WHERE file_path LIKE '%auth.ts%';
 ```
 
 ## References
 
+- [DevAC Concepts](../vision/concepts.md) - Three Pillars, Diagnostics terminology
+- [Validation & Diagnostics](../vision/validation.md) - Unified diagnostics vision
 - [ADR-0017: Validation Hub Cache](0017-validation-hub-cache.md) - Original validation storage design
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture
-- [ADR-0019: Coverage Validator](0019-coverage-validator.md) - Coverage as validation source
+- [ADR-0019: Coverage Validator](0019-coverage-validator.md) - Coverage as diagnostic source
 - [DevAC v3 Architecture](../architecture/devac-v3-architecture.md) - Overall system design

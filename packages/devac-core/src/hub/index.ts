@@ -22,13 +22,13 @@ export {
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
-  // Unified Feedback types
-  type UnifiedFeedback,
-  type FeedbackFilter,
-  type FeedbackSummary,
-  type FeedbackSource,
-  type FeedbackSeverity,
-  type FeedbackCategory,
+  // Unified Diagnostics types
+  type UnifiedDiagnostics,
+  type DiagnosticsFilter,
+  type DiagnosticsSummary,
+  type DiagnosticsSource,
+  type DiagnosticsSeverity,
+  type DiagnosticsCategory,
 } from "./hub-storage.js";
 
 export {

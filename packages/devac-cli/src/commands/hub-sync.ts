@@ -1,7 +1,7 @@
 /**
  * Hub Sync Command Implementation
  *
- * Syncs external feedback (CI status, issues, reviews) to the Hub's unified_feedback table.
+ * Syncs external diagnostics (CI status, issues, reviews) to the Hub's unified_diagnostics table.
  */
 
 import * as os from "node:os";
@@ -51,7 +51,7 @@ export interface HubSyncOptions {
   changesRequestedOnly?: boolean;
   /** Include review comments with file locations (default: true) */
   includeComments?: boolean;
-  /** Clear existing feedback before syncing */
+  /** Clear existing diagnostics before syncing */
   clearExisting?: boolean;
   /** Include individual check details */
   includeChecks?: boolean;
@@ -160,7 +160,7 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
     if (!options.ci && !options.issues && !options.reviews) {
       return {
         success: false,
-        error: "No sync option specified. Use --ci, --issues, or --reviews to sync feedback.",
+        error: "No sync option specified. Use --ci, --issues, or --reviews to sync diagnostics.",
       };
     }
 

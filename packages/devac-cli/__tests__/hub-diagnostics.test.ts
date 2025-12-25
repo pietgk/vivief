@@ -1,5 +1,5 @@
 /**
- * Hub Feedback Command Tests
+ * Hub Diagnostics Command Tests
  */
 
 import * as fs from "node:fs/promises";
@@ -8,16 +8,16 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createCentralHub } from "@pietgk/devac-core";
-import { hubFeedbackCommand } from "../src/commands/hub-feedback.js";
+import { hubDiagnosticsCommand } from "../src/commands/hub-diagnostics.js";
 import { hubInit } from "../src/commands/hub-init.js";
 import { hubRegister } from "../src/commands/hub-register.js";
 
-describe("hub feedback command", () => {
+describe("hub diagnostics command", () => {
   let tempDir: string;
   let hubDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-feedback-test-"));
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-diagnostics-test-"));
     hubDir = path.join(tempDir, ".devac");
   });
 
@@ -61,14 +61,14 @@ describe("hub feedback command", () => {
     return repoPath;
   }
 
-  async function pushFeedback(repoId: string): Promise<void> {
+  async function pushDiagnostics(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
     await hub.init();
     const now = new Date().toISOString();
     try {
-      await hub.pushFeedback([
+      await hub.pushDiagnostics([
         {
-          feedback_id: "fb-1",
+          diagnostic_id: "diag-1",
           repo_id: repoId,
           source: "tsc",
           file_path: "src/auth.ts",
@@ -90,7 +90,7 @@ describe("hub feedback command", () => {
           ci_url: null,
         },
         {
-          feedback_id: "fb-2",
+          diagnostic_id: "diag-2",
           repo_id: repoId,
           source: "ci-check",
           file_path: null,
@@ -112,7 +112,7 @@ describe("hub feedback command", () => {
           ci_url: "https://github.com/org/repo/actions/runs/123",
         },
         {
-          feedback_id: "fb-3",
+          diagnostic_id: "diag-3",
           repo_id: repoId,
           source: "github-issue",
           file_path: null,
@@ -139,97 +139,97 @@ describe("hub feedback command", () => {
     }
   }
 
-  it("returns empty array when no feedback exists", async () => {
+  it("returns empty array when no diagnostics exists", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
 
-    const result = await hubFeedbackCommand({ hubDir });
+    const result = await hubDiagnosticsCommand({ hubDir });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(0);
-    expect(result.feedback).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
   });
 
-  it("returns feedback from hub", async () => {
+  it("returns diagnostics from hub", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir });
+    const result = await hubDiagnosticsCommand({ hubDir });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(3);
-    expect(result.feedback).toHaveLength(3);
+    expect(result.diagnostics).toHaveLength(3);
   });
 
   it("filters by source", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, source: "ci-check" });
+    const result = await hubDiagnosticsCommand({ hubDir, source: "ci-check" });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
-    expect(result.feedback?.[0]?.source).toBe("ci-check");
+    expect(result.diagnostics?.[0]?.source).toBe("ci-check");
   });
 
   it("filters by severity", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, severity: "warning" });
+    const result = await hubDiagnosticsCommand({ hubDir, severity: "warning" });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
-    expect(result.feedback?.[0]?.severity).toBe("warning");
+    expect(result.diagnostics?.[0]?.severity).toBe("warning");
   });
 
   it("filters by category", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, category: "task" });
+    const result = await hubDiagnosticsCommand({ hubDir, category: "task" });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
-    expect(result.feedback?.[0]?.category).toBe("task");
+    expect(result.diagnostics?.[0]?.category).toBe("task");
   });
 
   it("filters by file path", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, filePath: "auth.ts" });
+    const result = await hubDiagnosticsCommand({ hubDir, filePath: "auth.ts" });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
-    expect(result.feedback?.[0]?.file_path).toContain("auth.ts");
+    expect(result.diagnostics?.[0]?.file_path).toContain("auth.ts");
   });
 
   it("filters by actionable status", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, actionable: true });
+    const result = await hubDiagnosticsCommand({ hubDir, actionable: true });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(3);
-    for (const fb of result.feedback ?? []) {
-      expect(fb.actionable).toBe(true);
+    for (const diag of result.diagnostics ?? []) {
+      expect(diag.actionable).toBe(true);
     }
   });
 
   it("respects limit option", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, limit: 1 });
+    const result = await hubDiagnosticsCommand({ hubDir, limit: 1 });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(1);
@@ -238,9 +238,9 @@ describe("hub feedback command", () => {
   it("outputs pretty format by default", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir });
+    const result = await hubDiagnosticsCommand({ hubDir });
 
     expect(result.success).toBe(true);
     // Pretty format should contain readable text
@@ -250,9 +250,9 @@ describe("hub feedback command", () => {
   it("outputs JSON when requested", async () => {
     await hubInit({ hubDir });
     await createAndRegisterRepo("repo1");
-    await pushFeedback("org/repo1");
+    await pushDiagnostics("org/repo1");
 
-    const result = await hubFeedbackCommand({ hubDir, json: true });
+    const result = await hubDiagnosticsCommand({ hubDir, json: true });
 
     expect(result.output).toContain("{");
     expect(() => JSON.parse(result.output)).not.toThrow();
@@ -260,10 +260,10 @@ describe("hub feedback command", () => {
 
   it("returns empty results when hub has no data", async () => {
     // Hub auto-creates on first access, so this tests empty results
-    const result = await hubFeedbackCommand({ hubDir });
+    const result = await hubDiagnosticsCommand({ hubDir });
 
     expect(result.success).toBe(true);
     expect(result.count).toBe(0);
-    expect(result.feedback).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
   });
 });

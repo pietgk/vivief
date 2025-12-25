@@ -69,12 +69,12 @@ export interface ValidationSummary {
   total_count: number;
 }
 
-// ================== Unified Feedback Types ==================
+// ================== Unified Diagnostics Types ==================
 
 /**
- * Feedback source types
+ * Diagnostics source types
  */
-export type FeedbackSource =
+export type DiagnosticsSource =
   | "tsc"
   | "eslint"
   | "biome"
@@ -85,14 +85,14 @@ export type FeedbackSource =
   | "pr-review";
 
 /**
- * Feedback severity levels (ordered from most to least severe)
+ * Diagnostics severity levels (ordered from most to least severe)
  */
-export type FeedbackSeverity = "critical" | "error" | "warning" | "suggestion" | "note";
+export type DiagnosticsSeverity = "critical" | "error" | "warning" | "suggestion" | "note";
 
 /**
- * Feedback category types
+ * Diagnostics category types
  */
-export type FeedbackCategory =
+export type DiagnosticsCategory =
   | "compilation"
   | "linting"
   | "testing"
@@ -102,30 +102,30 @@ export type FeedbackCategory =
   | "code-review";
 
 /**
- * Unified feedback record stored in the hub
+ * Unified diagnostics record stored in the hub
  * Combines validation errors, CI failures, GitHub issues, and PR reviews
  */
-export interface UnifiedFeedback {
-  /** Unique identifier for the feedback */
-  feedback_id: string;
+export interface UnifiedDiagnostics {
+  /** Unique identifier for the diagnostic */
+  diagnostic_id: string;
   /** Repository identifier */
   repo_id: string;
-  /** Source of the feedback */
-  source: FeedbackSource;
+  /** Source of the diagnostic */
+  source: DiagnosticsSource;
 
   // Location (optional for issues)
-  /** File path relative to repo root (null for issue-level feedback) */
+  /** File path relative to repo root (null for issue-level diagnostics) */
   file_path: string | null;
-  /** Line number (1-based, null for issue-level feedback) */
+  /** Line number (1-based, null for issue-level diagnostics) */
   line_number: number | null;
-  /** Column number (0-based, null for issue-level feedback) */
+  /** Column number (0-based, null for issue-level diagnostics) */
   column_number: number | null;
 
   // Severity & Category
   /** Severity level */
-  severity: FeedbackSeverity;
-  /** Category of feedback */
-  category: FeedbackCategory;
+  severity: DiagnosticsSeverity;
+  /** Category of diagnostic */
+  category: DiagnosticsCategory;
 
   // Content
   /** Short summary (max ~100 chars) */
@@ -138,15 +138,15 @@ export interface UnifiedFeedback {
   suggestion: string | null;
 
   // Status
-  /** Whether the feedback has been resolved */
+  /** Whether the diagnostic has been resolved */
   resolved: boolean;
-  /** Whether the feedback is actionable (can be directly fixed) */
+  /** Whether the diagnostic is actionable (can be directly fixed) */
   actionable: boolean;
 
   // Timestamps
-  /** When the feedback was first created */
+  /** When the diagnostic was first created */
   created_at: string;
-  /** When the feedback was last updated */
+  /** When the diagnostic was last updated */
   updated_at: string;
 
   // Source-specific references
@@ -161,17 +161,17 @@ export interface UnifiedFeedback {
 }
 
 /**
- * Filter for querying unified feedback
+ * Filter for querying unified diagnostics
  */
-export interface FeedbackFilter {
+export interface DiagnosticsFilter {
   /** Filter by repository ID */
   repo_id?: string;
   /** Filter by source(s) */
-  source?: FeedbackSource | FeedbackSource[];
+  source?: DiagnosticsSource | DiagnosticsSource[];
   /** Filter by severity level(s) */
-  severity?: FeedbackSeverity | FeedbackSeverity[];
+  severity?: DiagnosticsSeverity | DiagnosticsSeverity[];
   /** Filter by category */
-  category?: FeedbackCategory | FeedbackCategory[];
+  category?: DiagnosticsCategory | DiagnosticsCategory[];
   /** Filter by file path (partial match) */
   file_path?: string;
   /** Filter by resolved status */
@@ -183,9 +183,9 @@ export interface FeedbackFilter {
 }
 
 /**
- * Summary of feedback grouped by a dimension
+ * Summary of diagnostics grouped by a dimension
  */
-export interface FeedbackSummary {
+export interface DiagnosticsSummary {
   group_key: string;
   count: number;
   critical_count: number;
@@ -307,11 +307,11 @@ export class HubStorage {
       CREATE INDEX IF NOT EXISTS idx_validation_source ON validation_errors(source)
     `);
 
-    // Unified feedback table
+    // Unified diagnostics table
     // Combines validation errors, CI failures, GitHub issues, and PR reviews
     await this.db.run(`
-      CREATE TABLE IF NOT EXISTS unified_feedback (
-        feedback_id VARCHAR PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS unified_diagnostics (
+        diagnostic_id VARCHAR PRIMARY KEY,
         repo_id VARCHAR NOT NULL,
         source VARCHAR NOT NULL,
 
@@ -346,24 +346,24 @@ export class HubStorage {
       )
     `);
 
-    // Create indexes for unified_feedback
+    // Create indexes for unified_diagnostics
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_repo ON unified_feedback(repo_id)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_repo ON unified_diagnostics(repo_id)
     `);
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_source ON unified_feedback(source)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_source ON unified_diagnostics(source)
     `);
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_severity ON unified_feedback(severity)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_severity ON unified_diagnostics(severity)
     `);
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_resolved ON unified_feedback(resolved)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_resolved ON unified_diagnostics(resolved)
     `);
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_file ON unified_feedback(file_path)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_file ON unified_diagnostics(file_path)
     `);
     await this.db.run(`
-      CREATE INDEX IF NOT EXISTS idx_feedback_category ON unified_feedback(category)
+      CREATE INDEX IF NOT EXISTS idx_diagnostics_category ON unified_diagnostics(category)
     `);
   }
 
@@ -807,23 +807,23 @@ export class HubStorage {
     return new Date().toISOString();
   }
 
-  // ================== Unified Feedback ==================
+  // ================== Unified Diagnostics ==================
 
   /**
-   * Upsert feedback items
-   * Uses INSERT OR REPLACE based on feedback_id
+   * Upsert diagnostics items
+   * Uses INSERT OR REPLACE based on diagnostic_id
    */
-  async upsertFeedback(feedback: UnifiedFeedback[]): Promise<void> {
+  async upsertDiagnostics(diagnostics: UnifiedDiagnostics[]): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
-    if (feedback.length === 0) return;
+    if (diagnostics.length === 0) return;
 
     const now = new Date().toISOString();
 
-    for (const item of feedback) {
+    for (const item of diagnostics) {
       await this.db.run(
         `
-        INSERT OR REPLACE INTO unified_feedback (
-          feedback_id, repo_id, source,
+        INSERT OR REPLACE INTO unified_diagnostics (
+          diagnostic_id, repo_id, source,
           file_path, line_number, column_number,
           severity, category,
           title, description, code, suggestion,
@@ -832,7 +832,7 @@ export class HubStorage {
           github_issue_number, github_pr_number, workflow_name, ci_url
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-        item.feedback_id,
+        item.diagnostic_id,
         item.repo_id,
         item.source,
         item.file_path,
@@ -857,34 +857,34 @@ export class HubStorage {
   }
 
   /**
-   * Clear feedback, optionally filtered by repository and/or source
+   * Clear diagnostics, optionally filtered by repository and/or source
    */
-  async clearFeedback(repoId?: string, source?: FeedbackSource): Promise<void> {
+  async clearDiagnostics(repoId?: string, source?: DiagnosticsSource): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
 
     if (repoId && source) {
       await this.db.run(
-        "DELETE FROM unified_feedback WHERE repo_id = ? AND source = ?",
+        "DELETE FROM unified_diagnostics WHERE repo_id = ? AND source = ?",
         repoId,
         source
       );
     } else if (repoId) {
-      await this.db.run("DELETE FROM unified_feedback WHERE repo_id = ?", repoId);
+      await this.db.run("DELETE FROM unified_diagnostics WHERE repo_id = ?", repoId);
     } else if (source) {
-      await this.db.run("DELETE FROM unified_feedback WHERE source = ?", source);
+      await this.db.run("DELETE FROM unified_diagnostics WHERE source = ?", source);
     } else {
-      // Clear all feedback - use with caution
-      await this.db.run("DELETE FROM unified_feedback");
+      // Clear all diagnostics - use with caution
+      await this.db.run("DELETE FROM unified_diagnostics");
     }
   }
 
   /**
-   * Query feedback with filters
+   * Query diagnostics with filters
    */
-  async queryFeedback(filter: FeedbackFilter = {}): Promise<UnifiedFeedback[]> {
+  async queryDiagnostics(filter: DiagnosticsFilter = {}): Promise<UnifiedDiagnostics[]> {
     if (!this.db) throw new Error("Database not initialized");
 
-    let sql = "SELECT * FROM unified_feedback WHERE 1=1";
+    let sql = "SELECT * FROM unified_diagnostics WHERE 1=1";
     const params: (string | number | boolean)[] = [];
 
     if (filter.repo_id) {
@@ -945,15 +945,15 @@ export class HubStorage {
 
     const rows = await this.db.all(sql, ...params);
 
-    return rows.map((row) => this.rowToFeedback(row as Record<string, unknown>));
+    return rows.map((row) => this.rowToDiagnostics(row as Record<string, unknown>));
   }
 
   /**
-   * Get feedback summary grouped by a dimension
+   * Get diagnostics summary grouped by a dimension
    */
-  async getFeedbackSummary(
+  async getDiagnosticsSummary(
     groupBy: "source" | "severity" | "category" | "repo"
-  ): Promise<FeedbackSummary[]> {
+  ): Promise<DiagnosticsSummary[]> {
     if (!this.db) throw new Error("Database not initialized");
 
     const columnMap: Record<string, string> = {
@@ -974,7 +974,7 @@ export class HubStorage {
         SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_count,
         SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion_count,
         SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note_count
-      FROM unified_feedback
+      FROM unified_diagnostics
       WHERE resolved = FALSE
       GROUP BY ${column}
       ORDER BY count DESC
@@ -997,9 +997,9 @@ export class HubStorage {
   }
 
   /**
-   * Get total feedback counts
+   * Get total diagnostics counts
    */
-  async getFeedbackCounts(): Promise<{
+  async getDiagnosticsCounts(): Promise<{
     total: number;
     unresolved: number;
     critical: number;
@@ -1019,7 +1019,7 @@ export class HubStorage {
         SUM(CASE WHEN severity = 'warning' AND resolved = FALSE THEN 1 ELSE 0 END) as warning,
         SUM(CASE WHEN severity = 'suggestion' AND resolved = FALSE THEN 1 ELSE 0 END) as suggestion,
         SUM(CASE WHEN severity = 'note' AND resolved = FALSE THEN 1 ELSE 0 END) as note
-      FROM unified_feedback
+      FROM unified_diagnostics
     `);
 
     if (rows.length === 0) {
@@ -1047,30 +1047,30 @@ export class HubStorage {
   }
 
   /**
-   * Mark feedback as resolved
+   * Mark diagnostics as resolved
    */
-  async resolveFeedback(feedbackIds: string[]): Promise<void> {
+  async resolveDiagnostics(diagnosticIds: string[]): Promise<void> {
     if (!this.db) throw new Error("Database not initialized");
-    if (feedbackIds.length === 0) return;
+    if (diagnosticIds.length === 0) return;
 
-    const placeholders = feedbackIds.map(() => "?").join(", ");
+    const placeholders = diagnosticIds.map(() => "?").join(", ");
     const now = new Date().toISOString();
 
     await this.db.run(
-      `UPDATE unified_feedback SET resolved = TRUE, updated_at = ? WHERE feedback_id IN (${placeholders})`,
+      `UPDATE unified_diagnostics SET resolved = TRUE, updated_at = ? WHERE diagnostic_id IN (${placeholders})`,
       now,
-      ...feedbackIds
+      ...diagnosticIds
     );
   }
 
   /**
-   * Get feedback summary filtered by sources
+   * Get diagnostics summary filtered by sources
    * Used by validation API to get summary for only validation sources
    */
-  async getFeedbackSummaryFiltered(
+  async getDiagnosticsSummaryFiltered(
     groupBy: "source" | "severity" | "category" | "repo",
-    sources: FeedbackSource[]
-  ): Promise<FeedbackSummary[]> {
+    sources: DiagnosticsSource[]
+  ): Promise<DiagnosticsSummary[]> {
     if (!this.db) throw new Error("Database not initialized");
 
     const columnMap: Record<string, string> = {
@@ -1092,7 +1092,7 @@ export class HubStorage {
         SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning_count,
         SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion_count,
         SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note_count
-      FROM unified_feedback
+      FROM unified_diagnostics
       WHERE resolved = FALSE AND source IN (${sourcePlaceholders})
       GROUP BY ${column}
       ORDER BY count DESC
@@ -1115,10 +1115,10 @@ export class HubStorage {
   }
 
   /**
-   * Get feedback counts filtered by sources
+   * Get diagnostics counts filtered by sources
    * Used by validation API to get counts for only validation sources
    */
-  async getFeedbackCountsFiltered(sources: FeedbackSource[]): Promise<{
+  async getDiagnosticsCountsFiltered(sources: DiagnosticsSource[]): Promise<{
     total: number;
     critical: number;
     error: number;
@@ -1139,7 +1139,7 @@ export class HubStorage {
         SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning,
         SUM(CASE WHEN severity = 'suggestion' THEN 1 ELSE 0 END) as suggestion,
         SUM(CASE WHEN severity = 'note' THEN 1 ELSE 0 END) as note
-      FROM unified_feedback
+      FROM unified_diagnostics
       WHERE resolved = FALSE AND source IN (${sourcePlaceholders})
     `,
       ...sources
@@ -1168,18 +1168,18 @@ export class HubStorage {
   }
 
   /**
-   * Convert a database row to UnifiedFeedback
+   * Convert a database row to UnifiedDiagnostics
    */
-  private rowToFeedback(r: Record<string, unknown>): UnifiedFeedback {
+  private rowToDiagnostics(r: Record<string, unknown>): UnifiedDiagnostics {
     return {
-      feedback_id: r.feedback_id as string,
+      diagnostic_id: r.diagnostic_id as string,
       repo_id: r.repo_id as string,
-      source: r.source as FeedbackSource,
+      source: r.source as DiagnosticsSource,
       file_path: r.file_path as string | null,
       line_number: r.line_number as number | null,
       column_number: r.column_number as number | null,
-      severity: r.severity as FeedbackSeverity,
-      category: r.category as FeedbackCategory,
+      severity: r.severity as DiagnosticsSeverity,
+      category: r.category as DiagnosticsCategory,
       title: r.title as string,
       description: r.description as string,
       code: r.code as string | null,

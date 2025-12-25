@@ -1,12 +1,16 @@
 /**
  * CI Hub Sync Module
  *
- * Syncs CI status from GitHub Actions to the Hub's unified_feedback table.
+ * Syncs CI status from GitHub Actions to the Hub's unified_diagnostics table.
  * This allows LLMs to query CI failures alongside validation errors.
  */
 
 import type { CentralHub } from "../hub/central-hub.js";
-import type { FeedbackCategory, FeedbackSeverity, UnifiedFeedback } from "../hub/hub-storage.js";
+import type {
+  DiagnosticsCategory,
+  DiagnosticsSeverity,
+  UnifiedDiagnostics,
+} from "../hub/hub-storage.js";
 import type { CIStatus, CIStatusResult, CheckStatus } from "./ci-status.js";
 
 /**
@@ -15,7 +19,7 @@ import type { CIStatus, CIStatusResult, CheckStatus } from "./ci-status.js";
 export interface CISyncOptions {
   /** Only sync failing checks (default: true) */
   failingOnly?: boolean;
-  /** Clear existing CI feedback before syncing (default: true) */
+  /** Clear existing CI diagnostics before syncing (default: true) */
   clearExisting?: boolean;
 }
 
@@ -23,7 +27,7 @@ export interface CISyncOptions {
  * Result of syncing CI status to hub
  */
 export interface CISyncResult {
-  /** Number of feedback items pushed */
+  /** Number of diagnostics items pushed */
   pushed: number;
   /** Number of repos processed */
   reposProcessed: number;
@@ -32,32 +36,32 @@ export interface CISyncResult {
 }
 
 /**
- * Convert a CIStatus to UnifiedFeedback items
+ * Convert a CIStatus to UnifiedDiagnostics items
  */
-function ciStatusToFeedback(ciStatus: CIStatus, repoId: string): UnifiedFeedback[] {
-  const feedback: UnifiedFeedback[] = [];
+function ciStatusToDiagnostics(ciStatus: CIStatus, repoId: string): UnifiedDiagnostics[] {
+  const diagnostics: UnifiedDiagnostics[] = [];
   const now = new Date().toISOString();
 
   // If there's no PR or status is unknown, skip
   if (ciStatus.status === "no-pr" || ciStatus.status === "unknown") {
-    return feedback;
+    return diagnostics;
   }
 
-  // If we have individual checks, create feedback for each failing one
+  // If we have individual checks, create diagnostics for each failing one
   if (ciStatus.checks && ciStatus.checks.length > 0) {
     for (const check of ciStatus.checks) {
       const severity = checkToSeverity(check);
       if (severity === null) continue; // Skip passing/neutral checks
 
-      feedback.push({
-        feedback_id: `ci-${repoId}-${ciStatus.prNumber}-${check.name}`,
+      diagnostics.push({
+        diagnostic_id: `ci-${repoId}-${ciStatus.prNumber}-${check.name}`,
         repo_id: repoId,
         source: "ci-check",
         file_path: null,
         line_number: null,
         column_number: null,
         severity,
-        category: "ci-check" as FeedbackCategory,
+        category: "ci-check" as DiagnosticsCategory,
         title: `CI: ${check.name} ${check.conclusion || check.status}`,
         description: buildCheckDescription(check, ciStatus),
         code: null,
@@ -74,15 +78,15 @@ function ciStatusToFeedback(ciStatus: CIStatus, repoId: string): UnifiedFeedback
     }
   } else if (ciStatus.status === "failing") {
     // No individual checks available, but overall status is failing
-    feedback.push({
-      feedback_id: `ci-${repoId}-${ciStatus.prNumber}-overall`,
+    diagnostics.push({
+      diagnostic_id: `ci-${repoId}-${ciStatus.prNumber}-overall`,
       repo_id: repoId,
       source: "ci-check",
       file_path: null,
       line_number: null,
       column_number: null,
       severity: "error",
-      category: "ci-check" as FeedbackCategory,
+      category: "ci-check" as DiagnosticsCategory,
       title: `CI failing for PR #${ciStatus.prNumber}`,
       description: ciStatus.prTitle
         ? `CI checks are failing for "${ciStatus.prTitle}"`
@@ -99,16 +103,16 @@ function ciStatusToFeedback(ciStatus: CIStatus, repoId: string): UnifiedFeedback
       ci_url: ciStatus.prUrl ?? null,
     });
   } else if (ciStatus.status === "pending") {
-    // Pending checks - create a note-level feedback
-    feedback.push({
-      feedback_id: `ci-${repoId}-${ciStatus.prNumber}-pending`,
+    // Pending checks - create a note-level diagnostic
+    diagnostics.push({
+      diagnostic_id: `ci-${repoId}-${ciStatus.prNumber}-pending`,
       repo_id: repoId,
       source: "ci-check",
       file_path: null,
       line_number: null,
       column_number: null,
       severity: "note",
-      category: "ci-check" as FeedbackCategory,
+      category: "ci-check" as DiagnosticsCategory,
       title: `CI pending for PR #${ciStatus.prNumber}`,
       description: ciStatus.prTitle
         ? `CI checks are running for "${ciStatus.prTitle}"`
@@ -126,14 +130,14 @@ function ciStatusToFeedback(ciStatus: CIStatus, repoId: string): UnifiedFeedback
     });
   }
 
-  return feedback;
+  return diagnostics;
 }
 
 /**
  * Convert check status to severity
  * Returns null if the check shouldn't be synced (passing/neutral)
  */
-function checkToSeverity(check: CheckStatus): FeedbackSeverity | null {
+function checkToSeverity(check: CheckStatus): DiagnosticsSeverity | null {
   if (check.status === "in_progress" || check.status === "queued") {
     return "note"; // Pending
   }
@@ -210,39 +214,39 @@ export async function syncCIStatusToHub(
     return result;
   }
 
-  // Collect all feedback items
-  const allFeedback: UnifiedFeedback[] = [];
+  // Collect all diagnostics items
+  const allDiagnostics: UnifiedDiagnostics[] = [];
 
   for (const ciStatus of ciResult.statuses) {
     result.reposProcessed++;
 
     const repoId = deriveRepoId(ciStatus);
-    const feedback = ciStatusToFeedback(ciStatus, repoId);
+    const diagnostics = ciStatusToDiagnostics(ciStatus, repoId);
 
     // Filter to failing only if requested
     const filtered = failingOnly
-      ? feedback.filter((f) => f.severity === "error" || f.severity === "critical")
-      : feedback;
+      ? diagnostics.filter((d) => d.severity === "error" || d.severity === "critical")
+      : diagnostics;
 
-    allFeedback.push(...filtered);
+    allDiagnostics.push(...filtered);
   }
 
-  // Clear existing CI feedback if requested
+  // Clear existing CI diagnostics if requested
   if (clearExisting) {
     try {
-      await hub.clearFeedback(undefined, "ci-check");
+      await hub.clearDiagnostics(undefined, "ci-check");
     } catch (error) {
-      result.errors.push(`Failed to clear existing CI feedback: ${error}`);
+      result.errors.push(`Failed to clear existing CI diagnostics: ${error}`);
     }
   }
 
-  // Push all feedback
-  if (allFeedback.length > 0) {
+  // Push all diagnostics
+  if (allDiagnostics.length > 0) {
     try {
-      await hub.pushFeedback(allFeedback);
-      result.pushed = allFeedback.length;
+      await hub.pushDiagnostics(allDiagnostics);
+      result.pushed = allDiagnostics.length;
     } catch (error) {
-      result.errors.push(`Failed to push CI feedback: ${error}`);
+      result.errors.push(`Failed to push CI diagnostics: ${error}`);
     }
   }
 

@@ -342,7 +342,7 @@ describe("getSeedsLastModified", () => {
 
     const result = await getSeedsLastModified(repoDir);
     expect(result).not.toBeNull();
-    expect(new Date(result!).getTime()).toBeGreaterThan(0);
+    expect(new Date(result as string).getTime()).toBeGreaterThan(0);
   });
 
   it("should return null when seeds do not exist", async () => {
@@ -489,7 +489,9 @@ describe("discoverWorkspaceRepos", () => {
     const workspace = path.join(tempDir, "workspace");
     // Repo with seeds
     await fs.mkdir(path.join(workspace, "api", ".git"), { recursive: true });
-    await fs.mkdir(path.join(workspace, "api", ".devac", "seed"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "api", ".devac", "seed"), {
+      recursive: true,
+    });
     // Repo without seeds
     await fs.mkdir(path.join(workspace, "web", ".git"), { recursive: true });
 
@@ -505,8 +507,12 @@ describe("discoverWorkspaceRepos", () => {
   it("should exclude node_modules and other default exclusions", async () => {
     const workspace = path.join(tempDir, "workspace");
     await fs.mkdir(path.join(workspace, "api", ".git"), { recursive: true });
-    await fs.mkdir(path.join(workspace, "node_modules", "some-pkg", ".git"), { recursive: true });
-    await fs.mkdir(path.join(workspace, ".git", "submodule", ".git"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "node_modules", "some-pkg", ".git"), {
+      recursive: true,
+    });
+    await fs.mkdir(path.join(workspace, ".git", "submodule", ".git"), {
+      recursive: true,
+    });
 
     const repos = await discoverWorkspaceRepos(workspace);
 
@@ -519,7 +525,9 @@ describe("discoverWorkspaceRepos", () => {
     await fs.mkdir(path.join(workspace, "api", ".git"), { recursive: true });
     await fs.mkdir(path.join(workspace, "vendor", ".git"), { recursive: true });
 
-    const repos = await discoverWorkspaceRepos(workspace, { exclude: ["vendor"] });
+    const repos = await discoverWorkspaceRepos(workspace, {
+      exclude: ["vendor"],
+    });
 
     expect(repos).toHaveLength(1);
     expect(repos[0]?.name).toBe("api");
@@ -597,7 +605,9 @@ describe("discoverWorkspace", () => {
     const workspace = path.join(tempDir, "workspace");
     // Create repos
     await fs.mkdir(path.join(workspace, "api", ".git"), { recursive: true });
-    await fs.mkdir(path.join(workspace, "api", ".devac", "seed"), { recursive: true });
+    await fs.mkdir(path.join(workspace, "api", ".devac", "seed"), {
+      recursive: true,
+    });
     await fs.mkdir(path.join(workspace, "web", ".git"), { recursive: true });
 
     const info = await discoverWorkspace(workspace);

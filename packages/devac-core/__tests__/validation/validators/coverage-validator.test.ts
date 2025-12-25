@@ -116,7 +116,7 @@ describe("CoverageValidator", () => {
       );
 
       expect(files.length).toBe(1);
-      const file = files[0]!;
+      const file = files[0] as (typeof files)[0];
       expect(file.file).toBe(path.join("src", "utils.ts"));
       expect(file.statements).toBe(75); // 3 out of 4 statements covered
       expect(file.functions).toBe(50); // 1 out of 2 functions covered
@@ -264,7 +264,7 @@ describe("CoverageValidator", () => {
       );
 
       expect(belowThreshold.length).toBe(1);
-      expect(belowThreshold[0]!.statements).toBe(25); // 1/4 = 25%
+      expect(belowThreshold[0]?.statements).toBe(25); // 1/4 = 25%
     });
 
     it("does not create issues when above threshold", async () => {

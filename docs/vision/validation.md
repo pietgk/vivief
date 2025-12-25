@@ -1,12 +1,12 @@
-# Validation & Feedback
+# Validation & Diagnostics
 
-> A unified model where all feedback—local validation, CI results, GitHub issues, PR reviews—flows through the same watch-driven pattern into a queryable cache.
+> A unified model where all diagnostics—local validation, CI results, GitHub issues, PR reviews—flow through the same watch-driven pattern into a queryable cache.
 
 ---
 
 ## 1. The Problem We're Solving
 
-Development produces many signals about "what needs fixing":
+Development produces many signals about "what needs attention":
 
 1. **Local validation** — TypeScript errors, lint violations, test failures, low coverage
 2. **CI/CD results** — Build failures, deployment errors, action outcomes
@@ -16,9 +16,9 @@ Development produces many signals about "what needs fixing":
 These signals are:
 - **Scattered** — Different tools, different formats, different APIs
 - **Redundant** — LLMs re-run validation to get current state
-- **Inconsistent** — No unified way to ask "what needs fixing?"
+- **Inconsistent** — No unified way to ask "what needs attention?"
 
-**Our thesis**: All feedback follows the same pattern. By treating them identically and caching results in a unified table, we enable LLMs and humans to efficiently query "what needs fixing" without re-running anything.
+**Our thesis**: All diagnostics follow the same pattern. By treating them identically and caching results in a unified table, we enable LLMs and humans to efficiently query "what needs attention" without re-running anything.
 
 ---
 
@@ -26,7 +26,7 @@ These signals are:
 
 ### 2.1 The Pattern
 
-All feedback sources follow the same three-stage flow:
+All diagnostic sources follow the same three-stage flow:
 
 ```
 WATCH           →    VALIDATE           →    CACHE
@@ -36,7 +36,7 @@ WATCH           →    VALIDATE           →    CACHE
 | Stage | What Happens | Who Runs It |
 |-------|--------------|-------------|
 | **Watch** | Detect changes (files or events) | System |
-| **Validate** | Run checks, produce issues | System |
+| **Validate** | Run checks, produce diagnostics | System |
 | **Cache** | Store in hub for fast queries | System (implicit) |
 
 ### 2.2 Local vs External Sources
@@ -58,7 +58,7 @@ flowchart TB
     end
     
     subgraph "HUB CACHE"
-        HUB[(unified_feedback)]
+        HUB[(unified_diagnostics)]
     end
     
     HUB --> MCP[MCP Tools]
@@ -66,10 +66,10 @@ flowchart TB
     HUB --> DASH[Dashboards]
 ```
 
-### 2.3 Feedback Sources
+### 2.3 Diagnostic Sources
 
-| Source | Trigger | Validator | Example Issue |
-|--------|---------|-----------|---------------|
+| Source | Trigger | Validator | Example Diagnostic |
+|--------|---------|-----------|-------------------|
 | `tsc` | File change | TypeScript compiler | "Property 'x' does not exist" |
 | `eslint` | File change | ESLint/Biome | "Unexpected any" |
 | `test` | File change | Vitest/Jest | "Expected true, got false" |
@@ -88,10 +88,10 @@ The hub is a **queryable cache**, not a source of truth.
 
 | Aspect | Hub Cache | Source of Truth |
 |--------|-----------|-----------------|
-| **TypeScript errors** | `unified_feedback` table | `tsc` output |
-| **Lint violations** | `unified_feedback` table | ESLint/Biome output |
-| **CI status** | `unified_feedback` table | GitHub API |
-| **Issues** | `unified_feedback` table | GitHub Issues |
+| **TypeScript errors** | `unified_diagnostics` table | `tsc` output |
+| **Lint violations** | `unified_diagnostics` table | ESLint/Biome output |
+| **CI status** | `unified_diagnostics` table | GitHub API |
+| **Issues** | `unified_diagnostics` table | GitHub Issues |
 
 **Implication**: Validation always updates the hub. There is no `--push-to-hub` flag—caching is implicit.
 
@@ -117,27 +117,27 @@ Same input = same output. This means:
 | Actor | Responsibility | Examples |
 |-------|---------------|----------|
 | **System** | Watch, validate, cache (deterministic) | Run tsc, update hub |
-| **LLM** | Query issues, propose fixes (reasoning) | "Fix this type error" |
+| **LLM** | Query diagnostics, propose fixes (reasoning) | "Fix this type error" |
 | **Human** | Edit files, approve changes (agency) | Accept/reject proposal |
 
 ---
 
 ## 4. Data Model
 
-### 4.1 Unified Feedback Schema
+### 4.1 Unified Diagnostics Schema
 
 All sources produce the same shape:
 
 ```sql
-unified_feedback (
-  feedback_id     VARCHAR PRIMARY KEY,
+unified_diagnostics (
+  diagnostic_id   VARCHAR PRIMARY KEY,
   repo_id         VARCHAR,          -- "github.com/org/repo"
   source          VARCHAR,          -- tsc | eslint | test | coverage | ci | issue | pr
-  file_path       VARCHAR,          -- affected file (null for non-file issues)
+  file_path       VARCHAR,          -- affected file (null for non-file diagnostics)
   line_number     INTEGER,          -- line in file (null if not applicable)
   column_number   INTEGER,          -- column in file
-  severity        VARCHAR,          -- error | warning
-  category        VARCHAR,          -- compilation | linting | testing | ci-check | task | feedback
+  severity        VARCHAR,          -- error | warning | info
+  category        VARCHAR,          -- validation | workflow
   title           VARCHAR,          -- short description
   description     VARCHAR,          -- full message
   code            VARCHAR,          -- error code (TS2345, no-unused-vars)
@@ -149,7 +149,7 @@ unified_feedback (
 
 ### 4.2 Ephemeral by Design
 
-Feedback is **transient**:
+Diagnostics are **transient**:
 - Issues appear when detected
 - Issues disappear when fixed
 - No long-term history (that's what Git is for)
@@ -162,16 +162,16 @@ Feedback is **transient**:
 
 ```bash
 # Query all errors
-devac hub errors
+devac diagnostics
 
 # Filter by source
-devac hub errors --source tsc
+devac diagnostics --source tsc
 
 # Filter by repo
-devac hub errors --repo-id github.com/org/repo
+devac diagnostics --repo-id github.com/org/repo
 
-# Query unified feedback (all sources)
-devac hub feedback
+# Filter by category
+devac diagnostics --category validation
 
 # Get summary counts
 devac hub summary counts
@@ -183,9 +183,9 @@ LLMs access the same data via MCP:
 
 | Tool | Purpose |
 |------|---------|
-| `get_validation_errors` | Query validation issues (tsc, lint, test, coverage) |
-| `get_all_feedback` | Query unified feedback (includes CI, issues, PR) |
-| `get_feedback_summary` | Get counts by source, severity, repo |
+| `get_diagnostics` | Query all diagnostics (validation + workflow) |
+| `get_validation_diagnostics` | Query validation diagnostics only (tsc, lint, test, coverage) |
+| `get_diagnostics_summary` | Get counts by source, severity, repo |
 
 ---
 
@@ -199,8 +199,8 @@ LLMs access the same data via MCP:
 | Lint validation (ESLint/Biome) | Working | Via `validate` command |
 | Test validation | Partial | Aggregate stats only |
 | Coverage validation | Working | Via `validate` command |
-| Hub cache | Working | DuckDB unified_feedback table |
-| MCP tools | Working | get_validation_*, get_feedback_* |
+| Hub cache | Working | DuckDB unified_diagnostics table |
+| MCP tools | Working | get_diagnostics_*, get_validation_* |
 | Watch (local) | Partial | Per-repo, not workspace-wide |
 | Watch (external) | Partial | Sync commands, not automatic |
 
@@ -220,21 +220,22 @@ LLMs access the same data via MCP:
 
 | Document | Relationship |
 |----------|--------------|
+| [Concepts](./concepts.md) | Three Pillars, terminology, glossary |
 | [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) | Why DuckDB for validation cache |
-| [ADR-0018: Unified Feedback Model](../adr/0018-unified-feedback-model.md) | Schema design for unified feedback |
-| [ADR-0019: Coverage Validator](../adr/0019-coverage-validator.md) | Coverage as first-class feedback |
+| [ADR-0018: Unified Diagnostics Model](../adr/0018-unified-diagnostics-model.md) | Schema design for unified diagnostics |
+| [ADR-0019: Coverage Validator](../adr/0019-coverage-validator.md) | Coverage as first-class diagnostic |
 | [Foundation](./foundation.md) | Effect Handler pattern, Human/LLM/System division |
 
 ---
 
 ## 8. Summary
 
-**The vision**: All feedback—local validation, CI results, issues, PR reviews—flows through the same pattern:
+**The vision**: All diagnostics—local validation, CI results, issues, PR reviews—flow through the same pattern:
 
 ```
 Watch → Validate → Cache → Query
 ```
 
-**The benefit**: LLMs and humans can efficiently ask "what needs fixing?" without re-running validation or querying multiple APIs.
+**The benefit**: LLMs and humans can efficiently ask "what needs attention?" without re-running validation or querying multiple APIs.
 
 **The principle**: Hub caching is implicit, not optional. Validation always updates the cache.

@@ -146,7 +146,9 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
       } catch (hubError) {
         // Don't fail validation if Hub push fails - log warning
         console.error(
-          `Warning: Failed to push validation results to Hub: ${hubError instanceof Error ? hubError.message : String(hubError)}`
+          `Warning: Failed to push validation results to Hub: ${
+            hubError instanceof Error ? hubError.message : String(hubError)
+          }`
         );
       } finally {
         if (hub) {
@@ -254,7 +256,8 @@ function createErrorResult(mode: ValidationMode, error: string, startTime: numbe
 export function registerValidateCommand(program: Command): void {
   program
     .command("validate")
-    .description("Validate changed files with affected detection")
+    .alias("check")
+    .description("Validate changed files with affected detection (alias: check)")
     .option("-p, --package <path>", "Package path to validate", process.cwd())
     .option("-f, --files <files...>", "Changed files to validate")
     .option("-m, --mode <mode>", "Validation mode (quick, full)", "quick")

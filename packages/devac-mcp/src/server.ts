@@ -9,10 +9,10 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
-  type FeedbackCategory,
-  type FeedbackFilter,
-  type FeedbackSeverity,
-  type FeedbackSource,
+  type DiagnosticsCategory,
+  type DiagnosticsFilter,
+  type DiagnosticsSeverity,
+  type DiagnosticsSource,
   type RepoContext,
   discoverContext,
 } from "@pietgk/devac-core";
@@ -164,15 +164,15 @@ export class DevacMCPServer {
         case "get_validation_counts":
           return await this.executeGetValidationCounts();
 
-        // Unified Feedback tools
-        case "get_all_feedback":
-          return await this.executeGetAllFeedback(input);
+        // Unified Diagnostics tools
+        case "get_all_diagnostics":
+          return await this.executeGetAllDiagnostics(input);
 
-        case "get_feedback_summary":
-          return await this.executeGetFeedbackSummary(input);
+        case "get_diagnostics_summary":
+          return await this.executeGetDiagnosticsSummary(input);
 
-        case "get_feedback_counts":
-          return await this.executeGetFeedbackCounts();
+        case "get_diagnostics_counts":
+          return await this.executeGetDiagnosticsCounts();
 
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
@@ -337,25 +337,25 @@ export class DevacMCPServer {
     }
   }
 
-  // ================== Unified Feedback Tool Handlers ==================
+  // ================== Unified Diagnostics Tool Handlers ==================
 
   /**
-   * Get all feedback (unified view)
+   * Get all diagnostics (unified view)
    */
-  private async executeGetAllFeedback(input: Record<string, unknown>): Promise<MCPToolResult> {
+  private async executeGetAllDiagnostics(input: Record<string, unknown>): Promise<MCPToolResult> {
     try {
-      const filter: FeedbackFilter = {
+      const filter: DiagnosticsFilter = {
         repo_id: input.repo_id as string | undefined,
-        source: input.source as FeedbackSource[] | undefined,
-        severity: input.severity as FeedbackSeverity[] | undefined,
-        category: input.category as FeedbackCategory[] | undefined,
+        source: input.source as DiagnosticsSource[] | undefined,
+        severity: input.severity as DiagnosticsSeverity[] | undefined,
+        category: input.category as DiagnosticsCategory[] | undefined,
         file_path: input.file_path as string | undefined,
         resolved: input.resolved as boolean | undefined,
         limit: input.limit as number | undefined,
       };
 
-      const feedback = await this.provider.getAllFeedback(filter);
-      return { success: true, data: feedback };
+      const diagnostics = await this.provider.getAllDiagnostics(filter);
+      return { success: true, data: diagnostics };
     } catch (error) {
       return {
         success: false,
@@ -365,16 +365,18 @@ export class DevacMCPServer {
   }
 
   /**
-   * Get feedback summary grouped by a field
+   * Get diagnostics summary grouped by a field
    */
-  private async executeGetFeedbackSummary(input: Record<string, unknown>): Promise<MCPToolResult> {
+  private async executeGetDiagnosticsSummary(
+    input: Record<string, unknown>
+  ): Promise<MCPToolResult> {
     try {
       const groupBy = input.groupBy as "repo" | "source" | "severity" | "category";
       if (!groupBy) {
         return { success: false, error: "groupBy is required" };
       }
 
-      const summary = await this.provider.getFeedbackSummary(groupBy);
+      const summary = await this.provider.getDiagnosticsSummary(groupBy);
       return { success: true, data: summary };
     } catch (error) {
       return {
@@ -385,11 +387,11 @@ export class DevacMCPServer {
   }
 
   /**
-   * Get feedback counts by severity
+   * Get diagnostics counts by severity
    */
-  private async executeGetFeedbackCounts(): Promise<MCPToolResult> {
+  private async executeGetDiagnosticsCounts(): Promise<MCPToolResult> {
     try {
-      const counts = await this.provider.getFeedbackCounts();
+      const counts = await this.provider.getDiagnosticsCounts();
       return { success: true, data: counts };
     } catch (error) {
       return {

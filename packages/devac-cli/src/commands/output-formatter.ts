@@ -6,7 +6,7 @@
  * Default is pretty (human-readable), use --json for machine-readable output.
  */
 
-import type { UnifiedFeedback, ValidationIssue } from "@pietgk/devac-core";
+import type { UnifiedDiagnostics, ValidationIssue } from "@pietgk/devac-core";
 
 /**
  * Format options
@@ -120,16 +120,19 @@ export function formatValidationIssues(
 }
 
 /**
- * Format unified feedback for display
+ * Format unified diagnostics for display
  */
-export function formatFeedback(items: UnifiedFeedback[], options: FormatOptions = {}): string {
+export function formatDiagnostics(
+  items: UnifiedDiagnostics[],
+  options: FormatOptions = {}
+): string {
   if (options.json) {
     return JSON.stringify(items);
   }
 
   // Pretty output (default)
   if (items.length === 0) {
-    return "No feedback items";
+    return "No diagnostic items";
   }
 
   const lines: string[] = [];

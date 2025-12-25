@@ -90,14 +90,14 @@ describe("hub summary command", () => {
     }
   }
 
-  async function pushFeedback(repoId: string): Promise<void> {
+  async function pushDiagnostics(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
     await hub.init();
     const now = new Date().toISOString();
     try {
-      await hub.pushFeedback([
+      await hub.pushDiagnostics([
         {
-          feedback_id: "fb-1",
+          diagnostic_id: "diag-1",
           repo_id: repoId,
           source: "tsc",
           file_path: "src/file1.ts",
@@ -119,7 +119,7 @@ describe("hub summary command", () => {
           ci_url: null,
         },
         {
-          feedback_id: "fb-2",
+          diagnostic_id: "diag-2",
           repo_id: repoId,
           source: "ci-check",
           file_path: null,
@@ -141,7 +141,7 @@ describe("hub summary command", () => {
           ci_url: null,
         },
         {
-          feedback_id: "fb-3",
+          diagnostic_id: "diag-3",
           repo_id: repoId,
           source: "github-issue",
           file_path: null,
@@ -177,7 +177,7 @@ describe("hub summary command", () => {
 
       expect(result.success).toBe(true);
       expect(result.counts?.validation?.total).toBe(0);
-      expect(result.counts?.feedback?.total).toBe(0);
+      expect(result.counts?.diagnostics?.total).toBe(0);
     });
 
     it("returns validation counts", async () => {
@@ -193,18 +193,18 @@ describe("hub summary command", () => {
       expect(result.counts?.validation?.total).toBe(2);
     });
 
-    it("returns feedback counts", async () => {
+    it("returns diagnostics counts", async () => {
       await hubInit({ hubDir });
       await createAndRegisterRepo("repo1");
-      await pushFeedback("org/repo1");
+      await pushDiagnostics("org/repo1");
 
       const result = await hubSummaryCommand({ hubDir, type: "counts" });
 
       expect(result.success).toBe(true);
-      expect(result.counts?.feedback?.error).toBe(1);
-      expect(result.counts?.feedback?.warning).toBe(1);
-      expect(result.counts?.feedback?.suggestion).toBe(1);
-      expect(result.counts?.feedback?.total).toBe(3);
+      expect(result.counts?.diagnostics?.error).toBe(1);
+      expect(result.counts?.diagnostics?.warning).toBe(1);
+      expect(result.counts?.diagnostics?.suggestion).toBe(1);
+      expect(result.counts?.diagnostics?.total).toBe(3);
     });
   });
 
@@ -240,50 +240,50 @@ describe("hub summary command", () => {
     });
   });
 
-  describe("feedback mode", () => {
-    it("returns feedback summary grouped by source", async () => {
+  describe("diagnostics mode", () => {
+    it("returns diagnostics summary grouped by source", async () => {
       await hubInit({ hubDir });
       await createAndRegisterRepo("repo1");
-      await pushFeedback("org/repo1");
+      await pushDiagnostics("org/repo1");
 
       const result = await hubSummaryCommand({
         hubDir,
-        type: "feedback",
+        type: "diagnostics",
         groupBy: "source",
       });
 
       expect(result.success).toBe(true);
-      expect(result.feedbackSummary).toBeDefined();
-      expect(result.feedbackSummary?.length).toBeGreaterThan(0);
+      expect(result.diagnosticsSummary).toBeDefined();
+      expect(result.diagnosticsSummary?.length).toBeGreaterThan(0);
     });
 
-    it("returns feedback summary grouped by severity", async () => {
+    it("returns diagnostics summary grouped by severity", async () => {
       await hubInit({ hubDir });
       await createAndRegisterRepo("repo1");
-      await pushFeedback("org/repo1");
+      await pushDiagnostics("org/repo1");
 
       const result = await hubSummaryCommand({
         hubDir,
-        type: "feedback",
+        type: "diagnostics",
         groupBy: "severity",
       });
 
       expect(result.success).toBe(true);
-      expect(result.feedbackSummary).toBeDefined();
+      expect(result.diagnosticsSummary).toBeDefined();
     });
 
-    it("returns empty summary when no feedback", async () => {
+    it("returns empty summary when no diagnostics", async () => {
       await hubInit({ hubDir });
       await createAndRegisterRepo("repo1");
 
       const result = await hubSummaryCommand({
         hubDir,
-        type: "feedback",
+        type: "diagnostics",
         groupBy: "source",
       });
 
       expect(result.success).toBe(true);
-      expect(result.feedbackSummary).toEqual([]);
+      expect(result.diagnosticsSummary).toEqual([]);
     });
   });
 
@@ -320,6 +320,6 @@ describe("hub summary command", () => {
 
     expect(result.success).toBe(true);
     expect(result.counts?.validation?.total).toBe(0);
-    expect(result.counts?.feedback?.total).toBe(0);
+    expect(result.counts?.diagnostics?.total).toBe(0);
   });
 });

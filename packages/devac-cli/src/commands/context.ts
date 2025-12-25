@@ -194,7 +194,7 @@ function formatSyncResult(syncResult: CISyncResult): string {
   const lines: string[] = [];
   lines.push("");
   lines.push("Hub Sync:");
-  lines.push(`  Pushed ${syncResult.pushed} feedback items to Hub`);
+  lines.push(`  Pushed ${syncResult.pushed} diagnostic items to Hub`);
   lines.push(`  Processed ${syncResult.reposProcessed} repositories`);
   if (syncResult.errors.length > 0) {
     lines.push(`  Errors: ${syncResult.errors.join(", ")}`);

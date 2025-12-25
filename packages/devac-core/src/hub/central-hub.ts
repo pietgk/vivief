@@ -11,14 +11,14 @@ import { Database } from "duckdb-async";
 import { computeStringHash } from "../utils/hash.js";
 import {
   type CrossRepoEdge,
-  type FeedbackCategory,
-  type FeedbackFilter,
-  type FeedbackSeverity,
-  type FeedbackSource,
-  type FeedbackSummary,
+  type DiagnosticsCategory,
+  type DiagnosticsFilter,
+  type DiagnosticsSeverity,
+  type DiagnosticsSource,
+  type DiagnosticsSummary,
   type HubStorage,
   type RepoRegistration,
-  type UnifiedFeedback,
+  type UnifiedDiagnostics,
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
@@ -432,14 +432,14 @@ export class CentralHub {
   }
 
   // ================== Validation Error APIs ==================
-  // These methods now write to and read from the unified_feedback table
+  // These methods now write to and read from the unified_diagnostics table
   // for consistency with CI status and GitHub issues.
 
   /**
    * Push validation errors from a repository to the hub
    * Replaces existing errors for the same repo/package
    *
-   * Note: This now writes to unified_feedback table (not validation_errors)
+   * Note: This now writes to unified_diagnostics table (not validation_errors)
    */
   async pushValidationErrors(
     repoId: string,
@@ -456,24 +456,24 @@ export class CentralHub {
   ): Promise<void> {
     this.ensureInitialized();
 
-    // Clear existing validation feedback for this repo (all validation sources)
-    await this.storage.clearFeedback(repoId, "tsc");
-    await this.storage.clearFeedback(repoId, "eslint");
-    await this.storage.clearFeedback(repoId, "test");
-    await this.storage.clearFeedback(repoId, "coverage");
+    // Clear existing validation diagnostics for this repo (all validation sources)
+    await this.storage.clearDiagnostics(repoId, "tsc");
+    await this.storage.clearDiagnostics(repoId, "eslint");
+    await this.storage.clearDiagnostics(repoId, "test");
+    await this.storage.clearDiagnostics(repoId, "coverage");
 
     if (errors.length === 0) return;
 
-    // Convert to UnifiedFeedback format
+    // Convert to UnifiedDiagnostics format
     const now = new Date().toISOString();
-    const feedback: UnifiedFeedback[] = errors.map((error, index) => ({
-      feedback_id: `val-${repoId}-${packagePath}-${error.file}-${error.line}-${error.source}-${index}`,
+    const diagnostics: UnifiedDiagnostics[] = errors.map((error, index) => ({
+      diagnostic_id: `val-${repoId}-${packagePath}-${error.file}-${error.line}-${error.source}-${index}`,
       repo_id: repoId,
-      source: error.source as FeedbackSource,
+      source: error.source as DiagnosticsSource,
       file_path: error.file,
       line_number: error.line,
       column_number: error.column,
-      severity: error.severity as FeedbackSeverity,
+      severity: error.severity as DiagnosticsSeverity,
       category: this.sourceToCategory(error.source),
       title: this.extractTitle(error.message),
       description: error.message,
@@ -489,7 +489,7 @@ export class CentralHub {
       ci_url: null,
     }));
 
-    await this.storage.upsertFeedback(feedback);
+    await this.storage.upsertDiagnostics(diagnostics);
   }
 
   /**
@@ -498,22 +498,22 @@ export class CentralHub {
   async clearValidationErrors(repoId: string): Promise<void> {
     this.ensureInitialized();
 
-    // Clear all validation sources from unified_feedback
-    await this.storage.clearFeedback(repoId, "tsc");
-    await this.storage.clearFeedback(repoId, "eslint");
-    await this.storage.clearFeedback(repoId, "biome");
-    await this.storage.clearFeedback(repoId, "test");
+    // Clear all validation sources from unified_diagnostics
+    await this.storage.clearDiagnostics(repoId, "tsc");
+    await this.storage.clearDiagnostics(repoId, "eslint");
+    await this.storage.clearDiagnostics(repoId, "biome");
+    await this.storage.clearDiagnostics(repoId, "test");
   }
 
   /**
    * Get validation errors with optional filters
-   * Reads from unified_feedback with validation sources
+   * Reads from unified_diagnostics with validation sources
    */
   async getValidationErrors(filter?: ValidationFilter): Promise<ValidationError[]> {
     this.ensureInitialized();
 
-    // Convert ValidationFilter to FeedbackFilter
-    const feedbackFilter: FeedbackFilter = {
+    // Convert ValidationFilter to DiagnosticsFilter
+    const diagnosticsFilter: DiagnosticsFilter = {
       repo_id: filter?.repo_id,
       source: filter?.source ? [filter.source] : ["tsc", "eslint", "biome", "test"],
       severity: filter?.severity ? [filter.severity] : undefined,
@@ -521,20 +521,20 @@ export class CentralHub {
       limit: filter?.limit,
     };
 
-    const feedback = await this.storage.queryFeedback(feedbackFilter);
+    const diagnostics = await this.storage.queryDiagnostics(diagnosticsFilter);
 
     // Convert back to ValidationError format for backward compatibility
-    return feedback.map((f) => ({
-      repo_id: f.repo_id,
-      package_path: "", // Not stored in unified_feedback
-      file: f.file_path || "",
-      line: f.line_number || 0,
-      column: f.column_number || 0,
-      message: f.description,
-      severity: f.severity as "error" | "warning",
-      source: f.source as "tsc" | "eslint" | "biome" | "test",
-      code: f.code,
-      updated_at: f.updated_at,
+    return diagnostics.map((d) => ({
+      repo_id: d.repo_id,
+      package_path: "", // Not stored in unified_diagnostics
+      file: d.file_path || "",
+      line: d.line_number || 0,
+      column: d.column_number || 0,
+      message: d.description,
+      severity: d.severity as "error" | "warning",
+      source: d.source as "tsc" | "eslint" | "biome" | "test",
+      code: d.code,
+      updated_at: d.updated_at,
     }));
   }
 
@@ -546,24 +546,23 @@ export class CentralHub {
   ): Promise<ValidationSummary[]> {
     this.ensureInitialized();
 
-    // Use feedback summary with validation sources filter
+    // Use diagnostics summary with validation sources filter
     const groupByMap: Record<
       "repo" | "file" | "source" | "severity",
       "repo" | "source" | "severity" | "category"
     > = {
       repo: "repo",
-      file: "category", // Can't group by file in feedback summary, use category
+      file: "category", // Can't group by file in diagnostics summary, use category
       source: "source",
       severity: "severity",
     };
 
-    const feedbackSummary = await this.storage.getFeedbackSummaryFiltered(groupByMap[groupBy], [
-      "tsc",
-      "eslint",
-      "test",
-    ]);
+    const diagnosticsSummary = await this.storage.getDiagnosticsSummaryFiltered(
+      groupByMap[groupBy],
+      ["tsc", "eslint", "test"]
+    );
 
-    return feedbackSummary.map((s) => ({
+    return diagnosticsSummary.map((s) => ({
       group_key: s.group_key,
       error_count: s.error_count + s.critical_count,
       warning_count: s.warning_count,
@@ -581,7 +580,12 @@ export class CentralHub {
   }> {
     this.ensureInitialized();
 
-    const counts = await this.storage.getFeedbackCountsFiltered(["tsc", "eslint", "biome", "test"]);
+    const counts = await this.storage.getDiagnosticsCountsFiltered([
+      "tsc",
+      "eslint",
+      "biome",
+      "test",
+    ]);
 
     return {
       errors: counts.critical + counts.error,
@@ -595,7 +599,7 @@ export class CentralHub {
    */
   private sourceToCategory(
     source: "tsc" | "eslint" | "biome" | "test" | "coverage"
-  ): FeedbackCategory {
+  ): DiagnosticsCategory {
     switch (source) {
       case "tsc":
         return "compilation";
@@ -618,53 +622,53 @@ export class CentralHub {
     return `${firstLine.slice(0, 77)}...`;
   }
 
-  // ================== Unified Feedback APIs ==================
+  // ================== Unified Diagnostics APIs ==================
 
   /**
-   * Push unified feedback to the hub
-   * Can be used for any feedback type: validation, CI, issues, PR reviews
+   * Push unified diagnostics to the hub
+   * Can be used for any diagnostics type: validation, CI, issues, PR reviews
    */
-  async pushFeedback(feedback: UnifiedFeedback[]): Promise<void> {
+  async pushDiagnostics(diagnostics: UnifiedDiagnostics[]): Promise<void> {
     this.ensureInitialized();
 
-    await this.storage.upsertFeedback(feedback);
+    await this.storage.upsertDiagnostics(diagnostics);
   }
 
   /**
-   * Clear feedback with optional filters
+   * Clear diagnostics with optional filters
    * @param repoId - Filter by repository
    * @param source - Filter by source type
    */
-  async clearFeedback(repoId?: string, source?: FeedbackSource): Promise<void> {
+  async clearDiagnostics(repoId?: string, source?: DiagnosticsSource): Promise<void> {
     this.ensureInitialized();
 
-    await this.storage.clearFeedback(repoId, source);
+    await this.storage.clearDiagnostics(repoId, source);
   }
 
   /**
-   * Get feedback with optional filters
+   * Get diagnostics with optional filters
    */
-  async getFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
+  async getDiagnostics(filter?: DiagnosticsFilter): Promise<UnifiedDiagnostics[]> {
     this.ensureInitialized();
 
-    return this.storage.queryFeedback(filter);
+    return this.storage.queryDiagnostics(filter);
   }
 
   /**
-   * Get feedback summary grouped by specified field
+   * Get diagnostics summary grouped by specified field
    */
-  async getFeedbackSummary(
+  async getDiagnosticsSummary(
     groupBy: "repo" | "source" | "severity" | "category"
-  ): Promise<FeedbackSummary[]> {
+  ): Promise<DiagnosticsSummary[]> {
     this.ensureInitialized();
 
-    return this.storage.getFeedbackSummary(groupBy);
+    return this.storage.getDiagnosticsSummary(groupBy);
   }
 
   /**
-   * Get feedback counts by severity
+   * Get diagnostics counts by severity
    */
-  async getFeedbackCounts(): Promise<{
+  async getDiagnosticsCounts(): Promise<{
     critical: number;
     error: number;
     warning: number;
@@ -674,16 +678,16 @@ export class CentralHub {
   }> {
     this.ensureInitialized();
 
-    return this.storage.getFeedbackCounts();
+    return this.storage.getDiagnosticsCounts();
   }
 
   /**
-   * Mark feedback as resolved
+   * Mark diagnostics as resolved
    */
-  async resolveFeedback(feedbackIds: string[]): Promise<void> {
+  async resolveDiagnostics(diagnosticIds: string[]): Promise<void> {
     this.ensureInitialized();
 
-    await this.storage.resolveFeedback(feedbackIds);
+    await this.storage.resolveDiagnostics(diagnosticIds);
   }
 
   // ================== Affected Analysis ==================

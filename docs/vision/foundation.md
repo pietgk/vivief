@@ -2,6 +2,8 @@
 
 > A unified development workflow where humans and LLMs collaborate through queryable state, deterministic effects, and adaptive change handling.
 
+**Quick Reference**: For terminology and glossary, see [concepts.md](./concepts.md).
+
 ---
 
 ## 1. The Problem We're Solving
@@ -461,7 +463,7 @@ A key insight: **turn human intent into machine-enforced guarantees**.
 | **Lint Rules** | The "how" - executable guarantee | `no-default-export` rule blocks violations |
 
 **Why linters matter for agents**:
-- Agents use lint feedback to **self-heal** - iterate until clean
+- Agents use lint diagnostics to **self-heal** - iterate until clean
 - "Lint green" becomes the definition of "done"
 - Rules encode architecture, boundaries, conventions
 
@@ -575,6 +577,8 @@ LLM capabilities change rapidly. Our system must:
 ---
 
 ## 12. Glossary
+
+> See also [concepts.md](./concepts.md) for the quick-reference glossary with deprecated terms.
 
 | Term | Definition |
 |------|------------|

@@ -192,11 +192,11 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
-  // ================== Unified Feedback Tools ==================
+  // ================== Unified Diagnostics Tools ==================
   {
-    name: "get_all_feedback",
+    name: "get_all_diagnostics",
     description:
-      "Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Filter by source, severity, category, and more. Use this to answer 'What do I need to fix?' across all feedback types. Only available in hub mode.",
+      "Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Filter by source, severity, category, and more. Use this to answer 'What do I need to fix?' across all diagnostics types. Only available in hub mode.",
     inputSchema: {
       type: "object",
       properties: {
@@ -210,7 +210,7 @@ export const MCP_TOOLS: MCPTool[] = [
             type: "string",
             enum: ["tsc", "eslint", "test", "ci-check", "github-issue", "pr-review"],
           },
-          description: "Filter by feedback sources (validation, CI, issues, reviews)",
+          description: "Filter by diagnostics sources (validation, CI, issues, reviews)",
         },
         severity: {
           type: "array",
@@ -234,7 +234,7 @@ export const MCP_TOOLS: MCPTool[] = [
               "code-review",
             ],
           },
-          description: "Filter by feedback categories",
+          description: "Filter by diagnostics categories",
         },
         file_path: {
           type: "string",
@@ -246,32 +246,32 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         limit: {
           type: "number",
-          description: "Maximum number of feedback items to return",
+          description: "Maximum number of diagnostics items to return",
         },
       },
       required: [],
     },
   },
   {
-    name: "get_feedback_summary",
+    name: "get_diagnostics_summary",
     description:
-      "Get a summary of all feedback grouped by source, severity, category, or repository. Provides an overview of what needs attention. Only available in hub mode.",
+      "Get a summary of all diagnostics grouped by source, severity, category, or repository. Provides an overview of what needs attention. Only available in hub mode.",
     inputSchema: {
       type: "object",
       properties: {
         groupBy: {
           type: "string",
           enum: ["repo", "source", "severity", "category"],
-          description: "How to group the feedback counts",
+          description: "How to group the diagnostics counts",
         },
       },
       required: ["groupBy"],
     },
   },
   {
-    name: "get_feedback_counts",
+    name: "get_diagnostics_counts",
     description:
-      "Get total counts of feedback by severity (critical, error, warning, suggestion, note). Only available in hub mode.",
+      "Get total counts of diagnostics by severity (critical, error, warning, suggestion, note). Only available in hub mode.",
     inputSchema: {
       type: "object",
       properties: {},

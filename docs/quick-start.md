@@ -48,12 +48,31 @@ pnpm --filter @pietgk/devac-cli link --global
 
 ## Basic Usage
 
-### 1. Analyze a Package
+### 1. Check Status
+
+After installation, verify DevAC is working and check your current context:
 
 ```bash
 # Navigate to your project
 cd /path/to/your/project
 
+# Check status (also works with just `devac` with no arguments)
+devac status
+
+# Or simply:
+devac
+```
+
+**Output:**
+```
+my-project  errors:0 lint:0 tests:- coverage:-  next:analyze
+```
+
+> **Tip:** Running `devac` with no arguments shows the status one-liner by default.
+
+### 2. Analyze a Package
+
+```bash
 # Run initial analysis
 devac analyze
 
@@ -71,7 +90,7 @@ devac analyze --package ./packages/auth
   Seeds written to: .devac/seed/
 ```
 
-### 2. Query Your Code
+### 3. Query Your Code
 
 ```bash
 # Find all exported functions
@@ -81,7 +100,7 @@ devac query "SELECT name, file_path FROM nodes WHERE kind='function' AND is_expo
 devac query "SELECT source_file_path, imported_symbol FROM external_refs WHERE module_specifier LIKE '%react%'"
 ```
 
-### 3. Watch for Changes
+### 4. Watch for Changes
 
 ```bash
 # Start watch mode - seeds update automatically on file save
@@ -118,13 +137,18 @@ your-project/
 
 | Command | Description |
 |---------|-------------|
+| `devac` | Show status one-liner (default action) |
+| `devac status` | Show status (supports `--format brief/full/json`) |
 | `devac analyze` | Parse and generate seeds |
 | `devac analyze --if-changed` | Only re-analyze changed files |
 | `devac analyze --force` | Force full re-analysis |
 | `devac query "<sql>"` | Run DuckDB SQL query |
 | `devac watch` | Watch for file changes |
+| `devac diagnostics` | Query all diagnostics from hub |
 | `devac verify` | Check seed integrity |
 | `devac clean` | Remove all seeds |
+
+> **Tip:** Use `devac ws` as a shorthand for `devac workspace` commands (e.g., `devac ws status`).
 
 ## Multi-Repository Setup
 
@@ -208,11 +232,15 @@ devac hub list
 
 | Task | Command | Run From |
 |------|---------|----------|
+| Check status | `devac` or `devac status` | Anywhere |
 | Analyze single repo | `devac analyze` | Inside repo |
 | Watch single repo | `devac watch` | Inside repo |
-| Check workspace status | `devac workspace status` | Parent directory |
-| Watch workspace (seeds→hub) | `devac workspace watch` | Parent directory |
+| Check workspace status | `devac ws status` | Parent directory |
+| Watch workspace (seeds→hub) | `devac ws watch` | Parent directory |
 | Query across repos | `devac hub query "..."` | Anywhere |
+| View diagnostics | `devac diagnostics` | Anywhere |
+
+> **Note:** `devac ws` is a shorthand for `devac workspace`.
 
 ## Programmatic Usage
 

@@ -9,12 +9,12 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   type CentralHub,
+  type DiagnosticsFilter,
+  type DiagnosticsSummary,
   DuckDBPool,
-  type FeedbackFilter,
-  type FeedbackSummary,
   type SeedReader,
   type SymbolAffectedAnalyzer,
-  type UnifiedFeedback,
+  type UnifiedDiagnostics,
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
@@ -96,20 +96,24 @@ export interface DataProvider {
   ): Promise<ValidationSummary[]>;
 
   /** Get validation error counts (hub mode only) */
-  getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }>;
+  getValidationCounts(): Promise<{
+    errors: number;
+    warnings: number;
+    total: number;
+  }>;
 
-  // ================== Unified Feedback Methods ==================
+  // ================== Unified Diagnostics Methods ==================
 
-  /** Get all feedback (unified view, hub mode only) */
-  getAllFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]>;
+  /** Get all diagnostics (unified view, hub mode only) */
+  getAllDiagnostics(filter?: DiagnosticsFilter): Promise<UnifiedDiagnostics[]>;
 
-  /** Get feedback summary (hub mode only) */
-  getFeedbackSummary(
+  /** Get diagnostics summary (hub mode only) */
+  getDiagnosticsSummary(
     groupBy: "repo" | "source" | "severity" | "category"
-  ): Promise<FeedbackSummary[]>;
+  ): Promise<DiagnosticsSummary[]>;
 
-  /** Get feedback counts by severity (hub mode only) */
-  getFeedbackCounts(): Promise<{
+  /** Get diagnostics counts by severity (hub mode only) */
+  getDiagnosticsCounts(): Promise<{
     critical: number;
     error: number;
     warning: number;
@@ -295,21 +299,25 @@ export class PackageDataProvider implements DataProvider {
     throw new Error("get_validation_summary is only available in hub mode");
   }
 
-  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+  async getValidationCounts(): Promise<{
+    errors: number;
+    warnings: number;
+    total: number;
+  }> {
     throw new Error("get_validation_counts is only available in hub mode");
   }
 
-  async getAllFeedback(_filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
-    throw new Error("get_all_feedback is only available in hub mode");
+  async getAllDiagnostics(_filter?: DiagnosticsFilter): Promise<UnifiedDiagnostics[]> {
+    throw new Error("get_all_diagnostics is only available in hub mode");
   }
 
-  async getFeedbackSummary(
+  async getDiagnosticsSummary(
     _groupBy: "repo" | "source" | "severity" | "category"
-  ): Promise<FeedbackSummary[]> {
-    throw new Error("get_feedback_summary is only available in hub mode");
+  ): Promise<DiagnosticsSummary[]> {
+    throw new Error("get_diagnostics_summary is only available in hub mode");
   }
 
-  async getFeedbackCounts(): Promise<{
+  async getDiagnosticsCounts(): Promise<{
     critical: number;
     error: number;
     warning: number;
@@ -317,7 +325,7 @@ export class PackageDataProvider implements DataProvider {
     note: number;
     total: number;
   }> {
-    throw new Error("get_feedback_counts is only available in hub mode");
+    throw new Error("get_diagnostics_counts is only available in hub mode");
   }
 }
 
@@ -572,23 +580,27 @@ export class HubDataProvider implements DataProvider {
     return await this.hub.getValidationSummary(groupBy);
   }
 
-  async getValidationCounts(): Promise<{ errors: number; warnings: number; total: number }> {
+  async getValidationCounts(): Promise<{
+    errors: number;
+    warnings: number;
+    total: number;
+  }> {
     return await this.hub.getValidationCounts();
   }
 
-  // ================== Unified Feedback Methods ==================
+  // ================== Unified Diagnostics Methods ==================
 
-  async getAllFeedback(filter?: FeedbackFilter): Promise<UnifiedFeedback[]> {
-    return await this.hub.getFeedback(filter);
+  async getAllDiagnostics(filter?: DiagnosticsFilter): Promise<UnifiedDiagnostics[]> {
+    return await this.hub.getDiagnostics(filter);
   }
 
-  async getFeedbackSummary(
+  async getDiagnosticsSummary(
     groupBy: "repo" | "source" | "severity" | "category"
-  ): Promise<FeedbackSummary[]> {
-    return await this.hub.getFeedbackSummary(groupBy);
+  ): Promise<DiagnosticsSummary[]> {
+    return await this.hub.getDiagnosticsSummary(groupBy);
   }
 
-  async getFeedbackCounts(): Promise<{
+  async getDiagnosticsCounts(): Promise<{
     critical: number;
     error: number;
     warning: number;
@@ -596,7 +608,7 @@ export class HubDataProvider implements DataProvider {
     note: number;
     total: number;
   }> {
-    return await this.hub.getFeedbackCounts();
+    return await this.hub.getDiagnosticsCounts();
   }
 }
 

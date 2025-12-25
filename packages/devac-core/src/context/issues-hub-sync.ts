@@ -1,19 +1,23 @@
 /**
  * Issues Hub Sync Module
  *
- * Syncs GitHub issues to the Hub's unified_feedback table.
+ * Syncs GitHub issues to the Hub's unified_diagnostics table.
  * This allows LLMs to query issues alongside validation errors and CI failures.
  */
 
 import type { CentralHub } from "../hub/central-hub.js";
-import type { FeedbackCategory, FeedbackSeverity, UnifiedFeedback } from "../hub/hub-storage.js";
+import type {
+  DiagnosticsCategory,
+  DiagnosticsSeverity,
+  UnifiedDiagnostics,
+} from "../hub/hub-storage.js";
 import type { GitHubIssue, IssuesResult, RepoIssues } from "./issues.js";
 
 /**
  * Options for syncing issues to hub
  */
 export interface IssueSyncOptions {
-  /** Clear existing issue feedback before syncing (default: true) */
+  /** Clear existing issue diagnostics before syncing (default: true) */
   clearExisting?: boolean;
   /** Only sync issues with specific labels */
   filterLabels?: string[];
@@ -23,7 +27,7 @@ export interface IssueSyncOptions {
  * Result of syncing issues to hub
  */
 export interface IssueSyncResult {
-  /** Number of feedback items pushed */
+  /** Number of diagnostics items pushed */
   pushed: number;
   /** Number of repos processed */
   reposProcessed: number;
@@ -41,7 +45,7 @@ export interface IssueSyncResult {
  * - `suggestion` or `enhancement` → suggestion
  * - Default → note
  */
-function labelToSeverity(labels: Array<{ name: string }>): FeedbackSeverity {
+function labelToSeverity(labels: Array<{ name: string }>): DiagnosticsSeverity {
   const labelNames = labels.map((l) => l.name.toLowerCase());
 
   if (labelNames.includes("critical")) {
@@ -66,7 +70,7 @@ function labelToSeverity(labels: Array<{ name: string }>): FeedbackSeverity {
  * - `feedback` label → feedback category
  * - Default → task
  */
-function labelToCategory(labels: Array<{ name: string }>): FeedbackCategory {
+function labelToCategory(labels: Array<{ name: string }>): DiagnosticsCategory {
   const labelNames = labels.map((l) => l.name.toLowerCase());
 
   if (labelNames.includes("feedback")) {
@@ -77,15 +81,15 @@ function labelToCategory(labels: Array<{ name: string }>): FeedbackCategory {
 }
 
 /**
- * Convert a GitHub issue to UnifiedFeedback
+ * Convert a GitHub issue to UnifiedDiagnostics
  */
-function issueToFeedback(issue: GitHubIssue, repoId: string): UnifiedFeedback {
+function issueToDiagnostics(issue: GitHubIssue, repoId: string): UnifiedDiagnostics {
   const now = new Date().toISOString();
   const severity = labelToSeverity(issue.labels);
   const category = labelToCategory(issue.labels);
 
   return {
-    feedback_id: `issue-${repoId}-${issue.number}`,
+    diagnostic_id: `issue-${repoId}-${issue.number}`,
     repo_id: repoId,
     source: "github-issue",
     file_path: null,
@@ -140,8 +144,8 @@ export async function syncIssuesToHub(
     return result;
   }
 
-  // Collect all feedback items
-  const allFeedback: UnifiedFeedback[] = [];
+  // Collect all diagnostics items
+  const allDiagnostics: UnifiedDiagnostics[] = [];
 
   for (const repoIssues of issuesResult.repoIssues) {
     result.reposProcessed++;
@@ -163,26 +167,26 @@ export async function syncIssuesToHub(
         }
       }
 
-      allFeedback.push(issueToFeedback(issue, repoId));
+      allDiagnostics.push(issueToDiagnostics(issue, repoId));
     }
   }
 
-  // Clear existing issue feedback if requested
+  // Clear existing issue diagnostics if requested
   if (clearExisting) {
     try {
-      await hub.clearFeedback(undefined, "github-issue");
+      await hub.clearDiagnostics(undefined, "github-issue");
     } catch (error) {
-      result.errors.push(`Failed to clear existing issue feedback: ${error}`);
+      result.errors.push(`Failed to clear existing issue diagnostics: ${error}`);
     }
   }
 
-  // Push all feedback
-  if (allFeedback.length > 0) {
+  // Push all diagnostics
+  if (allDiagnostics.length > 0) {
     try {
-      await hub.pushFeedback(allFeedback);
-      result.pushed = allFeedback.length;
+      await hub.pushDiagnostics(allDiagnostics);
+      result.pushed = allDiagnostics.length;
     } catch (error) {
-      result.errors.push(`Failed to push issue feedback: ${error}`);
+      result.errors.push(`Failed to push issue diagnostics: ${error}`);
     }
   }
 

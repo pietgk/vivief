@@ -36,21 +36,23 @@ This pattern models everything as immutable effects flowing through handlers:
 
 ### Key Concepts Established
 
-1. **Three Pipelines**: Vision→View (human), Question→Answer (collaborative), Query→Data (system)
+1. **Three Pillars**: Infra (DevAC Health), Validators (Diagnostics), Extractors (Seeds). See [concepts.md](../vision/concepts.md).
 
-2. **Effect Taxonomy**: Data Effects, Do Effects, Flow Effects, Group Effects
+2. **Three Pipelines**: Vision→View (human), Question→Answer (collaborative), Query→Data (system)
 
-3. **Seeds**: Queryable extractions from sources of truth (DuckDB/Parquet)
+3. **Effect Taxonomy**: Data Effects, Do Effects, Flow Effects, Group Effects
 
-4. **Hub**: Federation layer for cross-repo queries
+4. **Seeds**: Queryable extractions from sources of truth (DuckDB/Parquet)
 
-5. **Two Worlds**: Deterministic (systems) vs Non-deterministic (humans/LLMs)
+5. **Hub**: Federation layer for cross-repo queries
 
-6. **Division of Labor**: Clear assignment of tasks to systems, LLMs, and humans
+6. **Two Worlds**: Deterministic (systems) vs Non-deterministic (humans/LLMs)
 
-7. **Rules**: Pattern matchers that aggregate low-level effects into high-level effects
+7. **Division of Labor**: Clear assignment of tasks to systems, LLMs, and humans
 
-8. **Adaptability**: Design for LLM capabilities to improve over time
+8. **Rules**: Pattern matchers that aggregate low-level effects into high-level effects
+
+9. **Adaptability**: Design for LLM capabilities to improve over time
 
 ### Document Structure
 
@@ -84,6 +86,7 @@ This separation ensures the conceptual foundation remains stable while implement
 
 ## References
 
+- [DevAC Concepts](../vision/concepts.md) - Quick reference for terminology and Three Pillars
 - [Conceptual Foundation Document](../vision/foundation.md)
 - [VVE System v2.0](../archive/foundation-v2.md) - Effect taxonomy source
 - [Linters as Rules](mindler/packages/architecture/specs/335-linters-as-rules.md) - Executable specs concept

@@ -9,8 +9,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createCentralHub } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { hubDiagnosticsCommand } from "./hub-diagnostics.js";
 import { hubErrorsCommand } from "./hub-errors.js";
-import { hubFeedbackCommand } from "./hub-feedback.js";
 import { hubList } from "./hub-list.js";
 import { hubRefresh } from "./hub-refresh.js";
 import { hubRegister } from "./hub-register.js";
@@ -228,13 +228,13 @@ export function registerHubCommand(program: Command): void {
   // hub sync
   hub
     .command("sync")
-    .description("Sync external feedback to the hub")
+    .description("Sync external diagnostics to the hub")
     .option("--ci", "Sync CI status")
     .option("--issues", "Sync GitHub issues")
     .option("--reviews", "Sync PR reviews")
     .option("--failing-only", "Only sync failing CI checks")
     .option("--pending-only", "Only sync pending reviews")
-    .option("--clear", "Clear existing feedback before syncing")
+    .option("--clear", "Clear existing diagnostics before syncing")
     .action(async (options) => {
       const result = await hubSyncCommand({
         cwd: process.cwd(),
@@ -282,10 +282,11 @@ export function registerHubCommand(program: Command): void {
       }
     });
 
-  // hub feedback
+  // hub diagnostics (legacy alias: feedback)
   hub
-    .command("feedback")
-    .description("Query unified feedback from the hub")
+    .command("diagnostics")
+    .alias("feedback")
+    .description("Query unified diagnostics from the hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--repo <id>", "Filter by repository")
     .option("--source <source>", "Filter by source")
@@ -297,7 +298,7 @@ export function registerHubCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const result = await hubFeedbackCommand({
+      const result = await hubDiagnosticsCommand({
         hubDir: options.hubDir,
         repoId: options.repo,
         source: options.source,
@@ -318,14 +319,14 @@ export function registerHubCommand(program: Command): void {
   // hub summary
   hub
     .command("summary <type>")
-    .description("Get summary/counts (validation, feedback, counts)")
+    .description("Get summary/counts (validation, diagnostics, counts)")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--group-by <field>", "Group by field")
     .option("--json", "Output as JSON")
     .action(async (type, options) => {
       const result = await hubSummaryCommand({
         hubDir: options.hubDir,
-        type: type as "validation" | "feedback" | "counts",
+        type: type as "validation" | "diagnostics" | "counts",
         groupBy: options.groupBy,
         json: options.json,
       });

@@ -1,19 +1,19 @@
 /**
  * Reviews Hub Sync Module
  *
- * Syncs GitHub PR review comments to the Hub's unified_feedback table.
+ * Syncs GitHub PR review comments to the Hub's unified_diagnostics table.
  * This allows LLMs to query PR reviews alongside validation errors, CI failures, and issues.
  */
 
 import type { CentralHub } from "../hub/central-hub.js";
-import type { FeedbackSeverity, UnifiedFeedback } from "../hub/hub-storage.js";
+import type { DiagnosticsSeverity, UnifiedDiagnostics } from "../hub/hub-storage.js";
 import type { RepoReviews, Review, ReviewComment, ReviewsResult } from "./reviews.js";
 
 /**
  * Options for syncing reviews to hub
  */
 export interface ReviewSyncOptions {
-  /** Clear existing review feedback before syncing (default: true) */
+  /** Clear existing review diagnostics before syncing (default: true) */
   clearExisting?: boolean;
   /** Only sync reviews with changes_requested state (default: false) */
   changesRequestedOnly?: boolean;
@@ -23,7 +23,7 @@ export interface ReviewSyncOptions {
  * Result of syncing reviews to hub
  */
 export interface ReviewSyncResult {
-  /** Number of feedback items pushed */
+  /** Number of diagnostics items pushed */
   pushed: number;
   /** Number of repos processed */
   reposProcessed: number;
@@ -40,7 +40,7 @@ export interface ReviewSyncResult {
  * - APPROVED → note (no action needed, but tracked)
  * - DISMISSED → note
  */
-function reviewStateToSeverity(state: Review["state"]): FeedbackSeverity {
+function reviewStateToSeverity(state: Review["state"]): DiagnosticsSeverity {
   switch (state) {
     case "CHANGES_REQUESTED":
       return "warning";
@@ -58,15 +58,15 @@ function reviewStateToSeverity(state: Review["state"]): FeedbackSeverity {
 }
 
 /**
- * Convert a PR review to UnifiedFeedback
+ * Convert a PR review to UnifiedDiagnostics
  */
-function reviewToFeedback(review: Review, repoId: string, prNumber: number): UnifiedFeedback {
+function reviewToDiagnostics(review: Review, repoId: string, prNumber: number): UnifiedDiagnostics {
   const now = new Date().toISOString();
   const severity = reviewStateToSeverity(review.state);
 
   // Reviews don't have file locations - they're PR-level
   return {
-    feedback_id: `review-${repoId}-${prNumber}-${review.id}`,
+    diagnostic_id: `review-${repoId}-${prNumber}-${review.id}`,
     repo_id: repoId,
     source: "pr-review",
     file_path: null,
@@ -90,20 +90,20 @@ function reviewToFeedback(review: Review, repoId: string, prNumber: number): Uni
 }
 
 /**
- * Convert a review comment to UnifiedFeedback
+ * Convert a review comment to UnifiedDiagnostics
  */
-function commentToFeedback(
+function commentToDiagnostics(
   comment: ReviewComment,
   repoId: string,
   prNumber: number
-): UnifiedFeedback {
+): UnifiedDiagnostics {
   const now = new Date().toISOString();
 
   // Comments are suggestions by default
-  const severity: FeedbackSeverity = "suggestion";
+  const severity: DiagnosticsSeverity = "suggestion";
 
   return {
-    feedback_id: `review-comment-${repoId}-${prNumber}-${comment.id}`,
+    diagnostic_id: `review-comment-${repoId}-${prNumber}-${comment.id}`,
     repo_id: repoId,
     source: "pr-review",
     file_path: comment.path,
@@ -158,8 +158,8 @@ export async function syncReviewsToHub(
     return result;
   }
 
-  // Collect all feedback items
-  const allFeedback: UnifiedFeedback[] = [];
+  // Collect all diagnostics items
+  const allDiagnostics: UnifiedDiagnostics[] = [];
 
   for (const repoReviews of reviewsResult.repoReviews) {
     result.reposProcessed++;
@@ -184,31 +184,31 @@ export async function syncReviewsToHub(
         continue;
       }
 
-      allFeedback.push(reviewToFeedback(review, repoId, prNumber));
+      allDiagnostics.push(reviewToDiagnostics(review, repoId, prNumber));
     }
 
     // Convert review comments (always include if available)
     for (const comment of repoReviews.comments) {
-      allFeedback.push(commentToFeedback(comment, repoId, prNumber));
+      allDiagnostics.push(commentToDiagnostics(comment, repoId, prNumber));
     }
   }
 
-  // Clear existing review feedback if requested
+  // Clear existing review diagnostics if requested
   if (clearExisting) {
     try {
-      await hub.clearFeedback(undefined, "pr-review");
+      await hub.clearDiagnostics(undefined, "pr-review");
     } catch (error) {
-      result.errors.push(`Failed to clear existing review feedback: ${error}`);
+      result.errors.push(`Failed to clear existing review diagnostics: ${error}`);
     }
   }
 
-  // Push all feedback
-  if (allFeedback.length > 0) {
+  // Push all diagnostics
+  if (allDiagnostics.length > 0) {
     try {
-      await hub.pushFeedback(allFeedback);
-      result.pushed = allFeedback.length;
+      await hub.pushDiagnostics(allDiagnostics);
+      result.pushed = allDiagnostics.length;
     } catch (error) {
-      result.errors.push(`Failed to push review feedback: ${error}`);
+      result.errors.push(`Failed to push review diagnostics: ${error}`);
     }
   }
 

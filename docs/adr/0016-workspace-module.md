@@ -46,11 +46,13 @@ Implement a **Workspace Module** with a two-tier watching architecture:
 
 The workspace watcher monitors `.devac/seed/**/*.parquet` files, not source files.
 
+**Context:** In DevAC's Three Pillars model (see [concepts.md](../vision/concepts.md)), **Extractors** produce **Seeds** from source files. The workspace watcher operates at the seed level, not the source level.
+
 **Rationale:**
-- Per-repo watchers already handle source→seed transformation
+- Per-repo watchers already handle source→seed transformation (Extractor responsibility)
 - Workspace watch only needs to know when seeds are updated
 - Avoids duplicating file watching logic across packages
-- Clear separation of concerns
+- Clear separation of concerns between Extractors and Infra
 
 ### 2. State Persistence
 
@@ -146,6 +148,7 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 
 ## References
 
+- [DevAC Concepts](../vision/concepts.md) - Three Pillars, Extractors, Seeds terminology
 - [Foundation Document](../vision/foundation.md) - Workspace topology concepts (Section 2.3-2.4)
 - [Foundation Visual](../vision/foundation-visual.md) - Component diagram (Section 6.4)
 - [Foundation Implementation Guide](../vision/foundation-impl-guide.md) - Implementation status

@@ -2,6 +2,101 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+## Major concepts
+
+use the llm to make as much deterministic as possible
+
+ask the llm if the answer to a question can be determined in a deterministic way by combining queries over the extracted data from the code base and content with rules and logic to determine the needed answer.
+if the answer can be determined in a deterministic way then create the needed code, docs, tests
+
+if the answer can not be determined in a deterministic way then create the a prompt to make sure you are in sync with the intent of the question.
+
+devac infra supports running validators and analysers.
+
+devac infra has watchers that watch code bases and content for changes and trigger analysers and validators.
+
+devac validators deliver queryable validation-status about code bases and content.
+
+devac has validators with validation-steps each with their infra of tools that need to installed and configured.
+
+devac has analysers that analyse code in the broadest sense into seeds that can be used to query the code.
+
+lets try to find a way to present the status of devac in a way the humans and llm are in control.
+
+so lets define some scenarios and determine what would be a nice robust flow.
+
+from the major concepts above we can define 3 layer of interrest for the developer.
+- infra: what is the status of the devac infra
+- validation: what is the status of the code base we are working on (from the validators)
+- analytics: can you tell me how specific parts of the system work (using all the information we have in the hub as a starting point)
+
+so lets start thinking from the middle of the flow and presume nothing but have all options on what happened to trigger that wee change a file in the code base.
+- we can multiple paths that gave us a reason to make this change.
+- the effects of this change can go from very local to very broad.
+
+- when we make a change to a file we can determine the context by doing devac status.
+this should tell us in a few keywords what the status is in a form we can instantly recognise what is going on and what the next options are. the below list is way to big and detailed but it gives an idea of a devac status --full status report:
+  - what is the current status of the code base
+  - do we have the proper devac (watch) context active
+  - what issues (relavant to what we are doing) are open
+    - do we have multiple worktree active for the same issue
+    - what is the hub status (is there an mcp server active, are we watvhing github event)
+  - what is the validation status
+    - what type errors are present
+    - what lints are failing
+    - what tests are failing
+    - what code coverage is low
+    - what ci/cd pipelines are failing
+  - what is the workflow status
+    - what prs are open
+    - what reviews are pending
+  - what is needed to fully complete the change
+    - what code needs updating
+    - what tests need updating
+    - what docs need updating
+    - what adr's need updating
+    - what changelogs need updating
+  - what commits need checking (not shure what this is but maybe a good idea)
+  - what other things are pending
+
+- so how can we compact this is a few keywords that make it instantly clear what is going on and what the next steps are (below is not the definite spec just an inital starting context to get the idea)?
+  devac status (default is the shortest form of status) could give something like:
+    devac status
+    worktree-1234 errors:5,lint:3,tests:1 coverage:low prs:1 next:code,tests
+  
+  devac status --full
+    DevAC Full Status Report:
+    Context:
+      - Worktree: worktree-1234 (issue-5678)
+      - Hub: MCP server active at localhost:5000, watching GitHub events
+    Issues:
+      - Open Issues: 2 (issue-5678, issue-91011)
+      - Worktrees: 1 active for issue-5678
+    Validation:
+      - Type Errors: 5 (file1.ts:10, file2.ts:20)
+      - Lint Failures: 3 (file3.ts:15, file4.ts:25)
+      - Test Failures: 1 (test-suite-1)
+      - Code Coverage: Low in module-x (45%)
+    Workflow:
+      - Open PRs: 1 (#1234)
+      - Pending Reviews: 0
+    Next Steps:
+      - Code Updates: file1.ts, file2.ts
+      - Test Updates: test-suite-1
+      - Doc Updates: README.md
+      - ADR Updates: ADR-0012
+      - Changelog Updates: v1.2.3
+devac status --brief
+    DevAC Brief Status: Context=worktree-1234 | Issues=2 | Validation=Errors(5) | Next=Code, Tests
+
+the above examples need to be based on the real data we have in the vivief repo and the devac-cli tool to make it realistic and usable.
+
+also the combination of triggers that are technically avaialble to trigger the status update need to be determined.
+- watchers
+- claude hooks
+- manual devac status command by llm or human
+- ci/cd pipeline triggers
+
 
 ## open issues detected while testing
 

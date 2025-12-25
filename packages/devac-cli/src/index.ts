@@ -18,12 +18,14 @@ import {
   registerCoverageCommand,
   registerDependentsCommand,
   registerDepsCommand,
+  registerDiagnosticsCommand,
   registerFileSymbolsCommand,
   registerFindSymbolCommand,
   registerHubCommand,
   registerLintCommand,
   registerMcpCommand,
   registerQueryCommand,
+  registerStatusCommand,
   registerTestCommand,
   registerTypecheckCommand,
   registerValidateCommand,
@@ -51,6 +53,7 @@ program
   });
 
 // Register all commands
+registerStatusCommand(program);
 registerAnalyzeCommand(program);
 registerQueryCommand(program);
 registerVerifyCommand(program);
@@ -71,6 +74,25 @@ registerContextCommand(program);
 registerMcpCommand(program);
 registerHubCommand(program);
 registerWorkspaceCommand(program);
+registerDiagnosticsCommand(program);
+
+// Default action: show status one-liner when no command is provided
+program.action(async () => {
+  // If no command provided, show status
+  const { statusCommand } = await import("./commands/status.js");
+  try {
+    const result = await statusCommand({
+      path: process.cwd(),
+      format: "oneline",
+    });
+    if (result.formatted) {
+      console.log(result.formatted);
+    }
+  } catch {
+    // If status fails, show help instead
+    program.help();
+  }
+});
 
 // Parse and run
 program.parse();

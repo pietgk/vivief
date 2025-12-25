@@ -344,7 +344,10 @@ class WorkspaceManagerImpl implements WorkspaceManager {
       }
     }
 
-    return this.workspaceInfo!;
+    if (!this.workspaceInfo) {
+      throw new Error("Workspace not initialized. Call initialize() first.");
+    }
+    return this.workspaceInfo;
   }
 
   formatInfo(): string {

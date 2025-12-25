@@ -1,10 +1,3 @@
-/**
- * Workspace Status Command
- *
- * Shows workspace information including discovered repos,
- * worktrees, and hub status.
- */
-
 import * as path from "node:path";
 import {
   type WorkspaceInfo,
@@ -12,6 +5,14 @@ import {
   createWorkspaceManager,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { contextCICommand, contextIssuesCommand, contextReviewCommand } from "./context.js";
+import { getDefaultHubDir } from "./hub-init.js";
+import { hubList } from "./hub-list.js";
+import { hubRefresh } from "./hub-refresh.js";
+import { hubRegister } from "./hub-register.js";
+import { hubSyncCommand } from "./hub-sync.js";
+import { hubUnregister } from "./hub-unregister.js";
+import { mcpCommand } from "./mcp.js";
 import { workspaceInit } from "./workspace-init.js";
 import { workspaceWatch } from "./workspace-watch.js";
 
@@ -149,11 +150,22 @@ export async function workspaceStatus(
 
 /**
  * Register the workspace command with all subcommands
+ *
+ * This is the unified command that merges:
+ * - Original workspace commands (status, watch, init)
+ * - Hub commands (register, unregister, list, refresh, sync)
+ * - Context commands (ci, issues, review)
+ * - MCP command
  */
 export function registerWorkspaceCommand(program: Command): void {
   const workspace = program
     .command("workspace")
+    .alias("ws")
     .description("Workspace-level operations for multi-repo development");
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Original Workspace Commands
+  // ─────────────────────────────────────────────────────────────────────────
 
   // workspace status
   workspace
@@ -239,6 +251,238 @@ export function registerWorkspaceCommand(program: Command): void {
         }
       } else {
         console.error(`✗ ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Hub Commands (merged from `devac hub`)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // workspace register (was: hub register)
+  workspace
+    .command("register <path>")
+    .description("Register a repository with the hub")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .action(async (repoPath, options) => {
+      const result = await hubRegister({
+        hubDir: options.hubDir,
+        repoPath: path.resolve(repoPath),
+      });
+      console.log(result.message);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workspace unregister (was: hub unregister)
+  workspace
+    .command("unregister <repoId>")
+    .description("Unregister a repository from the hub")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .action(async (repoId, options) => {
+      const result = await hubUnregister({ hubDir: options.hubDir, repoId });
+      console.log(result.message);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workspace list (was: hub list)
+  workspace
+    .command("list")
+    .description("List registered repositories")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--json", "Output as JSON")
+    .option("-v, --verbose", "Verbose output")
+    .action(async (options) => {
+      const result = await hubList({
+        hubDir: options.hubDir,
+        json: options.json,
+        verbose: options.verbose,
+      });
+      if (options.json) {
+        console.log(JSON.stringify(result.repos, null, 2));
+      } else {
+        console.log(result.message);
+        for (const repo of result.repos) {
+          console.log(`  ${repo.repoId}: ${repo.localPath} (${repo.packages} packages)`);
+        }
+      }
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workspace refresh (was: hub refresh)
+  workspace
+    .command("refresh [repoId]")
+    .description("Refresh repository manifests")
+    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--force", "Force regenerate all manifests")
+    .action(async (repoId, options) => {
+      const result = await hubRefresh({
+        hubDir: options.hubDir,
+        repoId,
+        force: options.force,
+      });
+      console.log(result.message);
+      if (result.errors.length > 0) {
+        console.log("Errors:");
+        for (const error of result.errors) {
+          console.log(`  ${error}`);
+        }
+      }
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workspace sync (was: hub sync)
+  workspace
+    .command("sync")
+    .description("Sync external data (CI, issues, reviews) to the hub")
+    .option("--ci", "Sync CI status")
+    .option("--issues", "Sync GitHub issues")
+    .option("--reviews", "Sync PR reviews")
+    .option("--failing-only", "Only sync failing CI checks")
+    .option("--pending-only", "Only sync pending reviews")
+    .option("--clear", "Clear existing data before syncing")
+    .action(async (options) => {
+      const result = await hubSyncCommand({
+        cwd: process.cwd(),
+        ci: options.ci,
+        issues: options.issues,
+        reviews: options.reviews,
+        failingOnly: options.failingOnly,
+        pendingOnly: options.pendingOnly,
+        clearExisting: options.clear,
+      });
+      if (result.success) {
+        if (result.ciSync) console.log(`CI: ${result.ciSync.pushed} items synced`);
+        if (result.issuesSync) console.log(`Issues: ${result.issuesSync.pushed} items synced`);
+        if (result.reviewsSync) console.log(`Reviews: ${result.reviewsSync.pushed} items synced`);
+      } else {
+        console.error(`✗ Sync failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Context Commands (merged from `devac context`)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // workspace ci (was: context ci)
+  workspace
+    .command("ci")
+    .description("Get CI status for repos in context")
+    .option("--json", "Output as JSON")
+    .option("--include-checks", "Include individual check details")
+    .option("--sync-to-hub", "Sync CI status to central Hub")
+    .option("--failing-only", "Only sync failing checks to Hub")
+    .action(async (options) => {
+      const result = await contextCICommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        includeChecks: options.includeChecks,
+        syncToHub: options.syncToHub,
+        failingOnly: options.failingOnly,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+          );
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ CI status failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // workspace issues (was: context issues)
+  workspace
+    .command("issues")
+    .description("Get GitHub issues for repos in context")
+    .option("--json", "Output as JSON")
+    .option("--all", "Include closed issues")
+    .option("-l, --limit <count>", "Maximum issues per repo", "50")
+    .option("--labels <labels...>", "Filter by labels")
+    .option("--sync-to-hub", "Sync issues to central Hub")
+    .action(async (options) => {
+      const result = await contextIssuesCommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        openOnly: !options.all,
+        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+        labels: options.labels,
+        syncToHub: options.syncToHub,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({ result: result.result, syncResult: result.syncResult }, null, 2)
+          );
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ Issues fetch failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // workspace review (was: context review)
+  workspace
+    .command("review")
+    .description("Generate LLM review prompt for changes")
+    .option("--json", "Output as JSON")
+    .option("--focus <area>", "Focus area (security, performance, tests, all)", "all")
+    .option("--base <branch>", "Base branch to diff against", "main")
+    .option("--create-sub-issues", "Create sub-issues for follow-up work")
+    .action(async (options) => {
+      const result = await contextReviewCommand({
+        cwd: process.cwd(),
+        format: options.json ? "json" : "text",
+        focus: options.focus as "security" | "performance" | "tests" | "all",
+        baseBranch: options.base,
+        createSubIssues: options.createSubIssues,
+      });
+
+      if (result.success) {
+        if (options.json) {
+          console.log(JSON.stringify({ prompt: result.prompt, result: result.result }, null, 2));
+        } else {
+          console.log(result.formatted);
+        }
+      } else {
+        console.error(`✗ Review generation failed: ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MCP Command (merged from `devac mcp`)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // workspace mcp (was: devac mcp)
+  workspace
+    .command("mcp")
+    .description("Start MCP server for LLM integration")
+    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-a, --action <action>", "Action (start, stop)", "start")
+    .action(async (options) => {
+      const result = await mcpCommand({
+        packagePath: path.resolve(options.package),
+        action: options.action as "start" | "stop",
+      });
+
+      if (!result.success) {
+        console.error(`✗ MCP server failed: ${result.error}`);
         process.exit(1);
       }
     });

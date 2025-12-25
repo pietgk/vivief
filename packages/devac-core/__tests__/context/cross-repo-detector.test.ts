@@ -10,6 +10,7 @@ import {
   createCrossRepoDetector,
   formatCrossRepoNeed,
 } from "../../src/context/cross-repo-detector.js";
+import type { CrossRepoNeedEvent } from "../../src/context/types.js";
 import type { RepoContext } from "../../src/context/types.js";
 import type { ParsedExternalRef } from "../../src/types/external-refs.js";
 
@@ -268,7 +269,7 @@ describe("CrossRepoDetector", () => {
       const result = detector.analyzeExternalRefs(refs, "/ws/my-app/src/index.ts");
       const need = result.needs[0];
       expect(need).toBeDefined();
-      const formatted = formatCrossRepoNeed(need!);
+      const formatted = formatCrossRepoNeed(need as CrossRepoNeedEvent);
 
       expect(formatted).toContain("💡");
       expect(formatted).toContain("shared");

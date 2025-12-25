@@ -1,13 +1,17 @@
 /**
  * Hub Summary Command Implementation
  *
- * Gets summary/counts of validation errors and feedback from the central hub.
- * Based on MCP get_validation_summary and get_feedback_summary tools.
+ * Gets summary/counts of validation errors and diagnostics from the central hub.
+ * Based on MCP get_validation_summary and get_diagnostics_summary tools.
  */
 
 import * as os from "node:os";
 import * as path from "node:path";
-import { type FeedbackSummary, type ValidationSummary, createCentralHub } from "@pietgk/devac-core";
+import {
+  type DiagnosticsSummary,
+  type ValidationSummary,
+  createCentralHub,
+} from "@pietgk/devac-core";
 import { formatOutput, formatSummary } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
@@ -20,9 +24,9 @@ function getDefaultHubDir(): string {
 export interface HubSummaryCommandOptions {
   /** Hub directory (default: ~/.devac) */
   hubDir?: string;
-  /** Summary type: validation, feedback, or counts */
-  type: "validation" | "feedback" | "counts";
-  /** Group by field (for validation/feedback) */
+  /** Summary type: validation, diagnostics, or counts */
+  type: "validation" | "diagnostics" | "counts";
+  /** Group by field (for validation/diagnostics) */
   groupBy?: "repo" | "file" | "source" | "severity" | "category";
   /** Output as JSON */
   json?: boolean;
@@ -40,12 +44,12 @@ export interface HubSummaryCommandResult {
   timeMs: number;
   /** Validation summary data */
   validationSummary?: ValidationSummary[];
-  /** Feedback summary data */
-  feedbackSummary?: FeedbackSummary[];
+  /** Diagnostics summary data */
+  diagnosticsSummary?: DiagnosticsSummary[];
   /** Counts data */
   counts?: {
     validation?: { errors: number; warnings: number; total: number };
-    feedback?: {
+    diagnostics?: {
       critical: number;
       error: number;
       warning: number;
@@ -91,15 +95,15 @@ export async function hubSummaryCommand(
         }
         output = lines.join("\n");
       }
-    } else if (options.type === "feedback") {
+    } else if (options.type === "diagnostics") {
       const groupBy = (options.groupBy || "source") as "repo" | "source" | "severity" | "category";
-      const summary = await hub.getFeedbackSummary(groupBy);
-      result.feedbackSummary = summary;
+      const summary = await hub.getDiagnosticsSummary(groupBy);
+      result.diagnosticsSummary = summary;
 
       if (options.json) {
         output = formatOutput({ summary }, { json: true });
       } else {
-        const lines = [`Feedback Summary (grouped by ${groupBy}):`];
+        const lines = [`Diagnostics Summary (grouped by ${groupBy}):`];
         lines.push("-".repeat(40));
         for (const item of summary) {
           const details = [];
@@ -115,15 +119,15 @@ export async function hubSummaryCommand(
     } else {
       // counts mode
       const validationCounts = await hub.getValidationCounts();
-      const feedbackCounts = await hub.getFeedbackCounts();
+      const diagnosticsCounts = await hub.getDiagnosticsCounts();
       result.counts = {
         validation: validationCounts,
-        feedback: feedbackCounts,
+        diagnostics: diagnosticsCounts,
       };
 
       if (options.json) {
         output = formatOutput(
-          { validation: validationCounts, feedback: feedbackCounts },
+          { validation: validationCounts, diagnostics: diagnosticsCounts },
           { json: true }
         );
       } else {
@@ -139,22 +143,30 @@ export async function hubSummaryCommand(
             icon: "⚠️",
           },
           {
-            label: "Feedback Critical",
-            count: feedbackCounts.critical,
+            label: "Diagnostics Critical",
+            count: diagnosticsCounts.critical,
             icon: "🔴",
           },
-          { label: "Feedback Errors", count: feedbackCounts.error, icon: "❌" },
           {
-            label: "Feedback Warnings",
-            count: feedbackCounts.warning,
+            label: "Diagnostics Errors",
+            count: diagnosticsCounts.error,
+            icon: "❌",
+          },
+          {
+            label: "Diagnostics Warnings",
+            count: diagnosticsCounts.warning,
             icon: "⚠️",
           },
           {
-            label: "Feedback Suggestions",
-            count: feedbackCounts.suggestion,
+            label: "Diagnostics Suggestions",
+            count: diagnosticsCounts.suggestion,
             icon: "💡",
           },
-          { label: "Feedback Notes", count: feedbackCounts.note, icon: "📝" },
+          {
+            label: "Diagnostics Notes",
+            count: diagnosticsCounts.note,
+            icon: "📝",
+          },
         ];
         output = formatSummary(counts, { json: false });
       }

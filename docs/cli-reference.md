@@ -14,6 +14,189 @@ Options:
   --quiet          Suppress output except errors
 ```
 
+## Default Action
+
+When running `devac` with no arguments, it displays the status command output (one-liner format):
+
+```bash
+devac                    # Equivalent to: devac status --format oneline
+```
+
+## Status Command
+
+### devac status
+
+Show current DevAC status including context, health, diagnostics, and next steps.
+
+```bash
+devac status [options]
+
+Options:
+  --format <format>     Output format: oneline (default), brief, full, json
+
+Formats:
+  oneline      Single line summary (default, also shown when running `devac` with no args)
+  brief        Summary per category
+  full         Detailed breakdown with individual items
+  json         Machine-readable JSON output
+
+Examples:
+  devac                              # One-liner (default action)
+  devac status                       # Same as above
+  devac status --format brief        # Summary view
+  devac status --format full         # Detailed view
+  devac status --format json         # JSON output
+```
+
+**Output (oneline):**
+```
+api-gh123-auth  errors:5 lint:3 tests:ok coverage:45%  pr:open  next:errors
+```
+
+**Output (brief):**
+```
+DevAC Status
+  Context:      api-gh123-auth (issue #123)
+  DevAC Health: watch:inactive  hub:connected  mcp:ready
+  Diagnostics:  errors:5  lint:3  tests:ok  coverage:45%
+  Activity:     pr:#456 open  reviews:0
+  Next:         Fix 5 type errors in src/auth/*
+```
+
+**Output (full):**
+```
+DevAC Full Status Report
+
+CONTEXT
+  Worktree:   api-gh123-auth
+  Issue:      gh:org/api:123 "Add OAuth support"
+  Branch:     feature/oauth
+  Related:    web-gh123-auth (same issue)
+
+DEVAC HEALTH
+  Watch:      Inactive
+  Hub:        Connected (~/.devac/)
+  MCP:        Ready
+
+DIAGNOSTICS
+  Type Errors:    5
+    - src/auth/oauth.ts:45 - Property 'token' missing
+    - src/auth/oauth.ts:67 - Type 'string' not assignable
+    - ... (3 more)
+  Lint Issues:    3
+    - src/auth/oauth.ts:12 - Unexpected 'any'
+  Tests:          OK (45 passed)
+  Coverage:       45% (threshold: 80%)
+
+ACTIVITY
+  Open PRs:       1 (#456 "Add OAuth")
+  Reviews:        0 pending
+  CI:             Passing
+
+NEXT STEPS
+  1. Fix 5 type errors in src/auth/*
+  2. Improve coverage in src/auth/oauth.ts
+  3. Address 3 lint issues
+```
+
+**Status Categories:**
+
+| Category | What It Shows |
+|----------|---------------|
+| Context | Current worktree, issue, branch, related worktrees |
+| DevAC Health | Watch status, hub connection, MCP readiness |
+| Diagnostics | Type errors, lint issues, test results, coverage |
+| Activity | Open PRs, pending reviews, CI status |
+| Next | Suggested next actions based on diagnostics |
+
+## Diagnostics Command
+
+### devac diagnostics
+
+Query all diagnostics from the hub. Provides a unified view of validation results across all registered repositories.
+
+```bash
+devac diagnostics [options]
+
+Options:
+  --repo <id>           Filter by repository ID
+  --source <type>       Filter by source (tsc, eslint, vitest, jest, coverage)
+  --severity <level>    Filter by severity (error, warning, suggestion, note)
+  --file <path>         Filter by file path (partial match)
+  --actionable          Show only actionable items (items that need fixing)
+  --limit <n>           Maximum results (default: 100)
+  --format <format>     Output format: table (default), json, summary
+  --pretty              Human-readable output (alias for --format table)
+
+Examples:
+  devac diagnostics                        # All diagnostics
+  devac diagnostics --source tsc           # Only TypeScript errors
+  devac diagnostics --severity error       # All errors
+  devac diagnostics --actionable           # What needs fixing?
+  devac diagnostics --format summary       # Summary counts only
+  devac diagnostics --format json          # JSON output
+```
+
+**Output (table):**
+```
+┌────────────┬──────────┬────────────────────────────────────────────┐
+│ Severity   │ Source   │ Message                                    │
+├────────────┼──────────┼────────────────────────────────────────────┤
+│ error      │ tsc      │ Property 'token' does not exist on type... │
+│ error      │ tsc      │ Type 'string' is not assignable to type... │
+│ warning    │ eslint   │ Unexpected 'any'. Specify a different...   │
+└────────────┴──────────┴────────────────────────────────────────────┘
+```
+
+**Output (summary):**
+```
+Diagnostics Summary:
+  Errors:     5
+  Warnings:   3
+  Total:      8
+
+By Source:
+  tsc:        5
+  eslint:     3
+```
+
+## Command Aliases
+
+DevAC provides command aliases for improved discoverability and consistency with the Three Pillars model.
+
+### Extractor Aliases
+
+```bash
+devac extract                    # Alias for: devac analyze
+devac extract --package ./pkg    # Alias for: devac analyze --package ./pkg
+devac extract --force            # Alias for: devac analyze --force
+```
+
+### Validator Aliases
+
+```bash
+devac check                      # Alias for: devac validate
+devac check --quick              # Alias for: devac validate --quick
+devac check --full               # Alias for: devac validate --full
+```
+
+### Workspace Alias
+
+The `ws` command is an alias for `workspace`:
+
+```bash
+devac ws status                  # Alias for: devac workspace status
+devac ws watch                   # Alias for: devac workspace watch
+devac ws init                    # Alias for: devac workspace init
+devac ws register                # Alias for: devac workspace register
+devac ws list                    # Alias for: devac workspace list
+devac ws sync                    # Alias for: devac workspace sync
+devac ws ci                      # Alias for: devac workspace ci
+devac ws issues                  # Alias for: devac workspace issues
+devac ws review                  # Alias for: devac workspace review
+devac ws mcp                     # Alias for: devac workspace mcp
+```
+
 ## Package Commands
 
 ### devac analyze
@@ -654,6 +837,187 @@ Examples:
 - `.devac/` directory at workspace root
 - Hub database for federated queries
 - State file for tracking repo discovery
+
+### devac workspace register
+
+Register a repository with the workspace hub. (Alias: `devac ws register`)
+
+```bash
+devac workspace register [path]
+
+Arguments:
+  path               Repository path (default: current directory)
+
+Examples:
+  devac workspace register                   # Register current repo
+  devac workspace register ~/code/repo-api   # Register another repo
+  devac ws register                          # Using alias
+```
+
+### devac workspace unregister
+
+Remove a repository from the workspace hub. (Alias: `devac ws unregister`)
+
+```bash
+devac workspace unregister <name>
+
+Arguments:
+  name               Repository name
+
+Examples:
+  devac workspace unregister repo-api
+  devac ws unregister repo-api               # Using alias
+```
+
+### devac workspace list
+
+List registered repositories in the workspace. (Alias: `devac ws list`)
+
+```bash
+devac workspace list
+
+Examples:
+  devac workspace list
+  devac ws list                              # Using alias
+```
+
+**Output:**
+```
+┌────────────────┬───────────────────────────┬────────────────┐
+│ Name           │ Path                      │ Packages       │
+├────────────────┼───────────────────────────┼────────────────┤
+│ repo-api       │ ~/code/repo-api           │ 4              │
+│ repo-web       │ ~/code/repo-web           │ 2              │
+└────────────────┴───────────────────────────┴────────────────┘
+```
+
+### devac workspace refresh
+
+Rebuild cross-repo edge cache. (Alias: `devac ws refresh`)
+
+```bash
+devac workspace refresh
+
+Examples:
+  devac workspace refresh
+  devac ws refresh                           # Using alias
+```
+
+**Output:**
+```
+Refreshing hub cache...
+  Scanning 3 repositories...
+  Computing cross-repo edges...
+✓ Hub refreshed
+  Cross-repo edges: 234
+  Time: 4.2s
+```
+
+### devac workspace sync
+
+Sync external feedback (CI status, GitHub issues, PR reviews) to the Hub. (Alias: `devac ws sync`)
+
+```bash
+devac workspace sync [options]
+
+Options:
+  --ci                Sync CI status
+  --issues            Sync GitHub issues
+  --reviews           Sync PR reviews
+  --failing-only      Only sync failing CI checks (with --ci)
+  --pending-only      Only sync pending/changes_requested reviews (with --reviews)
+  --open-only         Only sync open issues (with --issues, default: true)
+  --issue-limit <n>   Maximum issues per repo (default: 50)
+  --clear-existing    Clear existing feedback before syncing (default: true)
+
+Examples:
+  devac workspace sync --ci                    # Sync CI status
+  devac workspace sync --issues                # Sync GitHub issues
+  devac workspace sync --reviews               # Sync PR reviews
+  devac workspace sync --ci --issues --reviews # Sync all
+  devac ws sync --ci --failing-only            # Using alias
+```
+
+### devac workspace ci
+
+Check CI status for all PRs in the workspace. (Alias: `devac ws ci`)
+
+```bash
+devac workspace ci [options]
+
+Options:
+  --json              Output as JSON
+  --checks            Include individual check details
+  --sync-to-hub       Sync CI status to the Hub
+  --failing-only      Only sync failing checks (with --sync-to-hub)
+
+Examples:
+  devac workspace ci                     # Show CI status
+  devac workspace ci --checks            # Include check details
+  devac workspace ci --sync-to-hub       # Sync to Hub
+  devac ws ci                            # Using alias
+```
+
+### devac workspace issues
+
+List GitHub issues for all repositories in the workspace. (Alias: `devac ws issues`)
+
+```bash
+devac workspace issues [options]
+
+Options:
+  --json              Output as JSON
+  --open-only         Only show open issues (default: true)
+  --limit <n>         Maximum issues per repo (default: 50)
+  --labels <labels>   Filter by labels (comma-separated)
+  --sync-to-hub       Sync issues to the Hub
+
+Examples:
+  devac workspace issues                  # List issues
+  devac workspace issues --labels bug     # Filter by label
+  devac workspace issues --sync-to-hub    # Sync to Hub
+  devac ws issues                         # Using alias
+```
+
+### devac workspace review
+
+Generate an LLM review prompt for changes in the workspace. (Alias: `devac ws review`)
+
+```bash
+devac workspace review [options]
+
+Options:
+  --json              Output as JSON
+  --focus <area>      Focus area: security, performance, tests, all (default: all)
+  --base <branch>     Base branch to diff against (default: main)
+
+Examples:
+  devac workspace review                 # Review all changes
+  devac workspace review --focus security
+  devac ws review                        # Using alias
+```
+
+### devac workspace mcp
+
+Start the MCP server for AI assistant integration. (Alias: `devac ws mcp`)
+
+```bash
+devac workspace mcp [options]
+
+Options:
+  --package <path>    Package mode: query a single package instead of hub
+
+Examples:
+  devac workspace mcp                    # Start in hub mode (default)
+  devac workspace mcp --package ./pkg    # Start in package mode
+  devac ws mcp                           # Using alias
+```
+
+**MCP Tools Available:**
+- Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
+- Context discovery: `get_context`, `list_repos`
+- Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
+- Unified feedback: `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts`
 
 ## Context Commands
 

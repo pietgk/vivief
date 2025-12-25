@@ -309,7 +309,8 @@ async function checkForChanges(packagePath: string, sourceFiles: string[]): Prom
 export function registerAnalyzeCommand(program: Command): void {
   program
     .command("analyze")
-    .description("Analyze package and generate seed files")
+    .alias("extract")
+    .description("Analyze package and generate seed files (alias: extract)")
     .option("-p, --package <path>", "Package path to analyze", process.cwd())
     .option("-r, --repo <name>", "Repository name", "repo")
     .option("-b, --branch <name>", "Git branch name", "main")

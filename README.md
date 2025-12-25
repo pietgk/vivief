@@ -318,12 +318,12 @@ Comprehensive documentation is available in the [docs/](./docs/) directory:
 
 - **[Start Asking About Your Code](./docs/start-asking-about-your-code-guide.md)** - End-to-end guide for AI integration
 - [Quick Start](./docs/quick-start.md) - Get up and running
-- [Architecture Overview](./docs/architecture-overview.md) - System design
+- [Architecture Overview](./docs/implementation/overview.md) - System design
 - [CLI Reference](./docs/cli-reference.md) - Command documentation
 - [API Reference](./docs/api-reference.md) - Programmatic API
 - [MCP Server](./docs/mcp-server.md) - AI assistant integration
-- [Data Model](./docs/data-model.md) - Nodes, edges, refs schema
-- [Storage System](./docs/storage-system.md) - DuckDB + Parquet internals
+- [Data Model](./docs/implementation/data-model.md) - Nodes, edges, refs schema
+- [Storage System](./docs/implementation/storage.md) - DuckDB + Parquet internals
 
 ## License
 
