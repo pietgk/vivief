@@ -167,6 +167,17 @@ export {
   createWorkspaceManager,
   type WorkspaceManager,
   type WorkspaceManagerStats,
+  // Package manager detection and discovery
+  detectPackageManager,
+  discoverJSPackages,
+  discoverPythonPackages,
+  discoverCSharpPackages,
+  discoverAllPackages,
+  type PackageManagerType,
+  type LanguageType,
+  type PackageInfo,
+  type DiscoveryError,
+  type DiscoveryResult,
 } from "./workspace/index.js";
 
 // Validation (explicit exports to avoid SymbolInfo conflict with parsers)

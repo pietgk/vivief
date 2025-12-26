@@ -123,3 +123,17 @@ export {
   type WorkspaceManager,
   type WorkspaceManagerStats,
 } from "./manager.js";
+
+// Package manager detection and discovery
+export {
+  detectPackageManager,
+  discoverJSPackages,
+  discoverPythonPackages,
+  discoverCSharpPackages,
+  discoverAllPackages,
+  type PackageManagerType,
+  type LanguageType,
+  type PackageInfo,
+  type DiscoveryError,
+  type DiscoveryResult,
+} from "./package-manager.js";

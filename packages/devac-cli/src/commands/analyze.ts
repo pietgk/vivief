@@ -8,16 +8,20 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
+  CSharpParser,
   DEFAULT_PARSER_CONFIG,
   DuckDBPool,
+  PythonParser,
   SeedReader,
   SeedWriter,
   TypeScriptParser,
   computeFileHash,
   createLogger,
+  discoverAllPackages,
   getSemanticResolverFactory,
   toUnresolvedRef,
 } from "@pietgk/devac-core";
+import type { PackageInfo } from "@pietgk/devac-core";
 import type { Command } from "commander";
 
 import { glob } from "glob";
@@ -44,6 +48,11 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
       error: `Path does not exist: ${options.packagePath}`,
       timeMs: Date.now() - startTime,
     };
+  }
+
+  // Handle --all flag: discover and analyze all packages
+  if (options.all) {
+    return analyzeAllPackages(options, startTime);
   }
 
   let pool: DuckDBPool | null = null;
@@ -303,6 +312,429 @@ async function checkForChanges(packagePath: string, sourceFiles: string[]): Prom
   }
 }
 
+// ============================================================================
+// Multi-Package Analysis (--all flag)
+// ============================================================================
+
+/**
+ * Analyze all discovered packages in the repository
+ */
+async function analyzeAllPackages(
+  options: AnalyzeOptions,
+  startTime: number
+): Promise<AnalyzeResult> {
+  const allLogger = createLogger({ prefix: "[Analyze All]" });
+
+  // Discover all packages
+  const discovery = await discoverAllPackages(options.packagePath);
+
+  if (discovery.packages.length === 0) {
+    allLogger.info("No packages found to analyze");
+    return {
+      success: true,
+      filesAnalyzed: 0,
+      nodesCreated: 0,
+      edgesCreated: 0,
+      refsCreated: 0,
+      timeMs: Date.now() - startTime,
+    };
+  }
+
+  allLogger.info(
+    `Discovered ${discovery.packages.length} packages (${discovery.detectedPackageManager || "mixed"})`
+  );
+
+  // Aggregate results
+  let totalFiles = 0;
+  let totalNodes = 0;
+  let totalEdges = 0;
+  let totalRefs = 0;
+  let totalResolved = 0;
+  const errors: string[] = [];
+  let successCount = 0;
+
+  // Analyze each package
+  for (const pkg of discovery.packages) {
+    try {
+      allLogger.info(`Analyzing ${pkg.name} (${pkg.language}) at ${pkg.path}`);
+
+      const result = await analyzeSinglePackage(pkg, options);
+
+      totalFiles += result.filesAnalyzed;
+      totalNodes += result.nodesCreated;
+      totalEdges += result.edgesCreated;
+      totalRefs += result.refsCreated;
+      if (result.refsResolved !== undefined) {
+        totalResolved += result.refsResolved;
+      }
+
+      if (result.success) {
+        successCount++;
+        allLogger.info(`  ✓ ${pkg.name}: ${result.filesAnalyzed} files`);
+      } else if (result.error) {
+        errors.push(`${pkg.name}: ${result.error}`);
+        allLogger.warn(`  ✗ ${pkg.name}: ${result.error}`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      errors.push(`${pkg.name}: ${errorMsg}`);
+      allLogger.warn(`  ✗ ${pkg.name}: ${errorMsg}`);
+      // Continue with remaining packages
+    }
+  }
+
+  // Log discovery errors
+  for (const err of discovery.errors) {
+    errors.push(`Discovery: ${err.path}: ${err.error}`);
+  }
+
+  allLogger.info(
+    `Completed: ${successCount}/${discovery.packages.length} packages, ${totalFiles} files`
+  );
+
+  return {
+    success: errors.length === 0,
+    filesAnalyzed: totalFiles,
+    nodesCreated: totalNodes,
+    edgesCreated: totalEdges,
+    refsCreated: totalRefs,
+    refsResolved: options.resolve ? totalResolved : undefined,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+    timeMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * Analyze a single package based on its language
+ */
+async function analyzeSinglePackage(
+  pkg: PackageInfo,
+  options: AnalyzeOptions
+): Promise<AnalyzeResult> {
+  const startTime = Date.now();
+
+  switch (pkg.language) {
+    case "typescript":
+    case "javascript":
+      return analyzeTypeScriptPackage(pkg, options, startTime);
+    case "python":
+      return analyzePythonPackage(pkg, options, startTime);
+    case "csharp":
+      return analyzeCSharpPackage(pkg, options, startTime);
+    default:
+      return {
+        success: false,
+        filesAnalyzed: 0,
+        nodesCreated: 0,
+        edgesCreated: 0,
+        refsCreated: 0,
+        error: `Unknown language: ${pkg.language}`,
+        timeMs: Date.now() - startTime,
+      };
+  }
+}
+
+/**
+ * Analyze a TypeScript/JavaScript package
+ */
+async function analyzeTypeScriptPackage(
+  pkg: PackageInfo,
+  options: AnalyzeOptions,
+  startTime: number
+): Promise<AnalyzeResult> {
+  let pool: DuckDBPool | null = null;
+
+  try {
+    pool = new DuckDBPool({ memoryLimit: "512MB" });
+    await pool.initialize();
+
+    const tsFiles = await findTypeScriptFiles(pkg.path);
+    if (tsFiles.length === 0) {
+      return {
+        success: true,
+        filesAnalyzed: 0,
+        nodesCreated: 0,
+        edgesCreated: 0,
+        refsCreated: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    const parser = new TypeScriptParser();
+    const writer = new SeedWriter(pool, pkg.path);
+
+    const config = {
+      ...DEFAULT_PARSER_CONFIG,
+      repoName: options.repoName,
+      packagePath: pkg.path,
+      branch: options.branch,
+    };
+
+    let totalNodes = 0;
+    let totalEdges = 0;
+    let totalRefs = 0;
+    let filesAnalyzed = 0;
+
+    for (const filePath of tsFiles) {
+      try {
+        const parseResult = await parser.parse(filePath, config);
+        const writeResult = await writer.writeFile(parseResult);
+
+        if (writeResult.success) {
+          totalNodes += writeResult.nodesWritten;
+          totalEdges += writeResult.edgesWritten;
+          totalRefs += writeResult.refsWritten;
+          filesAnalyzed++;
+        }
+      } catch (error) {
+        logger.debug(
+          `Error parsing ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    // Run semantic resolution if requested
+    let refsResolved = 0;
+    if (options.resolve && totalRefs > 0) {
+      try {
+        refsResolved = await runSemanticResolution(pool, pkg.path, options.branch);
+      } catch {
+        // Continue - structural analysis succeeded
+      }
+    }
+
+    return {
+      success: true,
+      filesAnalyzed,
+      nodesCreated: totalNodes,
+      edgesCreated: totalEdges,
+      refsCreated: totalRefs,
+      refsResolved: options.resolve ? refsResolved : undefined,
+      timeMs: Date.now() - startTime,
+    };
+  } finally {
+    if (pool) {
+      await pool.shutdown();
+    }
+  }
+}
+
+/**
+ * Analyze a Python package
+ */
+async function analyzePythonPackage(
+  pkg: PackageInfo,
+  options: AnalyzeOptions,
+  startTime: number
+): Promise<AnalyzeResult> {
+  let pool: DuckDBPool | null = null;
+
+  try {
+    pool = new DuckDBPool({ memoryLimit: "512MB" });
+    await pool.initialize();
+
+    const pyFiles = await findPythonFiles(pkg.path);
+    if (pyFiles.length === 0) {
+      return {
+        success: true,
+        filesAnalyzed: 0,
+        nodesCreated: 0,
+        edgesCreated: 0,
+        refsCreated: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    const parser = new PythonParser();
+    const writer = new SeedWriter(pool, pkg.path);
+
+    const config = {
+      ...DEFAULT_PARSER_CONFIG,
+      repoName: options.repoName,
+      packagePath: pkg.path,
+      branch: options.branch,
+    };
+
+    let totalNodes = 0;
+    let totalEdges = 0;
+    let totalRefs = 0;
+    let filesAnalyzed = 0;
+
+    for (const filePath of pyFiles) {
+      try {
+        const parseResult = await parser.parse(filePath, config);
+        const writeResult = await writer.writeFile(parseResult);
+
+        if (writeResult.success) {
+          totalNodes += writeResult.nodesWritten;
+          totalEdges += writeResult.edgesWritten;
+          totalRefs += writeResult.refsWritten;
+          filesAnalyzed++;
+        }
+      } catch (error) {
+        logger.debug(
+          `Error parsing ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return {
+      success: true,
+      filesAnalyzed,
+      nodesCreated: totalNodes,
+      edgesCreated: totalEdges,
+      refsCreated: totalRefs,
+      timeMs: Date.now() - startTime,
+    };
+  } finally {
+    if (pool) {
+      await pool.shutdown();
+    }
+  }
+}
+
+/**
+ * Analyze a C# package
+ */
+async function analyzeCSharpPackage(
+  pkg: PackageInfo,
+  options: AnalyzeOptions,
+  startTime: number
+): Promise<AnalyzeResult> {
+  let pool: DuckDBPool | null = null;
+
+  try {
+    pool = new DuckDBPool({ memoryLimit: "512MB" });
+    await pool.initialize();
+
+    const csFiles = await findCSharpFiles(pkg.path);
+    if (csFiles.length === 0) {
+      return {
+        success: true,
+        filesAnalyzed: 0,
+        nodesCreated: 0,
+        edgesCreated: 0,
+        refsCreated: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    const parser = new CSharpParser();
+    const writer = new SeedWriter(pool, pkg.path);
+
+    const config = {
+      ...DEFAULT_PARSER_CONFIG,
+      repoName: options.repoName,
+      packagePath: pkg.path,
+      branch: options.branch,
+    };
+
+    let totalNodes = 0;
+    let totalEdges = 0;
+    let totalRefs = 0;
+    let filesAnalyzed = 0;
+
+    for (const filePath of csFiles) {
+      try {
+        const parseResult = await parser.parse(filePath, config);
+        const writeResult = await writer.writeFile(parseResult);
+
+        if (writeResult.success) {
+          totalNodes += writeResult.nodesWritten;
+          totalEdges += writeResult.edgesWritten;
+          totalRefs += writeResult.refsWritten;
+          filesAnalyzed++;
+        }
+      } catch (error) {
+        logger.debug(
+          `Error parsing ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return {
+      success: true,
+      filesAnalyzed,
+      nodesCreated: totalNodes,
+      edgesCreated: totalEdges,
+      refsCreated: totalRefs,
+      timeMs: Date.now() - startTime,
+    };
+  } finally {
+    if (pool) {
+      await pool.shutdown();
+    }
+  }
+}
+
+/**
+ * Find all Python files in a directory
+ */
+async function findPythonFiles(packagePath: string): Promise<string[]> {
+  const patterns = [path.join(packagePath, "**/*.py")];
+
+  const ignorePatterns = [
+    "**/node_modules/**",
+    "**/.devac/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/.tox/**",
+    "**/.pytest_cache/**",
+    "**/.mypy_cache/**",
+    "**/*_test.py",
+    "**/test_*.py",
+    "**/conftest.py",
+  ];
+
+  const files: string[] = [];
+
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, {
+      ignore: ignorePatterns,
+      nodir: true,
+      absolute: true,
+    });
+    files.push(...matches);
+  }
+
+  return [...new Set(files)];
+}
+
+/**
+ * Find all C# files in a directory
+ */
+async function findCSharpFiles(packagePath: string): Promise<string[]> {
+  const patterns = [path.join(packagePath, "**/*.cs")];
+
+  const ignorePatterns = [
+    "**/node_modules/**",
+    "**/.devac/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/*.Designer.cs",
+    "**/*.g.cs",
+    "**/*.g.i.cs",
+  ];
+
+  const files: string[] = [];
+
+  for (const pattern of patterns) {
+    const matches = await glob(pattern, {
+      ignore: ignorePatterns,
+      nodir: true,
+      absolute: true,
+    });
+    files.push(...matches);
+  }
+
+  return [...new Set(files)];
+}
+
 /**
  * Register the analyze command with the CLI program
  */
@@ -332,6 +764,16 @@ export function registerAnalyzeCommand(program: Command): void {
       if (result.success) {
         if (result.skipped) {
           console.log("No changes detected - skipped analysis");
+        } else if (options.all) {
+          console.log(
+            `✓ Analyzed ${result.filesAnalyzed} files across packages in ${result.timeMs}ms`
+          );
+          console.log(`  Total Nodes: ${result.nodesCreated}`);
+          console.log(`  Total Edges: ${result.edgesCreated}`);
+          console.log(`  Total External refs: ${result.refsCreated}`);
+          if (result.refsResolved !== undefined) {
+            console.log(`  Total Refs resolved: ${result.refsResolved}`);
+          }
         } else {
           console.log(`✓ Analyzed ${result.filesAnalyzed} files in ${result.timeMs}ms`);
           console.log(`  Nodes: ${result.nodesCreated}`);
