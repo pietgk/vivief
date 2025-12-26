@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "devac": {
+      "command": "npx",
+      "args": ["@pietgk/devac-mcp", "--hub"],
+      "env": {}
+    }
+  }
+}

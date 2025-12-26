@@ -19,50 +19,52 @@ effectHandler = (state, effect) => (state', [effect'])
 
 ---
 
-## 2. Three Pillars
+## 2. Four Pillars Supporting the Analytics Layer
 
-DevAC has three distinct pillars, each producing a different output:
+DevAC has four distinct pillars, each producing a different output. The **Analytics Layer** sits on top, querying across all pillar outputs.
 
 | Pillar | What It Does | Produces |
 |--------|--------------|----------|
 | **Infra** | Runs DevAC itself | DevAC Health |
 | **Validators** | Check code health | Diagnostics |
 | **Extractors** | Extract queryable data | Seeds |
+| **Workflow** | Orchestrate development activities | Work Activity |
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     THREE PILLARS OF DEVAC                   │
-├───────────────┬───────────────────┬─────────────────────────┤
-│    INFRA      │    VALIDATORS     │      EXTRACTORS         │
-│               │                   │                         │
-│ Is DevAC      │ Is my code        │ Make code/content       │
-│ running?      │ healthy?          │ queryable               │
-│               │                   │                         │
-│ - Watch       │ - TypeCheck       │ - AST extractor         │
-│ - Hub         │ - Lint            │ - Infra extractor       │
-│ - MCP server  │ - Test            │ - Content extractor     │
-│ - GitHub sync │ - Coverage        │ - CI/CD extractor       │
-│               │ - CI status       │ - Observability extr.   │
-│               │                   │                         │
-│ → DevAC Health│ → Diagnostics     │ → Seeds                 │
-└───────────────┴───────────────────┴─────────────────────────┘
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │       ANALYTICS         │
-              │                         │
-              │ Query seeds + diagnostics│
-              │ to answer questions     │
-              │                         │
-              │ "How does auth work?"   │
-              │ "What calls this API?"  │
-              │ "Generate C4 diagram"   │
-              └─────────────────────────┘
+        ┌─────────────────────────────────────────────────────────────┐
+        │                      ANALYTICS LAYER                         │
+        │                                                              │
+        │   Query and reason over all pillar outputs                   │
+        │   (Seeds, Diagnostics, DevAC Health, Work Activity)          │
+        │                                                              │
+        │   "How does auth work?"    "What needs fixing?"              │
+        │   "What calls this API?"   "What PRs are pending?"           │
+        │   "Generate C4 diagram"    "Is the build healthy?"           │
+        └─────────────────────────────────────────────────────────────┘
+              │           │           │           │
+         ┌────┴────┐ ┌────┴────┐ ┌────┴────┐ ┌────┴────┐
+         │  INFRA  │ │ VALID-  │ │ EXTRAC- │ │  WORK-  │
+         │         │ │ ATORS   │ │  TORS   │ │  FLOW   │
+         │         │ │         │ │         │ │         │
+         │ Is      │ │ Is code │ │ Make    │ │ Manage  │
+         │ DevAC   │ │ healthy?│ │ code    │ │ dev     │
+         │ running?│ │         │ │queryable│ │ workflow│
+         │         │ │         │ │         │ │         │
+         │ - Watch │ │- Type   │ │- AST    │ │- Issues │
+         │ - Hub   │ │- Lint   │ │- Infra  │ │- Commits│
+         │ - MCP   │ │- Test   │ │- Content│ │- PRs    │
+         │ - Sync  │ │- Cover  │ │- CI/CD  │ │- ADRs   │
+         │         │ │- CI     │ │- Observ │ │- Release│
+         │         │ │         │ │         │ │         │
+         │→ DevAC  │ │→ Diag-  │ │→ Seeds  │ │→ Work   │
+         │  Health │ │  nostics│ │         │ │ Activity│
+         └─────────┘ └─────────┘ └─────────┘ └─────────┘
 ```
 
-**Key distinction:**
-- **Extractors** produce **Seeds** (raw queryable data)
-- **Analytics** uses Seeds + Diagnostics to **answer questions**
+**Key distinctions:**
+- **Pillars** are deterministic — systems handle them
+- **Analytics Layer** is where LLMs and humans query and reason
+- **Workflow Pillar** (new) handles issue-based development, git workflow, releases, and decision capture
 
 ---
 
@@ -97,9 +99,36 @@ DevAC has three distinct pillars, each producing a different output:
 | **Watch** | File/event monitoring | Triggers validators/extractors |
 | **MCP** | Model Context Protocol | LLM tool interface |
 
+### Workflow
+
+| Concept | Definition | Key Property |
+|---------|------------|--------------|
+| **Issue** | GitHub issue tied to a repo | Identified as `{repo}-{issueId}` |
+| **Work Activity** | PRs, reviews, issues, releases pending | Queryable via Analytics Layer |
+| **Changeset** | Release changelog entry | Triggers version bump |
+| **ADR** | Architecture Decision Record | Captures design decisions |
+
 ---
 
-## 4. Status Command
+## 4. Analytics Layer
+
+The Analytics Layer is the "roof" that sits on top of the Four Pillars. It provides a unified interface for querying across all pillar outputs.
+
+| What It Queries | From Pillar | Example Questions |
+|-----------------|-------------|-------------------|
+| DevAC Health | Infra | "Is the hub running?" |
+| Diagnostics | Validators | "What type errors exist?" |
+| Seeds | Extractors | "How does auth work?" |
+| Work Activity | Workflow | "What PRs are pending?" |
+
+**Key characteristics:**
+- **Unified querying**: Single interface to query all pillar outputs
+- **LLM + Human**: Where reasoning happens (vs. deterministic pillars)
+- **Tools**: MCP server, CLI queries, skills, commands
+
+---
+
+## 5. Status Command
 
 `devac status` instantly tells you what's going on.
 
@@ -142,7 +171,7 @@ DevAC Status
 
 ---
 
-## 5. Triggers
+## 6. Triggers
 
 What causes DevAC to update:
 
@@ -156,7 +185,7 @@ What causes DevAC to update:
 
 ---
 
-## 6. Division of Labor
+## 7. Division of Labor
 
 | Actor | What They Do | Examples |
 |-------|--------------|----------|
@@ -168,7 +197,7 @@ What causes DevAC to update:
 
 ---
 
-## 7. Glossary
+## 8. Glossary
 
 ### Core Terms
 
@@ -185,14 +214,30 @@ What causes DevAC to update:
 | **Watch** | File/event monitoring that triggers extractors and validators |
 | **MCP** | Model Context Protocol — interface for LLM tools |
 
+### Architecture Terms
+
+| Term | Definition |
+|------|------------|
+| **Four Pillars** | Infra, Validators, Extractors, Workflow — the deterministic foundation |
+| **Analytics Layer** | The "roof" that queries across all pillar outputs — where LLMs/humans reason |
+| **Pillar Output** | What a pillar produces: DevAC Health, Diagnostics, Seeds, or Work Activity |
+
+### Workflow Terms
+
+| Term | Definition |
+|------|------------|
+| **Issue** | GitHub issue tied to a repo, identified as `{repo}-{issueId}` |
+| **Work Activity** | PRs, reviews, issues, releases — pending items in the development workflow |
+| **Changeset** | Release changelog entry that triggers version bump |
+| **ADR** | Architecture Decision Record — captures design decisions |
+
 ### Status Terms
 
 | Term | Definition |
 |------|------------|
-| **DevAC Health** | Status of DevAC infrastructure (watch, hub, mcp running?) |
-| **Code Diagnostics** | Validation results for code health (errors, lint, tests, coverage) |
-| **Work Activity** | PRs, reviews, issues — what's pending in the workflow |
-| **Analytics** | Using seeds + diagnostics to answer questions about the codebase |
+| **DevAC Health** | Status of DevAC infrastructure (watch, hub, mcp running?) — from Infra pillar |
+| **Code Diagnostics** | Validation results for code health (errors, lint, tests, coverage) — from Validators pillar |
+| **Work Activity** | PRs, reviews, issues, releases — what's pending in the workflow — from Workflow pillar |
 
 ### Deprecated Terms
 
@@ -202,7 +247,8 @@ What causes DevAC to update:
 | "Feedback" | **Diagnostics** | Feedback implied only issues; diagnostics includes "all clear" |
 | "Push to hub" | (implicit) | Hub update is always implicit, not optional |
 | "Infra status" | **DevAC Health** | Avoids confusion with infrastructure seeds |
-| "Workflow status" | **Work Activity** | More specific about what it tracks |
+| "Analytics" (as concept) | **Analytics Layer** | Clarifies it's a layer on top of pillars, not a separate thing |
+| "Three Pillars" | **Four Pillars** | Workflow is now the 4th pillar |
 
 ---
 

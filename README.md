@@ -271,6 +271,47 @@ my-project/
     └── manifest.json
 ```
 
+## Claude Code Plugin
+
+DevAC includes a Claude Code plugin that provides AI-powered code analysis skills and workflow commands.
+
+### Plugin Features
+
+**Analytics Layer Skills** (activate automatically):
+- **code-analysis** - Analyze code structure, find symbols, explore hierarchies
+- **impact-analysis** - Determine what changes will affect, find dependencies
+- **codebase-navigation** - Navigate and locate code definitions
+- **diagnostics-triage** - Triage and prioritize errors and warnings
+- **multi-repo-context** - Work across multiple repositories
+
+**Workflow Commands** (user-invoked):
+- `/start-issue` - Start work on a GitHub issue
+- `/commit`, `/ship` - Git workflow commands
+- `/devac-status` - Query status across all Four Pillars
+
+### Installation
+
+**For users of this repo** (local development):
+Commands are available via the symlink at `.claude/commands/`.
+
+**For external users** (when plugin system is available):
+```bash
+/plugin install devac@vivief
+```
+
+### Plugin Structure
+
+```
+plugins/devac/
+├── .claude-plugin/plugin.json   # Plugin metadata
+├── .mcp.json                    # MCP server config
+├── commands/                    # 11 workflow commands
+├── skills/                      # 5 Analytics Layer skills
+└── README.md                    # Plugin documentation
+```
+
+See [plugins/devac/README.md](./plugins/devac/README.md) for detailed plugin documentation.
+
 ## MCP Integration
 
 For AI assistant integration, run the MCP server:

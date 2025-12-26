@@ -2,6 +2,18 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
+
+## organise llm context
+
+to organise devac usage by llm and humans we need to organise claude.md claude commands skills.
+
+the best way i see is to create a plugin and make the vivief repo a marketplace repo for devac related tools and skills and our devac mcp server.
+
+can you have a thorough research and help me determine if this is a good plan and then some tips on how to realize it.
+
+can we come up with a good prompt to get us started.
+
 ## Major concepts
 
 use the llm to make as much deterministic as possible

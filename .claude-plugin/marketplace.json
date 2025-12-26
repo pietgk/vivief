@@ -1,0 +1,13 @@
+{
+  "name": "vivief",
+  "description": "DevAC code analysis tools, skills, and workflow commands for Claude Code",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "devac",
+      "source": "./plugins/devac",
+      "description": "DevAC plugin providing Analytics Layer skills and Workflow commands for code analysis and development workflows",
+      "version": "1.0.0"
+    }
+  ]
+}
