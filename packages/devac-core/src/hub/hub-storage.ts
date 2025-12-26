@@ -196,6 +196,14 @@ export interface DiagnosticsSummary {
 }
 
 /**
+ * Hub Storage initialization options
+ */
+export interface HubStorageInitOptions {
+  /** Open database in read-only mode (no writes, no table creation) */
+  readOnly?: boolean;
+}
+
+/**
  * Hub Storage
  *
  * Manages the central DuckDB database for federation.
@@ -203,26 +211,42 @@ export interface DiagnosticsSummary {
 export class HubStorage {
   private db: Database | null = null;
   private initialized = false;
+  private _readOnlyMode = false;
 
   constructor(private hubPath: string) {}
 
   /**
+   * Check if storage is in read-only mode
+   */
+  get isReadOnly(): boolean {
+    return this._readOnlyMode;
+  }
+
+  /**
    * Initialize the hub database
    */
-  async init(): Promise<void> {
+  async init(options: HubStorageInitOptions = {}): Promise<void> {
     if (this.initialized && this.db) {
       return;
     }
 
-    // Ensure directory exists
-    const dir = path.dirname(this.hubPath);
-    await fs.mkdir(dir, { recursive: true });
+    const { readOnly = false } = options;
+    this._readOnlyMode = readOnly;
 
-    // Open or create database
-    this.db = await Database.create(this.hubPath);
+    // Ensure directory exists (only for write mode)
+    if (!readOnly) {
+      const dir = path.dirname(this.hubPath);
+      await fs.mkdir(dir, { recursive: true });
+    }
 
-    // Create tables
-    await this.createTables();
+    // Open or create database with access mode
+    const accessMode = readOnly ? "READ_ONLY" : "READ_WRITE";
+    this.db = await Database.create(this.hubPath, { access_mode: accessMode });
+
+    // Create tables only in write mode
+    if (!readOnly) {
+      await this.createTables();
+    }
 
     this.initialized = true;
   }

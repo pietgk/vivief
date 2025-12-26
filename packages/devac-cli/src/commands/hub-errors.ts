@@ -60,7 +60,7 @@ export async function hubErrorsCommand(
 ): Promise<HubErrorsCommandResult> {
   const startTime = Date.now();
   const hubDir = options.hubDir || getDefaultHubDir();
-  const hub = createCentralHub({ hubDir });
+  const hub = createCentralHub({ hubDir, readOnly: true });
 
   try {
     await hub.init();

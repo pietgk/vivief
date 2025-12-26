@@ -52,7 +52,7 @@ export async function hubStatus(options: HubStatusOptions): Promise<HubStatusRes
     };
   }
 
-  const hub = createCentralHub({ hubDir });
+  const hub = createCentralHub({ hubDir, readOnly: true });
 
   try {
     await hub.init();

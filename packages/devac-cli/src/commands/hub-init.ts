@@ -9,6 +9,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { createCentralHub } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { displayCommandResult } from "../utils/cli-output.js";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { hubDiagnosticsCommand } from "./hub-diagnostics.js";
 import { hubErrorsCommand } from "./hub-errors.js";
 import { hubList } from "./hub-list.js";
@@ -114,17 +116,23 @@ export function registerHubCommand(program: Command): void {
   // hub init
   hub
     .command("init")
-    .description("Initialize the central hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .description("Initialize the workspace hub")
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--force", "Force reinitialization")
     .action(async (options) => {
-      const result = await hubInit({
-        hubDir: options.hubDir,
-        force: options.force,
-      });
-      console.log(result.message);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubInit({
+          hubDir,
+          force: options.force,
+        });
+        displayCommandResult(result);
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to initialize hub",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -132,15 +140,21 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("register <path>")
     .description("Register a repository with the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .action(async (repoPath, options) => {
-      const result = await hubRegister({
-        hubDir: options.hubDir,
-        repoPath: path.resolve(repoPath),
-      });
-      console.log(result.message);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubRegister({
+          hubDir,
+          repoPath: path.resolve(repoPath),
+        });
+        displayCommandResult(result);
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to register repository",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -148,12 +162,18 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("unregister <repoId>")
     .description("Unregister a repository from the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .action(async (repoId, options) => {
-      const result = await hubUnregister({ hubDir: options.hubDir, repoId });
-      console.log(result.message);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubUnregister({ hubDir, repoId });
+        displayCommandResult(result);
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to unregister repository",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -161,25 +181,35 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("list")
     .description("List registered repositories")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Verbose output")
     .action(async (options) => {
-      const result = await hubList({
-        hubDir: options.hubDir,
-        json: options.json,
-        verbose: options.verbose,
-      });
-      if (options.json) {
-        console.log(JSON.stringify(result.repos, null, 2));
-      } else {
-        console.log(result.message);
-        for (const repo of result.repos) {
-          console.log(`  ${repo.repoId}: ${repo.localPath} (${repo.packages} packages)`);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubList({
+          hubDir,
+          json: options.json,
+          verbose: options.verbose,
+        });
+        if (!result.success) {
+          displayCommandResult(result);
+          return;
         }
-      }
-      if (!result.success) {
-        process.exit(1);
+        if (options.json) {
+          console.log(JSON.stringify(result.repos, null, 2));
+        } else {
+          console.log(result.message);
+          for (const repo of result.repos) {
+            console.log(`  ${repo.repoId}: ${repo.localPath} (${repo.packages} packages)`);
+          }
+        }
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to list repositories",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -187,17 +217,27 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("status")
     .description("Show hub status")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const result = await hubStatus({ hubDir: options.hubDir });
-      if (options.json && result.status) {
-        console.log(JSON.stringify(result.status, null, 2));
-      } else {
-        console.log(result.message);
-      }
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubStatus({ hubDir });
+        if (!result.success) {
+          displayCommandResult(result);
+          return;
+        }
+        if (options.json && result.status) {
+          console.log(JSON.stringify(result.status, null, 2));
+        } else {
+          console.log(result.message);
+        }
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to get hub status",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -205,23 +245,33 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("refresh [repoId]")
     .description("Refresh repository manifests")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--force", "Force regenerate all manifests")
     .action(async (repoId, options) => {
-      const result = await hubRefresh({
-        hubDir: options.hubDir,
-        repoId,
-        force: options.force,
-      });
-      console.log(result.message);
-      if (result.errors.length > 0) {
-        console.log("Errors:");
-        for (const error of result.errors) {
-          console.log(`  ${error}`);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubRefresh({
+          hubDir,
+          repoId,
+          force: options.force,
+        });
+        if (!result.success) {
+          displayCommandResult(result);
+          return;
         }
-      }
-      if (!result.success) {
-        process.exit(1);
+        console.log(result.message);
+        if (result.errors.length > 0) {
+          console.log("Errors:");
+          for (const error of result.errors) {
+            console.log(`  ${error}`);
+          }
+        }
+      } catch (err) {
+        displayCommandResult({
+          success: false,
+          message: "Failed to refresh manifests",
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     });
 
@@ -245,21 +295,20 @@ export function registerHubCommand(program: Command): void {
         pendingOnly: options.pendingOnly,
         clearExisting: options.clear,
       });
-      if (result.success) {
-        if (result.ciSync) console.log(`CI: ${result.ciSync.pushed} items synced`);
-        if (result.issuesSync) console.log(`Issues: ${result.issuesSync.pushed} items synced`);
-        if (result.reviewsSync) console.log(`Reviews: ${result.reviewsSync.pushed} items synced`);
-      } else {
-        console.error(`✗ Sync failed: ${result.error}`);
-        process.exit(1);
+      if (!result.success) {
+        displayCommandResult({ success: false, message: "Sync failed", error: result.error });
+        return;
       }
+      if (result.ciSync) console.log(`CI: ${result.ciSync.pushed} items synced`);
+      if (result.issuesSync) console.log(`Issues: ${result.issuesSync.pushed} items synced`);
+      if (result.reviewsSync) console.log(`Reviews: ${result.reviewsSync.pushed} items synced`);
     });
 
   // hub errors
   hub
     .command("errors")
     .description("Query validation errors from the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--repo <id>", "Filter by repository")
     .option("--severity <level>", "Filter by severity (error, warning)")
     .option("--source <source>", "Filter by source (tsc, eslint, test)")
@@ -267,18 +316,45 @@ export function registerHubCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const result = await hubErrorsCommand({
-        hubDir: options.hubDir,
-        repoId: options.repo,
-        severity: options.severity,
-        source: options.source,
-        file: options.file,
-        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        json: options.json,
-      });
-      console.log(result.output);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubErrorsCommand({
+          hubDir,
+          repoId: options.repo,
+          severity: options.severity,
+          source: options.source,
+          file: options.file,
+          limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+          json: options.json,
+        });
+        if (!result.success) {
+          if (options.json) {
+            console.log(result.output);
+          } else {
+            displayCommandResult({
+              success: false,
+              message: "Failed to query errors",
+              error: result.error,
+            });
+          }
+          return;
+        }
+        console.log(result.output);
+      } catch (err) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          );
+        } else {
+          displayCommandResult({
+            success: false,
+            message: "Failed to query errors",
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     });
 
@@ -287,7 +363,7 @@ export function registerHubCommand(program: Command): void {
     .command("diagnostics")
     .alias("feedback")
     .description("Query unified diagnostics from the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--repo <id>", "Filter by repository")
     .option("--source <source>", "Filter by source")
     .option("--severity <level>", "Filter by severity")
@@ -298,21 +374,48 @@ export function registerHubCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const result = await hubDiagnosticsCommand({
-        hubDir: options.hubDir,
-        repoId: options.repo,
-        source: options.source,
-        severity: options.severity,
-        category: options.category,
-        filePath: options.file,
-        resolved: options.resolved,
-        actionable: options.actionable,
-        limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
-        json: options.json,
-      });
-      console.log(result.output);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubDiagnosticsCommand({
+          hubDir,
+          repoId: options.repo,
+          source: options.source,
+          severity: options.severity,
+          category: options.category,
+          filePath: options.file,
+          resolved: options.resolved,
+          actionable: options.actionable,
+          limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
+          json: options.json,
+        });
+        if (!result.success) {
+          if (options.json) {
+            console.log(result.output);
+          } else {
+            displayCommandResult({
+              success: false,
+              message: "Failed to query diagnostics",
+              error: result.error,
+            });
+          }
+          return;
+        }
+        console.log(result.output);
+      } catch (err) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          );
+        } else {
+          displayCommandResult({
+            success: false,
+            message: "Failed to query diagnostics",
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     });
 
@@ -320,19 +423,46 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("summary <type>")
     .description("Get summary/counts (validation, diagnostics, counts)")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--group-by <field>", "Group by field")
     .option("--json", "Output as JSON")
     .action(async (type, options) => {
-      const result = await hubSummaryCommand({
-        hubDir: options.hubDir,
-        type: type as "validation" | "diagnostics" | "counts",
-        groupBy: options.groupBy,
-        json: options.json,
-      });
-      console.log(result.output);
-      if (!result.success) {
-        process.exit(1);
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubSummaryCommand({
+          hubDir,
+          type: type as "validation" | "diagnostics" | "counts",
+          groupBy: options.groupBy,
+          json: options.json,
+        });
+        if (!result.success) {
+          if (options.json) {
+            console.log(result.output);
+          } else {
+            displayCommandResult({
+              success: false,
+              message: "Failed to get summary",
+              error: result.error,
+            });
+          }
+          return;
+        }
+        console.log(result.output);
+      } catch (err) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          );
+        } else {
+          displayCommandResult({
+            success: false,
+            message: "Failed to get summary",
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     });
 }

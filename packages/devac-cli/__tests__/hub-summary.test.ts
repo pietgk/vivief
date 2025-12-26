@@ -315,7 +315,9 @@ describe("hub summary command", () => {
   });
 
   it("returns zero counts when hub has no data", async () => {
-    // Hub auto-creates on first access, so this tests zero counts
+    // Hub must be initialized first (no longer auto-creates in readOnly mode)
+    await hubInit({ hubDir });
+
     const result = await hubSummaryCommand({ hubDir, type: "counts" });
 
     expect(result.success).toBe(true);

@@ -183,7 +183,9 @@ describe("hub errors command", () => {
   });
 
   it("returns empty results when hub has no data", async () => {
-    // Hub auto-creates on first access, so this tests empty results
+    // Hub must be initialized first (no longer auto-creates in readOnly mode)
+    await hubInit({ hubDir });
+
     const result = await hubErrorsCommand({ hubDir });
 
     expect(result.success).toBe(true);

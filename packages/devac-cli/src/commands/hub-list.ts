@@ -61,7 +61,7 @@ export async function hubList(options: HubListOptions): Promise<HubListResult> {
     };
   }
 
-  const hub = createCentralHub({ hubDir });
+  const hub = createCentralHub({ hubDir, readOnly: true });
 
   try {
     await hub.init();

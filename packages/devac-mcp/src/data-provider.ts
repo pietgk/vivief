@@ -358,7 +358,8 @@ export class HubDataProvider implements DataProvider {
     this._pool = new DuckDBPool({ memoryLimit: this.memoryLimit });
     await this._pool.initialize();
 
-    this._hub = createCentralHub({ hubDir: this.hubDir });
+    // MCP server only does queries, use read-only mode to avoid lock conflicts
+    this._hub = createCentralHub({ hubDir: this.hubDir, readOnly: true });
     await this._hub.init();
   }
 

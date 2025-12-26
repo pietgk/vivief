@@ -113,6 +113,8 @@ export interface RepoInfo {
  */
 export interface CentralHubOptions {
   hubDir: string;
+  /** Open hub in read-only mode (prevents lock conflicts, auto-fallback if lock error) */
+  readOnly?: boolean;
 }
 
 /**
@@ -126,6 +128,7 @@ export class CentralHub {
   private hubPath: string;
   private initialized = false;
   private lastSyncTime: string | null = null;
+  private _readOnlyMode = false;
 
   constructor(private options: CentralHubOptions) {
     this.hubPath = path.join(options.hubDir, "central.duckdb");
@@ -134,12 +137,20 @@ export class CentralHub {
   }
 
   /**
+   * Check if hub is in read-only mode
+   */
+  get isReadOnly(): boolean {
+    return this._readOnlyMode;
+  }
+
+  /**
    * Initialize the hub
    */
   async init(options: HubInitOptions = {}): Promise<void> {
     const { force = false } = options;
+    const readOnly = this.options.readOnly ?? false;
 
-    if (force) {
+    if (force && !readOnly) {
       // Remove existing hub
       try {
         await fs.rm(this.hubPath, { force: true });
@@ -148,8 +159,30 @@ export class CentralHub {
       }
     }
 
-    await this.storage.init();
+    try {
+      await this.storage.init({ readOnly });
+      this._readOnlyMode = readOnly;
+    } catch (err) {
+      // If write mode failed due to lock, auto-fallback to read-only
+      if (!readOnly && this.isLockError(err)) {
+        await this.storage.init({ readOnly: true });
+        this._readOnlyMode = true;
+      } else {
+        throw err;
+      }
+    }
+
     this.initialized = true;
+  }
+
+  /**
+   * Check if an error is a DuckDB lock error
+   */
+  private isLockError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return (
+      msg.includes("locked") || msg.includes("Conflicting lock") || msg.includes("lock on file")
+    );
   }
 
   /**

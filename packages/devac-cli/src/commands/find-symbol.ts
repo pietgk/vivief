@@ -75,7 +75,7 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
     if (options.hub) {
       // Hub mode: query all registered repos
       const hubDir = options.hubDir || getDefaultHubDir();
-      const hub = createCentralHub({ hubDir });
+      const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
         await hub.init();
