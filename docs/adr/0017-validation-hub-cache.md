@@ -27,7 +27,7 @@ We needed to decide where to store diagnostics for efficient querying.
 
 ## Decision
 
-Store diagnostics in the **Central Hub's DuckDB** (`~/.devac/central.duckdb`) rather than per-repo Parquet seeds.
+Store diagnostics in the **Central Hub's DuckDB** (`{workspace}/.devac/central.duckdb`) rather than per-repo Parquet seeds.
 
 ### Storage Structure
 
@@ -53,7 +53,7 @@ CREATE TABLE diagnostics (
 ```
 Per-Repo Validation                 Central Hub
 ┌─────────────────────┐            ┌───────────────────────┐
-│  devac validate     │            │  ~/.devac/            │
+│  devac validate     │            │  {workspace}/.devac/  │
 │  or devac watch     │──push───►  │    central.duckdb     │
 │                     │            │      diagnostics      │
 │  Runs tsc, eslint   │            │                       │

@@ -90,7 +90,7 @@ pnpm --filter @pietgk/devac-mcp exec devac-mcp --help
 DevAC uses a three-layer storage model:
 1. **Package Seeds**: Parquet files in `.devac/seed/` per package
 2. **Repository Manifest**: `.devac/manifest.json` aggregates packages
-3. **Central Hub**: `~/.devac/central.duckdb` for cross-repo queries
+3. **Central Hub**: `{workspace}/.devac/central.duckdb` for cross-repo queries (auto-detected from workspace)
 
 ### Data Model
 

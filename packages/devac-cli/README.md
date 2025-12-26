@@ -84,26 +84,29 @@ devac mcp start --package /path/to/package --transport stdio
 
 ### Hub Commands
 
-Manage the central hub for multi-package analysis:
+Manage the central hub for multi-package analysis. Hub commands auto-detect the workspace hub directory based on git conventions (run from a git repo or workspace containing git repos).
 
 ```bash
-# Initialize a new hub
-devac hub init /path/to/hub
+# Initialize a new hub (auto-detects workspace)
+devac hub init
 
 # Register a package with the hub
-devac hub register /path/to/hub --package /path/to/package
+devac hub register --package /path/to/package
 
 # List registered packages
-devac hub list /path/to/hub
+devac hub list
 
 # Refresh all package seeds
-devac hub refresh /path/to/hub
+devac hub refresh
 
 # Check hub status
-devac hub status /path/to/hub
+devac hub status
 
 # Unregister a package
-devac hub unregister /path/to/hub --package /path/to/package
+devac hub unregister --package /path/to/package
+
+# Override auto-detection with explicit path
+devac hub status --hub-dir /custom/path/.devac
 ```
 
 ## Configuration
