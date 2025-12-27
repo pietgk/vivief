@@ -1625,4 +1625,204 @@ public class OrderProcessor
       });
     });
   });
+
+  // ==========================================================================
+  // CALLS Edge Extraction Tests
+  // ==========================================================================
+
+  describe("CALLS edge extraction", () => {
+    it("extracts simple method calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public void CallOther()
+    {
+        Helper();
+        Process(1, 2);
+    }
+
+    private void Helper() { }
+    private void Process(int a, int b) { }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBeGreaterThanOrEqual(2);
+
+      const helperCall = callsEdges.find((e) => e.properties.callee === "Helper");
+      expect(helperCall).toBeDefined();
+      expect(helperCall?.target_entity_id).toBe("unresolved:Helper");
+
+      const processCall = callsEdges.find((e) => e.properties.callee === "Process");
+      expect(processCall).toBeDefined();
+      expect(processCall?.properties.argumentCount).toBe(2);
+    });
+
+    it("extracts instance method calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public void CallOther()
+    {
+        var obj = new Helper();
+        obj.DoWork();
+        this.SelfCall();
+    }
+
+    private void SelfCall() { }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const objMethod = callsEdges.find((e) => e.properties.callee === "obj.DoWork");
+      expect(objMethod).toBeDefined();
+      expect(objMethod?.target_entity_id).toBe("unresolved:obj.DoWork");
+
+      const thisCall = callsEdges.find((e) => e.properties.callee === "this.SelfCall");
+      expect(thisCall).toBeDefined();
+    });
+
+    it("extracts static method calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public void CallStatic()
+    {
+        Console.WriteLine("Hello");
+        Math.Max(1, 2);
+    }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const consoleCall = callsEdges.find((e) => e.properties.callee === "Console.WriteLine");
+      expect(consoleCall).toBeDefined();
+      expect(consoleCall?.target_entity_id).toBe("unresolved:Console.WriteLine");
+
+      const mathCall = callsEdges.find((e) => e.properties.callee === "Math.Max");
+      expect(mathCall).toBeDefined();
+    });
+
+    it("extracts object creation (new) calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public void CreateObjects()
+    {
+        var list = new List<string>();
+        var user = new User("John", 25);
+    }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const listCtor = callsEdges.find((e) => e.properties.callee === "new List<string>");
+      expect(listCtor).toBeDefined();
+      expect(listCtor?.properties.argumentCount).toBe(0);
+
+      const userCtor = callsEdges.find((e) => e.properties.callee === "new User");
+      expect(userCtor).toBeDefined();
+      expect(userCtor?.properties.argumentCount).toBe(2);
+    });
+
+    it("extracts base() and this() constructor calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Base
+{
+    public Base(int value) { }
+}
+
+public class Derived : Base
+{
+    public Derived() : base(10) { }
+    public Derived(int x) : this() { }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const baseCall = callsEdges.find((e) => e.properties.callee === "base");
+      expect(baseCall).toBeDefined();
+      expect(baseCall?.target_entity_id).toBe("unresolved:base");
+      expect(baseCall?.properties.argumentCount).toBe(1);
+
+      const thisCall = callsEdges.find((e) => e.properties.callee === "this");
+      expect(thisCall).toBeDefined();
+      expect(thisCall?.properties.argumentCount).toBe(0);
+    });
+
+    it("includes source location in CALLS edges", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public void Method()
+    {
+        TargetMethod();
+    }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdge = result.edges.find(
+        (e) => e.edge_type === "CALLS" && e.properties.callee === "TargetMethod"
+      );
+      expect(callsEdge).toBeDefined();
+      expect(callsEdge?.source_line).toBe(6);
+    });
+
+    it("extracts calls from expression-bodied methods", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class Caller
+{
+    public int GetValue() => Calculate(10);
+    private int Calculate(int x) => x * 2;
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const calculateCall = callsEdges.find((e) => e.properties.callee === "Calculate");
+      expect(calculateCall).toBeDefined();
+    });
+
+    it("extracts async method calls", async () => {
+      const parser = createCSharpParser();
+      const content = `
+public class AsyncCaller
+{
+    public async Task CallAsync()
+    {
+        await FetchDataAsync();
+        SyncMethod();
+    }
+
+    private async Task FetchDataAsync() { await Task.Delay(100); }
+    private void SyncMethod() { }
+}
+`;
+      const result = await parser.parseContent(content, "test.cs", defaultConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBeGreaterThanOrEqual(2);
+
+      const asyncCall = callsEdges.find((e) => e.properties.callee === "FetchDataAsync");
+      expect(asyncCall).toBeDefined();
+    });
+  });
 });

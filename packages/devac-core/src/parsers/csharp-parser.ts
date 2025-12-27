@@ -52,6 +52,7 @@ interface ParseContext {
   currentNamespaceId: string | null;
   currentContainerId: string | null;
   currentContainerName: string | null;
+  currentMethodId: string | null;
   nodes: ParsedNode[];
   edges: ParsedEdge[];
   externalRefs: ParsedExternalRef[];
@@ -696,6 +697,23 @@ function visitMethodDeclaration(node: SyntaxNode, ctx: ParseContext): void {
   if (paramList) {
     visitParameters(paramList, ctx, entityId, qualifiedName);
   }
+
+  // Visit method body to extract CALLS edges
+  const previousMethodId = ctx.currentMethodId;
+  ctx.currentMethodId = entityId;
+
+  const body = findChildByType(node, "block");
+  if (body) {
+    visitMethodBody(body, ctx);
+  }
+
+  // Also check for expression body (arrow expression)
+  const arrowBody = findChildByType(node, "arrow_expression_clause");
+  if (arrowBody) {
+    visitMethodBody(arrowBody, ctx);
+  }
+
+  ctx.currentMethodId = previousMethodId;
 }
 
 /**
@@ -737,6 +755,23 @@ function visitConstructorDeclaration(node: SyntaxNode, ctx: ParseContext): void 
 
   ctx.nodes.push(ctorNode);
   addContainsEdge(ctx, ctx.currentContainerId, entityId, node);
+
+  // Visit constructor body to extract CALLS edges
+  const previousMethodId = ctx.currentMethodId;
+  ctx.currentMethodId = entityId;
+
+  const body = findChildByType(node, "block");
+  if (body) {
+    visitMethodBody(body, ctx);
+  }
+
+  // Check for constructor initializer (base() or this() calls)
+  const initializer = findChildByType(node, "constructor_initializer");
+  if (initializer) {
+    visitConstructorInitializer(initializer, ctx);
+  }
+
+  ctx.currentMethodId = previousMethodId;
 }
 
 /**
@@ -1023,6 +1058,225 @@ function visitDelegateDeclaration(node: SyntaxNode, ctx: ParseContext): void {
 }
 
 /**
+ * Visit method body recursively to find invocation expressions
+ */
+function visitMethodBody(node: SyntaxNode, ctx: ParseContext): void {
+  for (const child of node.children) {
+    if (child.type === "invocation_expression") {
+      visitInvocationExpression(child, ctx);
+    } else if (child.type === "object_creation_expression") {
+      visitObjectCreationExpression(child, ctx);
+    }
+    // Recursively visit all children
+    visitMethodBody(child, ctx);
+  }
+}
+
+/**
+ * Visit an invocation expression to create CALLS edge
+ */
+function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
+  // Get the source entity (caller)
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+
+  // Extract callee name from the invocation
+  const calleeName = extractCalleeName(node);
+  if (!calleeName) return;
+
+  // Create target entity ID with unresolved prefix
+  const targetEntityId = `unresolved:${calleeName}`;
+
+  // Count arguments
+  const argList = findChildByType(node, "argument_list");
+  const argumentCount = argList
+    ? argList.namedChildren.filter((c) => c.type === "argument").length
+    : 0;
+
+  // Create CALLS edge
+  const edge = createEdge({
+    source_entity_id: sourceEntityId,
+    target_entity_id: targetEntityId,
+    edge_type: "CALLS",
+    source_file_path: ctx.filePath,
+    source_file_hash: ctx.sourceFileHash,
+    source_line: node.startPosition.row + 1,
+    source_column: node.startPosition.column,
+    properties: {
+      callee: calleeName,
+      argumentCount,
+    },
+    branch: ctx.config.branch,
+  });
+
+  ctx.edges.push(edge);
+}
+
+/**
+ * Visit an object creation expression (new Foo()) to create CALLS edge
+ */
+function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): void {
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+
+  // Get the type being instantiated
+  const typeNode = getChildByField(node, "type");
+  const typeName = getNodeText(typeNode);
+  if (!typeName) return;
+
+  // Create target entity ID for constructor
+  const targetEntityId = `unresolved:${typeName}`;
+
+  // Count arguments
+  const argList = findChildByType(node, "argument_list");
+  const argumentCount = argList
+    ? argList.namedChildren.filter((c) => c.type === "argument").length
+    : 0;
+
+  // Create CALLS edge for constructor
+  const edge = createEdge({
+    source_entity_id: sourceEntityId,
+    target_entity_id: targetEntityId,
+    edge_type: "CALLS",
+    source_file_path: ctx.filePath,
+    source_file_hash: ctx.sourceFileHash,
+    source_line: node.startPosition.row + 1,
+    source_column: node.startPosition.column,
+    properties: {
+      callee: `new ${typeName}`,
+      argumentCount,
+    },
+    branch: ctx.config.branch,
+  });
+
+  ctx.edges.push(edge);
+}
+
+/**
+ * Visit constructor initializer (base() or this() calls)
+ */
+function visitConstructorInitializer(node: SyntaxNode, ctx: ParseContext): void {
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+
+  // Check if it's base() or this()
+  const baseKeyword = findChildByType(node, "base");
+  const thisKeyword = findChildByType(node, "this");
+
+  let calleeName: string;
+  if (baseKeyword) {
+    calleeName = "base";
+  } else if (thisKeyword) {
+    calleeName = "this";
+  } else {
+    return;
+  }
+
+  const targetEntityId = `unresolved:${calleeName}`;
+
+  // Count arguments
+  const argList = findChildByType(node, "argument_list");
+  const argumentCount = argList
+    ? argList.namedChildren.filter((c) => c.type === "argument").length
+    : 0;
+
+  const edge = createEdge({
+    source_entity_id: sourceEntityId,
+    target_entity_id: targetEntityId,
+    edge_type: "CALLS",
+    source_file_path: ctx.filePath,
+    source_file_hash: ctx.sourceFileHash,
+    source_line: node.startPosition.row + 1,
+    source_column: node.startPosition.column,
+    properties: {
+      callee: calleeName,
+      argumentCount,
+    },
+    branch: ctx.config.branch,
+  });
+
+  ctx.edges.push(edge);
+}
+
+/**
+ * Extract callee name from an invocation expression
+ */
+function extractCalleeName(node: SyntaxNode): string | null {
+  // The function/method being called is the first child (before argument_list)
+  // It could be:
+  // - identifier: foo()
+  // - member_access_expression: obj.Method()
+  // - generic_name: Foo<T>()
+  // - qualified_name: Namespace.Foo()
+
+  const firstChild = node.children[0];
+  if (!firstChild) return null;
+
+  switch (firstChild.type) {
+    case "identifier":
+      return getNodeText(firstChild);
+
+    case "generic_name": {
+      const nameNode = findChildByType(firstChild, "identifier");
+      return getNodeText(nameNode);
+    }
+
+    case "member_access_expression": {
+      return extractMemberAccessName(firstChild);
+    }
+
+    case "qualified_name":
+      return getNodeText(firstChild);
+
+    default:
+      // For other complex expressions, try to get the text
+      return getNodeText(firstChild) || null;
+  }
+}
+
+/**
+ * Extract name from member access expression (obj.Method)
+ */
+function extractMemberAccessName(node: SyntaxNode): string {
+  const nameNode = getChildByField(node, "name");
+  const memberName = getNodeText(nameNode);
+
+  const expressionNode = getChildByField(node, "expression");
+  if (!expressionNode) return memberName;
+
+  // Get object/namespace name
+  let objectName: string | null = null;
+
+  switch (expressionNode.type) {
+    case "identifier":
+      objectName = getNodeText(expressionNode);
+      break;
+
+    case "this_expression":
+      objectName = "this";
+      break;
+
+    case "base_expression":
+      objectName = "base";
+      break;
+
+    case "member_access_expression":
+      objectName = extractMemberAccessName(expressionNode);
+      break;
+
+    case "invocation_expression":
+      // Chained call like foo().bar() - just use the method name
+      return memberName;
+
+    default:
+      objectName = getNodeText(expressionNode);
+  }
+
+  if (objectName) {
+    return `${objectName}.${memberName}`;
+  }
+
+  return memberName;
+}
+
+/**
  * Add a CONTAINS edge
  */
 function addContainsEdge(
@@ -1198,6 +1452,7 @@ export class CSharpParser implements LanguageParser {
       currentNamespaceId: null,
       currentContainerId: null,
       currentContainerName: null,
+      currentMethodId: null,
       nodes: [],
       edges: [],
       externalRefs: [],

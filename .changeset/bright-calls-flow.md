@@ -2,7 +2,7 @@
 "@pietgk/devac-core": minor
 ---
 
-Add CALLS edge extraction to TypeScript and Python parsers
+Add CALLS edge extraction to TypeScript, Python, and C# parsers
 
 - New CALLS edges track function and method call relationships
 - Captures caller → callee relationships including:
@@ -12,6 +12,8 @@ Add CALLS edge extraction to TypeScript and Python parsers
   - Built-in calls: `console.log()`, `setTimeout()`, `print()`
   - Constructor calls: `super()`, `new Class()`
   - Instance method calls: `this.method()`, `self.method()`
+  - C# base/this initializers: `base()`, `this()`
+  - Object creation: `new ClassName()`
 - Edge properties include source location and argument count
 - Enables "find all callers of X" queries on seeds
 - Updated data model documentation for CALLS edge properties

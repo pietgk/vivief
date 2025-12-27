@@ -332,6 +332,246 @@ exports[`Parser Snapshots > C# Parser > sample-async.cs snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ac167c1",
+      "target_id_suffix": "unresolved:FetchAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ac167c1",
+      "target_id_suffix": "unresolved:Result<string>.Success",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ac167c1",
+      "target_id_suffix": "unresolved:Result<string>.Failure",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ff520d8",
+      "target_id_suffix": "unresolved:ParallelOptions",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ff520d8",
+      "target_id_suffix": "unresolved:Parallel.ForEachAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0ff520d8",
+      "target_id_suffix": "unresolved:ProcessItemAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:21b01fea",
+      "target_id_suffix": "unresolved:CleanupAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:26b4539c",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4db56ccd",
+      "target_id_suffix": "unresolved:stream.ConfigureAwait",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4db56ccd",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4e260ef5",
+      "target_id_suffix": "unresolved:ValidateAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4e260ef5",
+      "target_id_suffix": "unresolved:TransformAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4e260ef5",
+      "target_id_suffix": "unresolved:SaveAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4e260ef5",
+      "target_id_suffix": "unresolved:ProcessResult",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:50fe54d1",
+      "target_id_suffix": "unresolved:Lazy<Task<T>>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:543f4bab",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:58b83572",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:60450e4d",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:60450e4d",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:654534b7",
+      "target_id_suffix": "unresolved:cancellationToken.ThrowIfCancellationRequested",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:654534b7",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:77969ecf",
+      "target_id_suffix": "unresolved:TryGetFromCache",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:77969ecf",
+      "target_id_suffix": "unresolved:ValueTask<int>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:77969ecf",
+      "target_id_suffix": "unresolved:ValueTask<int>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:77969ecf",
+      "target_id_suffix": "unresolved:FetchValueAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:860a20b1",
+      "target_id_suffix": "unresolved:Task.FromResult",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:860a20b1",
+      "target_id_suffix": "unresolved:input.Trim",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8b71f257",
+      "target_id_suffix": "unresolved:DoWorkAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8b9ee831",
+      "target_id_suffix": "unresolved:List<Task<string>>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8b9ee831",
+      "target_id_suffix": "unresolved:tasks.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8b9ee831",
+      "target_id_suffix": "unresolved:FetchUrlAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8b9ee831",
+      "target_id_suffix": "unresolved:Task.WhenAny",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9aa2300d",
+      "target_id_suffix": "unresolved:ConfigureAwait",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9aa2300d",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a7b3ba51",
+      "target_id_suffix": "unresolved:_httpClient.GetAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a7b3ba51",
+      "target_id_suffix": "unresolved:response.EnsureSuccessStatusCode",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a7b3ba51",
+      "target_id_suffix": "unresolved:response.Content.ReadAsStringAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a92d68a5",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a92d68a5",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cd435d52",
+      "target_id_suffix": "unresolved:List<Task<string>>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cd435d52",
+      "target_id_suffix": "unresolved:tasks.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cd435d52",
+      "target_id_suffix": "unresolved:FetchUrlAsync",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cd435d52",
+      "target_id_suffix": "unresolved:Task.WhenAll",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e3adcd84",
+      "target_id_suffix": "unresolved:Task.FromResult",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e3adcd84",
+      "target_id_suffix": "unresolved:input.ToUpperInvariant",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ec9cd970",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f4411c4b",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:fbd7edbd",
+      "target_id_suffix": "unresolved:Task.FromResult",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:0698bdcb",
       "target_id_suffix": "method:654534b7",
@@ -2233,6 +2473,26 @@ exports[`Parser Snapshots > C# Parser > sample-async.cs snapshot 1`] = `
 exports[`Parser Snapshots > C# Parser > sample-attributes.cs snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:45a8bfab",
+      "target_id_suffix": "unresolved:DataChanged?.Invoke",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b7836d10",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e3f68438",
+      "target_id_suffix": "unresolved:input?.ToUpper",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:fae25e34",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:00cb889d",
@@ -4424,6 +4684,71 @@ exports[`Parser Snapshots > C# Parser > sample-class.cs snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:159b19f7",
+      "target_id_suffix": "unresolved:base",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:159b19f7",
+      "target_id_suffix": "unresolved:this",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:233ce226",
+      "target_id_suffix": "unresolved:_users.Find",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:60f96469",
+      "target_id_suffix": "unresolved:HashPassword",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:68cad1cc",
+      "target_id_suffix": "unresolved:string.IsNullOrEmpty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:68cad1cc",
+      "target_id_suffix": "unresolved:ArgumentException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:afb0ce5c",
+      "target_id_suffix": "unresolved:User",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b3c4ca6b",
+      "target_id_suffix": "unresolved:admin.Permissions.Contains",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:c14760d6",
+      "target_id_suffix": "unresolved:base",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:dd9c67ff",
+      "target_id_suffix": "unresolved:user.Validate",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:dd9c67ff",
+      "target_id_suffix": "unresolved:_users.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e67edf2e",
+      "target_id_suffix": "unresolved:Convert.ToBase64String",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e67edf2e",
+      "target_id_suffix": "unresolved:System.Text.Encoding.UTF8.GetBytes",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:1bfe5b9f",
       "target_id_suffix": "method:b3c4ca6b",
@@ -5499,6 +5824,66 @@ exports[`Parser Snapshots > C# Parser > sample-class.cs snapshot 1`] = `
 exports[`Parser Snapshots > C# Parser > sample-csharp-12.cs snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:072c5423",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:5cff3f24",
+      "target_id_suffix": "unresolved:GetPossibleNull",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:6c3b6e8e",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8ace68ca",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:91ca671a",
+      "target_id_suffix": "unresolved:int.TryParse",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9e28317a",
+      "target_id_suffix": "unresolved:Math.Sqrt",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b9a74fb2",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:c1449575",
+      "target_id_suffix": "unresolved:input.ToUpper",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cbe0d4a0",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:dd622511",
+      "target_id_suffix": "unresolved:numbers.Select",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f4ed8b59",
+      "target_id_suffix": "unresolved:AsyncResource",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f4ed8b59",
+      "target_id_suffix": "unresolved:resource.UseAsync",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:0e83a162",
@@ -9559,6 +9944,261 @@ exports[`Parser Snapshots > C# Parser > sample-extension.cs snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:07acbc9d",
+      "target_id_suffix": "unresolved:source.Any",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0b33f718",
+      "target_id_suffix": "unresolved:source.Where",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:145acdca",
+      "target_id_suffix": "unresolved:Dictionary<TKey, TValue>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:145acdca",
+      "target_id_suffix": "unresolved:keySelector",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:145acdca",
+      "target_id_suffix": "unresolved:dictionary.ContainsKey",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:145acdca",
+      "target_id_suffix": "unresolved:valueSelector",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1bc342b3",
+      "target_id_suffix": "unresolved:obj?.ToString",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:2a2d7f8e",
+      "target_id_suffix": "unresolved:AddTicks",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:2a2d7f8e",
+      "target_id_suffix": "unresolved:date.Date.AddDays",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:string.IsNullOrEmpty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:value.ToLowerInvariant",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:Regex.Replace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:Regex.Replace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:Regex.Replace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:33bb6b22",
+      "target_id_suffix": "unresolved:slug.Trim",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:Task.WhenAny",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:TimeoutException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:Task.Delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:Task.WhenAny",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e5ae202",
+      "target_id_suffix": "unresolved:TimeoutException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4527c0cd",
+      "target_id_suffix": "unresolved:string.IsNullOrEmpty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4527c0cd",
+      "target_id_suffix": "unresolved:value.Substring",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:5ddda8a7",
+      "target_id_suffix": "unresolved:source.Any",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:66c2903d",
+      "target_id_suffix": "unresolved:source.Select",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:67c47b7b",
+      "target_id_suffix": "unresolved:string.Concat",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:67c47b7b",
+      "target_id_suffix": "unresolved:value.Where",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:67c47b7b",
+      "target_id_suffix": "unresolved:char.IsWhiteSpace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:6f607768",
+      "target_id_suffix": "unresolved:ArgumentNullException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:83319194",
+      "target_id_suffix": "unresolved:action",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8340556e",
+      "target_id_suffix": "unresolved:List<T>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8340556e",
+      "target_id_suffix": "unresolved:list.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:96baefe5",
+      "target_id_suffix": "unresolved:AddTicks",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:96baefe5",
+      "target_id_suffix": "unresolved:AddMonths",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:96baefe5",
+      "target_id_suffix": "unresolved:date.StartOfMonth",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:990166c4",
+      "target_id_suffix": "unresolved:task.ContinueWith",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:990166c4",
+      "target_id_suffix": "unresolved:onError",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a4925bf5",
+      "target_id_suffix": "unresolved:string.IsNullOrWhiteSpace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a782e61f",
+      "target_id_suffix": "unresolved:InvalidOperationException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ab73bd7f",
+      "target_id_suffix": "unresolved:List<T>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ab73bd7f",
+      "target_id_suffix": "unresolved:chunk.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ab73bd7f",
+      "target_id_suffix": "unresolved:List<T>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b9d460c6",
+      "target_id_suffix": "unresolved:DateTime",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:bde8a12e",
+      "target_id_suffix": "unresolved:today.AddYears",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:c046abfa",
+      "target_id_suffix": "unresolved:action",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cb09b219",
+      "target_id_suffix": "unresolved:mapper",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d097ab96",
+      "target_id_suffix": "unresolved:date.IsWeekend",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d161d9b9",
+      "target_id_suffix": "unresolved:string.IsNullOrEmpty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d192ec15",
+      "target_id_suffix": "unresolved:int.TryParse",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ecfe4160",
+      "target_id_suffix": "unresolved:string.IsNullOrWhiteSpace",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ecfe4160",
+      "target_id_suffix": "unresolved:value.Split",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:7db603cb",
       "target_id_suffix": "method:0da4e4c5",
@@ -12221,6 +12861,76 @@ exports[`Parser Snapshots > C# Parser > sample-generics.cs snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1218df52",
+      "target_id_suffix": "unresolved:Optional<T>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1bdebe82",
+      "target_id_suffix": "unresolved:_entities.TryGetValue",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:2455d7d9",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4849cb65",
+      "target_id_suffix": "unresolved:a.CompareTo",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4d5a9ea8",
+      "target_id_suffix": "unresolved:NotSupportedException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:520534e5",
+      "target_id_suffix": "unresolved:_items.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:832e09a6",
+      "target_id_suffix": "unresolved:T",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:832e09a6",
+      "target_id_suffix": "unresolved:_items.Add",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:838d9c4d",
+      "target_id_suffix": "unresolved:converter",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:841950ca",
+      "target_id_suffix": "unresolved:Animal",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9bc4b82e",
+      "target_id_suffix": "unresolved:Dog",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b576f945",
+      "target_id_suffix": "unresolved:_entities.ContainsKey",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:c1ed18f7",
+      "target_id_suffix": "unresolved:Pair<TSecond, TFirst>",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f40c98c3",
+      "target_id_suffix": "unresolved:List<T>",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:0c9a5c50",
       "target_id_suffix": "property:137220ca",
@@ -14393,6 +15103,11 @@ exports[`Parser Snapshots > C# Parser > sample-interface.cs snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b0d6e1e2",
+      "target_id_suffix": "unresolved:string.IsNullOrEmpty",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "interface:08fbec02",
       "target_id_suffix": "property:fa3d6538",
@@ -16103,6 +16818,36 @@ exports[`Parser Snapshots > C# Parser > sample-interface.cs snapshot 1`] = `
 exports[`Parser Snapshots > C# Parser > sample-records.cs snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:29e41f40",
+      "target_id_suffix": "unresolved:ArgumentException",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:29e41f40",
+      "target_id_suffix": "unresolved:nameof",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:759dac6a",
+      "target_id_suffix": "unresolved:Point",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:78764368",
+      "target_id_suffix": "unresolved:onSuccess",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:78764368",
+      "target_id_suffix": "unresolved:onFailure",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9118e912",
+      "target_id_suffix": "unresolved:Console.WriteLine",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:4ef734b6",
