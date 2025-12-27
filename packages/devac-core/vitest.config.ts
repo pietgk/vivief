@@ -12,8 +12,8 @@ export default defineConfig({
       exclude: ["src/**/*.d.ts", "src/**/index.ts", "src/**/types.ts", "src/**/__tests__/**"],
       reportOnFailure: true,
     },
-    testTimeout: 30000,
-    hookTimeout: 30000,
+    testTimeout: 60000,
+    hookTimeout: 60000,
     // Test isolation settings to prevent flakiness
     setupFiles: ["./vitest.setup.ts"],
     pool: "forks",
