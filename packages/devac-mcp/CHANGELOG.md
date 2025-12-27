@@ -1,5 +1,36 @@
 # @pietgk/devac-mcp
 
+## 0.3.1
+
+### Patch Changes
+
+- a426cd5: Add workspace auto-detection and readOnly mode for hub operations
+
+  ### @pietgk/devac-core
+
+  - Add `readOnly` option to `CentralHub` for read-only database access
+  - Auto-fallback to readOnly mode when database is locked by another process
+  - Add `readOnly` option to `HubStorage.init()` for explicit access control
+
+  ### @pietgk/devac-cli
+
+  - Hub commands now auto-detect workspace hub directory using git-based conventions
+  - Add helpful error suggestions for common issues (lock conflicts, missing seeds, etc.)
+  - Read-only commands (status, list, errors, diagnostics, summary) use readOnly mode to avoid lock conflicts
+
+  ### @pietgk/devac-mcp
+
+  - MCP server now uses readOnly mode by default to prevent DuckDB lock conflicts with CLI
+
+- Updated dependencies [2e3e162]
+- Updated dependencies [6a218a7]
+- Updated dependencies [2a0f2bd]
+- Updated dependencies [a426cd5]
+- Updated dependencies [802f0e5]
+- Updated dependencies [13fb888]
+- Updated dependencies [2b1b353]
+  - @pietgk/devac-core@0.3.0
+
 ## 0.3.0
 
 ### Minor Changes
