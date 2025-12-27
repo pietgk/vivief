@@ -209,3 +209,5 @@ export type {
   HubSummaryCommandOptions,
   HubSummaryCommandResult,
 } from "./hub-summary.js";
+export { hubQueryCommand } from "./hub-query.js";
+export type { HubQueryOptions, HubQueryResult } from "./hub-query.js";

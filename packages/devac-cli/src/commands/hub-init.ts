@@ -14,6 +14,7 @@ import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { hubDiagnosticsCommand } from "./hub-diagnostics.js";
 import { hubErrorsCommand } from "./hub-errors.js";
 import { hubList } from "./hub-list.js";
+import { hubQueryCommand } from "./hub-query.js";
 import { hubRefresh } from "./hub-refresh.js";
 import { hubRegister } from "./hub-register.js";
 import { hubStatus } from "./hub-status.js";
@@ -460,6 +461,61 @@ export function registerHubCommand(program: Command): void {
           displayCommandResult({
             success: false,
             message: "Failed to get summary",
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    });
+
+  // hub query
+  hub
+    .command("query <sql>")
+    .description("Execute SQL query across all registered repositories")
+    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
+    .option("--branch <branch>", "Branch to query (default: base)", "base")
+    .option("--json", "Output as JSON")
+    .action(async (sql, options) => {
+      try {
+        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const result = await hubQueryCommand({
+          hubDir,
+          sql,
+          branch: options.branch,
+          json: options.json,
+        });
+        if (!result.success) {
+          if (options.json) {
+            console.log(
+              JSON.stringify({
+                success: false,
+                error: result.error,
+              })
+            );
+          } else {
+            displayCommandResult({
+              success: false,
+              message: "Query failed",
+              error: result.error,
+            });
+          }
+          return;
+        }
+        console.log(result.output);
+        if (!options.json) {
+          console.log(`\n${result.message}`);
+        }
+      } catch (err) {
+        if (options.json) {
+          console.log(
+            JSON.stringify({
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          );
+        } else {
+          displayCommandResult({
+            success: false,
+            message: "Query failed",
             error: err instanceof Error ? err.message : String(err),
           });
         }
