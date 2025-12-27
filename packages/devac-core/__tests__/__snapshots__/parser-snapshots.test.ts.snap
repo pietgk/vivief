@@ -28361,7 +28361,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 201,
       "is_abstract": false,
       "is_async": false,
@@ -28381,7 +28381,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 181,
       "is_abstract": false,
       "is_async": false,
@@ -28401,7 +28401,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 252,
       "is_abstract": false,
       "is_async": false,
@@ -28441,7 +28441,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 172,
       "is_abstract": false,
       "is_async": false,
@@ -28461,7 +28461,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 165,
       "is_abstract": false,
       "is_async": false,
@@ -28501,7 +28501,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 337,
       "is_abstract": false,
       "is_async": false,
@@ -28521,7 +28521,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 154,
       "is_abstract": false,
       "is_async": false,
@@ -28541,7 +28541,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 140,
       "is_abstract": false,
       "is_async": false,
@@ -28561,7 +28561,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 96,
       "is_abstract": false,
       "is_async": false,
@@ -28581,7 +28581,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 224,
       "is_abstract": false,
       "is_async": false,
@@ -28601,7 +28601,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 131,
       "is_abstract": false,
       "is_async": false,
@@ -28621,7 +28621,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 147,
       "is_abstract": false,
       "is_async": false,
@@ -28719,7 +28719,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 85,
       "is_abstract": false,
       "is_async": false,
@@ -28739,7 +28739,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 363,
       "is_abstract": false,
       "is_async": false,
@@ -28779,7 +28779,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 379,
       "is_abstract": false,
       "is_async": false,
@@ -28819,7 +28819,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 323,
       "is_abstract": false,
       "is_async": false,
@@ -28879,7 +28879,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 297,
       "is_abstract": false,
       "is_async": false,
@@ -28899,7 +28899,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 267,
       "is_abstract": false,
       "is_async": false,
@@ -28919,7 +28919,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 19,
       "is_abstract": false,
       "is_async": false,
@@ -28939,7 +28939,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 14,
       "is_abstract": false,
       "is_async": false,
@@ -28979,7 +28979,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 110,
       "is_abstract": false,
       "is_async": false,
@@ -29039,7 +29039,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 389,
       "is_abstract": false,
       "is_async": false,
@@ -29059,7 +29059,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 30,
       "is_abstract": false,
       "is_async": false,
@@ -29099,7 +29099,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 372,
       "is_abstract": false,
       "is_async": false,
@@ -29119,7 +29119,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 283,
       "is_abstract": false,
       "is_async": false,
@@ -29139,7 +29139,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 290,
       "is_abstract": false,
       "is_async": false,
@@ -29179,7 +29179,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 115,
       "is_abstract": false,
       "is_async": false,
@@ -29199,7 +29199,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 274,
       "is_abstract": false,
       "is_async": false,
@@ -29219,7 +29219,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 312,
       "is_abstract": false,
       "is_async": false,
@@ -29239,7 +29239,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 59,
       "is_abstract": false,
       "is_async": false,
@@ -29279,7 +29279,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 120,
       "is_abstract": false,
       "is_async": false,
@@ -29339,7 +29339,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 306,
       "is_abstract": false,
       "is_async": false,
@@ -29399,7 +29399,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 68,
       "is_abstract": false,
       "is_async": false,
@@ -29419,7 +29419,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 76,
       "is_abstract": false,
       "is_async": false,
@@ -29439,7 +29439,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 317,
       "is_abstract": false,
       "is_async": false,
@@ -29459,7 +29459,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 54,
       "is_abstract": false,
       "is_async": false,
@@ -29479,7 +29479,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapsho
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 24,
       "is_abstract": false,
       "is_async": false,
@@ -30549,7 +30549,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 227,
       "is_abstract": false,
       "is_async": false,
@@ -30569,7 +30569,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 271,
       "is_abstract": true,
       "is_async": false,
@@ -30609,7 +30609,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 259,
       "is_abstract": false,
       "is_async": false,
@@ -30629,7 +30629,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 166,
       "is_abstract": false,
       "is_async": false,
@@ -30649,7 +30649,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 200,
       "is_abstract": false,
       "is_async": false,
@@ -30669,7 +30669,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 282,
       "is_abstract": false,
       "is_async": false,
@@ -30689,7 +30689,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 182,
       "is_abstract": false,
       "is_async": false,
@@ -30709,7 +30709,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 240,
       "is_abstract": false,
       "is_async": false,
@@ -30729,7 +30729,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 86,
       "is_abstract": false,
       "is_async": false,
@@ -30749,7 +30749,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 17,
       "is_abstract": false,
       "is_async": false,
@@ -30769,7 +30769,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 297,
       "is_abstract": false,
       "is_async": false,
@@ -30789,7 +30789,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 38,
       "is_abstract": false,
       "is_async": false,
@@ -30829,7 +30829,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 27,
       "is_abstract": false,
       "is_async": false,
@@ -30849,7 +30849,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 52,
       "is_abstract": false,
       "is_async": false,
@@ -30869,7 +30869,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 150,
       "is_abstract": false,
       "is_async": false,
@@ -30889,7 +30889,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 104,
       "is_abstract": false,
       "is_async": false,
@@ -30909,7 +30909,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 133,
       "is_abstract": false,
       "is_async": false,
@@ -30949,7 +30949,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 70,
       "is_abstract": false,
       "is_async": false,
@@ -30969,7 +30969,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 124,
       "is_abstract": false,
       "is_async": false,
@@ -32128,7 +32128,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 279,
       "is_abstract": false,
       "is_async": false,
@@ -32148,7 +32148,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 446,
       "is_abstract": true,
       "is_async": false,
@@ -32168,7 +32168,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 521,
       "is_abstract": false,
       "is_async": false,
@@ -32188,7 +32188,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 159,
       "is_abstract": false,
       "is_async": false,
@@ -32208,7 +32208,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 550,
       "is_abstract": false,
       "is_async": false,
@@ -32228,7 +32228,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 376,
       "is_abstract": false,
       "is_async": false,
@@ -32248,7 +32248,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 138,
       "is_abstract": false,
       "is_async": false,
@@ -32268,7 +32268,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 322,
       "is_abstract": false,
       "is_async": false,
@@ -32288,7 +32288,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 91,
       "is_abstract": false,
       "is_async": false,
@@ -32308,7 +32308,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 255,
       "is_abstract": false,
       "is_async": false,
@@ -32328,7 +32328,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 75,
       "is_abstract": false,
       "is_async": false,
@@ -32348,7 +32348,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 492,
       "is_abstract": true,
       "is_async": false,
@@ -32408,7 +32408,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 465,
       "is_abstract": false,
       "is_async": false,
@@ -32428,7 +32428,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 563,
       "is_abstract": false,
       "is_async": false,
@@ -32548,7 +32548,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 532,
       "is_abstract": false,
       "is_async": false,
@@ -32628,7 +32628,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 580,
       "is_abstract": false,
       "is_async": false,
@@ -32648,7 +32648,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 611,
       "is_abstract": false,
       "is_async": true,
@@ -32668,7 +32668,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 288,
       "is_abstract": false,
       "is_async": false,
@@ -32768,7 +32768,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 413,
       "is_abstract": false,
       "is_async": false,
@@ -32788,7 +32788,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 646,
       "is_abstract": false,
       "is_async": false,
@@ -33786,7 +33786,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 168,
       "is_abstract": false,
       "is_async": false,
@@ -33846,7 +33846,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 397,
       "is_abstract": false,
       "is_async": false,
@@ -34006,7 +34006,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 191,
       "is_abstract": false,
       "is_async": false,
@@ -34046,7 +34046,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 204,
       "is_abstract": false,
       "is_async": false,
@@ -34106,7 +34106,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 620,
       "is_abstract": false,
       "is_async": false,
@@ -34890,7 +34890,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 33,
       "is_abstract": false,
       "is_async": false,
@@ -34910,7 +34910,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 81,
       "is_abstract": false,
       "is_async": false,
@@ -34930,7 +34930,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 143,
       "is_abstract": false,
       "is_async": false,
@@ -34950,7 +34950,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 384,
       "is_abstract": false,
       "is_async": false,
@@ -34970,7 +34970,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 119,
       "is_abstract": false,
       "is_async": false,
@@ -34990,7 +34990,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 40,
       "is_abstract": false,
       "is_async": false,
@@ -35010,7 +35010,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 112,
       "is_abstract": false,
       "is_async": false,
@@ -35030,7 +35030,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 150,
       "is_abstract": false,
       "is_async": false,
@@ -35090,7 +35090,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 93,
       "is_abstract": false,
       "is_async": false,
@@ -35110,7 +35110,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 337,
       "is_abstract": false,
       "is_async": false,
@@ -35130,7 +35130,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 18,
       "is_abstract": false,
       "is_async": false,
@@ -35150,7 +35150,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 104,
       "is_abstract": false,
       "is_async": false,
@@ -35170,7 +35170,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 395,
       "is_abstract": false,
       "is_async": false,
@@ -35190,7 +35190,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 59,
       "is_abstract": false,
       "is_async": false,
@@ -35210,7 +35210,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 344,
       "is_abstract": false,
       "is_async": false,
@@ -35230,7 +35230,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 330,
       "is_abstract": false,
       "is_async": false,
@@ -35250,7 +35250,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 303,
       "is_abstract": false,
       "is_async": false,
@@ -35688,7 +35688,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 185,
       "is_abstract": false,
       "is_async": false,
@@ -35708,7 +35708,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 190,
       "is_abstract": false,
       "is_async": false,
@@ -35728,7 +35728,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 310,
       "is_abstract": false,
       "is_async": false,
@@ -35748,7 +35748,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 199,
       "is_abstract": false,
       "is_async": false,
@@ -35768,7 +35768,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 266,
       "is_abstract": false,
       "is_async": false,
@@ -35808,7 +35808,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 169,
       "is_abstract": false,
       "is_async": false,
@@ -35828,7 +35828,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 257,
       "is_abstract": false,
       "is_async": false,
@@ -35848,7 +35848,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 250,
       "is_abstract": false,
       "is_async": false,
@@ -35868,7 +35868,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 271,
       "is_abstract": false,
       "is_async": false,
@@ -35888,7 +35888,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 159,
       "is_abstract": false,
       "is_async": false,
@@ -35908,7 +35908,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 295,
       "is_abstract": false,
       "is_async": false,
@@ -35928,7 +35928,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 164,
       "is_abstract": false,
       "is_async": false,
@@ -35948,7 +35948,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 236,
       "is_abstract": false,
       "is_async": false,
@@ -35968,7 +35968,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 180,
       "is_abstract": false,
       "is_async": false,
@@ -35988,7 +35988,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 210,
       "is_abstract": false,
       "is_async": false,
@@ -36008,7 +36008,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 319,
       "is_abstract": false,
       "is_async": false,
@@ -36028,7 +36028,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 231,
       "is_abstract": false,
       "is_async": false,
@@ -36048,7 +36048,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 280,
       "is_abstract": false,
       "is_async": false,
@@ -36068,7 +36068,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 224,
       "is_abstract": false,
       "is_async": false,
@@ -36088,7 +36088,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 243,
       "is_abstract": false,
       "is_async": false,
@@ -36108,7 +36108,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 217,
       "is_abstract": false,
       "is_async": false,
@@ -36128,7 +36128,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 175,
       "is_abstract": false,
       "is_async": false,
@@ -36503,7 +36503,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 221,
       "is_abstract": false,
       "is_async": false,
@@ -36523,7 +36523,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 269,
       "is_abstract": false,
       "is_async": false,
@@ -36543,7 +36543,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 49,
       "is_abstract": false,
       "is_async": false,
@@ -36583,7 +36583,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 156,
       "is_abstract": false,
       "is_async": false,
@@ -36623,7 +36623,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 109,
       "is_abstract": false,
       "is_async": false,
@@ -36643,7 +36643,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 133,
       "is_abstract": false,
       "is_async": false,
@@ -36663,7 +36663,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 77,
       "is_abstract": false,
       "is_async": false,
@@ -36703,7 +36703,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 239,
       "is_abstract": false,
       "is_async": false,
@@ -37447,7 +37447,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
   "nodes": [
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 136,
       "is_abstract": false,
       "is_async": false,
@@ -37527,7 +37527,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 253,
       "is_abstract": false,
       "is_async": false,
@@ -37607,7 +37607,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 174,
       "is_abstract": false,
       "is_async": false,
@@ -37687,7 +37687,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 156,
       "is_abstract": false,
       "is_async": false,
@@ -38067,7 +38067,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 117,
       "is_abstract": false,
       "is_async": false,
@@ -38147,7 +38147,7 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     },
     {
       "decorators": [],
-      "documentation": undefined,
+      "documentation": "HAS_DOCUMENTATION",
       "end_line": 413,
       "is_abstract": false,
       "is_async": false,

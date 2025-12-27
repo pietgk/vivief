@@ -42,6 +42,85 @@ import {
 } from "./scoped-name-generator.js";
 
 // ============================================================================
+// JSDoc Extraction Utilities
+// ============================================================================
+
+/**
+ * Extract JSDoc/documentation comment from a Babel AST node
+ *
+ * Looks for leading block comments that follow JSDoc format (/** ... *\/)
+ * and cleans up the comment text for storage.
+ *
+ * @param node - The AST node to extract documentation from
+ * @param parentNode - Optional parent node to check (for exported declarations)
+ */
+function extractDocumentation(node: BabelNode, parentNode?: BabelNode | null): string | null {
+  // Type for node with comments
+  type NodeWithComments = BabelNode & { leadingComments?: Array<{ type: string; value: string }> };
+
+  // First try the node itself
+  let comments = (node as NodeWithComments).leadingComments;
+
+  // If no comments on the node and we have a parent, check if it's an export declaration
+  // When you have `export function foo()`, the JSDoc is attached to the ExportDeclaration
+  if ((!comments || comments.length === 0) && parentNode) {
+    if (t.isExportNamedDeclaration(parentNode) || t.isExportDefaultDeclaration(parentNode)) {
+      comments = (parentNode as NodeWithComments).leadingComments;
+    }
+  }
+
+  if (!comments || comments.length === 0) {
+    return null;
+  }
+
+  // Find the last block comment (JSDoc style) before the declaration
+  // We look for the last one because multiple comments may precede a declaration
+  // and the JSDoc is typically the one immediately before
+  const jsDocComment = [...comments]
+    .reverse()
+    .find((c) => c.type === "CommentBlock" && c.value.startsWith("*"));
+
+  if (!jsDocComment) {
+    return null;
+  }
+
+  // Clean up the JSDoc comment
+  return cleanJSDocComment(jsDocComment.value);
+}
+
+/**
+ * Clean up JSDoc comment text
+ *
+ * Removes leading asterisks and normalizes whitespace while preserving
+ * the meaningful content.
+ */
+function cleanJSDocComment(value: string): string | null {
+  // The value comes without the outer /* */ markers
+  // Split into lines and process each
+  const lines = value.split("\n");
+
+  const cleanedLines = lines.map((line) => {
+    // Remove leading whitespace and asterisk
+    const cleaned = line.replace(/^\s*\*\s?/, "");
+    // Also handle trailing whitespace
+    return cleaned.trimEnd();
+  });
+
+  // Remove empty leading/trailing lines
+  while (cleanedLines.length > 0 && cleanedLines[0]?.trim() === "") {
+    cleanedLines.shift();
+  }
+  while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1]?.trim() === "") {
+    cleanedLines.pop();
+  }
+
+  const result = cleanedLines.join("\n").trim();
+
+  // Return null if the cleaned comment is empty
+  return result.length > 0 ? result : null;
+}
+
+// ============================================================================
 // Babel Parser Configuration
 // ============================================================================
 
@@ -266,6 +345,7 @@ export class TypeScriptParser implements LanguageParser {
       kind: "class",
       scopedName,
       node,
+      parentNode: nodePath.parent,
       isExported: this.isExported(nodePath),
       isDefaultExport: this.isDefaultExport(nodePath),
       isAbstract: node.abstract ?? false,
@@ -426,6 +506,7 @@ export class TypeScriptParser implements LanguageParser {
       kind: "function",
       scopedName,
       node,
+      parentNode: nodePath.parent,
       isExported: this.isExported(nodePath),
       isDefaultExport: this.isDefaultExport(nodePath),
       isAsync: node.async ?? false,
@@ -460,6 +541,12 @@ export class TypeScriptParser implements LanguageParser {
       ctx.scopeContext
     );
 
+    // For arrow functions, JSDoc is attached to VariableDeclaration (parent of VariableDeclarator)
+    // We need to extract from the parent node
+    const varDecl = nodePath.parentPath;
+    const documentation =
+      ctx.config.includeDocumentation && varDecl?.node ? extractDocumentation(varDecl.node) : null;
+
     const funcNode = ctx.createNode({
       name: funcName,
       kind: "function",
@@ -467,6 +554,7 @@ export class TypeScriptParser implements LanguageParser {
       node,
       isExported: this.isVariableExported(nodePath),
       isAsync: funcExpr.async ?? false,
+      documentation,
     });
 
     ctx.result.nodes.push(funcNode);
@@ -806,6 +894,7 @@ export class TypeScriptParser implements LanguageParser {
       kind: "interface",
       scopedName,
       node,
+      parentNode: nodePath.parent,
       isExported: this.isExported(nodePath),
     });
 
@@ -847,6 +936,7 @@ export class TypeScriptParser implements LanguageParser {
       kind: "type",
       scopedName,
       node,
+      parentNode: nodePath.parent,
       isExported: this.isExported(nodePath),
     });
 
@@ -872,6 +962,7 @@ export class TypeScriptParser implements LanguageParser {
       kind: "enum",
       scopedName,
       node,
+      parentNode: nodePath.parent,
       isExported: this.isExported(nodePath),
     });
 
@@ -1003,12 +1094,14 @@ class ParserContext {
     kind: NodeKind;
     scopedName: string;
     node: BabelNode;
+    parentNode?: BabelNode | null;
     isExported?: boolean;
     isDefaultExport?: boolean;
     isAbstract?: boolean;
     isStatic?: boolean;
     isAsync?: boolean;
     isGenerator?: boolean;
+    documentation?: string | null;
   }): ParsedNode {
     const loc = opts.node.loc;
 
@@ -1019,6 +1112,14 @@ class ParserContext {
       filePath: this.filePath,
       scopedName: opts.scopedName,
     });
+
+    // Extract documentation if not explicitly provided and config allows
+    const documentation =
+      opts.documentation !== undefined
+        ? opts.documentation
+        : this.config.includeDocumentation
+          ? extractDocumentation(opts.node, opts.parentNode)
+          : null;
 
     return createNode({
       entity_id: entityId,
@@ -1036,6 +1137,7 @@ class ParserContext {
       is_static: opts.isStatic ?? false,
       is_async: opts.isAsync ?? false,
       is_generator: opts.isGenerator ?? false,
+      documentation,
       source_file_hash: this.sourceFileHash,
       branch: this.config.branch,
       properties: {

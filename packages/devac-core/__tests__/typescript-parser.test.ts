@@ -1313,6 +1313,256 @@ function transform(value: any): any {
   });
 
   // ==========================================================================
+  // Documentation Extraction Tests
+  // ==========================================================================
+
+  describe("documentation extraction", () => {
+    it("extracts JSDoc from function declarations", async () => {
+      const content = `
+/**
+ * Adds two numbers together.
+ * @param a - First number
+ * @param b - Second number
+ * @returns The sum of a and b
+ */
+export function add(a: number, b: number): number {
+  return a + b;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const addFunc = result.nodes.find((n) => n.kind === "function" && n.name === "add");
+      expect(addFunc).toBeDefined();
+      expect(addFunc?.documentation).toBeDefined();
+      expect(addFunc?.documentation).toContain("Adds two numbers together");
+      expect(addFunc?.documentation).toContain("@param a");
+      expect(addFunc?.documentation).toContain("@returns");
+    });
+
+    it("extracts JSDoc from arrow functions", async () => {
+      const content = `
+/**
+ * Multiplies two numbers.
+ */
+const multiply = (a: number, b: number) => a * b;
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const multiplyFunc = result.nodes.find((n) => n.kind === "function" && n.name === "multiply");
+      expect(multiplyFunc).toBeDefined();
+      expect(multiplyFunc?.documentation).toBeDefined();
+      expect(multiplyFunc?.documentation).toContain("Multiplies two numbers");
+    });
+
+    it("extracts JSDoc from class declarations", async () => {
+      const content = `
+/**
+ * A service for managing users.
+ * @example
+ * const service = new UserService();
+ * service.getUser(1);
+ */
+export class UserService {
+  getUser(id: number) {
+    return { id };
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const userService = result.nodes.find((n) => n.kind === "class" && n.name === "UserService");
+      expect(userService).toBeDefined();
+      expect(userService?.documentation).toBeDefined();
+      expect(userService?.documentation).toContain("A service for managing users");
+      expect(userService?.documentation).toContain("@example");
+    });
+
+    it("extracts JSDoc from class methods", async () => {
+      const content = `
+class Calculator {
+  /**
+   * Divides the first number by the second.
+   * @throws Error if divisor is zero
+   */
+  divide(a: number, b: number): number {
+    if (b === 0) throw new Error("Cannot divide by zero");
+    return a / b;
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const divideMethod = result.nodes.find((n) => n.kind === "method" && n.name === "divide");
+      expect(divideMethod).toBeDefined();
+      expect(divideMethod?.documentation).toBeDefined();
+      expect(divideMethod?.documentation).toContain("Divides the first number");
+      expect(divideMethod?.documentation).toContain("@throws");
+    });
+
+    it("extracts JSDoc from interfaces", async () => {
+      const content = `
+/**
+ * Configuration options for the application.
+ */
+export interface AppConfig {
+  debug: boolean;
+  apiUrl: string;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const appConfig = result.nodes.find((n) => n.kind === "interface" && n.name === "AppConfig");
+      expect(appConfig).toBeDefined();
+      expect(appConfig?.documentation).toBeDefined();
+      expect(appConfig?.documentation).toContain("Configuration options");
+    });
+
+    it("extracts JSDoc from type aliases", async () => {
+      const content = `
+/**
+ * Valid user roles in the system.
+ */
+export type UserRole = "admin" | "user" | "guest";
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const userRole = result.nodes.find((n) => n.kind === "type" && n.name === "UserRole");
+      expect(userRole).toBeDefined();
+      expect(userRole?.documentation).toBeDefined();
+      expect(userRole?.documentation).toContain("Valid user roles");
+    });
+
+    it("extracts JSDoc from enums", async () => {
+      const content = `
+/**
+ * HTTP status codes commonly used in the API.
+ */
+export enum HttpStatus {
+  OK = 200,
+  NotFound = 404,
+  ServerError = 500
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const httpStatus = result.nodes.find((n) => n.kind === "enum" && n.name === "HttpStatus");
+      expect(httpStatus).toBeDefined();
+      expect(httpStatus?.documentation).toBeDefined();
+      expect(httpStatus?.documentation).toContain("HTTP status codes");
+    });
+
+    it("returns null for elements without JSDoc", async () => {
+      const content = `
+export function noDoc(x: number): number {
+  return x * 2;
+}
+
+// Regular comment, not JSDoc
+export function withComment(x: number): number {
+  return x + 1;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const noDocFunc = result.nodes.find((n) => n.kind === "function" && n.name === "noDoc");
+      expect(noDocFunc).toBeDefined();
+      expect(noDocFunc?.documentation).toBeNull();
+
+      const withCommentFunc = result.nodes.find(
+        (n) => n.kind === "function" && n.name === "withComment"
+      );
+      expect(withCommentFunc).toBeDefined();
+      expect(withCommentFunc?.documentation).toBeNull();
+    });
+
+    it("handles multi-line JSDoc with formatting", async () => {
+      const content = `
+/**
+ * Process data through multiple transformation steps.
+ *
+ * This function takes raw data and applies a series of
+ * transformations to produce the final result.
+ *
+ * Steps:
+ * 1. Validate input
+ * 2. Transform data
+ * 3. Return result
+ *
+ * @param data - The input data to process
+ * @returns Transformed data
+ */
+export function processData(data: unknown): unknown {
+  return data;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const processFunc = result.nodes.find(
+        (n) => n.kind === "function" && n.name === "processData"
+      );
+      expect(processFunc).toBeDefined();
+      expect(processFunc?.documentation).toBeDefined();
+      expect(processFunc?.documentation).toContain("Process data through multiple");
+      expect(processFunc?.documentation).toContain("Steps:");
+      expect(processFunc?.documentation).toContain("1. Validate input");
+    });
+
+    it("respects includeDocumentation config flag", async () => {
+      const content = `
+/**
+ * This is documented.
+ */
+export function documented(): void {}
+`;
+      // Parse with documentation disabled
+      const configWithoutDocs: ParserConfig = {
+        ...testConfig,
+        includeDocumentation: false,
+      };
+      const result = await parser.parseContent(content, "test.ts", configWithoutDocs);
+
+      const func = result.nodes.find((n) => n.kind === "function" && n.name === "documented");
+      expect(func).toBeDefined();
+      expect(func?.documentation).toBeNull();
+    });
+
+    it("extracts JSDoc from async functions", async () => {
+      const content = `
+/**
+ * Fetches user data from the API.
+ * @async
+ */
+export async function fetchUser(id: number): Promise<{ id: number }> {
+  return { id };
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const fetchFunc = result.nodes.find((n) => n.kind === "function" && n.name === "fetchUser");
+      expect(fetchFunc).toBeDefined();
+      expect(fetchFunc?.documentation).toBeDefined();
+      expect(fetchFunc?.documentation).toContain("Fetches user data");
+    });
+
+    it("extracts JSDoc from class properties", async () => {
+      const content = `
+class Config {
+  /**
+   * The application version string.
+   */
+  version: string = "1.0.0";
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const versionProp = result.nodes.find((n) => n.kind === "property" && n.name === "version");
+      expect(versionProp).toBeDefined();
+      expect(versionProp?.documentation).toBeDefined();
+      expect(versionProp?.documentation).toContain("application version");
+    });
+  });
+
+  // ==========================================================================
   // Async/Await and Generators Tests
   // ==========================================================================
 
