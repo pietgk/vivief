@@ -278,6 +278,118 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  // ================== Effects, Rules, C4 Tools (v3.0) ==================
+  {
+    name: "query_effects",
+    description:
+      "Query code effects (function calls, store operations, external requests, etc.) extracted during analysis. Effects represent observable behaviors in code that can be classified by the rules engine.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          enum: ["FunctionCall", "Store", "Retrieve", "Send", "Request", "Response"],
+          description: "Filter by effect type",
+        },
+        file: {
+          type: "string",
+          description: "Filter by file path (partial match)",
+        },
+        entity: {
+          type: "string",
+          description: "Filter by source entity ID",
+        },
+        externalOnly: {
+          type: "boolean",
+          description: "Show only external calls",
+        },
+        asyncOnly: {
+          type: "boolean",
+          description: "Show only async calls",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum results to return (default: 100)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "run_rules",
+    description:
+      "Run the rules engine on effects to produce domain effects. Domain effects are high-level classifications like 'Payment:Charge', 'Auth:TokenVerify', 'Database:Query'. Returns matched domain effects and statistics about rule matches.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        domain: {
+          type: "string",
+          description: "Filter results by domain (e.g., Payment, Auth, Database)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum effects to process (default: 1000)",
+        },
+        includeStats: {
+          type: "boolean",
+          description: "Include rule match statistics in response",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "list_rules",
+    description:
+      "List available rules in the rules engine. Rules define patterns for classifying code effects into domain effects.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        domain: {
+          type: "string",
+          description: "Filter by domain (e.g., Payment, Auth)",
+        },
+        provider: {
+          type: "string",
+          description: "Filter by provider (e.g., stripe, aws)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "generate_c4",
+    description:
+      "Generate C4 architecture diagrams from code effects. Returns C4 model data and optionally PlantUML diagram code. Supports Context, Container, and Component levels.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        level: {
+          type: "string",
+          enum: ["context", "containers", "domains", "externals"],
+          description: "C4 diagram level to generate",
+        },
+        systemName: {
+          type: "string",
+          description: "Name for the system in the diagram",
+        },
+        systemDescription: {
+          type: "string",
+          description: "Description for the system",
+        },
+        outputFormat: {
+          type: "string",
+          enum: ["json", "plantuml", "both"],
+          description: "Output format: json (model data), plantuml (diagram code), or both",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum effects to process (default: 1000)",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 export { MCP_TOOLS as default };

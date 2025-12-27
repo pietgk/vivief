@@ -12,6 +12,7 @@ import { Command } from "commander";
 import {
   registerAffectedCommand,
   registerAnalyzeCommand,
+  registerC4Command,
   registerCallGraphCommand,
   registerCleanCommand,
   registerContextCommand,
@@ -19,12 +20,14 @@ import {
   registerDependentsCommand,
   registerDepsCommand,
   registerDiagnosticsCommand,
+  registerEffectsCommand,
   registerFileSymbolsCommand,
   registerFindSymbolCommand,
   registerHubCommand,
   registerLintCommand,
   registerMcpCommand,
   registerQueryCommand,
+  registerRulesCommand,
   registerStatusCommand,
   registerTestCommand,
   registerTypecheckCommand,
@@ -75,6 +78,11 @@ registerMcpCommand(program);
 registerHubCommand(program);
 registerWorkspaceCommand(program);
 registerDiagnosticsCommand(program);
+
+// v3.0 Effects, Rules, C4 commands
+registerEffectsCommand(program);
+registerRulesCommand(program);
+registerC4Command(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

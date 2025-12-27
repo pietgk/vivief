@@ -27721,6 +27721,11 @@ exports[`Parser Snapshots > TypeScript Parser > inline code snapshots > async ge
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "function:fb30e547",
+      "target_id_suffix": "unresolved:Promise",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "module:2d4160af",
       "target_id_suffix": "unresolved:setTimeout",
     },
@@ -28061,6 +28066,11 @@ exports[`Parser Snapshots > TypeScript Parser > inline code snapshots > type ali
 exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fed6b03d",
+      "target_id_suffix": "unresolved:Error",
+    },
     {
       "edge_type": "CALLS",
       "source_id_suffix": "method:1dc6480c",
@@ -29547,6 +29557,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-class.ts snapshot 1`] = `
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:600a403f",
+      "target_id_suffix": "unresolved:UserService",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:72e468d0",
       "target_id_suffix": "unresolved:this.users.get",
     },
@@ -29554,6 +29569,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-class.ts snapshot 1`] = `
       "edge_type": "CALLS",
       "source_id_suffix": "method:9070f612",
       "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:9cbaa76a",
+      "target_id_suffix": "unresolved:Map",
     },
     {
       "edge_type": "CONTAINS",
@@ -30181,6 +30201,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:5111139a",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:5ffa9ca9",
       "target_id_suffix": "unresolved:Throttle",
     },
@@ -30263,6 +30288,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
       "edge_type": "CALLS",
       "source_id_suffix": "module:364207fc",
       "target_id_suffix": "unresolved:validator",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Error",
     },
     {
       "edge_type": "CALLS",
@@ -31425,6 +31455,16 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "function:1de3d705",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2df3fffc",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "function:3c189875",
       "target_id_suffix": "unresolved:console.log",
     },
@@ -31435,8 +31475,18 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "function:5981fd31",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "function:69fe7115",
       "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:72492794",
+      "target_id_suffix": "unresolved:AsyncConnection",
     },
     {
       "edge_type": "CALLS",
@@ -31447,6 +31497,16 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
       "edge_type": "CALLS",
       "source_id_suffix": "function:72492794",
       "target_id_suffix": "unresolved:connection.query",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:757b89ee",
+      "target_id_suffix": "unresolved:TypeError",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:ee76c214",
+      "target_id_suffix": "unresolved:FileHandle",
     },
     {
       "edge_type": "CALLS",
@@ -31491,6 +31551,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     {
       "edge_type": "CALLS",
       "source_id_suffix": "method:69529c3c",
+      "target_id_suffix": "unresolved:Circle",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:69529c3c",
       "target_id_suffix": "unresolved:circle.setColor",
     },
     {
@@ -31506,6 +31571,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     {
       "edge_type": "CALLS",
       "source_id_suffix": "method:8f2c1f6f",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8f2c1f6f",
       "target_id_suffix": "unresolved:console.log",
     },
     {
@@ -31515,13 +31585,28 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:a7ce6d7b",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:cf4b022d",
       "target_id_suffix": "unresolved:console.log",
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:cfe507d8",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:d898225f",
       "target_id_suffix": "unresolved:this.connectionPool.has",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d898225f",
+      "target_id_suffix": "unresolved:DatabaseConnection",
     },
     {
       "edge_type": "CALLS",
@@ -31556,6 +31641,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
     {
       "edge_type": "CALLS",
       "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Map",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
       "target_id_suffix": "unresolved:parseInt",
     },
     {
@@ -31567,6 +31657,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`
       "edge_type": "CALLS",
       "source_id_suffix": "module:868e300b",
       "target_id_suffix": "unresolved:Date.now",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Error",
     },
     {
       "edge_type": "CALLS",
@@ -34184,6 +34279,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-functions.ts snapshot 1`]
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "function:f8b2e10f",
+      "target_id_suffix": "unresolved:Error",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "function:fd95bfd4",
       "target_id_suffix": "unresolved:items.forEach",
     },
@@ -34527,6 +34627,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:0201879b",
+      "target_id_suffix": "unresolved:Result",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:09fe7cfe",
       "target_id_suffix": "unresolved:this.items.set",
     },
@@ -34544,6 +34649,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
       "edge_type": "CALLS",
       "source_id_suffix": "method:37bcb793",
       "target_id_suffix": "unresolved:this.items.find",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3db158d3",
+      "target_id_suffix": "unresolved:Error",
     },
     {
       "edge_type": "CALLS",
@@ -34567,8 +34677,18 @@ exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] 
     },
     {
       "edge_type": "CALLS",
+      "source_id_suffix": "method:ec4a9ce8",
+      "target_id_suffix": "unresolved:Result",
+    },
+    {
+      "edge_type": "CALLS",
       "source_id_suffix": "method:f0553b4e",
       "target_id_suffix": "unresolved:this.items.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:efebce8f",
+      "target_id_suffix": "unresolved:Map",
     },
     {
       "edge_type": "CALLS",
@@ -37135,7 +37255,17 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
     {
       "edge_type": "CALLS",
       "source_id_suffix": "function:3acba1f9",
+      "target_id_suffix": "unresolved:URLSearchParams",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:3acba1f9",
       "target_id_suffix": "unresolved:buildUrl",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:515e0b7d",
+      "target_id_suffix": "unresolved:Album",
     },
     {
       "edge_type": "CALLS",
@@ -37146,6 +37276,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] =
       "edge_type": "CALLS",
       "source_id_suffix": "function:9ef197a4",
       "target_id_suffix": "unresolved:Math.sqrt",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:f791e525",
+      "target_id_suffix": "unresolved:Map",
     },
     {
       "edge_type": "CALLS",

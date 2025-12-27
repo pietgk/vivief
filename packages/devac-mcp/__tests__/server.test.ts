@@ -114,7 +114,7 @@ describe("DevacMCPServer", () => {
 
       const status = server.getStatus();
       expect(status.toolCount).toBe(MCP_TOOLS.length);
-      expect(status.toolCount).toBe(15); // find_symbol, get_dependencies, get_dependents, get_file_symbols, get_affected, get_call_graph, query_sql, list_repos, get_context, get_validation_errors, get_validation_summary, get_validation_counts, get_all_diagnostics, get_diagnostics_summary, get_diagnostics_counts
+      expect(status.toolCount).toBe(19); // find_symbol, get_dependencies, get_dependents, get_file_symbols, get_affected, get_call_graph, query_sql, list_repos, get_context, get_validation_errors, get_validation_summary, get_validation_counts, get_all_diagnostics, get_diagnostics_summary, get_diagnostics_counts, query_effects, run_rules, list_rules, generate_c4
     });
   });
 
@@ -204,7 +204,7 @@ describe("DevacMCPServer", () => {
       expect(status.isRunning).toBe(true);
       expect(status.mode).toBe("package");
       expect(status.packagePath).toBe(packagePath);
-      expect(status.toolCount).toBe(15);
+      expect(status.toolCount).toBe(19);
       expect(typeof status.uptime).toBe("number");
     });
 
@@ -234,7 +234,7 @@ describe("DevacMCPServer", () => {
 
       const status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(15);
+      expect(status.toolCount).toBe(19);
     });
   });
 });

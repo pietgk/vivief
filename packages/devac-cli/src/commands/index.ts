@@ -31,6 +31,11 @@ export { registerDependentsCommand } from "./dependents.js";
 export { registerFileSymbolsCommand } from "./file-symbols.js";
 export { registerCallGraphCommand } from "./call-graph.js";
 
+// Effects, Rules, C4 commands (v3.0 foundation)
+export { registerEffectsCommand } from "./effects.js";
+export { registerRulesCommand } from "./rules.js";
+export { registerC4Command } from "./c4.js";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Command function exports (for programmatic use)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,3 +216,36 @@ export type {
 } from "./hub-summary.js";
 export { hubQueryCommand } from "./hub-query.js";
 export type { HubQueryOptions, HubQueryResult } from "./hub-query.js";
+
+// Effects, Rules, C4 commands (v3.0 foundation)
+export { effectsCommand, effectsSummaryCommand } from "./effects.js";
+export type {
+  EffectsCommandOptions,
+  EffectsCommandResult,
+  EffectsSummaryOptions,
+  EffectsSummaryResult,
+} from "./effects.js";
+export {
+  rulesRunCommand,
+  rulesStatsCommand,
+  rulesListCommand,
+} from "./rules.js";
+export type {
+  RulesRunOptions,
+  RulesRunResult,
+  RulesListOptions,
+  RulesListResult,
+} from "./rules.js";
+export {
+  c4ContextCommand,
+  c4ContainersCommand,
+  c4DomainsCommand,
+  c4ExternalsCommand,
+} from "./c4.js";
+export type {
+  C4CommandOptions,
+  C4ContextResult,
+  C4ContainersResult,
+  C4DomainsResult,
+  C4ExternalsResult,
+} from "./c4.js";

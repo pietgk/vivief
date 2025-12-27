@@ -9,18 +9,30 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   type CentralHub,
+  type CodeEffect,
   type DiagnosticsFilter,
   type DiagnosticsSummary,
+  type DomainEffect,
   DuckDBPool,
+  type Rule,
   type SeedReader,
   type SymbolAffectedAnalyzer,
   type UnifiedDiagnostics,
   type ValidationError,
   type ValidationFilter,
   type ValidationSummary,
+  builtinRules,
   createCentralHub,
+  createRuleEngine,
   createSeedReader,
   createSymbolAffectedAnalyzer,
+  discoverDomainBoundaries,
+  exportContainersToPlantUML,
+  exportContextToPlantUML,
+  generateC4Containers,
+  generateC4Context,
+  getRulesByDomain,
+  getRulesByProvider,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 
@@ -31,6 +43,65 @@ export interface ProviderQueryResult {
   rows: unknown[];
   rowCount: number;
   timeMs: number;
+}
+
+/**
+ * Filter for effects query
+ */
+export interface EffectsFilter {
+  type?: string;
+  file?: string;
+  entity?: string;
+  externalOnly?: boolean;
+  asyncOnly?: boolean;
+  limit?: number;
+}
+
+/**
+ * Filter for rules listing
+ */
+export interface RulesFilter {
+  domain?: string;
+  provider?: string;
+}
+
+/**
+ * Options for running rules engine
+ */
+export interface RunRulesOptions {
+  domain?: string;
+  limit?: number;
+  includeStats?: boolean;
+}
+
+/**
+ * Result from running rules engine
+ */
+export interface RunRulesResult {
+  domainEffects: DomainEffect[];
+  matchedCount: number;
+  unmatchedCount: number;
+  ruleStats?: Record<string, number>;
+}
+
+/**
+ * Options for C4 generation
+ */
+export interface C4Options {
+  level?: "context" | "containers" | "domains" | "externals";
+  systemName?: string;
+  systemDescription?: string;
+  outputFormat?: "json" | "plantuml" | "both";
+  limit?: number;
+}
+
+/**
+ * Result from C4 generation
+ */
+export interface C4Result {
+  level: string;
+  model: unknown;
+  plantuml?: string;
 }
 
 /**
@@ -121,6 +192,20 @@ export interface DataProvider {
     note: number;
     total: number;
   }>;
+
+  // ================== Effects, Rules, C4 Methods (v3.0) ==================
+
+  /** Query code effects from seeds */
+  queryEffects(filter?: EffectsFilter): Promise<ProviderQueryResult>;
+
+  /** Run rules engine on effects */
+  runRules(options?: RunRulesOptions): Promise<RunRulesResult>;
+
+  /** List available rules */
+  listRules(filter?: RulesFilter): Promise<Rule[]>;
+
+  /** Generate C4 diagram */
+  generateC4(options?: C4Options): Promise<C4Result>;
 }
 
 /**
@@ -326,6 +411,150 @@ export class PackageDataProvider implements DataProvider {
     total: number;
   }> {
     throw new Error("get_diagnostics_counts is only available in hub mode");
+  }
+
+  // ================== Effects, Rules, C4 Methods (v3.0) ==================
+
+  async queryEffects(filter?: EffectsFilter): Promise<ProviderQueryResult> {
+    const startTime = Date.now();
+
+    const conditions: string[] = [];
+    if (filter?.type) {
+      conditions.push(`effect_type = '${filter.type.replace(/'/g, "''")}'`);
+    }
+    if (filter?.file) {
+      conditions.push(
+        `source_file_path LIKE '%${filter.file.replace(/'/g, "''").replace(/%/g, "\\%")}%'`
+      );
+    }
+    if (filter?.entity) {
+      conditions.push(`source_entity_id = '${filter.entity.replace(/'/g, "''")}'`);
+    }
+    if (filter?.externalOnly) {
+      conditions.push("is_external = true");
+    }
+    if (filter?.asyncOnly) {
+      conditions.push("is_async = true");
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limitClause = `LIMIT ${filter?.limit ?? 100}`;
+
+    const sql = `SELECT * FROM effects ${whereClause} ${limitClause}`;
+    const result = await this.seedReader.querySeeds(sql);
+
+    return {
+      rows: result.rows,
+      rowCount: result.rowCount,
+      timeMs: Date.now() - startTime,
+    };
+  }
+
+  async runRules(options?: RunRulesOptions): Promise<RunRulesResult> {
+    const limitClause = options?.limit ? `LIMIT ${options.limit}` : "LIMIT 1000";
+    const sql = `SELECT * FROM effects ${limitClause}`;
+    const effectsResult = await this.seedReader.querySeeds(sql);
+
+    const engine = createRuleEngine({ rules: builtinRules });
+    const result = engine.process(effectsResult.rows as CodeEffect[]);
+
+    let domainEffects = result.domainEffects;
+    if (options?.domain) {
+      domainEffects = domainEffects.filter(
+        (e) => e.domain.toLowerCase() === options.domain?.toLowerCase()
+      );
+    }
+
+    const runResult: RunRulesResult = {
+      domainEffects,
+      matchedCount: result.matchedCount,
+      unmatchedCount: result.unmatchedCount,
+    };
+
+    if (options?.includeStats) {
+      const ruleStats: Record<string, number> = {};
+      for (const [ruleId, count] of result.ruleStats) {
+        ruleStats[ruleId] = count;
+      }
+      runResult.ruleStats = ruleStats;
+    }
+
+    return runResult;
+  }
+
+  listRules(filter?: RulesFilter): Promise<Rule[]> {
+    let rules: Rule[] = [...builtinRules];
+
+    if (filter?.domain) {
+      rules = getRulesByDomain(filter.domain);
+    }
+
+    if (filter?.provider) {
+      rules = getRulesByProvider(filter.provider);
+    }
+
+    return Promise.resolve(rules);
+  }
+
+  async generateC4(options?: C4Options): Promise<C4Result> {
+    // First get code effects and run rules engine to get domain effects
+    const limitClause = options?.limit ? `LIMIT ${options.limit}` : "LIMIT 1000";
+    const sql = `SELECT * FROM effects ${limitClause}`;
+    const effectsResult = await this.seedReader.querySeeds(sql);
+    const codeEffects = effectsResult.rows as CodeEffect[];
+
+    // Run rules engine to get domain effects
+    const engine = createRuleEngine({ rules: builtinRules });
+    const rulesResult = engine.process(codeEffects);
+    const domainEffects = rulesResult.domainEffects;
+
+    const level = options?.level ?? "context";
+    const outputFormat = options?.outputFormat ?? "both";
+    let model: unknown;
+    let plantuml: string | undefined;
+
+    switch (level) {
+      case "context": {
+        const context = generateC4Context(domainEffects, {
+          systemName: options?.systemName ?? "System",
+          systemDescription: options?.systemDescription,
+        });
+        model = context;
+        if (outputFormat === "plantuml" || outputFormat === "both") {
+          plantuml = exportContextToPlantUML(context);
+        }
+        break;
+      }
+      case "containers": {
+        const containers = generateC4Containers(domainEffects, {
+          systemName: options?.systemName ?? "System",
+        });
+        model = containers;
+        if (outputFormat === "plantuml" || outputFormat === "both") {
+          plantuml = exportContainersToPlantUML(containers);
+        }
+        break;
+      }
+      case "domains": {
+        model = discoverDomainBoundaries(domainEffects);
+        break;
+      }
+      case "externals": {
+        // Extract externals from C4 context
+        const context = generateC4Context(domainEffects, {
+          systemName: options?.systemName ?? "System",
+        });
+        model = context.externalSystems;
+        break;
+      }
+    }
+
+    const result: C4Result = { level, model };
+    if (plantuml && outputFormat !== "json") {
+      result.plantuml = plantuml;
+    }
+
+    return result;
   }
 }
 
@@ -610,6 +839,172 @@ export class HubDataProvider implements DataProvider {
     total: number;
   }> {
     return await this.hub.getDiagnosticsCounts();
+  }
+
+  // ================== Effects, Rules, C4 Methods (v3.0) ==================
+
+  async queryEffects(filter?: EffectsFilter): Promise<ProviderQueryResult> {
+    const startTime = Date.now();
+
+    const packagePaths = await this.getPackagePaths();
+    if (packagePaths.length === 0) {
+      return { rows: [], rowCount: 0, timeMs: Date.now() - startTime };
+    }
+
+    const conditions: string[] = [];
+    if (filter?.type) {
+      conditions.push(`effect_type = '${filter.type.replace(/'/g, "''")}'`);
+    }
+    if (filter?.file) {
+      conditions.push(
+        `source_file_path LIKE '%${filter.file.replace(/'/g, "''").replace(/%/g, "\\%")}%'`
+      );
+    }
+    if (filter?.entity) {
+      conditions.push(`source_entity_id = '${filter.entity.replace(/'/g, "''")}'`);
+    }
+    if (filter?.externalOnly) {
+      conditions.push("is_external = true");
+    }
+    if (filter?.asyncOnly) {
+      conditions.push("is_async = true");
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limitClause = `LIMIT ${filter?.limit ?? 100}`;
+
+    const sql = `SELECT * FROM {effects} ${whereClause} ${limitClause}`;
+    const result = await queryMultiplePackages(this.pool, packagePaths, sql);
+
+    return {
+      rows: result.rows,
+      rowCount: result.rowCount,
+      timeMs: Date.now() - startTime,
+    };
+  }
+
+  async runRules(options?: RunRulesOptions): Promise<RunRulesResult> {
+    const packagePaths = await this.getPackagePaths();
+    if (packagePaths.length === 0) {
+      return {
+        domainEffects: [],
+        matchedCount: 0,
+        unmatchedCount: 0,
+      };
+    }
+
+    const limitClause = options?.limit ? `LIMIT ${options.limit}` : "LIMIT 1000";
+    const sql = `SELECT * FROM {effects} ${limitClause}`;
+    const effectsResult = await queryMultiplePackages(this.pool, packagePaths, sql);
+
+    const engine = createRuleEngine({ rules: builtinRules });
+    const result = engine.process(effectsResult.rows as CodeEffect[]);
+
+    let domainEffects = result.domainEffects;
+    if (options?.domain) {
+      domainEffects = domainEffects.filter(
+        (e) => e.domain.toLowerCase() === options.domain?.toLowerCase()
+      );
+    }
+
+    const runResult: RunRulesResult = {
+      domainEffects,
+      matchedCount: result.matchedCount,
+      unmatchedCount: result.unmatchedCount,
+    };
+
+    if (options?.includeStats) {
+      const ruleStats: Record<string, number> = {};
+      for (const [ruleId, count] of result.ruleStats) {
+        ruleStats[ruleId] = count;
+      }
+      runResult.ruleStats = ruleStats;
+    }
+
+    return runResult;
+  }
+
+  listRules(filter?: RulesFilter): Promise<Rule[]> {
+    let rules: Rule[] = [...builtinRules];
+
+    if (filter?.domain) {
+      rules = getRulesByDomain(filter.domain);
+    }
+
+    if (filter?.provider) {
+      rules = getRulesByProvider(filter.provider);
+    }
+
+    return Promise.resolve(rules);
+  }
+
+  async generateC4(options?: C4Options): Promise<C4Result> {
+    const packagePaths = await this.getPackagePaths();
+    if (packagePaths.length === 0) {
+      return {
+        level: options?.level ?? "context",
+        model: {},
+      };
+    }
+
+    // First get code effects
+    const limitClause = options?.limit ? `LIMIT ${options.limit}` : "LIMIT 1000";
+    const sql = `SELECT * FROM {effects} ${limitClause}`;
+    const effectsResult = await queryMultiplePackages(this.pool, packagePaths, sql);
+    const codeEffects = effectsResult.rows as CodeEffect[];
+
+    // Run rules engine to get domain effects
+    const engine = createRuleEngine({ rules: builtinRules });
+    const rulesResult = engine.process(codeEffects);
+    const domainEffects = rulesResult.domainEffects;
+
+    const level = options?.level ?? "context";
+    const outputFormat = options?.outputFormat ?? "both";
+    let model: unknown;
+    let plantuml: string | undefined;
+
+    switch (level) {
+      case "context": {
+        const context = generateC4Context(domainEffects, {
+          systemName: options?.systemName ?? "System",
+          systemDescription: options?.systemDescription,
+        });
+        model = context;
+        if (outputFormat === "plantuml" || outputFormat === "both") {
+          plantuml = exportContextToPlantUML(context);
+        }
+        break;
+      }
+      case "containers": {
+        const containers = generateC4Containers(domainEffects, {
+          systemName: options?.systemName ?? "System",
+        });
+        model = containers;
+        if (outputFormat === "plantuml" || outputFormat === "both") {
+          plantuml = exportContainersToPlantUML(containers);
+        }
+        break;
+      }
+      case "domains": {
+        model = discoverDomainBoundaries(domainEffects);
+        break;
+      }
+      case "externals": {
+        // Extract externals from C4 context
+        const context = generateC4Context(domainEffects, {
+          systemName: options?.systemName ?? "System",
+        });
+        model = context.externalSystems;
+        break;
+      }
+    }
+
+    const result: C4Result = { level, model };
+    if (plantuml && outputFormat !== "json") {
+      result.plantuml = plantuml;
+    }
+
+    return result;
   }
 }
 

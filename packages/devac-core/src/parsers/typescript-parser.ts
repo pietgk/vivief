@@ -30,7 +30,12 @@ import { performance } from "node:perf_hooks";
 
 import { generateEntityId } from "../analyzer/entity-id-generator.js";
 import type { NodeKind, ParsedEdge, ParsedNode } from "../types/index.js";
-import { createEdge, createExternalRef, createNode } from "../types/index.js";
+import {
+  createEdge,
+  createExternalRef,
+  createFunctionCallEffect,
+  createNode,
+} from "../types/index.js";
 import { computeStringHash } from "../utils/hash.js";
 import type { LanguageParser, ParserConfig, StructuralParseResult } from "./parser-interface.js";
 import {
@@ -283,6 +288,12 @@ export class TypeScriptParser implements LanguageParser {
 
         // Handle CALLS edges for all call expressions
         this.handleCallExpression(nodePath, ctx, fileEntityId);
+      },
+
+      // New expressions: constructor calls (new X())
+      // biome-ignore lint/suspicious/noExplicitAny: Babel traverse callback types are untyped
+      NewExpression: (nodePath: any) => {
+        this.handleNewExpression(nodePath, ctx, fileEntityId);
       },
 
       // ========================================================================
@@ -667,7 +678,7 @@ export class TypeScriptParser implements LanguageParser {
   }
 
   /**
-   * Handle call expressions to create CALLS edges
+   * Handle call expressions to create CALLS edges and FunctionCallEffects
    */
   private handleCallExpression(
     nodePath: NodePath<t.CallExpression>,
@@ -710,6 +721,15 @@ export class TypeScriptParser implements LanguageParser {
     // For unresolved references, prefix with "unresolved:"
     const targetEntityId = `unresolved:${calleeName}`;
 
+    // Determine if this is a method call (obj.method())
+    const isMethodCall = t.isMemberExpression(node.callee);
+
+    // Determine if this is a constructor call (new X())
+    const isConstructor = t.isNewExpression(nodePath.parent);
+
+    // Determine if this is an async call (parent is AwaitExpression)
+    const isAsync = t.isAwaitExpression(nodePath.parent);
+
     // Create CALLS edge
     ctx.result.edges.push(
       ctx.createEdge({
@@ -723,6 +743,98 @@ export class TypeScriptParser implements LanguageParser {
         },
       })
     );
+
+    // Create FunctionCallEffect
+    const effect = createFunctionCallEffect({
+      source_entity_id: sourceEntityId,
+      source_file_path: ctx.filePath,
+      source_line: node.loc?.start.line ?? 1,
+      source_column: node.loc?.start.column ?? 0,
+      branch: ctx.config.branch,
+      callee_name: calleeName,
+      target_entity_id: targetEntityId,
+      callee_qualified_name: calleeName,
+      is_method_call: isMethodCall,
+      is_async: isAsync,
+      is_constructor: isConstructor,
+      argument_count: node.arguments.length,
+      is_external: false, // Will be resolved during edge resolution
+      external_module: null,
+    });
+
+    ctx.result.effects.push(effect);
+  }
+
+  /**
+   * Handle new expressions to create CALLS edges and FunctionCallEffects for constructor calls
+   */
+  private handleNewExpression(
+    nodePath: NodePath<t.NewExpression>,
+    ctx: ParserContext,
+    fileEntityId: string
+  ): void {
+    const node = nodePath.node;
+
+    // Find the enclosing function to get the source entity
+    const enclosingFunction = nodePath.getFunctionParent();
+    let sourceEntityId: string;
+
+    if (enclosingFunction) {
+      const funcEntityId = ctx.getNodeEntityId(enclosingFunction.node);
+      if (funcEntityId) {
+        sourceEntityId = funcEntityId;
+      } else {
+        sourceEntityId = fileEntityId;
+      }
+    } else {
+      sourceEntityId = fileEntityId;
+    }
+
+    // Extract callee name (the constructor being called)
+    const calleeName = this.extractCalleeName(node.callee);
+    if (!calleeName) {
+      return;
+    }
+
+    const targetEntityId = `unresolved:${calleeName}`;
+
+    // Determine if this is an async call (parent is AwaitExpression)
+    const isAsync = t.isAwaitExpression(nodePath.parent);
+
+    // Create CALLS edge for constructor
+    ctx.result.edges.push(
+      ctx.createEdge({
+        sourceEntityId,
+        targetEntityId,
+        edgeType: "CALLS",
+        node,
+        properties: {
+          callee: calleeName,
+          argumentCount: node.arguments.length,
+          isConstructor: true,
+        },
+      })
+    );
+
+    // Create FunctionCallEffect for constructor call
+    const effect = createFunctionCallEffect({
+      source_entity_id: sourceEntityId,
+      source_file_path: ctx.filePath,
+      source_line: node.loc?.start.line ?? 1,
+      source_column: node.loc?.start.column ?? 0,
+      branch: ctx.config.branch,
+      callee_name: calleeName,
+      target_entity_id: targetEntityId,
+      callee_qualified_name: calleeName,
+      is_method_call: false,
+      is_async: isAsync,
+      is_constructor: true,
+      argument_count: node.arguments.length,
+      is_external: false,
+      external_module: null,
+    });
+
+    ctx.result.effects.push(effect);
   }
 
   /**

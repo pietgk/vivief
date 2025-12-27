@@ -15,7 +15,7 @@ This directory contains documentation for the actual DevAC implementation — wh
 ### Components
 | Document | Purpose |
 |----------|---------|
-| [data-model.md](./data-model.md) | Node, Edge, and External Ref schemas |
+| [data-model.md](./data-model.md) | Node, Edge, External Ref, and Effects schemas |
 | [storage.md](./storage.md) | DuckDB pool and Parquet file handling |
 | [query-guide.md](./query-guide.md) | Comprehensive SQL query patterns and examples |
 | [parsing.md](./parsing.md) | Two-pass analysis pipeline |
@@ -23,6 +23,12 @@ This directory contains documentation for the actual DevAC implementation — wh
 | [federation.md](./federation.md) | Central hub and multi-repo queries |
 | [context-discovery.md](./context-discovery.md) | Workspace and worktree detection |
 | [ast.md](./ast.md) | AST extraction architecture |
+
+### Effects & Views (v3.0)
+| Document | Purpose |
+|----------|---------|
+| [rules-engine.md](./rules-engine.md) | Pattern matching to transform effects into domain effects |
+| [views.md](./views.md) | C4 diagram generation from domain effects |
 
 ## Implementation Status
 

@@ -1,6 +1,6 @@
 # CLI Reference
 
-Complete reference for all DevAC v2 commands.
+Complete reference for all DevAC commands.
 
 ## Global Options
 
@@ -1216,6 +1216,274 @@ Total: 8 files, 245 changes
 
 After getting a response, you can process it with:
   devac context review --process-response <response-file>
+```
+
+---
+
+## Effects Commands (v3.0)
+
+Commands for querying and analyzing code effects.
+
+### devac effects
+
+Query effects extracted during analysis.
+
+```bash
+devac effects [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --type <type>           Filter by effect type (FunctionCall, Store, Retrieve, Send)
+  --file <path>           Filter by file path
+  --entity <id>           Filter by source entity ID
+  --external-only         Show only external calls
+  --async-only            Show only async calls
+  --limit <n>             Maximum results (default: 100)
+  --format <format>       Output format: table (default), json, csv
+  --pretty                Human-readable output
+
+Examples:
+  devac effects                              # All effects in current package
+  devac effects --type FunctionCall          # Only function calls
+  devac effects --external-only              # External API calls
+  devac effects --hub                        # Query all repos
+  devac effects --pretty                     # Human-readable output
+```
+
+**Output (table):**
+```
+┌─────────────────────────┬───────────────┬────────────────────────────────┐
+│ Effect Type             │ Callee        │ Location                       │
+├─────────────────────────┼───────────────┼────────────────────────────────┤
+│ FunctionCall            │ stripe.create │ src/payment.ts:45              │
+│ FunctionCall            │ db.query      │ src/user.ts:23                 │
+└─────────────────────────┴───────────────┴────────────────────────────────┘
+```
+
+### devac effects summary
+
+Get summary statistics for effects.
+
+```bash
+devac effects summary [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --group-by <field>      Group by: type, file, entity (default: type)
+  --format <format>       Output format: table (default), json
+
+Examples:
+  devac effects summary                      # Summary by effect type
+  devac effects summary --group-by file      # Summary by file
+```
+
+## Rules Commands (v3.0)
+
+Commands for running the Rules Engine on effects.
+
+### devac rules
+
+Run the Rules Engine to transform effects into domain effects.
+
+```bash
+devac rules [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --config <path>         Custom rules configuration file
+  --builtin               Include builtin rules (default: true)
+  --domain <name>         Filter output by domain (e.g., Payment, Auth)
+  --show-unmatched        Include effects that didn't match any rule
+  --format <format>       Output format: table (default), json
+  --pretty                Human-readable output
+
+Examples:
+  devac rules                                # Run builtin rules
+  devac rules --domain Payment               # Show Payment domain only
+  devac rules --show-unmatched               # Show unmatched effects
+  devac rules --config rules.json            # Use custom rules
+```
+
+**Output (table):**
+```
+┌────────────────┬────────────────┬───────────────────────────────────────┐
+│ Domain         │ Action         │ Location                              │
+├────────────────┼────────────────┼───────────────────────────────────────┤
+│ Payment        │ Charge         │ src/payment.ts:45 (stripe.create)     │
+│ Database       │ Read           │ src/user.ts:23 (prisma.findMany)      │
+│ Auth           │ TokenVerify    │ src/auth.ts:12 (jwt.verify)           │
+└────────────────┴────────────────┴───────────────────────────────────────┘
+```
+
+### devac rules list
+
+List available rules.
+
+```bash
+devac rules list [options]
+
+Options:
+  --config <path>         Custom rules configuration file
+  --domain <name>         Filter by domain
+  --provider <name>       Filter by provider (e.g., stripe, dynamodb)
+  --format <format>       Output format: table (default), json
+
+Examples:
+  devac rules list                           # All builtin rules
+  devac rules list --domain Payment          # Payment rules only
+  devac rules list --provider aws            # AWS-related rules
+```
+
+### devac rules stats
+
+Show rule match statistics from the last run.
+
+```bash
+devac rules stats [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --format <format>       Output format: table (default), json
+
+Examples:
+  devac rules stats
+```
+
+**Output:**
+```
+Rules Engine Statistics
+  Total effects processed: 1,234
+  Matched: 987 (80%)
+  Unmatched: 247 (20%)
+  Processing time: 45ms
+
+Top Rules:
+  db-prisma-read: 234 matches
+  http-fetch: 189 matches
+  logging-console: 156 matches
+```
+
+## C4 Diagram Commands (v3.0)
+
+Commands for generating C4 architecture diagrams.
+
+### devac c4
+
+Generate C4 diagrams from domain effects.
+
+```bash
+devac c4 [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --level <level>         C4 level: context, container, component (default: context)
+  --name <name>           System name for the diagram
+  --output <file>         Output file path (default: stdout)
+  --format <format>       Output format: plantuml (default), json
+
+Examples:
+  devac c4                                   # Generate context diagram
+  devac c4 --level container                 # Container diagram
+  devac c4 --name "Payment Service"          # Custom system name
+  devac c4 --output c4-context.puml          # Save to file
+```
+
+**Output (PlantUML):**
+```plantuml
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Payment Service - System Context Diagram
+
+System(system, "Payment Service", "Handles payment processing")
+
+System_Ext(external_Payment_stripe, "Stripe (Payment)", "payment")
+System_Ext(external_Database_dynamodb, "DynamoDB (Database)", "database")
+
+Rel(system, external_Payment_stripe, "Charge, Refund...")
+Rel(system, external_Database_dynamodb, "Read, Write...")
+
+@enduml
+```
+
+### devac c4 domains
+
+Discover domain boundaries from effects.
+
+```bash
+devac c4 domains [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --format <format>       Output format: table (default), json
+
+Examples:
+  devac c4 domains                           # Show domain boundaries
+  devac c4 domains --hub                     # Cross-repo domains
+```
+
+**Output:**
+```
+Domain Boundaries
+
+  Payment (cohesion: 0.85)
+    Files: 5
+    Components: 3
+    Actions: Charge, Refund, Subscription
+    External: stripe
+
+  Auth (cohesion: 1.00)
+    Files: 4
+    Components: 4
+    Actions: TokenCreate, TokenVerify, PasswordHash
+    External: aws-cognito
+
+  Database (cohesion: 0.60)
+    Files: 12
+    Components: 8
+    Actions: Read, Write
+    External: dynamodb, prisma
+```
+
+### devac c4 externals
+
+List external systems detected from effects.
+
+```bash
+devac c4 externals [options]
+
+Options:
+  -p, --package <path>    Package path (default: current directory)
+  --hub                   Query all registered repos (hub mode)
+  --format <format>       Output format: table (default), json
+
+Examples:
+  devac c4 externals                         # List external systems
+```
+
+**Output:**
+```
+External Systems
+
+  Stripe (Payment)
+    Provider: stripe
+    Relationships: 23
+    Actions: Charge, Refund, Subscription
+
+  DynamoDB (Database)
+    Provider: aws-dynamodb
+    Relationships: 156
+    Actions: Read, Write
+
+  Cognito (Auth)
+    Provider: aws-cognito
+    Relationships: 8
+    Actions: CognitoAuth
 ```
 
 ---

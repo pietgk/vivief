@@ -1611,4 +1611,164 @@ class ApiClient {
       expect(getMethod?.is_async).toBe(true);
     });
   });
+
+  // ==========================================================================
+  // Effects Extraction Tests (v3.0 Foundation)
+  // ==========================================================================
+
+  describe("effects extraction", () => {
+    it("extracts FunctionCallEffect for simple function calls", async () => {
+      const content = `
+function helper() {
+  return 42;
+}
+
+function main() {
+  return helper();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      expect(effects.length).toBeGreaterThan(0);
+
+      const helperCall = effects.find((e) => e.callee_name === "helper");
+      expect(helperCall).toBeDefined();
+      expect(helperCall?.is_method_call).toBe(false);
+      expect(helperCall?.is_constructor).toBe(false);
+    });
+
+    it("extracts FunctionCallEffect for method calls", async () => {
+      const content = `
+function log() {
+  console.log("hello");
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const logCall = effects.find((e) => e.callee_name === "console.log");
+      expect(logCall).toBeDefined();
+      expect(logCall?.is_method_call).toBe(true);
+    });
+
+    it("tracks source location in effects", async () => {
+      const content = `
+function caller() {
+  doSomething();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const call = effects.find((e) => e.callee_name === "doSomething");
+      expect(call).toBeDefined();
+      expect(call?.source_line).toBeGreaterThan(0);
+      expect(call?.source_column).toBeGreaterThanOrEqual(0);
+    });
+
+    it("extracts argument count in effects", async () => {
+      const content = `
+function test() {
+  noArgs();
+  oneArg(1);
+  threeArgs(1, 2, 3);
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+
+      const noArgsCall = effects.find((e) => e.callee_name === "noArgs");
+      expect(noArgsCall?.argument_count).toBe(0);
+
+      const oneArgCall = effects.find((e) => e.callee_name === "oneArg");
+      expect(oneArgCall?.argument_count).toBe(1);
+
+      const threeArgsCall = effects.find((e) => e.callee_name === "threeArgs");
+      expect(threeArgsCall?.argument_count).toBe(3);
+    });
+
+    it("detects async calls with await", async () => {
+      const content = `
+async function fetchData() {
+  const data = await fetch("/api/data");
+  return data;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const fetchCall = effects.find((e) => e.callee_name === "fetch");
+      expect(fetchCall).toBeDefined();
+      expect(fetchCall?.is_async).toBe(true);
+    });
+
+    it("detects constructor calls with new", async () => {
+      const content = `
+function createDate() {
+  return new Date();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const dateCall = effects.find((e) => e.callee_name === "Date");
+      expect(dateCall).toBeDefined();
+      expect(dateCall?.is_constructor).toBe(true);
+    });
+
+    it("links effect to source entity", async () => {
+      const content = `
+function caller() {
+  callee();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callerNode = result.nodes.find((n) => n.name === "caller" && n.kind === "function");
+      expect(callerNode).toBeDefined();
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const calleeEffect = effects.find((e) => e.callee_name === "callee");
+      expect(calleeEffect).toBeDefined();
+      expect(calleeEffect?.source_entity_id).toBe(callerNode?.entity_id);
+    });
+
+    it("extracts effects from class methods", async () => {
+      const content = `
+class Service {
+  process() {
+    console.log("processing");
+    this.helper();
+  }
+
+  helper() {}
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const logCall = effects.find((e) => e.callee_name === "console.log");
+      const helperCall = effects.find((e) => e.callee_name === "this.helper");
+
+      expect(logCall).toBeDefined();
+      expect(helperCall).toBeDefined();
+    });
+
+    it("has unique effect_id for each effect", async () => {
+      const content = `
+function multi() {
+  a();
+  b();
+  c();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const effects = result.effects.filter((e) => e.effect_type === "FunctionCall");
+      const effectIds = new Set(effects.map((e) => e.effect_id));
+      expect(effectIds.size).toBe(effects.length);
+    });
+  });
 });

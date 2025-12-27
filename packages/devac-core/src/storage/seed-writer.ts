@@ -11,7 +11,7 @@ import * as path from "node:path";
 import type { Connection } from "duckdb-async";
 import type { StructuralParseResult } from "../parsers/parser-interface.js";
 import { SCHEMA_VERSION, type SeedPaths, getSeedPaths } from "../types/config.js";
-import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
+import type { CodeEffect, ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { withSeedLock } from "./file-lock.js";
 import { getCopyToParquet, initializeSchemas } from "./parquet-schemas.js";
@@ -34,6 +34,7 @@ export interface WriteResult {
   nodesWritten: number;
   edgesWritten: number;
   refsWritten: number;
+  effectsWritten: number;
   filesProcessed: number;
   timeMs: number;
   error?: string;
@@ -89,6 +90,7 @@ export class SeedWriter {
         nodesWritten: 0,
         edgesWritten: 0,
         refsWritten: 0,
+        effectsWritten: 0,
         filesProcessed: 0,
         timeMs: Date.now() - startTime,
         error: error instanceof Error ? error.message : String(error),
@@ -132,6 +134,7 @@ export class SeedWriter {
         nodesWritten: 0,
         edgesWritten: 0,
         refsWritten: 0,
+        effectsWritten: 0,
         filesProcessed: 0,
         timeMs: Date.now() - startTime,
         error: error instanceof Error ? error.message : String(error),
@@ -305,6 +308,7 @@ export class SeedWriter {
         nodesWritten: 0,
         edgesWritten: 0,
         refsWritten: 0,
+        effectsWritten: 0,
         filesProcessed: 0,
         timeMs: Date.now() - startTime,
         error: error instanceof Error ? error.message : String(error),
@@ -347,6 +351,11 @@ export class SeedWriter {
       await this.insertExternalRef(conn, ref);
     }
 
+    // Insert effects
+    for (const effect of result.effects) {
+      await this.insertEffect(conn, effect);
+    }
+
     // Determine output paths based on branch
     const outputPath = branch === "base" ? paths.basePath : paths.branchPath;
     const tempDir = path.join(paths.seedRoot, ".tmp");
@@ -357,6 +366,7 @@ export class SeedWriter {
     const tempNodes = path.join(tempDir, `nodes_${tempSuffix}.parquet`);
     const tempEdges = path.join(tempDir, `edges_${tempSuffix}.parquet`);
     const tempRefs = path.join(tempDir, `external_refs_${tempSuffix}.parquet`);
+    const tempEffects = path.join(tempDir, `effects_${tempSuffix}.parquet`);
 
     // Write to temp files
     if (result.nodes.length > 0) {
@@ -368,11 +378,15 @@ export class SeedWriter {
     if (result.externalRefs.length > 0) {
       await conn.run(getCopyToParquet("external_refs", tempRefs));
     }
+    if (result.effects.length > 0) {
+      await conn.run(getCopyToParquet("effects", tempEffects));
+    }
 
     // Atomic rename to final locations
     const finalNodes = path.join(outputPath, "nodes.parquet");
     const finalEdges = path.join(outputPath, "edges.parquet");
     const finalRefs = path.join(outputPath, "external_refs.parquet");
+    const finalEffects = path.join(outputPath, "effects.parquet");
 
     if (result.nodes.length > 0) {
       await this.atomicRename(tempNodes, finalNodes);
@@ -382,6 +396,9 @@ export class SeedWriter {
     }
     if (result.externalRefs.length > 0) {
       await this.atomicRename(tempRefs, finalRefs);
+    }
+    if (result.effects.length > 0) {
+      await this.atomicRename(tempEffects, finalEffects);
     }
 
     // Write meta.json
@@ -394,6 +411,7 @@ export class SeedWriter {
       nodesWritten: result.nodes.length,
       edgesWritten: result.edges.length,
       refsWritten: result.externalRefs.length,
+      effectsWritten: result.effects.length,
       filesProcessed: 1, // Single file per parse result
     };
   }
@@ -504,6 +522,92 @@ export class SeedWriter {
       ref.branch,
       ref.is_deleted,
       ref.updated_at
+    );
+  }
+
+  /**
+   * Insert an effect into the DuckDB table
+   */
+  private async insertEffect(conn: Connection, effect: CodeEffect): Promise<void> {
+    const sql = `
+      INSERT INTO effects (
+        effect_id, effect_type, timestamp,
+        source_entity_id, source_file_path, source_line, source_column,
+        branch, properties, target_entity_id,
+        callee_name, callee_qualified_name, is_method_call, is_async, is_constructor,
+        argument_count, is_external, external_module,
+        store_type, retrieve_type, send_type, operation, target_resource, provider,
+        request_type, response_type, method, route_pattern, framework,
+        target, is_third_party, service_name, status_code, content_type,
+        condition_type, branch_count, has_default, loop_type,
+        group_type, group_name, description, technology, parent_group_id,
+        source_file_hash, is_deleted, updated_at
+      ) VALUES (
+        ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?
+      )
+    `;
+
+    // Extract fields with defaults for optional fields
+    const e = effect as Record<string, unknown>;
+
+    await conn.run(
+      sql,
+      effect.effect_id,
+      effect.effect_type,
+      effect.timestamp,
+      effect.source_entity_id,
+      effect.source_file_path,
+      effect.source_line,
+      effect.source_column,
+      effect.branch,
+      JSON.stringify(effect.properties ?? {}),
+      e.target_entity_id ?? null,
+      e.callee_name ?? null,
+      e.callee_qualified_name ?? null,
+      e.is_method_call ?? null,
+      e.is_async ?? null,
+      e.is_constructor ?? null,
+      e.argument_count ?? null,
+      e.is_external ?? null,
+      e.external_module ?? null,
+      e.store_type ?? null,
+      e.retrieve_type ?? null,
+      e.send_type ?? null,
+      e.operation ?? null,
+      e.target_resource ?? null,
+      e.provider ?? null,
+      e.request_type ?? null,
+      e.response_type ?? null,
+      e.method ?? null,
+      e.route_pattern ?? null,
+      e.framework ?? null,
+      e.target ?? null,
+      e.is_third_party ?? null,
+      e.service_name ?? null,
+      e.status_code ?? null,
+      e.content_type ?? null,
+      e.condition_type ?? null,
+      e.branch_count ?? null,
+      e.has_default ?? null,
+      e.loop_type ?? null,
+      e.group_type ?? null,
+      e.group_name ?? null,
+      e.description ?? null,
+      e.technology ?? null,
+      e.parent_group_id ?? null,
+      e.source_file_hash ?? "",
+      false, // is_deleted
+      new Date().toISOString() // updated_at
     );
   }
 
@@ -641,6 +745,7 @@ export class SeedWriter {
             nodesWritten,
             edgesWritten,
             refsWritten,
+            effectsWritten: 0, // Effects not rewritten in delete operations
             filesProcessed: excludeSet.size,
           };
         });
@@ -657,6 +762,7 @@ export class SeedWriter {
         nodesWritten: 0,
         edgesWritten: 0,
         refsWritten: 0,
+        effectsWritten: 0,
         filesProcessed: 0,
         timeMs: Date.now() - _startTime,
         error: error instanceof Error ? error.message : String(error),
@@ -835,6 +941,7 @@ export class SeedWriter {
       nodesWritten,
       edgesWritten,
       refsWritten,
+      effectsWritten: 0, // Effects not handled in delete operations
       filesProcessed: filePaths.length,
     };
   }
@@ -899,6 +1006,9 @@ export class SeedWriter {
     for (const ref of result.externalRefs) {
       await this.insertExternalRef(conn, ref);
     }
+    for (const effect of result.effects) {
+      await this.insertEffect(conn, effect);
+    }
 
     // Write to temp and rename
     const tempDir = path.join(paths.seedRoot, ".tmp");
@@ -908,14 +1018,19 @@ export class SeedWriter {
     const nodeCount = await conn.all("SELECT COUNT(*) as count FROM nodes");
     const edgeCount = await conn.all("SELECT COUNT(*) as count FROM edges");
     const refCount = await conn.all("SELECT COUNT(*) as count FROM external_refs");
+    const effectCount = await conn.all("SELECT COUNT(*) as count FROM effects");
 
     const nodeRow = nodeCount[0] as Record<string, unknown> | undefined;
     const edgeRow = edgeCount[0] as Record<string, unknown> | undefined;
     const refRow = refCount[0] as Record<string, unknown> | undefined;
+    const effectRow = effectCount[0] as Record<string, unknown> | undefined;
 
     const nodesWritten = Number(nodeRow?.count ?? 0);
     const edgesWritten = Number(edgeRow?.count ?? 0);
     const refsWritten = Number(refRow?.count ?? 0);
+    const effectsWritten = Number(effectRow?.count ?? 0);
+
+    const effectsPath = path.join(paths.basePath, "effects.parquet");
 
     if (nodesWritten > 0) {
       const tempNodes = path.join(tempDir, `nodes_${tempSuffix}.parquet`);
@@ -935,6 +1050,12 @@ export class SeedWriter {
       await this.atomicRename(tempRefs, refsPath);
     }
 
+    if (effectsWritten > 0) {
+      const tempEffects = path.join(tempDir, `effects_${tempSuffix}.parquet`);
+      await conn.run(getCopyToParquet("effects", tempEffects));
+      await this.atomicRename(tempEffects, effectsPath);
+    }
+
     await this.writeMeta(paths.metaJson);
     await this.cleanupTempDir(tempDir);
 
@@ -942,6 +1063,7 @@ export class SeedWriter {
       nodesWritten,
       edgesWritten,
       refsWritten,
+      effectsWritten,
       filesProcessed: 1, // Single file per parse result
     };
   }

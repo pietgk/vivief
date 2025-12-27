@@ -174,6 +174,19 @@ export class DevacMCPServer {
         case "get_diagnostics_counts":
           return await this.executeGetDiagnosticsCounts();
 
+        // Effects, Rules, C4 tools (v3.0)
+        case "query_effects":
+          return await this.executeQueryEffects(input);
+
+        case "run_rules":
+          return await this.executeRunRules(input);
+
+        case "list_rules":
+          return await this.executeListRules(input);
+
+        case "generate_c4":
+          return await this.executeGenerateC4(input);
+
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
       }
@@ -393,6 +406,96 @@ export class DevacMCPServer {
     try {
       const counts = await this.provider.getDiagnosticsCounts();
       return { success: true, data: counts };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  // ================== Effects, Rules, C4 Tool Handlers (v3.0) ==================
+
+  /**
+   * Query code effects from seeds
+   */
+  private async executeQueryEffects(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const filter = {
+        type: input.type as string | undefined,
+        file: input.file as string | undefined,
+        entity: input.entity as string | undefined,
+        externalOnly: input.externalOnly as boolean | undefined,
+        asyncOnly: input.asyncOnly as boolean | undefined,
+        limit: input.limit as number | undefined,
+      };
+
+      const result = await this.provider.queryEffects(filter);
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Run rules engine on effects
+   */
+  private async executeRunRules(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const options = {
+        domain: input.domain as string | undefined,
+        limit: input.limit as number | undefined,
+        includeStats: input.includeStats as boolean | undefined,
+      };
+
+      const result = await this.provider.runRules(options);
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * List available rules
+   */
+  private async executeListRules(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const filter = {
+        domain: input.domain as string | undefined,
+        provider: input.provider as string | undefined,
+      };
+
+      const rules = await this.provider.listRules(filter);
+      return { success: true, data: rules };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Generate C4 diagrams from effects
+   */
+  private async executeGenerateC4(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const options = {
+        level: input.level as "context" | "containers" | "domains" | "externals" | undefined,
+        systemName: input.systemName as string | undefined,
+        systemDescription: input.systemDescription as string | undefined,
+        outputFormat: input.outputFormat as "json" | "plantuml" | "both" | undefined,
+        limit: input.limit as number | undefined,
+      };
+
+      const result = await this.provider.generateC4(options);
+      return { success: true, data: result };
     } catch (error) {
       return {
         success: false,

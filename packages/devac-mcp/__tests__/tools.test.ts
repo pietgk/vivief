@@ -35,8 +35,8 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("get_diagnostics_counts");
     });
 
-    it("has exactly 15 tools", () => {
-      expect(MCP_TOOLS.length).toBe(15);
+    it("has exactly 19 tools", () => {
+      expect(MCP_TOOLS.length).toBe(19);
     });
   });
 
