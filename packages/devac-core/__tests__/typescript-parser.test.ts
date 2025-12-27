@@ -296,6 +296,200 @@ class Config {
   });
 
   // ==========================================================================
+  // CALLS Edge Tests
+  // ==========================================================================
+
+  describe("CALLS edge extraction", () => {
+    it("extracts simple function calls", async () => {
+      const content = `
+function helper() {
+  return 42;
+}
+
+function main() {
+  return helper();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBeGreaterThan(0);
+
+      // main() calls helper()
+      const mainFunc = result.nodes.find((n) => n.name === "main" && n.kind === "function");
+      expect(mainFunc).toBeDefined();
+
+      const helperCall = callsEdges.find(
+        (e) =>
+          e.source_entity_id === mainFunc?.entity_id && e.target_entity_id === "unresolved:helper"
+      );
+      expect(helperCall).toBeDefined();
+    });
+
+    it("extracts method calls on objects", async () => {
+      const content = `
+const logger = console;
+
+function log() {
+  logger.info("hello");
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      const infoCall = callsEdges.find((e) => e.target_entity_id === "unresolved:logger.info");
+      expect(infoCall).toBeDefined();
+    });
+
+    it("extracts chained method calls", async () => {
+      const content = `
+function process(items: string[]) {
+  return items.filter(x => x).map(x => x.toUpperCase());
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      // Should have calls to filter and map on items
+      const filterCall = callsEdges.find((e) => e.target_entity_id === "unresolved:items.filter");
+      expect(filterCall).toBeDefined();
+    });
+
+    it("extracts calls to built-in functions", async () => {
+      const content = `
+function test() {
+  console.log("test");
+  setTimeout(() => {}, 1000);
+  parseInt("42");
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      expect(callsEdges.find((e) => e.target_entity_id === "unresolved:console.log")).toBeDefined();
+      expect(callsEdges.find((e) => e.target_entity_id === "unresolved:setTimeout")).toBeDefined();
+      expect(callsEdges.find((e) => e.target_entity_id === "unresolved:parseInt")).toBeDefined();
+    });
+
+    it("extracts calls inside class methods", async () => {
+      const filePath = path.join(FIXTURES_DIR, "sample-class.ts");
+      const result = await parser.parse(filePath, testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBeGreaterThan(0);
+
+      // process() method calls console.log()
+      const processMethod = result.nodes.find((n) => n.name === "process" && n.kind === "method");
+      expect(processMethod).toBeDefined();
+
+      const consoleLogCall = callsEdges.find(
+        (e) =>
+          e.source_entity_id === processMethod?.entity_id &&
+          e.target_entity_id === "unresolved:console.log"
+      );
+      expect(consoleLogCall).toBeDefined();
+    });
+
+    it("extracts super() calls in constructors", async () => {
+      const content = `
+class Parent {
+  constructor() {}
+}
+
+class Child extends Parent {
+  constructor() {
+    super();
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      const superCall = callsEdges.find((e) => e.target_entity_id === "unresolved:super");
+      expect(superCall).toBeDefined();
+    });
+
+    it("extracts this.method() calls", async () => {
+      const content = `
+class Service {
+  helper() { return 1; }
+
+  main() {
+    return this.helper();
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      const thisHelperCall = callsEdges.find(
+        (e) => e.target_entity_id === "unresolved:this.helper"
+      );
+      expect(thisHelperCall).toBeDefined();
+    });
+
+    it("tracks source location in CALLS edges", async () => {
+      const content = `
+function caller() {
+  target();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBeGreaterThan(0);
+
+      const targetCall = callsEdges.find((e) => e.target_entity_id === "unresolved:target");
+      expect(targetCall).toBeDefined();
+      expect(targetCall?.source_line).toBe(3); // Line where target() is called
+    });
+
+    it("includes argument count in CALLS edge properties", async () => {
+      const content = `
+function test() {
+  noArgs();
+  oneArg(1);
+  threeArgs(1, 2, 3);
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const noArgsCall = callsEdges.find((e) => e.target_entity_id === "unresolved:noArgs");
+      expect(noArgsCall?.properties.argumentCount).toBe(0);
+
+      const oneArgCall = callsEdges.find((e) => e.target_entity_id === "unresolved:oneArg");
+      expect(oneArgCall?.properties.argumentCount).toBe(1);
+
+      const threeArgsCall = callsEdges.find((e) => e.target_entity_id === "unresolved:threeArgs");
+      expect(threeArgsCall?.properties.argumentCount).toBe(3);
+    });
+
+    it("handles calls at module level", async () => {
+      const content = `
+// Top-level call during module initialization
+console.log("Module loaded");
+
+export const config = loadConfig();
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      // Module-level calls should have file as source
+      const moduleNode = result.nodes.find((n) => n.kind === "module");
+      expect(moduleNode).toBeDefined();
+
+      const loadConfigCall = callsEdges.find((e) => e.target_entity_id === "unresolved:loadConfig");
+      expect(loadConfigCall).toBeDefined();
+      expect(loadConfigCall?.source_entity_id).toBe(moduleNode?.entity_id);
+    });
+  });
+
+  // ==========================================================================
   // Import Parsing Tests
   // ==========================================================================
 

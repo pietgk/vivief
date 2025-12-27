@@ -29,6 +29,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0017](0017-validation-hub-cache.md) | Validation Hub Cache | Accepted | 2025-12 |
 | [0018](0018-unified-diagnostics-model.md) | Unified Diagnostics Model | Accepted | 2025-12 |
 | [0019](0019-coverage-validator.md) | Coverage Validator Integration | Accepted | 2025-12 |
+| [0020](0020-calls-edge-extraction.md) | CALLS Edge Extraction for Function Call Tracking | Accepted | 2025-12 |
 
 ## Creating a New ADR
 

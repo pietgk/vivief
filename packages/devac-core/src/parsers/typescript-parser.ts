@@ -20,6 +20,8 @@ type NodePath<T = BabelNode> = {
   node: T;
   parent: BabelNode;
   parentPath: NodePath | null;
+  /** Get the closest parent function (FunctionDeclaration, FunctionExpression, ArrowFunctionExpression, ClassMethod) */
+  getFunctionParent(): NodePath | null;
 };
 
 import { readFile } from "node:fs/promises";
@@ -191,12 +193,16 @@ export class TypeScriptParser implements LanguageParser {
         this.handleImport(nodePath, ctx, fileEntityId);
       },
 
-      // Dynamic imports: import('module')
+      // Call expressions: function calls, method calls
       // biome-ignore lint/suspicious/noExplicitAny: Babel traverse callback types are untyped
       CallExpression: (nodePath: any) => {
+        // Dynamic imports: import('module')
         if (t.isImport(nodePath.node.callee)) {
           this.handleDynamicImport(nodePath, ctx, fileEntityId);
         }
+
+        // Handle CALLS edges for all call expressions
+        this.handleCallExpression(nodePath, ctx, fileEntityId);
       },
 
       // ========================================================================
@@ -364,6 +370,9 @@ export class TypeScriptParser implements LanguageParser {
 
     // CONTAINS edge: Class → Method
     ctx.result.edges.push(ctx.createContainsEdge(classEntityId, methodNode.entity_id, node));
+
+    // Register for CALLS edge lookups
+    ctx.registerNodeEntity(node, methodNode.entity_id);
   }
 
   private handleClassProperty(
@@ -425,6 +434,9 @@ export class TypeScriptParser implements LanguageParser {
 
     ctx.result.nodes.push(funcNode);
     ctx.result.edges.push(ctx.createContainsEdge(fileEntityId, funcNode.entity_id, node));
+
+    // Register for CALLS edge lookups
+    ctx.registerNodeEntity(node, funcNode.entity_id);
   }
 
   private handleArrowFunction(
@@ -459,6 +471,9 @@ export class TypeScriptParser implements LanguageParser {
 
     ctx.result.nodes.push(funcNode);
     ctx.result.edges.push(ctx.createContainsEdge(fileEntityId, funcNode.entity_id, node));
+
+    // Register the actual function expression for CALLS edge lookups
+    ctx.registerNodeEntity(funcExpr, funcNode.entity_id);
   }
 
   private handleImport(
@@ -560,6 +575,141 @@ export class TypeScriptParser implements LanguageParser {
 
       ctx.result.externalRefs.push(ref);
     }
+  }
+
+  /**
+   * Handle call expressions to create CALLS edges
+   */
+  private handleCallExpression(
+    nodePath: NodePath<t.CallExpression>,
+    ctx: ParserContext,
+    fileEntityId: string
+  ): void {
+    const node = nodePath.node;
+
+    // Skip dynamic imports - they're handled separately
+    if (t.isImport(node.callee)) {
+      return;
+    }
+
+    // Find the enclosing function to get the source entity
+    const enclosingFunction = nodePath.getFunctionParent();
+    let sourceEntityId: string;
+
+    if (enclosingFunction) {
+      // Look up the entity ID for this function
+      const funcEntityId = ctx.getNodeEntityId(enclosingFunction.node);
+      if (funcEntityId) {
+        sourceEntityId = funcEntityId;
+      } else {
+        // Function not registered (e.g., inline arrow in argument)
+        // Use file as the source
+        sourceEntityId = fileEntityId;
+      }
+    } else {
+      // Top-level call (module initialization)
+      sourceEntityId = fileEntityId;
+    }
+
+    // Extract callee name
+    const calleeName = this.extractCalleeName(node.callee);
+    if (!calleeName) {
+      return; // Can't determine callee (e.g., computed call like arr[0]())
+    }
+
+    // Create target entity ID
+    // For unresolved references, prefix with "unresolved:"
+    const targetEntityId = `unresolved:${calleeName}`;
+
+    // Create CALLS edge
+    ctx.result.edges.push(
+      ctx.createEdge({
+        sourceEntityId,
+        targetEntityId,
+        edgeType: "CALLS",
+        node,
+        properties: {
+          callee: calleeName,
+          argumentCount: node.arguments.length,
+        },
+      })
+    );
+  }
+
+  /**
+   * Extract a readable name from a callee expression
+   *
+   * Examples:
+   * - Identifier: foo() → "foo"
+   * - Member expression: obj.method() → "obj.method"
+   * - Chained: a.b.c() → "a.b.c"
+   * - Call chain: foo().bar() → "bar" (the immediate call)
+   */
+  private extractCalleeName(callee: t.Expression | t.V8IntrinsicIdentifier): string | null {
+    if (t.isIdentifier(callee)) {
+      return callee.name;
+    }
+
+    // Handle super() calls
+    if (t.isSuper(callee)) {
+      return "super";
+    }
+
+    if (t.isMemberExpression(callee)) {
+      // Get the property name
+      let property: string;
+      if (t.isIdentifier(callee.property)) {
+        property = callee.property.name;
+      } else if (t.isStringLiteral(callee.property)) {
+        property = callee.property.value;
+      } else {
+        // Computed property we can't resolve statically
+        return null;
+      }
+
+      // Get the object part
+      const objectName = this.extractObjectName(callee.object);
+      if (objectName) {
+        return `${objectName}.${property}`;
+      }
+
+      // If object is complex (call result, etc.), just use the property
+      return property;
+    }
+
+    if (t.isCallExpression(callee)) {
+      // Chained call like foo()() - return null as we can't know the callee
+      return null;
+    }
+
+    // Other cases (TaggedTemplateExpression, etc.)
+    return null;
+  }
+
+  /**
+   * Extract object name from member expression object
+   */
+  private extractObjectName(object: t.Expression | t.Super): string | null {
+    if (t.isIdentifier(object)) {
+      return object.name;
+    }
+
+    if (t.isThisExpression(object)) {
+      return "this";
+    }
+
+    if (t.isSuper(object)) {
+      return "super";
+    }
+
+    if (t.isMemberExpression(object)) {
+      const objName = this.extractObjectName(object.object);
+      if (objName && t.isIdentifier(object.property)) {
+        return `${objName}.${object.property.name}`;
+      }
+    }
+
+    return null;
   }
 
   private handleNamedExport(
@@ -777,6 +927,13 @@ export class TypeScriptParser implements LanguageParser {
 class ParserContext {
   readonly scopeContext: ScopeContext;
 
+  /**
+   * Maps AST node start positions to entity IDs.
+   * Used to look up the entity ID of an enclosing function/method for CALLS edges.
+   * Key format: "line:column"
+   */
+  readonly nodeToEntityId: Map<string, string> = new Map();
+
   constructor(
     readonly filePath: string,
     readonly config: ParserConfig,
@@ -784,6 +941,27 @@ class ParserContext {
     readonly result: StructuralParseResult
   ) {
     this.scopeContext = createScopeContext();
+  }
+
+  /**
+   * Register an AST node's location to its entity ID
+   */
+  registerNodeEntity(node: BabelNode, entityId: string): void {
+    if (node.loc) {
+      const key = `${node.loc.start.line}:${node.loc.start.column}`;
+      this.nodeToEntityId.set(key, entityId);
+    }
+  }
+
+  /**
+   * Get entity ID for an AST node by its location
+   */
+  getNodeEntityId(node: BabelNode): string | undefined {
+    if (node.loc) {
+      const key = `${node.loc.start.line}:${node.loc.start.column}`;
+      return this.nodeToEntityId.get(key);
+    }
+    return undefined;
   }
 
   /**

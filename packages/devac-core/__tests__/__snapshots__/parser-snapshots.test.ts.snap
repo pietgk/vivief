@@ -26490,6 +26490,16 @@ exports[`Parser Snapshots > TypeScript Parser > inline code snapshots > async ge
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:191ae48c",
+      "target_id_suffix": "unresolved:delay",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:2d4160af",
+      "target_id_suffix": "unresolved:setTimeout",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "module:2d4160af",
       "target_id_suffix": "function:191ae48c",
@@ -26826,6 +26836,16 @@ exports[`Parser Snapshots > TypeScript Parser > inline code snapshots > type ali
 exports[`Parser Snapshots > TypeScript Parser > sample-advanced-types.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1dc6480c",
+      "target_id_suffix": "unresolved:Array.isArray",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:2f004187",
+      "target_id_suffix": "unresolved:Array.isArray",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:c5fc8d41",
@@ -28281,6 +28301,36 @@ exports[`Parser Snapshots > TypeScript Parser > sample-class.ts snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:3e36efa3",
+      "target_id_suffix": "unresolved:user.email.includes",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:130af138",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:17a20949",
+      "target_id_suffix": "unresolved:this.users.forEach",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:2bd2d1db",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:72e468d0",
+      "target_id_suffix": "unresolved:this.users.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:9070f612",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:7a180eaa",
       "target_id_suffix": "property:7d850788",
@@ -28859,6 +28909,201 @@ exports[`Parser Snapshots > TypeScript Parser > sample-class.ts snapshot 1`] = `
 exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2bd9a70b",
+      "target_id_suffix": "unresolved:Reflect.getMetadata",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2bd9a70b",
+      "target_id_suffix": "unresolved:requiredParams.push",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2bd9a70b",
+      "target_id_suffix": "unresolved:Reflect.defineMetadata",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:376438ec",
+      "target_id_suffix": "unresolved:Object.defineProperty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:54c002dd",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:7314ff3f",
+      "target_id_suffix": "unresolved:Symbol",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:b8bba80d",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1585c8d3",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1eae0684",
+      "target_id_suffix": "unresolved:Throttle",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:5ffa9ca9",
+      "target_id_suffix": "unresolved:Throttle",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:5ffa9ca9",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:6f8e28f2",
+      "target_id_suffix": "unresolved:then",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:6f8e28f2",
+      "target_id_suffix": "unresolved:fetch",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:89fa0b2f",
+      "target_id_suffix": "unresolved:email.includes",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d579ba7f",
+      "target_id_suffix": "unresolved:this.users.push",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e1fa6aa5",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Reflect.defineMetadata",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:originalMethod.apply",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Date.now",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:originalMethod.apply",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:originalMethod.apply",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:console.error",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Object.defineProperty",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:validator",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Injectable",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Injectable",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Entity",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Validate",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:r.json",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Injectable",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:decorators.reduceRight",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:decorator",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:compose",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:364207fc",
+      "target_id_suffix": "unresolved:Throttle",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "property:b25c7189",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "property:b25c7189",
+      "target_id_suffix": "unresolved:this.data.reduce",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "property:f4707a69",
+      "target_id_suffix": "unresolved:console.log",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:29500a04",
@@ -29943,6 +30188,196 @@ exports[`Parser Snapshots > TypeScript Parser > sample-decorators.ts snapshot 1`
 exports[`Parser Snapshots > TypeScript Parser > sample-edge-cases.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:0145618d",
+      "target_id_suffix": "unresolved:Array.isArray",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:0145618d",
+      "target_id_suffix": "unresolved:value.every",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:3c189875",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:5981fd31",
+      "target_id_suffix": "unresolved:email.includes",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:69fe7115",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:72492794",
+      "target_id_suffix": "unresolved:connection.connect",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:72492794",
+      "target_id_suffix": "unresolved:connection.query",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:ee76c214",
+      "target_id_suffix": "unresolved:file.read",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:0d253bfb",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:12d31c3b",
+      "target_id_suffix": "unresolved:this.values.includes",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:180d2a44",
+      "target_id_suffix": "unresolved:this.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1eb433b5",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:35b3967d",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3e337ce5",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3eeea1b2",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:69529c3c",
+      "target_id_suffix": "unresolved:circle.setColor",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:6c85e0ae",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:7bcb7eb4",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8f2c1f6f",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:90851e52",
+      "target_id_suffix": "unresolved:super.validate",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:cf4b022d",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d898225f",
+      "target_id_suffix": "unresolved:this.connectionPool.has",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d898225f",
+      "target_id_suffix": "unresolved:this.connectionPool.set",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d898225f",
+      "target_id_suffix": "unresolved:this.connectionPool.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:toString",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Buffer.from",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:toString",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Buffer.from",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:parseInt",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Date.now",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:String",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Symbol",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Symbol",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:Symbol",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:868e300b",
+      "target_id_suffix": "unresolved:createTuple",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:198db6e1",
@@ -32513,6 +32948,26 @@ exports[`Parser Snapshots > TypeScript Parser > sample-functions.ts snapshot 1`]
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:904cbe0f",
+      "target_id_suffix": "unresolved:innerFunction",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:a4436c7f",
+      "target_id_suffix": "unresolved:readFile",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fd95bfd4",
+      "target_id_suffix": "unresolved:items.forEach",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:948784b1",
+      "target_id_suffix": "unresolved:path.join",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "module:948784b1",
       "target_id_suffix": "function:7c507305",
@@ -32820,6 +33275,81 @@ exports[`Parser Snapshots > TypeScript Parser > sample-functions.ts snapshot 1`]
 exports[`Parser Snapshots > TypeScript Parser > sample-generics.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:0f354837",
+      "target_id_suffix": "unresolved:Math.min",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:0f354837",
+      "target_id_suffix": "unresolved:result.push",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:623f6da3",
+      "target_id_suffix": "unresolved:fns.reduce",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:74544efc",
+      "target_id_suffix": "unresolved:reverse",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:b0f2cc44",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:09fe7cfe",
+      "target_id_suffix": "unresolved:this.items.set",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:116f0705",
+      "target_id_suffix": "unresolved:this.items.findIndex",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:116f0705",
+      "target_id_suffix": "unresolved:this.items.splice",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:37bcb793",
+      "target_id_suffix": "unresolved:this.items.find",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:92e53630",
+      "target_id_suffix": "unresolved:map",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:92e53630",
+      "target_id_suffix": "unresolved:Array.from",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:92e53630",
+      "target_id_suffix": "unresolved:this.items.entries",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d0341fcf",
+      "target_id_suffix": "unresolved:this.items.push",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f0553b4e",
+      "target_id_suffix": "unresolved:this.items.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:efebce8f",
+      "target_id_suffix": "unresolved:fn",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:5c911150",
@@ -34400,6 +34930,126 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:382a8af9",
+      "target_id_suffix": "unresolved:items.map",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useState",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useState",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useEffect",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useCallback",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useCallback",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8cc83e8f",
+      "target_id_suffix": "unresolved:useMemo",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:a76d27ee",
+      "target_id_suffix": "unresolved:items.map",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:af707422",
+      "target_id_suffix": "unresolved:React.useContext",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:061ee589",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:921cff02",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:b09e789d",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e86eb140",
+      "target_id_suffix": "unresolved:console.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f3ae19ec",
+      "target_id_suffix": "unresolved:this.props.render",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:keyExtractor",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:renderItem",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:setIsEven",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:setCount",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:setCount",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:this.setState",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:this.setState",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:this.setState",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:React.forwardRef",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:352b9ee0",
+      "target_id_suffix": "unresolved:React.createContext",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:a7826d81",
       "target_id_suffix": "property:06ca5c1d",
@@ -35252,6 +35902,41 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
 exports[`Parser Snapshots > TypeScript Parser > sample-modules.ts snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:3acba1f9",
+      "target_id_suffix": "unresolved:toString",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:3acba1f9",
+      "target_id_suffix": "unresolved:buildUrl",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:757ec319",
+      "target_id_suffix": "unresolved:value.toUpperCase",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9ef197a4",
+      "target_id_suffix": "unresolved:Math.sqrt",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:2b631da9",
+      "target_id_suffix": "unresolved:create",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:2b631da9",
+      "target_id_suffix": "unresolved:this.plugins.set",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:2b631da9",
+      "target_id_suffix": "unresolved:plugin.install",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:2b650ef4",
