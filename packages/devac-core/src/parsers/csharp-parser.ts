@@ -1472,6 +1472,7 @@ export class CSharpParser implements LanguageParser {
       nodes: ctx.nodes,
       edges: ctx.edges,
       externalRefs: ctx.externalRefs,
+      effects: [],
       sourceFileHash,
       filePath,
       parseTimeMs,

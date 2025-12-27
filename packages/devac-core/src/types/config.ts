@@ -103,6 +103,9 @@ export interface SeedPaths {
   /** Path to external_refs.parquet */
   refsParquet: string;
 
+  /** Path to effects.parquet (v3.0 foundation) */
+  effectsParquet: string;
+
   /** Path to meta.json */
   metaJson: string;
 
@@ -124,6 +127,7 @@ export function getSeedPaths(packagePath: string, branch = "base"): SeedPaths {
     nodesParquet: `${partitionPath}/nodes.parquet`,
     edgesParquet: `${partitionPath}/edges.parquet`,
     refsParquet: `${partitionPath}/external_refs.parquet`,
+    effectsParquet: `${partitionPath}/effects.parquet`,
     metaJson: `${seedRoot}/meta.json`,
     lockFile: `${seedRoot}/.devac.lock`,
   };

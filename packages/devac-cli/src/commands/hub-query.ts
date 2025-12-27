@@ -131,15 +131,18 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
       const allNodesPaths: string[] = [];
       const allEdgesPaths: string[] = [];
       const allRefsPaths: string[] = [];
+      const allEffectsPaths: string[] = [];
 
       for (const pkgPath of uniquePackagePaths) {
         const nodesPath = path.join(pkgPath, ".devac", "seed", branch, "nodes.parquet");
         const edgesPath = path.join(pkgPath, ".devac", "seed", branch, "edges.parquet");
         const refsPath = path.join(pkgPath, ".devac", "seed", branch, "external_refs.parquet");
+        const effectsPath = path.join(pkgPath, ".devac", "seed", branch, "effects.parquet");
 
         allNodesPaths.push(`'${nodesPath.replace(/'/g, "''")}'`);
         allEdgesPaths.push(`'${edgesPath.replace(/'/g, "''")}'`);
         allRefsPaths.push(`'${refsPath.replace(/'/g, "''")}'`);
+        allEffectsPaths.push(`'${effectsPath.replace(/'/g, "''")}'`);
       }
 
       // Create views - silently ignore missing files
@@ -170,6 +173,17 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
           );
         } catch {
           // Some files may not exist
+        }
+      }
+
+      // Create effects view (v3.0 foundation) - silently ignore if no effects exist yet
+      if (allEffectsPaths.length > 0) {
+        try {
+          await conn.run(
+            `CREATE OR REPLACE VIEW effects AS SELECT * FROM read_parquet([${allEffectsPaths.join(", ")}], union_by_name=true, filename=true)`
+          );
+        } catch {
+          // Effects files may not exist yet - this is expected until parsers emit effects
         }
       }
     });

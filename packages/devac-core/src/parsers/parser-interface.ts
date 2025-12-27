@@ -5,7 +5,7 @@
  * Based on DevAC v2.0 spec Section 9.
  */
 
-import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
+import type { CodeEffect, ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
 
 /**
  * Result of parsing a single source file
@@ -17,6 +17,8 @@ export interface StructuralParseResult {
   edges: ParsedEdge[];
   /** External references (unresolved imports) */
   externalRefs: ParsedExternalRef[];
+  /** Code effects extracted during parse (v3.0 foundation) */
+  effects: CodeEffect[];
   /** SHA-256 hash of the source file content */
   sourceFileHash: string;
   /** File path relative to package root */
@@ -142,6 +144,7 @@ export function createEmptyParseResult(
     nodes: [],
     edges: [],
     externalRefs: [],
+    effects: [],
     sourceFileHash,
     filePath,
     parseTimeMs: 0,
@@ -157,6 +160,7 @@ export function mergeParseResults(results: StructuralParseResult[]): StructuralP
     nodes: [],
     edges: [],
     externalRefs: [],
+    effects: [],
     sourceFileHash: "",
     filePath: "",
     parseTimeMs: 0,
@@ -167,6 +171,7 @@ export function mergeParseResults(results: StructuralParseResult[]): StructuralP
     merged.nodes.push(...result.nodes);
     merged.edges.push(...result.edges);
     merged.externalRefs.push(...result.externalRefs);
+    merged.effects.push(...(result.effects ?? []));
     merged.parseTimeMs += result.parseTimeMs;
     merged.warnings.push(...result.warnings);
   }
@@ -186,6 +191,7 @@ export function filterParseResultByFile(
     nodes: result.nodes.filter((n) => n.file_path === filePath),
     edges: result.edges.filter((e) => e.source_file_path === filePath),
     externalRefs: result.externalRefs.filter((r) => r.source_file_path === filePath),
+    effects: (result.effects ?? []).filter((e) => e.source_file_path === filePath),
   };
 }
 

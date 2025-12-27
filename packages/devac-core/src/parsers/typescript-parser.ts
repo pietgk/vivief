@@ -183,6 +183,7 @@ export class TypeScriptParser implements LanguageParser {
       nodes: [],
       edges: [],
       externalRefs: [],
+      effects: [],
       sourceFileHash,
       filePath,
       parseTimeMs: 0,

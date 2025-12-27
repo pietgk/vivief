@@ -17,6 +17,7 @@ This directory contains documentation for the actual DevAC implementation — wh
 |----------|---------|
 | [data-model.md](./data-model.md) | Node, Edge, and External Ref schemas |
 | [storage.md](./storage.md) | DuckDB pool and Parquet file handling |
+| [query-guide.md](./query-guide.md) | Comprehensive SQL query patterns and examples |
 | [parsing.md](./parsing.md) | Two-pass analysis pipeline |
 | [resolution.md](./resolution.md) | Semantic resolution for cross-file references |
 | [federation.md](./federation.md) | Central hub and multi-repo queries |

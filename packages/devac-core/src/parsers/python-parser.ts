@@ -281,6 +281,7 @@ export class PythonParser implements LanguageParser {
       nodes,
       edges,
       externalRefs,
+      effects: [],
       sourceFileHash,
       filePath,
       parseTimeMs,

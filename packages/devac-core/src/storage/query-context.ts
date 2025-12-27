@@ -69,6 +69,7 @@ async function fileExists(filePath: string): Promise<boolean> {
  * - nodes: All nodes from the package
  * - edges: All edges from the package
  * - external_refs: All external references from the package
+ * - effects: All effects from the package (v3.0 foundation)
  */
 export async function setupQueryContext(
   pool: DuckDBPool,
@@ -109,6 +110,14 @@ export async function setupQueryContext(
         warnings.push(`external_refs.parquet not found at ${refsPath}`);
       }
 
+      // Create view for effects (v3.0 foundation)
+      const effectsPath = path.join(paths.basePath, "effects.parquet");
+      if (await fileExists(effectsPath)) {
+        await createView(conn, "effects", effectsPath);
+        viewsCreated.push("effects");
+      }
+      // Note: No warning for missing effects - it's optional until parsers emit effects
+
       // Set up additional package views if provided
       if (config.packages) {
         for (const [pkgName, pkgPath] of config.packages) {
@@ -131,6 +140,13 @@ export async function setupQueryContext(
           if (await fileExists(pkgRefsPath)) {
             await createView(conn, `external_refs_${pkgName}`, pkgRefsPath);
             viewsCreated.push(`external_refs_${pkgName}`);
+          }
+
+          // Create effects view for package (v3.0 foundation)
+          const pkgEffectsPath = path.join(pkgPaths.basePath, "effects.parquet");
+          if (await fileExists(pkgEffectsPath)) {
+            await createView(conn, `effects_${pkgName}`, pkgEffectsPath);
+            viewsCreated.push(`effects_${pkgName}`);
           }
         }
       }
@@ -175,9 +191,9 @@ export function preprocessSql(
 ): { sql: string; errors: string[] } {
   const errors: string[] = [];
 
-  // Pattern: table@package where table is nodes, edges, or external_refs
+  // Pattern: table@package where table is nodes, edges, external_refs, or effects
   // Note: Can't use \b at end because * is not a word character
-  const pattern = /\b(nodes|edges|external_refs)@(\w+|\*)/g;
+  const pattern = /\b(nodes|edges|external_refs|effects)@(\w+|\*)/g;
 
   const processedSql = sql.replace(pattern, (match, table: string, pkgName: string) => {
     if (pkgName === "*") {

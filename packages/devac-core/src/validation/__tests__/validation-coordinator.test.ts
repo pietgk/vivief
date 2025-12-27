@@ -74,6 +74,7 @@ function createParseResult(
     nodes,
     edges,
     externalRefs,
+    effects: [],
     sourceFileHash: `test-hash-${Date.now()}`,
     filePath,
     parseTimeMs: 0,

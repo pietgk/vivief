@@ -22,6 +22,7 @@ export {
   NODES_SCHEMA,
   EDGES_SCHEMA,
   EXTERNAL_REFS_SCHEMA,
+  EFFECTS_SCHEMA,
   INDEXES,
   PARQUET_OPTIONS,
   initializeSchemas,
@@ -45,6 +46,11 @@ export {
   preprocessSql,
   discoverPackagesInRepo,
   buildPackageMap,
+  // Effect storage (v3.0 foundation)
+  EffectWriter,
+  createEffectWriter,
+  EffectReader,
+  createEffectReader,
 } from "./storage/index.js";
 export type {
   PoolStats,
@@ -59,6 +65,12 @@ export type {
   QueryContextConfig,
   QueryContextResult,
   DiscoveredPackage,
+  // Effect storage types (v3.0 foundation)
+  EffectWriteOptions,
+  EffectWriteResult,
+  EffectFilter,
+  EffectReadResult,
+  EffectStatistics,
 } from "./storage/index.js";
 
 // Analyzer (excludes generateScopeHash which conflicts with utils)
@@ -276,6 +288,51 @@ export type {
   LogLevel,
   LoggerOptions,
 } from "./utils/index.js";
+
+// Rules Engine (v3.0 foundation - pattern matching for effects)
+export {
+  RuleEngine,
+  createRuleEngine,
+  defineRule,
+  builtinRules,
+  databaseRules,
+  paymentRules,
+  authRules,
+  httpRules,
+  messagingRules,
+  storageRules,
+  observabilityRules,
+  getRulesByDomain,
+  getRulesByProvider,
+} from "./rules/index.js";
+export type {
+  Rule,
+  RuleMatch,
+  RuleEmit,
+  DomainEffect,
+  RuleEngineResult,
+  RuleEngineConfig,
+} from "./rules/index.js";
+
+// Views (v3.0 foundation - Vision→View pipeline)
+export {
+  generateC4Context,
+  generateC4Containers,
+  exportContextToPlantUML,
+  exportContainersToPlantUML,
+  discoverDomainBoundaries,
+} from "./views/index.js";
+export type {
+  C4ExternalSystem,
+  C4Container,
+  C4Component,
+  C4Relationship,
+  C4Context,
+  C4ContainerDiagram,
+  DomainSummary,
+  C4GeneratorOptions,
+  DomainBoundary,
+} from "./views/index.js";
 
 /**
  * DevAC Core Version

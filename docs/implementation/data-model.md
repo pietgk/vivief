@@ -376,6 +376,85 @@ Package names are derived from:
 | All packages | `FROM nodes@*` | Workspace-wide queries |
 | Full control | `FROM read_parquet('...')` | Advanced/custom paths |
 
+## Querying Documentation
+
+DevAC extracts JSDoc and docstring content into the `documentation` field. This enables powerful documentation analysis.
+
+### Find Undocumented Functions
+
+```sql
+-- Exported functions without documentation
+SELECT
+  name,
+  file_path,
+  start_line
+FROM nodes
+WHERE kind = 'function'
+  AND is_exported = true
+  AND (documentation IS NULL OR documentation = '')
+ORDER BY file_path, start_line;
+
+-- Documentation coverage by file
+SELECT
+  file_path,
+  COUNT(*) as total_functions,
+  COUNT(documentation) as documented,
+  ROUND(100.0 * COUNT(documentation) / COUNT(*), 1) as coverage_pct
+FROM nodes
+WHERE kind IN ('function', 'method')
+  AND is_exported = true
+GROUP BY file_path
+HAVING COUNT(*) > 0
+ORDER BY coverage_pct ASC;
+```
+
+### Search Documentation for Keywords
+
+```sql
+-- Find functions mentioning "deprecated"
+SELECT
+  name,
+  file_path,
+  documentation
+FROM nodes
+WHERE documentation ILIKE '%deprecated%';
+
+-- Find functions related to authentication
+SELECT
+  name,
+  file_path,
+  SUBSTRING(documentation, 1, 100) as doc_preview
+FROM nodes
+WHERE documentation ILIKE '%auth%'
+   OR documentation ILIKE '%login%';
+
+-- Find @throws annotations
+SELECT
+  name,
+  file_path,
+  documentation
+FROM nodes
+WHERE documentation LIKE '%@throws%';
+```
+
+### Generate API Documentation from Seeds
+
+```sql
+-- Export public API as markdown-ready format
+SELECT
+  '### ' || name || E'\n\n' ||
+  '**Kind:** ' || kind || E'\n' ||
+  '**File:** `' || file_path || ':' || start_line || '`' || E'\n\n' ||
+  COALESCE(documentation, '_No documentation_') || E'\n\n---\n'
+  as markdown_entry
+FROM nodes
+WHERE is_exported = true
+  AND kind IN ('function', 'class', 'interface', 'type')
+ORDER BY kind, name;
+```
+
+For more query examples, see [Query Guide](./query-guide.md).
+
 ## Example Data
 
 ### nodes.parquet

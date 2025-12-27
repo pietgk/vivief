@@ -5,8 +5,8 @@
  * Based on spec Section 11.2: Query Commands
  *
  * Query UX Features:
- * - Auto-creates views for nodes, edges, external_refs
- * - Supports @package syntax: nodes@core, edges@*, etc.
+ * - Auto-creates views for nodes, edges, external_refs, effects
+ * - Supports @package syntax: nodes@core, edges@*, effects@cli, etc.
  */
 
 import * as path from "node:path";

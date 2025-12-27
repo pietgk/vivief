@@ -21,6 +21,7 @@ export {
   NODES_SCHEMA,
   EDGES_SCHEMA,
   EXTERNAL_REFS_SCHEMA,
+  EFFECTS_SCHEMA,
   INDEXES,
   PARQUET_OPTIONS,
   initializeSchemas,
@@ -65,3 +66,15 @@ export type {
   QueryContextResult,
   DiscoveredPackage,
 } from "./query-context.js";
+
+// Effect writer (v3.0 foundation)
+export { EffectWriter, createEffectWriter } from "./effect-writer.js";
+export type { EffectWriteOptions, EffectWriteResult } from "./effect-writer.js";
+
+// Effect reader (v3.0 foundation)
+export { EffectReader, createEffectReader } from "./effect-reader.js";
+export type {
+  EffectFilter,
+  EffectReadResult,
+  EffectStatistics,
+} from "./effect-reader.js";
