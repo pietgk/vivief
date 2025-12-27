@@ -17948,6 +17948,11 @@ exports[`Parser Snapshots > Python Parser > inline code snapshots > dataclass sn
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:de114d1130f1",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:b512d97e7cbf",
       "target_id_suffix": "variable:557c6fd24754",
@@ -18391,6 +18396,76 @@ exports[`Parser Snapshots > Python Parser > inline code snapshots > protocol cla
 exports[`Parser Snapshots > Python Parser > sample_class.py snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:b317adc9595d",
+      "target_id_suffix": "unresolved:bool",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:b317adc9595d",
+      "target_id_suffix": "unresolved:user.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:b317adc9595d",
+      "target_id_suffix": "unresolved:user.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1984e140e56c",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:303113e07d3b",
+      "target_id_suffix": "unresolved:cls",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4b241ce58335",
+      "target_id_suffix": "unresolved:len",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a6ec597f12df",
+      "target_id_suffix": "unresolved:self.log",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d62a317b4fe4",
+      "target_id_suffix": "unresolved:UserService",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d88625d8a5a9",
+      "target_id_suffix": "unresolved:self._users.items",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:d88625d8a5a9",
+      "target_id_suffix": "unresolved:callback",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e70c9cdb1f54",
+      "target_id_suffix": "unresolved:self._users.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e9e073ec49fc",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ef7a1ccfecfe",
+      "target_id_suffix": "unresolved:__init__",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ef7a1ccfecfe",
+      "target_id_suffix": "unresolved:super",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:2bc18a116fe2",
@@ -19424,6 +19499,76 @@ exports[`Parser Snapshots > Python Parser > sample_class.py snapshot 1`] = `
 exports[`Parser Snapshots > Python Parser > sample_functions.py snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:049b3253f4a8",
+      "target_id_suffix": "unresolved:factorial",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:611232a8df79",
+      "target_id_suffix": "unresolved:value.upper",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:7ddaa136ab8b",
+      "target_id_suffix": "unresolved:inner_function",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:895479bfaa22",
+      "target_id_suffix": "unresolved:ValueError",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8a35a5178bfc",
+      "target_id_suffix": "unresolved:enumerate",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:8a35a5178bfc",
+      "target_id_suffix": "unresolved:callback",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:938a23b64991",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:938a23b64991",
+      "target_id_suffix": "unresolved:func",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:daace14e6fc7",
+      "target_id_suffix": "unresolved:func",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:f181dfadaa27",
+      "target_id_suffix": "unresolved:range",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fa0b4f4a93fd",
+      "target_id_suffix": "unresolved:asyncio.sleep",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fde6cddf240d",
+      "target_id_suffix": "unresolved:range",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fde6cddf240d",
+      "target_id_suffix": "unresolved:asyncio.sleep",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:db244a6099c0",
+      "target_id_suffix": "unresolved:TypeVar",
+    },
     {
       "edge_type": "PARAMETER_OF",
       "source_id_suffix": "parameter:00bb25b91e00",
@@ -20690,6 +20835,61 @@ exports[`Parser Snapshots > Python Parser > sample_imports.py snapshot 1`] = `
 {
   "edges": [
     {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:4f912698d2bb",
+      "target_id_suffix": "unresolved:col.Counter",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:4f912698d2bb",
+      "target_id_suffix": "unresolved:dict",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:5feab5ee8732",
+      "target_id_suffix": "unresolved:Path",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:5feab5ee8732",
+      "target_id_suffix": "unresolved:splitlines",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:5feab5ee8732",
+      "target_id_suffix": "unresolved:path.read_text",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:6bfe420b7086",
+      "target_id_suffix": "unresolved:dict",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:4456cf7f923e",
+      "target_id_suffix": "unresolved:Path",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8c1e0a440efa",
+      "target_id_suffix": "unresolved:open",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:8c1e0a440efa",
+      "target_id_suffix": "unresolved:json_lib.load",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:f137e7f3c6ae",
+      "target_id_suffix": "unresolved:self._data.get",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:e931aef7224b",
+      "target_id_suffix": "unresolved:os.getcwd",
+    },
+    {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:d60dbba07922",
       "target_id_suffix": "constant:bfeba082ef28",
@@ -21286,6 +21486,286 @@ exports[`Parser Snapshots > Python Parser > sample_imports.py snapshot 1`] = `
 exports[`Parser Snapshots > Python Parser > sample_modern_python.py snapshot 1`] = `
 {
   "edges": [
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:01b61c169ca0",
+      "target_id_suffix": "unresolved:command.split",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:01b61c169ca0",
+      "target_id_suffix": "unresolved:str",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:01b61c169ca0",
+      "target_id_suffix": "unresolved:sum",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:01b61c169ca0",
+      "target_id_suffix": "unresolved:int",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:18741c8b31f0",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:1ca2fb626b01",
+      "target_id_suffix": "unresolved:ExceptionGroup",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:1ca2fb626b01",
+      "target_id_suffix": "unresolved:ValueError",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:1ca2fb626b01",
+      "target_id_suffix": "unresolved:TypeError",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:1ca2fb626b01",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:1ca2fb626b01",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2520e5f8c192",
+      "target_id_suffix": "unresolved:isinstance",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2520e5f8c192",
+      "target_id_suffix": "unresolved:str",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2520e5f8c192",
+      "target_id_suffix": "unresolved:isinstance",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2520e5f8c192",
+      "target_id_suffix": "unresolved:len",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:2520e5f8c192",
+      "target_id_suffix": "unresolved:str",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:85874c9a0b9b",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:85874c9a0b9b",
+      "target_id_suffix": "unresolved:func",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:85874c9a0b9b",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:977ec274d0da",
+      "target_id_suffix": "unresolved:func",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:len",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:data.pop",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:result.append",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:range",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:some_regex_match",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:9fdd0a7977ab",
+      "target_id_suffix": "unresolved:match.groups",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "function:fde6cddf240d",
+      "target_id_suffix": "unresolved:range",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:1c5660a60675",
+      "target_id_suffix": "unresolved:cls",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:26b7e14f95c3",
+      "target_id_suffix": "unresolved:cls",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:3c718c8f7232",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:445622dc5880",
+      "target_id_suffix": "unresolved:self.items.append",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:589804bb86a9",
+      "target_id_suffix": "unresolved:__init__",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:589804bb86a9",
+      "target_id_suffix": "unresolved:super",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:a367125d5be8",
+      "target_id_suffix": "unresolved:setattr",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:bd1bc425bfce",
+      "target_id_suffix": "unresolved:self.items.clear",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:e76fb311ff8f",
+      "target_id_suffix": "unresolved:print",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ea0a7975f6c6",
+      "target_id_suffix": "unresolved:type",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:ea0a7975f6c6",
+      "target_id_suffix": "unresolved:self.items.copy",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "method:fcef0e9e738f",
+      "target_id_suffix": "unresolved:object.__setattr__",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:dataclass",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:dataclass",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:dataclass",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:time",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:__import__",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:ParamSpec",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:TypeVarTuple",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:TypeVar",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:TypeVar",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:TypeVar",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:TypeVar",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:field",
+    },
+    {
+      "edge_type": "CALLS",
+      "source_id_suffix": "module:fe3f71439efa",
+      "target_id_suffix": "unresolved:dataclass",
+    },
     {
       "edge_type": "CONTAINS",
       "source_id_suffix": "class:051b0ed963c8",

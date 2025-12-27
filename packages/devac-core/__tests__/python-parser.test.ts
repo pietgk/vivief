@@ -549,6 +549,177 @@ class Outer:
   });
 
   // ==========================================================================
+  // CALLS Edge Extraction Tests
+  // ==========================================================================
+
+  describe("CALLS edge extraction", () => {
+    it("extracts simple function calls", async () => {
+      const content = `
+def caller():
+    callee()
+    another_func(1, 2)
+`;
+      const result = await parser.parseContent(content, "calls.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBe(2);
+
+      const calleeCall = callsEdges.find((e) => e.properties.callee === "callee");
+      expect(calleeCall).toBeDefined();
+      expect(calleeCall?.target_entity_id).toBe("unresolved:callee");
+
+      const anotherCall = callsEdges.find((e) => e.properties.callee === "another_func");
+      expect(anotherCall).toBeDefined();
+      expect(anotherCall?.properties.argument_count).toBe(2);
+    });
+
+    it("extracts method calls with object", async () => {
+      const content = `
+def process():
+    obj.method()
+    self.helper()
+    data.items.append(1)
+`;
+      const result = await parser.parseContent(content, "method_calls.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const objMethod = callsEdges.find((e) => e.properties.callee === "obj.method");
+      expect(objMethod).toBeDefined();
+      expect(objMethod?.target_entity_id).toBe("unresolved:obj.method");
+
+      const selfHelper = callsEdges.find((e) => e.properties.callee === "self.helper");
+      expect(selfHelper).toBeDefined();
+
+      const nestedMethod = callsEdges.find((e) => e.properties.callee === "data.items.append");
+      expect(nestedMethod).toBeDefined();
+    });
+
+    it("extracts built-in function calls", async () => {
+      const content = `
+def example():
+    print("hello")
+    len([1, 2, 3])
+    range(10)
+`;
+      const result = await parser.parseContent(content, "builtins.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const printCall = callsEdges.find((e) => e.properties.callee === "print");
+      expect(printCall).toBeDefined();
+      expect(printCall?.target_entity_id).toBe("unresolved:print");
+
+      const lenCall = callsEdges.find((e) => e.properties.callee === "len");
+      expect(lenCall).toBeDefined();
+
+      const rangeCall = callsEdges.find((e) => e.properties.callee === "range");
+      expect(rangeCall).toBeDefined();
+    });
+
+    it("extracts calls from class methods", async () => {
+      const content = `
+class MyClass:
+    def method(self):
+        helper()
+        self.other_method()
+`;
+      const result = await parser.parseContent(content, "class_calls.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const helperCall = callsEdges.find((e) => e.properties.callee === "helper");
+      expect(helperCall).toBeDefined();
+
+      const methodCall = callsEdges.find((e) => e.properties.callee === "self.other_method");
+      expect(methodCall).toBeDefined();
+    });
+
+    it("includes source location in CALLS edges", async () => {
+      const content = `
+def caller():
+    target_func()
+`;
+      const result = await parser.parseContent(content, "location.py", testConfig);
+
+      const callsEdge = result.edges.find(
+        (e) => e.edge_type === "CALLS" && e.properties.callee === "target_func"
+      );
+      expect(callsEdge).toBeDefined();
+      expect(callsEdge?.properties.start_line).toBe(3);
+    });
+
+    it("includes argument count in CALLS edges", async () => {
+      const content = `
+def caller():
+    no_args()
+    with_args(1, 2, 3)
+    with_kwargs(a=1, b=2)
+    mixed(1, 2, c=3)
+`;
+      const result = await parser.parseContent(content, "arg_count.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      const noArgs = callsEdges.find((e) => e.properties.callee === "no_args");
+      expect(noArgs?.properties.argument_count).toBe(0);
+
+      const withArgs = callsEdges.find((e) => e.properties.callee === "with_args");
+      expect(withArgs?.properties.argument_count).toBe(3);
+
+      const withKwargs = callsEdges.find((e) => e.properties.callee === "with_kwargs");
+      expect(withKwargs?.properties.argument_count).toBe(2);
+
+      const mixed = callsEdges.find((e) => e.properties.callee === "mixed");
+      expect(mixed?.properties.argument_count).toBe(3);
+    });
+
+    it("handles module-level calls", async () => {
+      const content = `
+print("module level")
+setup_logging()
+`;
+      const result = await parser.parseContent(content, "module_level.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBe(2);
+
+      // Module-level calls should have a module entity as source
+      expect(callsEdges[0]?.source_entity_id).toContain("module");
+    });
+
+    it("handles super() calls", async () => {
+      const content = `
+class Child(Parent):
+    def __init__(self):
+        super().__init__()
+`;
+      const result = await parser.parseContent(content, "super_call.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+
+      // super() is a call
+      const superCall = callsEdges.find((e) => e.properties.callee === "super");
+      expect(superCall).toBeDefined();
+    });
+
+    it("extracts calls from async functions", async () => {
+      const content = `
+async def async_caller():
+    await async_func()
+    regular_func()
+`;
+      const result = await parser.parseContent(content, "async_calls.py", testConfig);
+
+      const callsEdges = result.edges.filter((e) => e.edge_type === "CALLS");
+      expect(callsEdges.length).toBe(2);
+
+      const asyncCall = callsEdges.find((e) => e.properties.callee === "async_func");
+      expect(asyncCall).toBeDefined();
+    });
+  });
+
+  // ==========================================================================
   // Error Handling Tests
   // ==========================================================================
 

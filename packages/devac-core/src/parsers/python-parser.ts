@@ -82,6 +82,11 @@ interface RawPythonEdge {
   target_entity_id: string;
   source_file_path: string;
   target_name?: string;
+  // CALLS edge properties
+  callee?: string;
+  argument_count?: number;
+  start_line?: number;
+  start_column?: number;
 }
 
 interface RawPythonRef {
@@ -344,13 +349,31 @@ export class PythonParser implements LanguageParser {
    * Convert a raw Python edge to ParsedEdge
    */
   private convertEdge(raw: RawPythonEdge, sourceFileHash: string): ParsedEdge {
+    // Build properties object with all additional edge data
+    const properties: Record<string, unknown> = {};
+    if (raw.target_name) {
+      properties.target_name = raw.target_name;
+    }
+    if (raw.callee !== undefined) {
+      properties.callee = raw.callee;
+    }
+    if (raw.argument_count !== undefined) {
+      properties.argument_count = raw.argument_count;
+    }
+    if (raw.start_line !== undefined) {
+      properties.start_line = raw.start_line;
+    }
+    if (raw.start_column !== undefined) {
+      properties.start_column = raw.start_column;
+    }
+
     return createEdge({
       edge_type: raw.edge_type as ParsedEdge["edge_type"],
       source_entity_id: raw.source_entity_id,
       target_entity_id: raw.target_entity_id,
       source_file_path: raw.source_file_path,
       source_file_hash: sourceFileHash,
-      properties: raw.target_name ? { target_name: raw.target_name } : {},
+      properties,
     });
   }
 

@@ -446,6 +446,72 @@ class DevACPythonParser(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
+    def visit_Call(self, node: ast.Call) -> None:
+        """Visit a function/method call expression and create CALLS edges."""
+        # Determine the source entity (caller)
+        source_entity_id = self.current_function_entity_id
+        if not source_entity_id:
+            # Module-level call - use a virtual module entity
+            source_entity_id = self._generate_entity_id(
+                "module", os.path.basename(self.filepath)
+            )
+
+        # Extract callee name
+        callee_name = self._extract_callee_name(node.func)
+        if callee_name:
+            # Create target entity ID with unresolved prefix
+            target_entity_id = f"unresolved:{callee_name}"
+
+            # Get source location
+            location = self._get_location(node)
+
+            # Add CALLS edge
+            self._add_edge(
+                "CALLS",
+                source_entity_id,
+                target_entity_id,
+                callee=callee_name,
+                argument_count=len(node.args) + len(node.keywords),
+                start_line=location["start_line"],
+                start_column=location["start_column"],
+            )
+
+        self.generic_visit(node)
+
+    def _extract_callee_name(self, func: ast.expr) -> Optional[str]:
+        """Extract the callee name from a call expression's func node."""
+        if isinstance(func, ast.Name):
+            # Simple function call: foo()
+            return func.id
+        elif isinstance(func, ast.Attribute):
+            # Method/attribute call: obj.method()
+            obj_name = self._extract_object_name(func.value)
+            if obj_name:
+                return f"{obj_name}.{func.attr}"
+            return func.attr
+        elif isinstance(func, ast.Call):
+            # Chained call: foo()() - skip intermediate
+            return None
+        elif isinstance(func, ast.Subscript):
+            # Subscript call: foo[x]() - extract the base
+            return self._extract_callee_name(func.value)
+        return None
+
+    def _extract_object_name(self, node: ast.expr) -> Optional[str]:
+        """Extract object name for method calls."""
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            # Nested attribute: a.b.c
+            obj_name = self._extract_object_name(node.value)
+            if obj_name:
+                return f"{obj_name}.{node.attr}"
+            return node.attr
+        elif isinstance(node, ast.Call):
+            # Chained call: foo().bar() - just use the method name
+            return None
+        return None
+
 
 def parse_python_file(filepath: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """

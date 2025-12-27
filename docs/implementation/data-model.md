@@ -169,6 +169,45 @@ DevAC supports 19 edge types:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### CALLS Edge Properties
+
+CALLS edges track function/method call relationships. They include additional properties in the `properties` JSON field:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `callee` | string | Name of the called function/method (e.g., `console.log`, `this.helper`) |
+| `argumentCount` | number | Number of arguments passed to the call |
+
+**Target Entity ID Format:**
+
+Since CALLS edges are extracted during structural parsing without type resolution, the target uses an `unresolved:` prefix:
+
+| Call Pattern | Target Entity ID |
+|--------------|------------------|
+| Simple call: `foo()` | `unresolved:foo` |
+| Method call: `obj.method()` | `unresolved:obj.method` |
+| Chained: `items.filter()` | `unresolved:items.filter` |
+| Built-in: `console.log()` | `unresolved:console.log` |
+| Super call: `super()` | `unresolved:super` |
+| This method: `this.helper()` | `unresolved:this.helper` |
+
+**Example CALLS edges:**
+
+```json
+{
+  "source_entity_id": "repo:pkg:function:abc123",
+  "target_entity_id": "unresolved:validateUser",
+  "edge_type": "CALLS",
+  "source_file_path": "src/auth.ts",
+  "source_line": 15,
+  "source_column": 4,
+  "properties": {
+    "callee": "validateUser",
+    "argumentCount": 2
+  }
+}
+```
+
 ## External References Schema
 
 External references track imports and dependencies that may cross package boundaries.
