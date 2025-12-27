@@ -39,6 +39,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate version files
+        run: |
+          node scripts/generate-version.mjs packages/devac-cli
+          node scripts/generate-version.mjs packages/devac-mcp
+          node scripts/generate-version.mjs packages/devac-worktree
+
       - name: Lint
         run: pnpm lint
 
