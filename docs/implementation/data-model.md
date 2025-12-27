@@ -331,6 +331,51 @@ Entity IDs are globally unique identifiers for code elements:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Query UX
+
+DevAC provides ergonomic query features that eliminate the need for full parquet paths:
+
+### Auto-Created Views
+
+When running `devac query`, views are automatically created for the current package:
+
+```sql
+-- Instead of:
+SELECT * FROM read_parquet('/full/path/to/.devac/seed/base/nodes.parquet')
+
+-- Simply use:
+SELECT * FROM nodes WHERE kind = 'function'
+SELECT * FROM edges WHERE edge_type = 'CALLS'
+SELECT * FROM external_refs WHERE is_resolved = false
+```
+
+### Package Shorthand Syntax
+
+Query specific packages using `@package` syntax:
+
+```sql
+-- Query a specific package by name
+SELECT * FROM nodes@core WHERE kind = 'class'
+SELECT * FROM edges@cli WHERE edge_type = 'IMPORTS'
+
+-- Query all packages at once
+SELECT name, kind, file_path FROM nodes@* ORDER BY name
+SELECT COUNT(*) FROM edges@* GROUP BY edge_type
+```
+
+Package names are derived from:
+1. `package.json` name (scoped packages like `@org/pkg` → `pkg`)
+2. Directory name if no package.json
+
+### Progressive Disclosure
+
+| Complexity | Syntax | Use Case |
+|------------|--------|----------|
+| Simple | `FROM nodes` | Current package queries |
+| Multi-package | `FROM nodes@core` | Cross-package analysis |
+| All packages | `FROM nodes@*` | Workspace-wide queries |
+| Full control | `FROM read_parquet('...')` | Advanced/custom paths |
+
 ## Example Data
 
 ### nodes.parquet

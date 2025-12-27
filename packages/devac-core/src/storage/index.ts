@@ -52,3 +52,16 @@ export {
   queryMultiplePackages,
 } from "./seed-reader.js";
 export type { QueryResult, IntegrityResult } from "./seed-reader.js";
+
+// Query context
+export {
+  setupQueryContext,
+  preprocessSql,
+  discoverPackagesInRepo,
+  buildPackageMap,
+} from "./query-context.js";
+export type {
+  QueryContextConfig,
+  QueryContextResult,
+  DiscoveredPackage,
+} from "./query-context.js";

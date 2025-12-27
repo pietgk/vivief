@@ -3,12 +3,43 @@
  *
  * Execute SQL queries against seed files.
  * Based on spec Section 11.2: Query Commands
+ *
+ * Query UX Features:
+ * - Auto-creates views for nodes, edges, external_refs
+ * - Supports @package syntax: nodes@core, edges@*, etc.
  */
 
 import * as path from "node:path";
-import { DuckDBPool, executeWithRecovery } from "@pietgk/devac-core";
+import {
+  DuckDBPool,
+  buildPackageMap,
+  discoverPackagesInRepo,
+  executeWithRecovery,
+  preprocessSql,
+  setupQueryContext,
+} from "@pietgk/devac-core";
 import type { Command } from "commander";
 import type { QueryOptions, QueryResult } from "./types.js";
+
+/**
+ * Find the repository root by looking for .git directory
+ */
+async function findRepoRoot(startPath: string): Promise<string | null> {
+  const fs = await import("node:fs/promises");
+  let currentPath = startPath;
+
+  while (currentPath !== path.dirname(currentPath)) {
+    try {
+      const gitPath = path.join(currentPath, ".git");
+      await fs.access(gitPath);
+      return currentPath;
+    } catch {
+      currentPath = path.dirname(currentPath);
+    }
+  }
+
+  return null;
+}
 
 /**
  * Execute a SQL query against seed files
@@ -22,9 +53,42 @@ export async function queryCommand(options: QueryOptions): Promise<QueryResult> 
     pool = new DuckDBPool({ memoryLimit: "512MB" });
     await pool.initialize();
 
+    // Discover packages for @package syntax
+    const repoRoot = await findRepoRoot(options.packagePath);
+    const packages = repoRoot
+      ? await discoverPackagesInRepo(repoRoot)
+      : await discoverPackagesInRepo(options.packagePath);
+    const packageMap = buildPackageMap(packages);
+
+    // Set up query context with views
+    const contextResult = await setupQueryContext(pool, {
+      packagePath: options.packagePath,
+      packages: packageMap,
+    });
+
+    // Log warnings (but don't fail)
+    if (contextResult.warnings.length > 0 && !contextResult.viewsCreated.length) {
+      // Only warn if no views were created at all
+      return {
+        success: false,
+        error: `No seed files found. Run 'devac analyze' first. (${contextResult.warnings.join(", ")})`,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    // Preprocess SQL to expand @package syntax
+    const { sql: processedSql, errors: preprocessErrors } = preprocessSql(options.sql, packageMap);
+    if (preprocessErrors.length > 0) {
+      return {
+        success: false,
+        error: `SQL preprocessing failed: ${preprocessErrors.join(", ")}`,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
     // Execute query
     const rows = await executeWithRecovery(pool, async (conn) => {
-      return await conn.all(options.sql);
+      return await conn.all(processedSql);
     });
 
     const rowCount = rows.length;

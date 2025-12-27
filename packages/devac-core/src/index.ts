@@ -40,6 +40,11 @@ export {
   SeedReader,
   createSeedReader,
   queryMultiplePackages,
+  // Query context (ergonomic query UX)
+  setupQueryContext,
+  preprocessSql,
+  discoverPackagesInRepo,
+  buildPackageMap,
 } from "./storage/index.js";
 export type {
   PoolStats,
@@ -50,6 +55,10 @@ export type {
   WriteResult,
   QueryResult,
   IntegrityResult,
+  // Query context types
+  QueryContextConfig,
+  QueryContextResult,
+  DiscoveredPackage,
 } from "./storage/index.js";
 
 // Analyzer (excludes generateScopeHash which conflicts with utils)
