@@ -14,6 +14,75 @@ export { createEdge } from "./edges.js";
 export type { ParsedExternalRef, ImportStyle } from "./external-refs.js";
 export { createExternalRef } from "./external-refs.js";
 
+// Effect types (v3.0 foundation)
+export type {
+  // Base types
+  BaseEffect,
+  Effect,
+  EffectType,
+  // Code Effects
+  CodeEffect,
+  CodeEffectType,
+  FunctionCallEffect,
+  StoreEffect,
+  RetrieveEffect,
+  SendEffect,
+  RequestEffect,
+  ResponseEffect,
+  ConditionEffect,
+  LoopEffect,
+  GroupEffect,
+  GroupEffectType,
+  // Workflow Effects
+  WorkflowEffect,
+  WorkflowEffectType,
+  FileChangedEffect,
+  SeedUpdatedEffect,
+  ValidationResultEffect,
+  ValidationCheckType,
+  IssueClaimedEffect,
+  PRMergedEffect,
+  ChangeRequestedEffect,
+} from "./effects.js";
+
+export {
+  // Schemas
+  BaseEffectSchema,
+  EffectSchema,
+  CodeEffectSchema,
+  WorkflowEffectSchema,
+  FunctionCallEffectSchema,
+  StoreEffectSchema,
+  RetrieveEffectSchema,
+  SendEffectSchema,
+  RequestEffectSchema,
+  ResponseEffectSchema,
+  ConditionEffectSchema,
+  LoopEffectSchema,
+  GroupEffectSchema,
+  GroupEffectTypeSchema,
+  FileChangedEffectSchema,
+  SeedUpdatedEffectSchema,
+  ValidationResultEffectSchema,
+  ValidationCheckTypeSchema,
+  IssueClaimedEffectSchema,
+  PRMergedEffectSchema,
+  ChangeRequestedEffectSchema,
+  // Helper functions
+  generateEffectId,
+  createFunctionCallEffect,
+  createStoreEffect,
+  createRetrieveEffect,
+  createSendEffect,
+  createValidationResultEffect,
+  createSeedUpdatedEffect,
+  createFileChangedEffect,
+  parseEffect,
+  safeParseEffect,
+  isCodeEffect,
+  isWorkflowEffect,
+} from "./effects.js";
+
 // Configuration types
 export type {
   SeedMeta,
