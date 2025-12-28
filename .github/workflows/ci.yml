@@ -165,6 +165,8 @@ jobs:
         with:
           version: pnpm version-packages
           publish: pnpm release
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
