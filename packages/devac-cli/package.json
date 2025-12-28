@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-cli",
-  "version": "0.4.1",
+  "version": "0.6.0",
   "description": "DevAC command-line interface",
   "type": "module",
   "publishConfig": {
@@ -16,7 +16,9 @@
   "bin": {
     "devac": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "node ../../scripts/generate-version.mjs .",
     "build": "tsc -p tsconfig.json",
