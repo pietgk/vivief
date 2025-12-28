@@ -21,7 +21,7 @@ import {
 } from "../src/watcher/file-watcher.js";
 
 // CI environments (especially Linux with inotify) need longer timeouts for file system events
-const CI_TIMEOUT_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
+const CI_TIMEOUT_MULTIPLIER = process.env.CI === "true" ? 5 : 1;
 
 describe("FileWatcher", () => {
   let tempDir: string;

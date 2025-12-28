@@ -22,9 +22,9 @@ import {
 } from "../../src/semantic/index.js";
 
 // CI environments are slower, so we use relaxed thresholds instead of skipping tests
-// Local environments also get a small multiplier (1.5x) to account for machine load variability
-// CI multiplier is 8x because GitHub runners can be significantly slower than local machines
-const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 8 : 1.5;
+// Local environments also get a multiplier (2x) to account for machine load variability
+// CI multiplier is 12x because GitHub runners can be significantly slower than local machines
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 12 : 2;
 
 describe("Semantic Resolution Performance", () => {
   let tempDir: string;

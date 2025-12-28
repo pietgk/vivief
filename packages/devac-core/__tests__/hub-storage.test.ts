@@ -18,6 +18,9 @@ import {
   createHubStorage,
 } from "../src/hub/hub-storage.js";
 
+// CI environments need longer timeouts for timing-sensitive tests
+const CI_TIMEOUT_MULTIPLIER = process.env.CI === "true" ? 3 : 1;
+
 describe("HubStorage", () => {
   let tempDir: string;
   let hubPath: string;
@@ -419,11 +422,11 @@ describe("HubStorage", () => {
       const queryHash = "query-hash-ttl";
       const result = { rows: [], count: 0 };
 
-      // Cache with 1ms TTL
+      // Cache with 0ms TTL (immediate expiry)
       await storage.cacheQuery(queryHash, result, 0);
 
-      // Wait for expiry
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for expiry (longer in CI for timing consistency)
+      await new Promise((resolve) => setTimeout(resolve, 50 * CI_TIMEOUT_MULTIPLIER));
 
       const cached = await storage.getCachedQuery(queryHash);
       expect(cached).toBeNull();

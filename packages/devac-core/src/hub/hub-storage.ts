@@ -253,9 +253,19 @@ export class HubStorage {
 
   /**
    * Close the database connection
+   *
+   * Note: We run CHECKPOINT before closing to ensure all WAL data is flushed
+   * to the main database file. This prevents race conditions where a new
+   * connection opened immediately after close() might not see recent writes.
    */
   async close(): Promise<void> {
     if (this.db) {
+      try {
+        // Force WAL checkpoint to ensure all writes are visible to new connections
+        await this.db.exec("CHECKPOINT");
+      } catch {
+        // Ignore checkpoint errors (e.g., if database is read-only)
+      }
       await this.db.close();
       this.db = null;
       this.initialized = false;

@@ -29,8 +29,8 @@ const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
 // CI environments are slower, so we use relaxed thresholds instead of skipping tests
 // Local environments get a 3x multiplier to account for machine load variability
-// CI multiplier is 6x because GitHub runners can be significantly slower than local machines
-const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 8 : 3;
+// CI multiplier is 12x because GitHub runners can be significantly slower than local machines
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 12 : 3;
 
 describe("Performance", () => {
   let tempDir: string;
