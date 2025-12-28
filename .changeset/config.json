@@ -4,5 +4,14 @@
   "commit": false,
   "access": "public",
   "baseBranch": "main",
-  "updateInternalDependencies": "patch"
+  "updateInternalDependencies": "patch",
+  "fixed": [
+    [
+      "@pietgk/devac-core",
+      "@pietgk/devac-cli",
+      "@pietgk/devac-mcp",
+      "@pietgk/devac-worktree",
+      "@pietgk/devac-eval"
+    ]
+  ]
 }

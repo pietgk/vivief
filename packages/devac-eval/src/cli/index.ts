@@ -5,6 +5,7 @@
  */
 
 import { Command } from "commander";
+import { VERSION } from "../version.js";
 import { compareCommand } from "./commands/compare.js";
 import { listCommand } from "./commands/list.js";
 import { reportCommand } from "./commands/report.js";
@@ -16,7 +17,7 @@ const program = new Command();
 program
   .name("devac-eval")
   .description("DevAC Answer Quality Evaluation Framework")
-  .version("0.1.0");
+  .version(VERSION);
 
 // Run evaluation
 program

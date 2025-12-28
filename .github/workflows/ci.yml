@@ -41,9 +41,11 @@ jobs:
 
       - name: Generate version files
         run: |
-          node scripts/generate-version.mjs packages/devac-cli
-          node scripts/generate-version.mjs packages/devac-mcp
-          node scripts/generate-version.mjs packages/devac-worktree
+          for pkg in packages/devac-*; do
+            if [ -d "$pkg/src" ]; then
+              node scripts/generate-version.mjs "$pkg"
+            fi
+          done
 
       - name: Lint
         run: pnpm lint

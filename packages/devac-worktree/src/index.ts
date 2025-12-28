@@ -17,13 +17,14 @@ import {
   startCommand,
   statusCommand,
 } from "./commands/index.js";
+import { VERSION } from "./version.js";
 
 const program = new Command();
 
 program
   .name("devac-worktree")
   .description("Git worktree + Claude CLI workflow for GitHub issues")
-  .version("0.1.0");
+  .version(VERSION);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // START COMMAND
