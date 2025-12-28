@@ -11,6 +11,7 @@ import * as path from "node:path";
 import { createMCPServer } from "./server.js";
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPServerMode } from "./types.js";
+import { VERSION } from "./version.js";
 
 // Re-export everything for library usage
 export { DevacMCPServer, createMCPServer } from "./server.js";
@@ -58,6 +59,9 @@ async function main(): Promise<void> {
     } else if (args[i] === "-h" || args[i] === "--help") {
       printHelp();
       process.exit(0);
+    } else if (args[i] === "-v" || args[i] === "--version") {
+      console.log(VERSION);
+      process.exit(0);
     }
   }
 
@@ -103,6 +107,7 @@ function printHelp(): void {
   console.error("");
   console.error("Options:");
   console.error("  --hub-dir <path>      Hub directory (default: auto-detect from workspace)");
+  console.error("  -v, --version         Show version number");
   console.error("  -h, --help            Show this help message");
   console.error("");
   console.error("Examples:");
