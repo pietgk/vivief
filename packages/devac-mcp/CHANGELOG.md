@@ -1,5 +1,16 @@
 # @pietgk/devac-mcp
 
+## 0.6.1
+
+### Patch Changes
+
+- 08a1e92: Fix --version flag to exit immediately instead of starting the server
+
+  The CLI was missing version handling - when passed --version, it would ignore
+  the flag and start the MCP server instead. Now it prints the version and exits.
+
+  - @pietgk/devac-core@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes
