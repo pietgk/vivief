@@ -471,6 +471,89 @@ const cleanResult = await cleanCommand({
 });
 ```
 
+## CentralHub
+
+Cross-repo federation and M2M connection discovery.
+
+```typescript
+import { CentralHub, createCentralHub } from "@pietgk/devac-core";
+
+const hub = await createCentralHub("/path/to/workspace");
+
+// Initialize hub
+await hub.initialize();
+
+// Register a repository
+await hub.registerRepo({
+  repoId: "my-repo",
+  repoPath: "/path/to/repo",
+  seedPath: "/path/to/repo/.devac/seed"
+});
+
+// Find M2M connections across all repos
+const m2mResult = await hub.findM2MConnections();
+console.log(`Found ${m2mResult.totalCount} M2M connections`);
+
+for (const conn of m2mResult.connections) {
+  console.log(`${conn.sourceRepo} → ${conn.targetService}: ${conn.method} ${conn.route}`);
+}
+
+// Filter by source repo
+const filtered = await hub.findM2MConnections({
+  sourceRepo: "api-service"
+});
+
+// Filter by target service
+const authCalls = await hub.findM2MConnections({
+  targetService: "auth"
+});
+
+// Clean up
+await hub.dispose();
+```
+
+### M2M Connection Types
+
+```typescript
+interface M2MConnection {
+  /** Source repo making the call */
+  sourceRepo: string;
+  /** Source entity ID (function making the call) */
+  sourceEntityId: string;
+  /** Target service name extracted from URL pattern */
+  targetService: string;
+  /** HTTP method */
+  method: string | null;
+  /** Route pattern being called */
+  route: string;
+  /** File where the call is made */
+  sourceFile: string;
+  /** Line number of the call */
+  sourceLine: number;
+}
+
+interface M2MQueryResult {
+  connections: M2MConnection[];
+  totalCount: number;
+  matchedCount: number;
+}
+```
+
+### Hub Query Methods
+
+```typescript
+// Query all repos with SQL
+const result = await hub.queryAll(`
+  SELECT * FROM nodes WHERE kind = 'function'
+`);
+
+// List registered repos
+const repos = await hub.listRepos();
+
+// Get repo status
+const status = await hub.getRepoStatus("my-repo");
+```
+
 ## Constants
 
 ```typescript

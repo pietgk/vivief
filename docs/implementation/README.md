@@ -24,9 +24,10 @@ This directory contains documentation for the actual DevAC implementation — wh
 | [context-discovery.md](./context-discovery.md) | Workspace and worktree detection |
 | [ast.md](./ast.md) | AST extraction architecture |
 
-### Effects & Views (v3.0)
+### Pipeline & Views (v3.0)
 | Document | Purpose |
 |----------|---------|
+| [pipeline.md](./pipeline.md) | **Complete AST-to-Views transformation pipeline** |
 | [rules-engine.md](./rules-engine.md) | Pattern matching to transform effects into domain effects |
 | [views.md](./views.md) | C4 diagram generation from domain effects |
 

@@ -381,4 +381,15 @@ fs.writeFileSync("c4-container.puml", containerDiagram);
 
 ---
 
+## Related Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [pipeline.md](./pipeline.md) | Complete AST-to-Views transformation pipeline |
+| [rules-engine.md](./rules-engine.md) | Rules engine that produces domain effects |
+| [data-model.md](./data-model.md) | Effects schema definitions |
+| [../vision/foundation.md](../vision/foundation.md) | Conceptual foundation |
+
+---
+
 *Part of DevAC v3.0 Foundation*

@@ -205,11 +205,50 @@ interface StructuralParseResult {
 │  • Imports/exports                                                         │
 │  • React components (JSX)                                                  │
 │  • Call relationships                                                       │
+│  • API route decorators (Request effects)                                  │
+│  • HTTP client calls (Send effects with M2M detection)                     │
 │                                                                             │
 │  Performance: <50ms for typical files                                      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### API Decorator Extraction
+
+The TypeScript parser extracts API route decorators from popular frameworks to generate Request effects:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  DECORATOR EXTRACTION                                                       │
+│                                                                             │
+│  Supported Frameworks:                                                      │
+│  • tsoa:    @Route("prefix") + @Get, @Post, @Put, @Delete, @Patch          │
+│  • NestJS:  @Controller("prefix") + @Get, @Post, @Put, @Delete             │
+│  • Express: @httpGet, @httpPost (with inversify-express-utils)             │
+│                                                                             │
+│  Class-Level Decorators:                                                    │
+│  ├── @Route("/users")         → route_pattern prefix                       │
+│  └── @Controller("/api/v1")   → route_pattern prefix                       │
+│                                                                             │
+│  Method-Level Decorators:                                                   │
+│  ├── @Get("/:id")             → Request effect (GET)                       │
+│  ├── @Post()                  → Request effect (POST)                      │
+│  └── @Security("jwt")         → Captured in properties                     │
+│                                                                             │
+│  Example Output:                                                            │
+│  @Route("/users")                                                           │
+│  class UserController {                                                     │
+│    @Get("/:id")                                                            │
+│    getUser() {}               → Request { route: "/users/:id", method: GET }│
+│  }                                                                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Decorators are stored in the `decorators` field of nodes and used to generate Request effects with:
+- `route_pattern`: Combined prefix + method route
+- `method`: HTTP method (GET, POST, PUT, DELETE, PATCH)
+- `framework`: Detected framework (tsoa, nestjs, express)
 
 ### Python Parser
 
@@ -446,6 +485,17 @@ interface ParseResult {
 | Package Parquet write | <100ms | <200ms |
 | Single file change (warm) | <300ms | <500ms |
 | Batch changes (10 files) | <500ms | <800ms |
+
+---
+
+## Related Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [pipeline.md](./pipeline.md) | Complete AST-to-Views transformation pipeline |
+| [data-model.md](./data-model.md) | Node, Edge, and Effects schemas |
+| [resolution.md](./resolution.md) | Semantic resolution details |
+| [../vision/foundation.md](../vision/foundation.md) | Conceptual foundation |
 
 ---
 

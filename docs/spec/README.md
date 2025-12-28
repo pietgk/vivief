@@ -6,7 +6,7 @@ This directory contains the complete specification and historical documents for 
 
 | Document | Description |
 |----------|-------------|
-| [design-decisions.md](./design-decisions.md) | Key architectural decisions with rationale |
+| [../adr/](../adr/) | Architecture Decision Records with rationale |
 | [implementation-log.md](./implementation-log.md) | Phase-by-phase implementation history |
 
 > **Note:** The full specification (devac-spec-v2.0.md, ~196KB) is available in the CodeGraph repository at `CodeGraph/src/devac-v2/docs/spec/devac-spec-v2.0.md`. This condensed documentation covers the essential concepts.

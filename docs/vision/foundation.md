@@ -157,7 +157,25 @@ The system operates through three distinct pipelines:
 | **Question→Answer** | Collaborative | Ask → Reason → Data → Answer | Bridge understanding gaps |
 | **Query→Data** | System | Query → Extract → Transform → Return | Deterministic data retrieval |
 
-### 3.2 The Two Worlds
+### 3.2 The Four Pillars
+
+DevAC has four deterministic pillars, each producing a different output. The **Analytics Layer** sits on top, querying across all pillar outputs.
+
+| Pillar | What It Does | Produces |
+|--------|--------------|----------|
+| **Infra** | Runs DevAC itself (watch, hub, MCP) | DevAC Health |
+| **Validators** | Check code health (type, lint, test, CI) | Diagnostics |
+| **Extractors** | Extract queryable data from code | Seeds |
+| **Workflow** | Orchestrate development activities (issues, PRs, ADRs) | Work Activity |
+
+**Key distinctions:**
+- Pillars are deterministic — systems handle them
+- Analytics Layer is where LLMs and humans query and reason
+- Workflow Pillar handles issue-based development, git workflow, releases, and decision capture
+
+See [concepts.md](./concepts.md) for the full diagram and quick reference.
+
+### 3.3 The Two Worlds
 
 Development splits into two fundamentally different domains:
 
@@ -632,11 +650,11 @@ This is the **conceptual foundation** - the "why" and "what" of the DevAC system
 - Workspace topology and issue-based development
 
 **This document does NOT define:**
-- Implementation details (see [foundation-how.md](./foundation-how.md))
+- Implementation details (see [pipeline.md](../implementation/pipeline.md) for code understanding pipeline)
 - API specifications (those belong in package docs)
 - Step-by-step procedures (those belong in workflows)
 
 ---
 
-*Version: 3.0 - Restructured with Code/Workflow Effects, Rules as foundational, Effect Store clarified*
-*This is the "why" and "what". Implementation details ("how") belong in foundation-how.md.*
+*Version: 3.1 - Added Four Pillars section with Workflow pillar*
+*This is the "why" and "what". Implementation details ("how") belong in the implementation docs.*

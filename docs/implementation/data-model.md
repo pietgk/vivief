@@ -424,6 +424,26 @@ Track external communication:
 | `Request` | Incoming request handler | Express route handler |
 | `Response` | Outgoing response | API response with status |
 
+### Send Effect Types
+
+The `send_type` field distinguishes between different kinds of outgoing communication:
+
+| send_type | Description | Example |
+|-----------|-------------|---------|
+| `http` | External HTTP call to third-party | `fetch("https://api.stripe.com")` |
+| `m2m` | Machine-to-machine call to internal service | `m2mClient.post("/:stage/auth-endpoints/verify")` |
+| `email` | Email sending | `ses.sendEmail()` |
+| `sms` | SMS sending | `sns.publish()` |
+| `push` | Push notification | `firebase.send()` |
+| `webhook` | Webhook dispatch | `axios.post(webhookUrl)` |
+| `event` | Event publishing | `eventBridge.putEvents()` |
+
+**M2M Detection**: Calls are automatically classified as `m2m` when the URL pattern matches internal service conventions:
+- `/:stage/service-endpoints/route` (e.g., `/:stage/auth-endpoints/login`)
+- `/internal/service/route`
+
+M2M effects include a `service_name` field extracted from the URL pattern for cross-repo dependency tracking.
+
 ## Entity ID Format
 
 Entity IDs are globally unique identifiers for code elements:
