@@ -35,6 +35,8 @@ import {
   createExternalRef,
   createFunctionCallEffect,
   createNode,
+  createRequestEffect,
+  createSendEffect,
 } from "../types/index.js";
 import { computeStringHash } from "../utils/hash.js";
 import type { LanguageParser, ParserConfig, StructuralParseResult } from "./parser-interface.js";
@@ -123,6 +125,264 @@ function cleanJSDocComment(value: string): string | null {
 
   // Return null if the cleaned comment is empty
   return result.length > 0 ? result : null;
+}
+
+// ============================================================================
+// Decorator Extraction Utilities
+// ============================================================================
+
+/** HTTP method decorators used by tsoa, NestJS, and similar frameworks */
+const HTTP_METHOD_DECORATORS = new Set([
+  "Get",
+  "Post",
+  "Put",
+  "Delete",
+  "Patch",
+  "Head",
+  "Options",
+  "All",
+]);
+
+/** Route decorator names for class-level routing */
+const ROUTE_DECORATORS = new Set(["Route", "Controller", "RestController"]);
+
+/**
+ * Decorator metadata extracted from AST
+ */
+interface DecoratorInfo {
+  name: string;
+  arguments: string[];
+}
+
+/**
+ * Extract decorator information from a decorated node
+ *
+ * Handles both legacy decorators (@Decorator) and the decorators property
+ * in the Babel AST. Extracts decorator names and their string arguments.
+ */
+function extractDecorators(node: BabelNode): DecoratorInfo[] {
+  // Type for node with decorators
+  type NodeWithDecorators = BabelNode & {
+    decorators?: Array<{
+      expression: BabelNode;
+    }>;
+  };
+
+  const decorators = (node as NodeWithDecorators).decorators;
+  if (!decorators || decorators.length === 0) {
+    return [];
+  }
+
+  const result: DecoratorInfo[] = [];
+
+  for (const decorator of decorators) {
+    const expr = decorator.expression;
+    let name: string | null = null;
+    const args: string[] = [];
+
+    // Handle @Decorator (Identifier)
+    if (t.isIdentifier(expr)) {
+      name = expr.name;
+    }
+    // Handle @Decorator() or @Decorator("arg") (CallExpression)
+    else if (t.isCallExpression(expr)) {
+      if (t.isIdentifier(expr.callee)) {
+        name = expr.callee.name;
+      } else if (t.isMemberExpression(expr.callee) && t.isIdentifier(expr.callee.property)) {
+        // Handle @namespace.Decorator() pattern
+        name = expr.callee.property.name;
+      }
+
+      // Extract string arguments
+      for (const arg of expr.arguments) {
+        if (t.isStringLiteral(arg)) {
+          args.push(arg.value);
+        } else if (t.isTemplateLiteral(arg) && arg.quasis.length === 1 && arg.quasis[0]) {
+          // Handle simple template literals without expressions
+          args.push(arg.quasis[0].value.raw);
+        }
+      }
+    }
+
+    if (name) {
+      result.push({ name, arguments: args });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extract HTTP method from decorators
+ *
+ * Returns the HTTP method and route pattern if an HTTP method decorator is found.
+ */
+function extractHttpMethodFromDecorators(
+  decorators: DecoratorInfo[]
+): { method: string; route: string | null } | null {
+  for (const dec of decorators) {
+    if (HTTP_METHOD_DECORATORS.has(dec.name)) {
+      return {
+        method: dec.name.toUpperCase(),
+        route: dec.arguments[0] ?? null,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract route prefix from class-level decorators
+ *
+ * Looks for @Route("prefix") or @Controller("prefix") decorators.
+ */
+function extractRoutePrefix(decorators: DecoratorInfo[]): string | null {
+  for (const dec of decorators) {
+    if (ROUTE_DECORATORS.has(dec.name)) {
+      return dec.arguments[0] ?? null;
+    }
+  }
+  return null;
+}
+
+// ============================================================================
+// HTTP Client Detection Utilities
+// ============================================================================
+
+/**
+ * HTTP client method patterns that indicate an HTTP call
+ * Maps object.method patterns to their HTTP method
+ */
+const HTTP_CLIENT_PATTERNS: Map<string, string> = new Map([
+  // M2M client patterns
+  ["m2mClient.post", "POST"],
+  ["m2mClient.get", "GET"],
+  ["m2mClient.put", "PUT"],
+  ["m2mClient.delete", "DELETE"],
+  ["m2mClient.patch", "PATCH"],
+  // Axios patterns
+  ["axios.get", "GET"],
+  ["axios.post", "POST"],
+  ["axios.put", "PUT"],
+  ["axios.delete", "DELETE"],
+  ["axios.patch", "PATCH"],
+  ["axios.request", "UNKNOWN"],
+  // Node-fetch / browser fetch (handled separately)
+  ["fetch", "UNKNOWN"],
+  // Got HTTP client
+  ["got.get", "GET"],
+  ["got.post", "POST"],
+  ["got.put", "PUT"],
+  ["got.delete", "DELETE"],
+  // Superagent
+  ["superagent.get", "GET"],
+  ["superagent.post", "POST"],
+  ["superagent.put", "PUT"],
+  ["superagent.delete", "DELETE"],
+  // Request (deprecated but still used)
+  ["request.get", "GET"],
+  ["request.post", "POST"],
+  ["request.put", "PUT"],
+  ["request.delete", "DELETE"],
+]);
+
+/**
+ * Check if a callee name matches an HTTP client pattern
+ *
+ * Returns the HTTP method if it's an HTTP client call, null otherwise.
+ */
+function detectHttpClientCall(calleeName: string): string | null {
+  // Direct match (e.g., "axios.get", "m2mClient.post")
+  const method = HTTP_CLIENT_PATTERNS.get(calleeName);
+  if (method) {
+    return method;
+  }
+
+  // Check for pattern matches (e.g., "deps.m2mClient.post" should match)
+  for (const [pattern, httpMethod] of HTTP_CLIENT_PATTERNS) {
+    if (calleeName.endsWith(`.${pattern}`) || calleeName.endsWith(pattern)) {
+      return httpMethod;
+    }
+  }
+
+  // Check for standalone fetch
+  if (calleeName === "fetch" || calleeName.endsWith(".fetch")) {
+    return "UNKNOWN";
+  }
+
+  return null;
+}
+
+/**
+ * Extract URL pattern from call expression arguments
+ *
+ * Handles:
+ * - String literals: fetch("/api/users")
+ * - Template literals: fetch(`/api/users/${id}`)
+ * - Template literals with placeholders: m2mClient.post(`/${process.env.STAGE}/service/endpoint`)
+ */
+function extractUrlFromArguments(args: t.CallExpression["arguments"]): string | null {
+  if (args.length === 0) {
+    return null;
+  }
+
+  const firstArg = args[0];
+
+  // String literal: "/api/users"
+  if (t.isStringLiteral(firstArg)) {
+    return firstArg.value;
+  }
+
+  // Template literal: `/api/users/${id}`
+  if (t.isTemplateLiteral(firstArg)) {
+    // Build a pattern string with placeholders
+    const parts: string[] = [];
+    for (let i = 0; i < firstArg.quasis.length; i++) {
+      const quasi = firstArg.quasis[i];
+      if (quasi) {
+        parts.push(quasi.value.raw);
+      }
+      // Add placeholder for expressions (except after last quasi)
+      if (i < firstArg.expressions.length) {
+        const expr = firstArg.expressions[i];
+        // Try to extract meaningful placeholder name
+        if (t.isIdentifier(expr)) {
+          parts.push(`:${expr.name}`);
+        } else if (t.isMemberExpression(expr) && t.isIdentifier(expr.property)) {
+          // e.g., process.env.STAGE -> :STAGE
+          parts.push(`:${expr.property.name}`);
+        } else {
+          parts.push(":param");
+        }
+      }
+    }
+    return parts.join("");
+  }
+
+  return null;
+}
+
+/**
+ * Detect if URL pattern indicates an M2M (machine-to-machine) call
+ *
+ * Looks for patterns like:
+ * - /${STAGE}/service-endpoints/...
+ * - /v1/internal/...
+ */
+function isM2MCall(urlPattern: string): { isM2M: boolean; targetService: string | null } {
+  // Pattern: /:STAGE/service-endpoints/endpoint
+  const m2mMatch = urlPattern.match(/\/:?\w+\/(\w+)-endpoints?\//i);
+  if (m2mMatch) {
+    return { isM2M: true, targetService: m2mMatch[1] ?? null };
+  }
+
+  // Pattern: /internal/service/endpoint
+  const internalMatch = urlPattern.match(/\/internal\/(\w+)\//i);
+  if (internalMatch) {
+    return { isM2M: true, targetService: internalMatch[1] ?? null };
+  }
+
+  return { isM2M: false, targetService: null };
 }
 
 // ============================================================================
@@ -352,6 +612,10 @@ export class TypeScriptParser implements LanguageParser {
       ctx.scopeContext
     );
 
+    // Extract decorators from class for route prefix detection
+    const classDecorators = extractDecorators(node);
+    const routePrefix = extractRoutePrefix(classDecorators);
+
     const classNode = ctx.createNode({
       name: className,
       kind: "class",
@@ -373,7 +637,7 @@ export class TypeScriptParser implements LanguageParser {
 
     for (const member of node.body.body) {
       if (t.isClassMethod(member)) {
-        this.handleClassMethod(member, ctx, classNode.entity_id, className);
+        this.handleClassMethod(member, ctx, classNode.entity_id, className, routePrefix);
       } else if (t.isClassProperty(member)) {
         this.handleClassProperty(member, ctx, classNode.entity_id, className);
       }
@@ -423,7 +687,8 @@ export class TypeScriptParser implements LanguageParser {
     node: t.ClassMethod,
     ctx: ParserContext,
     classEntityId: string,
-    className: string
+    className: string,
+    routePrefix: string | null = null
   ): void {
     if (!t.isIdentifier(node.key)) return;
 
@@ -465,6 +730,69 @@ export class TypeScriptParser implements LanguageParser {
 
     // Register for CALLS edge lookups
     ctx.registerNodeEntity(node, methodNode.entity_id);
+
+    // Extract HTTP method decorators and create RequestEffect
+    const methodDecorators = extractDecorators(node);
+    const httpInfo = extractHttpMethodFromDecorators(methodDecorators);
+
+    if (httpInfo) {
+      // Combine class route prefix with method route
+      let fullRoute = "";
+      if (routePrefix) {
+        fullRoute = routePrefix.startsWith("/") ? routePrefix : `/${routePrefix}`;
+      }
+      if (httpInfo.route) {
+        const methodRoute = httpInfo.route.startsWith("/") ? httpInfo.route : `/${httpInfo.route}`;
+        fullRoute = fullRoute + methodRoute;
+      }
+      // Default to "/" if no route specified
+      if (!fullRoute) {
+        fullRoute = "/";
+      }
+
+      // Detect framework from decorator patterns
+      // tsoa uses @Route/@Get, NestJS uses @Controller/@Get, Express decorators vary
+      const framework = this.detectApiFramework(methodDecorators);
+
+      const requestEffect = createRequestEffect({
+        source_entity_id: methodNode.entity_id,
+        source_file_path: ctx.filePath,
+        source_line: node.loc?.start.line ?? 1,
+        source_column: node.loc?.start.column ?? 0,
+        branch: ctx.config.branch,
+        request_type: "http",
+        method: httpInfo.method,
+        route_pattern: fullRoute,
+        framework,
+      });
+
+      ctx.result.effects.push(requestEffect);
+    }
+  }
+
+  /**
+   * Detect API framework from decorators
+   */
+  private detectApiFramework(decorators: DecoratorInfo[]): string | null {
+    const decoratorNames = new Set(decorators.map((d) => d.name));
+
+    // Check for specific framework patterns
+    if (decoratorNames.has("Route") || decoratorNames.has("SuccessResponse")) {
+      return "tsoa";
+    }
+    if (decoratorNames.has("Controller") || decoratorNames.has("Injectable")) {
+      return "nestjs";
+    }
+    // Generic express/fastify decorators
+    if (
+      decoratorNames.has("Get") ||
+      decoratorNames.has("Post") ||
+      decoratorNames.has("Put") ||
+      decoratorNames.has("Delete")
+    ) {
+      return "express"; // Default assumption for basic decorators
+    }
+    return null;
   }
 
   private handleClassProperty(
@@ -715,6 +1043,30 @@ export class TypeScriptParser implements LanguageParser {
     const calleeName = this.extractCalleeName(node.callee);
     if (!calleeName) {
       return; // Can't determine callee (e.g., computed call like arr[0]())
+    }
+
+    // Check if this is an HTTP client call (m2mClient, axios, fetch, etc.)
+    const httpMethod = detectHttpClientCall(calleeName);
+    if (httpMethod) {
+      const urlPattern = extractUrlFromArguments(node.arguments);
+      if (urlPattern) {
+        const m2mInfo = isM2MCall(urlPattern);
+
+        const sendEffect = createSendEffect({
+          source_entity_id: sourceEntityId,
+          source_file_path: ctx.filePath,
+          source_line: node.loc?.start.line ?? 1,
+          source_column: node.loc?.start.column ?? 0,
+          branch: ctx.config.branch,
+          send_type: m2mInfo.isM2M ? "m2m" : "http",
+          method: httpMethod !== "UNKNOWN" ? httpMethod : null,
+          target: urlPattern,
+          is_third_party: !m2mInfo.isM2M,
+          service_name: m2mInfo.targetService,
+        });
+
+        ctx.result.effects.push(sendEffect);
+      }
     }
 
     // Create target entity ID

@@ -144,7 +144,7 @@ export const SendEffectSchema = BaseEffectSchema.extend({
   effect_type: z.literal("Send"),
 
   /** Type of communication */
-  send_type: z.enum(["http", "email", "sms", "push", "webhook", "event"]),
+  send_type: z.enum(["http", "m2m", "email", "sms", "push", "webhook", "event"]),
 
   /** HTTP method if applicable */
   method: z.string().nullable(),
@@ -728,6 +728,23 @@ export function createFileChangedEffect(
     ...createBaseEffect(partial),
     effect_type: "FileChanged",
     previous_path: partial.previous_path ?? null,
+    ...partial,
+  };
+}
+
+/**
+ * Create a Request effect (API endpoint handler)
+ */
+export function createRequestEffect(
+  partial: Partial<RequestEffect> &
+    Pick<RequestEffect, "source_entity_id" | "source_file_path" | "source_line" | "route_pattern">
+): RequestEffect {
+  return {
+    ...createBaseEffect(partial),
+    effect_type: "Request",
+    request_type: partial.request_type ?? "http",
+    method: partial.method ?? null,
+    framework: partial.framework ?? null,
     ...partial,
   };
 }

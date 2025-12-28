@@ -1770,5 +1770,176 @@ function multi() {
       const effectIds = new Set(effects.map((e) => e.effect_id));
       expect(effectIds.size).toBe(effects.length);
     });
+
+    // ==========================================================================
+    // API Decorator Extraction Tests (v0.5.0)
+    // ==========================================================================
+
+    it("extracts RequestEffect from tsoa @Route and @Get decorators", async () => {
+      const content = `
+import { Route, Get, Controller, SuccessResponse } from "tsoa";
+
+@Route("users")
+class UserController extends Controller {
+  @Get("{userId}")
+  @SuccessResponse("200", "Success")
+  public async getUser(userId: string): Promise<User> {
+    return { id: userId, name: "Test" };
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const requestEffects = result.effects.filter((e) => e.effect_type === "Request");
+      expect(requestEffects.length).toBeGreaterThan(0);
+
+      const getUserEffect = requestEffects.find((e) => e.route_pattern?.includes("users"));
+      expect(getUserEffect).toBeDefined();
+      expect(getUserEffect?.method).toBe("GET");
+      expect(getUserEffect?.route_pattern).toContain("users");
+      expect(getUserEffect?.framework).toBe("tsoa");
+    });
+
+    it("extracts RequestEffect from NestJS decorators", async () => {
+      const content = `
+import { Controller, Get, Post, Body } from "@nestjs/common";
+
+@Controller("messages")
+class MessageController {
+  @Get()
+  getMessages() {
+    return [];
+  }
+
+  @Post()
+  createMessage(@Body() body: CreateMessageDto) {
+    return body;
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const requestEffects = result.effects.filter((e) => e.effect_type === "Request");
+      expect(requestEffects.length).toBe(2);
+
+      const getEffect = requestEffects.find((e) => e.method === "GET");
+      expect(getEffect).toBeDefined();
+      expect(getEffect?.route_pattern).toContain("messages");
+
+      const postEffect = requestEffects.find((e) => e.method === "POST");
+      expect(postEffect).toBeDefined();
+    });
+
+    it("combines class route prefix with method route", async () => {
+      const content = `
+import { Route, Get } from "tsoa";
+
+@Route("api/v1/orders")
+class OrderController {
+  @Get("{orderId}/items")
+  getOrderItems(orderId: string) {
+    return [];
+  }
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const requestEffects = result.effects.filter((e) => e.effect_type === "Request");
+      expect(requestEffects.length).toBe(1);
+
+      const effect = requestEffects[0];
+      expect(effect?.route_pattern).toBe("/api/v1/orders/{orderId}/items");
+    });
+
+    // ==========================================================================
+    // HTTP Client / M2M Detection Tests (v0.5.0)
+    // ==========================================================================
+
+    it("extracts SendEffect for m2mClient calls", async () => {
+      const content = `
+async function sendNotification(payload: any) {
+  await m2mClient.post(\`/\${process.env.STAGE}/miami-endpoints/sendMessage\`, payload);
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const sendEffects = result.effects.filter((e) => e.effect_type === "Send");
+      expect(sendEffects.length).toBe(1);
+
+      const effect = sendEffects[0];
+      expect(effect?.send_type).toBe("m2m");
+      expect(effect?.method).toBe("POST");
+      expect(effect?.target).toContain("miami-endpoints");
+      expect(effect?.service_name).toBe("miami");
+    });
+
+    it("extracts SendEffect for axios calls", async () => {
+      const content = `
+async function fetchData() {
+  const response = await axios.get("https://api.stripe.com/v1/charges");
+  return response.data;
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const sendEffects = result.effects.filter((e) => e.effect_type === "Send");
+      expect(sendEffects.length).toBe(1);
+
+      const effect = sendEffects[0];
+      expect(effect?.send_type).toBe("http");
+      expect(effect?.method).toBe("GET");
+      expect(effect?.is_third_party).toBe(true);
+    });
+
+    it("extracts SendEffect for fetch calls with string URL", async () => {
+      const content = `
+async function callApi() {
+  const response = await fetch("/api/users");
+  return response.json();
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const sendEffects = result.effects.filter((e) => e.effect_type === "Send");
+      expect(sendEffects.length).toBe(1);
+
+      const effect = sendEffects[0];
+      expect(effect?.target).toBe("/api/users");
+    });
+
+    it("detects M2M pattern in URL and extracts service name", async () => {
+      const content = `
+async function callBackend() {
+  await m2mClient.post(\`/staging/billing-endpoints/processPayment\`, {});
+  await m2mClient.get(\`/\${STAGE}/auth-endpoints/validateToken\`);
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const sendEffects = result.effects.filter((e) => e.effect_type === "Send");
+      expect(sendEffects.length).toBe(2);
+
+      const billingCall = sendEffects.find((e) => e.target?.includes("billing"));
+      expect(billingCall?.service_name).toBe("billing");
+      expect(billingCall?.send_type).toBe("m2m");
+
+      const authCall = sendEffects.find((e) => e.target?.includes("auth"));
+      expect(authCall?.service_name).toBe("auth");
+      expect(authCall?.send_type).toBe("m2m");
+    });
+
+    it("does not create SendEffect for non-HTTP calls", async () => {
+      const content = `
+function regularFunction() {
+  console.log("hello");
+  someHelper();
+  return calculate(1, 2);
+}
+`;
+      const result = await parser.parseContent(content, "test.ts", testConfig);
+
+      const sendEffects = result.effects.filter((e) => e.effect_type === "Send");
+      expect(sendEffects.length).toBe(0);
+    });
   });
 });

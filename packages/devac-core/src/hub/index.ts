@@ -40,6 +40,8 @@ export {
   type AffectedResult as CentralHubAffectedResult,
   type AffectedRepo as CentralHubAffectedRepo,
   type QueryResult,
+  type M2MConnection,
+  type M2MQueryResult,
 } from "./central-hub.js";
 
 export {

@@ -98,6 +98,43 @@ export interface QueryResult {
 }
 
 /**
+ * M2M (machine-to-machine) connection between services
+ */
+export interface M2MConnection {
+  /** Source repo making the call */
+  sourceRepo: string;
+  /** Source entity (function) making the call */
+  sourceEntityId: string;
+  /** Source file path */
+  sourceFile: string;
+  /** Source line number */
+  sourceLine: number;
+  /** HTTP method (GET, POST, etc.) */
+  method: string | null;
+  /** URL pattern being called */
+  urlPattern: string;
+  /** Target service name (extracted from URL) */
+  targetService: string | null;
+  /** Target repo (if matched) */
+  targetRepo: string | null;
+  /** Target entity (API handler, if matched) */
+  targetEntityId: string | null;
+  /** Target route pattern (if matched) */
+  targetRoute: string | null;
+}
+
+/**
+ * M2M query result
+ */
+export interface M2MQueryResult {
+  connections: M2MConnection[];
+  totalCount: number;
+  matchedCount: number;
+  unmatchedCount: number;
+  timeMs: number;
+}
+
+/**
  * Repository info for listing
  */
 export interface RepoInfo {
@@ -461,6 +498,264 @@ export class CentralHub {
       return result;
     } finally {
       await db.close();
+    }
+  }
+
+  // ================== M2M Connection APIs ==================
+
+  /**
+   * Find M2M (machine-to-machine) connections across registered repositories.
+   *
+   * This queries all repos for:
+   * - Send effects with send_type = "m2m" (outgoing M2M calls)
+   * - Request effects (API endpoints)
+   *
+   * Then matches them by service name to find cross-service dependencies.
+   *
+   * @param options Query options
+   * @returns M2M connections found across repos
+   */
+  async findM2MConnections(options?: {
+    /** Filter by source repo */
+    sourceRepo?: string;
+    /** Filter by target service name */
+    targetService?: string;
+    /** Filter by URL pattern (supports LIKE patterns with %) */
+    urlPattern?: string;
+    /** Include unmatched connections (no target found) */
+    includeUnmatched?: boolean;
+  }): Promise<M2MQueryResult> {
+    this.ensureInitialized();
+
+    const startTime = Date.now();
+    const connections: M2MConnection[] = [];
+
+    // Get all registered repos
+    const repos = await this.storage.listRepos();
+
+    // Collect Send effects (M2M calls) from all repos
+    interface SendEffectRow {
+      repo_id: string;
+      source_entity_id: string;
+      source_file_path: string;
+      source_line: number;
+      method: string | null;
+      target: string;
+      service_name: string | null;
+    }
+    const sendEffects: SendEffectRow[] = [];
+
+    // Collect Request effects (API endpoints) from all repos
+    interface RequestEffectRow {
+      repo_id: string;
+      source_entity_id: string;
+      route_pattern: string;
+      method: string | null;
+    }
+    const requestEffects: RequestEffectRow[] = [];
+
+    // Query effects from each repo's seed files
+    for (const repo of repos) {
+      if (options?.sourceRepo && repo.repo_id !== options.sourceRepo) {
+        continue; // Skip if filtering by source repo
+      }
+
+      const manifest = await this.loadManifest(repo.local_path);
+      if (!manifest) continue;
+
+      for (const pkg of manifest.packages) {
+        const effectsPath = path.join(repo.local_path, pkg.seed_path, "effects.parquet");
+
+        try {
+          await fs.access(effectsPath);
+        } catch {
+          continue; // No effects file
+        }
+
+        const db = await Database.create(":memory:");
+        try {
+          // Query Send effects with send_type = "m2m"
+          let sendQuery = `
+            SELECT
+              '${repo.repo_id}' as repo_id,
+              source_entity_id,
+              source_file_path,
+              source_line,
+              method,
+              target,
+              service_name
+            FROM read_parquet('${effectsPath}')
+            WHERE effect_type = 'Send'
+              AND send_type = 'm2m'
+              AND is_deleted = false
+          `;
+
+          if (options?.urlPattern) {
+            sendQuery += ` AND target LIKE '${options.urlPattern}'`;
+          }
+          if (options?.targetService) {
+            sendQuery += ` AND service_name = '${options.targetService}'`;
+          }
+
+          const sendRows = await db.all(sendQuery);
+          for (const row of sendRows) {
+            sendEffects.push({
+              repo_id: row.repo_id as string,
+              source_entity_id: row.source_entity_id as string,
+              source_file_path: row.source_file_path as string,
+              source_line: row.source_line as number,
+              method: row.method as string | null,
+              target: row.target as string,
+              service_name: row.service_name as string | null,
+            });
+          }
+
+          // Query Request effects (API endpoints)
+          const requestQuery = `
+            SELECT
+              '${repo.repo_id}' as repo_id,
+              source_entity_id,
+              route_pattern,
+              method
+            FROM read_parquet('${effectsPath}')
+            WHERE effect_type = 'Request'
+              AND is_deleted = false
+          `;
+
+          const requestRows = await db.all(requestQuery);
+          for (const row of requestRows) {
+            requestEffects.push({
+              repo_id: row.repo_id as string,
+              source_entity_id: row.source_entity_id as string,
+              route_pattern: row.route_pattern as string,
+              method: row.method as string | null,
+            });
+          }
+        } finally {
+          await db.close();
+        }
+      }
+    }
+
+    // Build index of Request effects by repo for matching
+    const requestsByRepo = new Map<string, RequestEffectRow[]>();
+    for (const req of requestEffects) {
+      const existing = requestsByRepo.get(req.repo_id) || [];
+      existing.push(req);
+      requestsByRepo.set(req.repo_id, existing);
+    }
+
+    // Match Send effects to Request effects
+    let matchedCount = 0;
+    let unmatchedCount = 0;
+
+    for (const send of sendEffects) {
+      let matched = false;
+      let targetRepo: string | null = null;
+      let targetEntityId: string | null = null;
+      let targetRoute: string | null = null;
+
+      // Try to match by service name to repo
+      if (send.service_name) {
+        // Look for repos that might match this service
+        for (const [repoId, requests] of requestsByRepo) {
+          // Skip same repo
+          if (repoId === send.repo_id) continue;
+
+          // Check if repo name contains service name (flexible matching)
+          const repoLower = repoId.toLowerCase();
+          const serviceLower = send.service_name.toLowerCase();
+
+          if (repoLower.includes(serviceLower) || serviceLower.includes(repoLower)) {
+            // Found potential match, look for matching routes
+            for (const req of requests) {
+              // Simple route matching - the URL pattern should contain the route
+              if (
+                send.target.includes(req.route_pattern) ||
+                this.routesMatch(send.target, req.route_pattern)
+              ) {
+                matched = true;
+                targetRepo = repoId;
+                targetEntityId = req.source_entity_id;
+                targetRoute = req.route_pattern;
+                break;
+              }
+            }
+
+            // If no exact route match, still mark as matched to repo
+            if (!matched && requests.length > 0) {
+              matched = true;
+              targetRepo = repoId;
+            }
+          }
+
+          if (matched) break;
+        }
+      }
+
+      if (matched) {
+        matchedCount++;
+      } else {
+        unmatchedCount++;
+        if (!options?.includeUnmatched) {
+          continue; // Skip unmatched if not requested
+        }
+      }
+
+      connections.push({
+        sourceRepo: send.repo_id,
+        sourceEntityId: send.source_entity_id,
+        sourceFile: send.source_file_path,
+        sourceLine: send.source_line,
+        method: send.method,
+        urlPattern: send.target,
+        targetService: send.service_name,
+        targetRepo,
+        targetEntityId,
+        targetRoute,
+      });
+    }
+
+    return {
+      connections,
+      totalCount: sendEffects.length,
+      matchedCount,
+      unmatchedCount,
+      timeMs: Date.now() - startTime,
+    };
+  }
+
+  /**
+   * Check if a URL pattern matches a route pattern
+   */
+  private routesMatch(urlPattern: string, routePattern: string): boolean {
+    // Extract path from URL pattern (remove protocol, host, query params)
+    const urlPath = urlPattern
+      .replace(/^https?:\/\/[^\/]+/, "")
+      .replace(/\?.*$/, "")
+      .replace(/\$\{[^}]+\}/g, ":param"); // Replace template vars with :param
+
+    // Normalize route pattern
+    const normalizedRoute = routePattern.replace(/:[\w]+/g, ":param");
+    const normalizedUrl = urlPath.replace(/\/+/g, "/").replace(/\/$/, "");
+    const normalizedRouteClean = normalizedRoute.replace(/\/+/g, "/").replace(/\/$/, "");
+
+    // Check if URL ends with the route
+    return (
+      normalizedUrl.endsWith(normalizedRouteClean) || normalizedRouteClean.endsWith(normalizedUrl)
+    );
+  }
+
+  /**
+   * Load manifest from a repository path
+   */
+  private async loadManifest(repoPath: string): Promise<RepositoryManifest | null> {
+    const manifestPath = path.join(repoPath, ".devac", "manifest.json");
+    try {
+      const content = await fs.readFile(manifestPath, "utf-8");
+      return JSON.parse(content) as RepositoryManifest;
+    } catch {
+      return null;
     }
   }
 
