@@ -21,7 +21,8 @@ import type { RenameInfo } from "../src/watcher/rename-detector.js";
 import { type UpdateManager, createUpdateManager } from "../src/watcher/update-manager.js";
 
 // CI environments are slower, so we use relaxed thresholds
-const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 3 : 1.5;
+// CI multiplier is 5x because GitHub runners can be significantly slower than local machines
+const CI_PERF_MULTIPLIER = process.env.CI === "true" ? 5 : 1.5;
 
 describe("UpdateManager", () => {
   let tempDir: string;
