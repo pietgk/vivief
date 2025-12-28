@@ -29,6 +29,7 @@ Technical details of the current implementation.
 | [Federation](./implementation/federation.md) | Multi-repo queries |
 | [Context Discovery](./implementation/context-discovery.md) | Workspace context detection |
 | [AST](./implementation/ast.md) | AST extraction architecture |
+| [Eval Framework](./implementation/eval-framework.md) | Answer quality evaluation internals |
 
 ### User Guides
 
@@ -41,6 +42,7 @@ Getting started and reference documentation.
 | [API Reference](./api-reference.md) | Programmatic usage |
 | [MCP Server](./mcp-server.md) | AI assistant integration |
 | [Worktree Workflow](./devac-worktree.md) | Issue-based git worktrees |
+| [Eval Framework](./eval-framework.md) | LLM answer quality evaluation |
 
 ### Archive
 
