@@ -149,12 +149,17 @@ export {
   type WorkspaceWatcherOptions,
   type WorkspaceManagerOptions,
   type AutoRefreshOptions,
+  // Git utilities
+  findGitRoot,
   // Workspace-specific functions
   isWorkspaceDirectory,
   discoverWorkspaceRepos,
   discoverWorkspace,
   loadWorkspaceConfig,
   formatWorkspaceInfo,
+  // Workspace hub discovery
+  findWorkspaceDir,
+  findWorkspaceHubDir,
   // State management
   getStateFilePath,
   loadWorkspaceState,

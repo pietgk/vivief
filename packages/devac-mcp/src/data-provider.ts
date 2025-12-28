@@ -1,12 +1,3 @@
-/**
- * Data Provider Abstraction
- *
- * Provides a unified interface for querying code graph data
- * in both package mode (single package) and hub mode (federated).
- */
-
-import * as os from "node:os";
-import * as path from "node:path";
 import {
   type CentralHub,
   type CodeEffect,
@@ -29,6 +20,7 @@ import {
   discoverDomainBoundaries,
   exportContainersToPlantUML,
   exportContextToPlantUML,
+  findWorkspaceHubDir,
   generateC4Containers,
   generateC4Context,
   getRulesByDomain,
@@ -569,7 +561,7 @@ export class HubDataProvider implements DataProvider {
   private _hub: CentralHub | null = null;
 
   constructor(
-    private hubDir: string = path.join(os.homedir(), ".devac"),
+    private hubDir: string,
     private memoryLimit = "256MB"
   ) {}
 
@@ -1010,20 +1002,36 @@ export class HubDataProvider implements DataProvider {
 
 /**
  * Create a data provider based on mode
+ *
+ * In hub mode, if hubDir is not provided, it will be auto-detected from the
+ * current working directory by finding the workspace root.
  */
-export function createDataProvider(
+export async function createDataProvider(
   mode: "package" | "hub",
   options: {
     packagePath?: string;
     hubDir?: string;
     memoryLimit?: string;
   }
-): DataProvider {
+): Promise<DataProvider> {
   if (mode === "package") {
     if (!options.packagePath) {
       throw new Error("packagePath is required in package mode");
     }
     return new PackageDataProvider(options.packagePath, options.memoryLimit);
   }
-  return new HubDataProvider(options.hubDir, options.memoryLimit);
+
+  // Hub mode: discover workspace hub dir if not provided
+  let hubDir = options.hubDir;
+  if (!hubDir) {
+    const discoveredHubDir = await findWorkspaceHubDir();
+    if (!discoveredHubDir) {
+      throw new Error(
+        "Could not find workspace. Run from a workspace directory or provide --hub-dir."
+      );
+    }
+    hubDir = discoveredHubDir;
+  }
+
+  return new HubDataProvider(hubDir, options.memoryLimit);
 }

@@ -75,7 +75,7 @@ CONTEXT
 
 DEVAC HEALTH
   Watch:      Inactive
-  Hub:        Connected (~/.devac/)
+  Hub:        Connected ({workspace}/.devac/)
   MCP:        Ready
 
 DIAGNOSTICS
@@ -559,7 +559,7 @@ Show hub status and statistics.
 devac hub status
 
 Output:
-Central Hub: ~/.devac/
+Central Hub: /path/to/workspace/.devac/
 Repositories: 3
 Total Packages: 9
 Total Nodes: 45,231
@@ -590,7 +590,7 @@ Initialize the central hub (first-time setup).
 devac hub init [options]
 
 Options:
-  --path <path>       Hub location (default: ~/.devac/)
+  --path <path>       Hub location (default: auto-detected from workspace)
 ```
 
 ### devac hub sync
@@ -729,7 +729,7 @@ Options:
   --force-tests       Force running tests (even in quick mode)
   --push-to-hub       Push validation results to central hub cache
   --repo-id <id>      Repository ID for hub push (required with --push-to-hub)
-  --hub-dir <path>    Hub directory (default: ~/.devac/)
+  --hub-dir <path>    Hub directory (default: auto-detected from workspace)
 
 Examples:
   devac validate --quick               # Fast validation
@@ -1528,7 +1528,7 @@ See [MCP Server documentation](./mcp-server.md) for full tool reference.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEVAC_HUB_PATH` | `~/.devac/` | Central hub location |
+| `DEVAC_HUB_PATH` | Auto-detected | Central hub location (defaults to workspace/.devac/) |
 | `DEVAC_DUCKDB_MEMORY` | `512MB` | DuckDB memory limit per connection |
 | `DEVAC_DUCKDB_TEMP` | System temp | Spill directory for large operations |
 | `DEVAC_LOG_LEVEL` | `info` | Log level: debug, info, warn, error |

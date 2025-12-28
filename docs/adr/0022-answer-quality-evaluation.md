@@ -158,7 +158,7 @@ packages/devac-eval/
 
 CLI usage:
 ```bash
-devac-eval run --benchmark devac-self --hub ~/.devac
+devac-eval run --benchmark devac-self  # Hub auto-detected from workspace
 devac-eval report <run-id> --format markdown
 devac-eval compare <run1> <run2>
 ```

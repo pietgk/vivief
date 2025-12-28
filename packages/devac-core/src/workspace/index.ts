@@ -61,6 +61,7 @@ export {
   parseWorktreeNameV2,
   isWorktreeName,
   // Git utilities
+  findGitRoot,
   isGitRepo,
   isGitWorktree,
   getGitBranch,
@@ -74,6 +75,9 @@ export {
   discoverWorkspace,
   loadWorkspaceConfig,
   formatWorkspaceInfo,
+  // Workspace hub discovery
+  findWorkspaceDir,
+  findWorkspaceHubDir,
 } from "./discover.js";
 
 // State management

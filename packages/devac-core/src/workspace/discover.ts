@@ -164,6 +164,27 @@ export function isWorktreeName(dirName: string): boolean {
 // =============================================================================
 
 /**
+ * Find the git repository root from a starting path
+ * Walks up the directory tree until it finds a .git directory
+ *
+ * @param startDir Directory to start from
+ * @returns Path to git repo root, or null if not in a git repo
+ */
+export async function findGitRoot(startDir: string): Promise<string | null> {
+  let dir = path.resolve(startDir);
+  const root = path.parse(dir).root;
+
+  while (dir !== root) {
+    if (await isGitRepo(dir)) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+
+  return null;
+}
+
+/**
  * Check if a directory is a git repository
  */
 export async function isGitRepo(dirPath: string): Promise<boolean> {
@@ -575,4 +596,53 @@ export function formatWorkspaceInfo(info: WorkspaceInfo): string {
   lines.push(`Hub: ${info.hubPath}`);
 
   return lines.join("\n");
+}
+
+// =============================================================================
+// Workspace Directory Discovery
+// =============================================================================
+
+/**
+ * Find the workspace directory from a starting path
+ *
+ * Handles these cases:
+ * - cwd is a workspace directory (contains git repos)
+ * - cwd is a git repo root
+ * - cwd is a subdirectory inside a git repo (e.g., ~/ws/vivief/packages/devac-core/src)
+ *
+ * @param startDir Directory to start from (default: process.cwd())
+ * @returns Path to workspace directory, or null if not in a workspace
+ */
+export async function findWorkspaceDir(startDir?: string): Promise<string | null> {
+  const dir = path.resolve(startDir || process.cwd());
+
+  // Case 1: Current dir is a workspace → return it
+  if (await isWorkspaceDirectory(dir)) {
+    return dir;
+  }
+
+  // Case 2: Find git repo root (handles both repo root and subdirs inside repo)
+  const gitRoot = await findGitRoot(dir);
+  if (gitRoot) {
+    const parent = path.dirname(gitRoot);
+    if (await isWorkspaceDirectory(parent)) {
+      return parent;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find the hub directory for the workspace containing the given path
+ *
+ * @param startDir Directory to start from (default: process.cwd())
+ * @returns Path to hub directory (workspace/.devac), or null if not in a workspace
+ */
+export async function findWorkspaceHubDir(startDir?: string): Promise<string | null> {
+  const workspaceDir = await findWorkspaceDir(startDir);
+  if (!workspaceDir) {
+    return null;
+  }
+  return path.join(workspaceDir, ".devac");
 }

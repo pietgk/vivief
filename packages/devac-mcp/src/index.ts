@@ -102,7 +102,7 @@ function printHelp(): void {
   console.error("  -p, --package <path>  Package mode - query a single package");
   console.error("");
   console.error("Options:");
-  console.error("  --hub-dir <path>      Hub directory (default: ~/.devac)");
+  console.error("  --hub-dir <path>      Hub directory (default: auto-detect from workspace)");
   console.error("  -h, --help            Show this help message");
   console.error("");
   console.error("Examples:");

@@ -24,7 +24,7 @@ DevAC v2 is a **federated, file-based code analysis system**. This document expl
 │                                  ▼                                          │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
 │  │                        CENTRAL HUB (Optional)                         │  │
-│  │  ~/.devac/central.duckdb  ← Only computed edges, not raw data        │  │
+│  │  {workspace}/.devac/central.duckdb  ← Only computed edges, not data  │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                  │                                          │
 │                                  ▼                                          │
@@ -43,7 +43,7 @@ DevAC uses a **three-layer architecture** where each layer has distinct responsi
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  LAYER 3: CENTRAL HUB                                                       │
-│  Location: ~/.devac/central.duckdb                                          │
+│  Location: {workspace}/.devac/central.duckdb                                │
 │  Contains: Repo registry, cross-repo edges, cached stats                    │
 │  Size: ~1MB                                                                 │
 │  Updates: On cross-repo query                                               │

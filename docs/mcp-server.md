@@ -370,7 +370,7 @@ interface MCPServerOptions {
   mode: "package" | "hub";
   /** Path to the package to analyze (required in package mode) */
   packagePath?: string;
-  /** Hub directory path (default: ~/.devac, used in hub mode) */
+  /** Hub directory path (default: auto-detected from workspace, used in hub mode) */
   hubDir?: string;
   /** DuckDB memory limit (default: "256MB") */
   memoryLimit?: string;

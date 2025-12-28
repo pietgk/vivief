@@ -25,10 +25,10 @@ This document covers multi-repository queries and the central hub.
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                              │                                              │
 │                              ▼                                              │
-│  LAYER 3: Central Hub (user global, computed edges)                        │
+│  LAYER 3: Central Hub (workspace-level, computed edges)                    │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │  ~/.devac/central.duckdb                                            │   │
-│  │  ~/.devac/repos.json                                                │   │
+│  │  {workspace}/.devac/central.duckdb                                  │   │
+│  │  {workspace}/.devac/repos.json                                      │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -66,7 +66,7 @@ The central hub tracks registered repositories and enables cross-repo queries.
 ### Hub Structure
 
 ```
-~/.devac/
+{workspace}/.devac/
 ├── central.duckdb       ← Lightweight: only computed data
 ├── repos.json           ← Registered repositories
 └── cache/               ← Query result cache (optional)
@@ -138,7 +138,7 @@ devac hub query "
 devac hub status
 
 # Output:
-# Central Hub: ~/.devac/
+# Central Hub: /path/to/workspace/.devac/
 # Repositories: 3
 # Total Packages: 9
 # Total Nodes: 45,231
