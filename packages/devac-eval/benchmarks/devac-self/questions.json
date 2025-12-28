@@ -1,0 +1,434 @@
+{
+  "id": "devac-self",
+  "name": "DevAC Self-Evaluation",
+  "description": "Benchmark questions about the DevAC codebase itself, used to evaluate how well DevAC helps answer questions about its own implementation.",
+  "targetRepo": "vivief",
+  "hubPath": "~/.devac",
+  "questions": [
+    {
+      "id": "devac-001",
+      "title": "MCP Server Architecture",
+      "question": "Explain how the DevAC MCP server works. What tools does it expose, and how does it interact with the central hub?",
+      "category": "architecture",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "MCP server initialization",
+        "Available tools and their purposes",
+        "Hub mode vs package mode",
+        "Data provider abstraction"
+      ],
+      "groundTruth": [
+        {
+          "fact": "DevAC MCP server exposes tools like find_symbol, get_dependencies, get_dependents, get_file_symbols, get_affected, get_call_graph, query_sql, and list_repos",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-mcp/src/tools/index.ts",
+              "snippet": "Tool definitions and implementations"
+            }
+          ]
+        },
+        {
+          "fact": "The MCP server supports two modes: hub mode (default) for federated queries and package mode for single package queries",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-mcp/src/index.ts",
+              "snippet": "--hub and --package flags"
+            }
+          ]
+        },
+        {
+          "fact": "The DataProvider abstraction handles the difference between hub and package mode queries",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-mcp/src/data-provider.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["find_symbol", "query_sql", "get_file_symbols"],
+      "expectedReferences": [
+        "packages/devac-mcp/src/index.ts",
+        "packages/devac-mcp/src/tools/index.ts",
+        "packages/devac-mcp/src/data-provider.ts"
+      ],
+      "tags": ["mcp", "server", "tools", "architecture"]
+    },
+    {
+      "id": "devac-002",
+      "title": "Central Hub Design",
+      "question": "What is the DevAC Central Hub and how does it enable cross-repository queries? Explain the federation model.",
+      "category": "architecture",
+      "difficulty": "hard",
+      "expectedCoverage": [
+        "Central Hub purpose",
+        "Repository registration",
+        "Cross-repo query execution",
+        "Seed aggregation"
+      ],
+      "groundTruth": [
+        {
+          "fact": "The Central Hub stores repository metadata in central.duckdb and enables federated queries across all registered repositories",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/hub/central-hub.ts"
+            }
+          ]
+        },
+        {
+          "fact": "Repositories are registered with their manifest path using 'devac hub register'",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-cli/src/commands/hub.ts"
+            }
+          ]
+        },
+        {
+          "fact": "Cross-repo queries work by loading all seeds from registered repos and attaching them as DuckDB views",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/hub/central-hub.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["list_repos", "query_sql"],
+      "expectedReferences": [
+        "packages/devac-core/src/hub/central-hub.ts",
+        "packages/devac-cli/src/commands/hub.ts"
+      ],
+      "tags": ["hub", "federation", "cross-repo", "architecture"]
+    },
+    {
+      "id": "devac-003",
+      "title": "Parsing Pipeline",
+      "question": "Describe DevAC's parsing pipeline. How does source code get transformed into the nodes, edges, and effects stored in Parquet files?",
+      "category": "data-flow",
+      "difficulty": "hard",
+      "expectedCoverage": [
+        "Two-pass parsing architecture",
+        "AST extraction with tree-sitter",
+        "Node and edge extraction",
+        "Effect extraction",
+        "Parquet storage"
+      ],
+      "groundTruth": [
+        {
+          "fact": "DevAC uses a two-pass parsing architecture: Pass 1 extracts structural data (nodes, edges), Pass 2 resolves semantic relationships",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0005-two-pass-parsing.md"
+            }
+          ]
+        },
+        {
+          "fact": "Tree-sitter is used for AST parsing with language-specific grammars for TypeScript, Python, and C#",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/parser/tree-sitter-parser.ts"
+            }
+          ]
+        },
+        {
+          "fact": "Extracted data is stored in Parquet files: nodes.parquet, edges.parquet, effects.parquet, and external_refs.parquet",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/storage/parquet-writer.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["query_sql", "get_file_symbols"],
+      "expectedReferences": [
+        "packages/devac-core/src/parser/",
+        "packages/devac-core/src/storage/parquet-writer.ts",
+        "docs/adr/0005-two-pass-parsing.md"
+      ],
+      "tags": ["parsing", "tree-sitter", "parquet", "data-flow"]
+    },
+    {
+      "id": "devac-004",
+      "title": "Entity ID Format",
+      "question": "What is the format of entity IDs in DevAC and why was this format chosen?",
+      "category": "implementation",
+      "difficulty": "easy",
+      "expectedCoverage": [
+        "Entity ID format components",
+        "Scoped naming rationale",
+        "Uniqueness guarantees"
+      ],
+      "groundTruth": [
+        {
+          "fact": "Entity ID format is {repo}:{package_path}:{kind}:{scope_hash}",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0003-entity-id-scoped-names.md"
+            }
+          ]
+        },
+        {
+          "fact": "The scope hash provides uniqueness while the scoped name provides human readability",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/parser/entity-id.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["find_symbol", "query_sql"],
+      "expectedReferences": [
+        "docs/adr/0003-entity-id-scoped-names.md",
+        "packages/devac-core/src/parser/entity-id.ts"
+      ],
+      "tags": ["entity-id", "naming", "implementation"]
+    },
+    {
+      "id": "devac-005",
+      "title": "Effects System",
+      "question": "What are 'effects' in DevAC? What types of effects are extracted and how are they used?",
+      "category": "data-flow",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "Effect types (FunctionCall, Store, Send, etc.)",
+        "Effect extraction during parsing",
+        "Domain effect transformation",
+        "C4 diagram generation"
+      ],
+      "groundTruth": [
+        {
+          "fact": "Effects represent observable side effects in code: FunctionCall, Store, Retrieve, Send, Receive, Log, Throw",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/implementation/data-model.md"
+            }
+          ]
+        },
+        {
+          "fact": "The Rules Engine transforms low-level effects into high-level domain effects like Payment:Charge or Database:Write",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "docs/implementation/rules-engine.md"
+            }
+          ]
+        },
+        {
+          "fact": "Domain effects are used to generate C4 architecture diagrams",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "docs/implementation/views.md"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["query_sql"],
+      "expectedReferences": [
+        "docs/implementation/data-model.md",
+        "docs/implementation/rules-engine.md",
+        "packages/devac-core/src/effects/"
+      ],
+      "tags": ["effects", "domain", "c4", "architecture"]
+    },
+    {
+      "id": "devac-006",
+      "title": "Incremental Analysis",
+      "question": "How does DevAC support incremental analysis? What mechanism is used to detect which files need re-parsing?",
+      "category": "implementation",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "Content hash for change detection",
+        "File-level incremental updates",
+        "Watch mode implementation"
+      ],
+      "groundTruth": [
+        {
+          "fact": "DevAC uses content hashes (SHA-256) to detect file changes, not modification timestamps",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0008-content-hash-incremental.md"
+            }
+          ]
+        },
+        {
+          "fact": "The watch command uses chokidar to monitor file changes and triggers incremental re-analysis",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-cli/src/commands/workspace.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["query_sql"],
+      "expectedReferences": [
+        "docs/adr/0008-content-hash-incremental.md",
+        "packages/devac-cli/src/commands/workspace.ts"
+      ],
+      "tags": ["incremental", "watch", "performance"]
+    },
+    {
+      "id": "devac-007",
+      "title": "DuckDB Storage Choice",
+      "question": "Why did DevAC choose DuckDB over Neo4j for storage? What are the trade-offs?",
+      "category": "architecture",
+      "difficulty": "easy",
+      "expectedCoverage": [
+        "Neo4j limitations (memory, setup)",
+        "DuckDB advantages (embedded, fast)",
+        "Parquet file format benefits"
+      ],
+      "groundTruth": [
+        {
+          "fact": "DevAC switched from Neo4j to DuckDB because Neo4j required a running server and significant memory, while DuckDB is embedded and serverless",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0001-replace-neo4j-with-duckdb.md"
+            }
+          ]
+        },
+        {
+          "fact": "DuckDB can read Parquet files directly without loading them entirely into memory",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0001-replace-neo4j-with-duckdb.md"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["query_sql"],
+      "expectedReferences": ["docs/adr/0001-replace-neo4j-with-duckdb.md"],
+      "tags": ["duckdb", "storage", "adr", "architecture"]
+    },
+    {
+      "id": "devac-008",
+      "title": "Call Graph Analysis",
+      "question": "How does DevAC build and query the call graph? What SQL patterns are used?",
+      "category": "implementation",
+      "difficulty": "hard",
+      "expectedCoverage": ["CALLS edge extraction", "Recursive CTE queries", "Depth limiting"],
+      "groundTruth": [
+        {
+          "fact": "Call graphs are built from CALLS edges that connect caller functions to callee functions",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0020-calls-edge-extraction.md"
+            }
+          ]
+        },
+        {
+          "fact": "Recursive CTE queries traverse the call graph with a configurable depth limit (default 10) to prevent infinite loops",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0010-recursive-cte-depth-limit.md"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["get_call_graph", "query_sql"],
+      "expectedReferences": [
+        "docs/adr/0020-calls-edge-extraction.md",
+        "docs/adr/0010-recursive-cte-depth-limit.md",
+        "packages/devac-core/src/queries/"
+      ],
+      "tags": ["call-graph", "cte", "sql", "implementation"]
+    },
+    {
+      "id": "devac-009",
+      "title": "Python Parser",
+      "question": "How does DevAC parse Python code? Why is it implemented differently from TypeScript?",
+      "category": "implementation",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "Subprocess-based Python parser",
+        "Reason for separation from Node.js",
+        "Communication protocol"
+      ],
+      "groundTruth": [
+        {
+          "fact": "The Python parser runs as a subprocess because Python's tree-sitter bindings work better natively",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "docs/adr/0006-python-parser-subprocess.md"
+            }
+          ]
+        },
+        {
+          "fact": "Communication between Node.js and the Python parser uses JSON over stdin/stdout",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/parser/python/"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["query_sql"],
+      "expectedReferences": [
+        "docs/adr/0006-python-parser-subprocess.md",
+        "packages/devac-core/src/parser/python/"
+      ],
+      "tags": ["python", "parser", "subprocess", "implementation"]
+    },
+    {
+      "id": "devac-010",
+      "title": "Affected Files Analysis",
+      "question": "How does the 'get_affected' functionality work? Given a set of changed files, how does DevAC determine which other files are affected?",
+      "category": "data-flow",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "Reverse dependency traversal",
+        "IMPORTS edge analysis",
+        "Transitive closure"
+      ],
+      "groundTruth": [
+        {
+          "fact": "get_affected finds files that import (directly or transitively) from the changed files by traversing IMPORTS edges in reverse",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/queries/affected.ts"
+            }
+          ]
+        },
+        {
+          "fact": "The analysis uses recursive CTEs to compute the transitive closure of dependencies",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "packages/devac-core/src/queries/affected.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["get_affected", "get_dependents"],
+      "expectedReferences": [
+        "packages/devac-core/src/queries/affected.ts",
+        "packages/devac-mcp/src/tools/get-affected.ts"
+      ],
+      "tags": ["affected", "dependencies", "imports", "analysis"]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "createdAt": "2025-12-28",
+    "updatedAt": "2025-12-28"
+  }
+}

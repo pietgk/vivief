@@ -1,0 +1,52 @@
+{
+  "$schema": "../../src/benchmark/question-schema.json",
+  "id": "your-benchmark-id",
+  "name": "Your Benchmark Name",
+  "description": "Description of what this benchmark tests",
+  "targetRepo": "your-repo-name",
+  "hubPath": "~/.devac",
+  "questions": [
+    {
+      "id": "example-001",
+      "title": "Example Question Title",
+      "question": "Your question here. Be specific and clear about what you're asking.",
+      "category": "architecture",
+      "difficulty": "medium",
+      "expectedCoverage": [
+        "Topic 1 the answer should cover",
+        "Topic 2 the answer should cover",
+        "Topic 3 the answer should cover"
+      ],
+      "groundTruth": [
+        {
+          "fact": "A verifiable fact that the answer must include",
+          "importance": "critical",
+          "evidence": [
+            {
+              "filePath": "path/to/file.ts",
+              "lineStart": 42,
+              "snippet": "Code snippet that proves this fact"
+            }
+          ]
+        },
+        {
+          "fact": "Another fact that would improve the answer",
+          "importance": "important",
+          "evidence": [
+            {
+              "filePath": "path/to/another-file.ts"
+            }
+          ]
+        }
+      ],
+      "relevantTools": ["find_symbol", "query_sql"],
+      "expectedReferences": ["path/to/file.ts", "docs/relevant-doc.md"],
+      "tags": ["tag1", "tag2"]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "createdAt": "YYYY-MM-DD",
+    "updatedAt": "YYYY-MM-DD"
+  }
+}

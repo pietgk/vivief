@@ -31,6 +31,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0019](0019-coverage-validator.md) | Coverage Validator Integration | Accepted | 2025-12 |
 | [0020](0020-calls-edge-extraction.md) | CALLS Edge Extraction for Function Call Tracking | Accepted | 2025-12 |
 | [0021](0021-code-understanding-pipeline-doc.md) | Code Understanding Pipeline Documentation | Accepted | 2025-12 |
+| [0022](0022-answer-quality-evaluation.md) | Answer Quality Evaluation Framework | Accepted | 2025-12 |
 
 ## Creating a New ADR
 
