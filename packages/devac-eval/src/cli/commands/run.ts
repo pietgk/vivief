@@ -15,8 +15,7 @@ export interface RunCommandOptions {
   modes: string;
   questions?: string;
   hub: string;
-  model: string;
-  judgeModel: string;
+  model?: string;
   output: string;
   verbose?: boolean;
 }
@@ -36,29 +35,50 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
   const benchmark = await loadBenchmark(options.benchmark);
   log(verbose, `Loaded ${benchmark.questions.length} questions`);
 
-  // Build run config
+  // Build run config (using Claude CLI for all LLM calls)
   const config: RunConfig = {
     modes,
     questionIds,
-    responseModel: options.model,
-    judgeModel: options.judgeModel,
+    responseModel: options.model ?? "claude-cli",
+    judgeModel: options.model ?? "claude-cli",
     hubPath,
+    model: options.model,
   };
+
+  // Track timing for estimates
+  let stepStartTime = Date.now();
+  let stepCount = 0;
+  let totalElapsed = 0;
 
   // Create runner
   const runner = new EvalRunner({
     onProgress: (event) => {
       if (event.type === "start") {
         console.log(`\nStarting evaluation: ${event.message}`);
+        console.log(`Estimated time: ~${event.total * 1.5} minutes (1-2 min per evaluation)\n`);
+        stepStartTime = Date.now();
       } else if (event.type === "question") {
-        const percent = Math.round((event.current / event.total) * 100);
-        process.stdout.write(`\r[${percent}%] ${event.message}          `);
+        // Calculate timing
+        const now = Date.now();
+        if (stepCount > 0) {
+          const stepTime = now - stepStartTime;
+          totalElapsed += stepTime;
+          const avgTime = totalElapsed / stepCount;
+          const remaining = (event.total - event.current) * avgTime;
+          const remainingMin = Math.ceil(remaining / 60000);
+          process.stdout.write(
+            `\n[${event.current}/${event.total}] ${event.message} (avg: ${Math.round(avgTime / 1000)}s, ~${remainingMin}min left)`
+          );
+        } else {
+          process.stdout.write(`\n[${event.current}/${event.total}] ${event.message}`);
+        }
+        stepStartTime = now;
+        stepCount++;
       } else if (event.type === "complete") {
-        process.stdout.write("\n");
-        console.log(`\n✓ ${event.message}`);
+        const finalTime = Math.round((Date.now() - stepStartTime + totalElapsed) / 1000);
+        console.log(`\n\n✓ ${event.message} (total: ${finalTime}s)`);
       } else if (event.type === "error") {
-        process.stdout.write("\n");
-        console.error(`\n✗ Error: ${event.message}`);
+        console.error(`\n\n✗ Error: ${event.message}`);
       }
     },
     onLog: (message) => {
@@ -72,8 +92,7 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
   console.log(`\nRunning evaluation on benchmark: ${benchmark.name}`);
   console.log(`Modes: ${modes.join(", ")}`);
   console.log(`Questions: ${questionIds?.length ?? benchmark.questions.length}`);
-  console.log(`Response model: ${options.model}`);
-  console.log(`Judge model: ${options.judgeModel}`);
+  console.log("Using Claude CLI for LLM calls");
 
   const run = await runner.run(benchmark, config);
 
@@ -84,9 +103,7 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
 
   // Judge responses
   console.log("\nJudging responses...");
-  const judge = new LLMJudge({
-    model: options.judgeModel,
-  });
+  const judge = new LLMJudge();
 
   const questions = new Map(benchmark.questions.map((q) => [q.id, q]));
   const { pointwiseScores, pairwiseResults } = await judge.judgeRun(

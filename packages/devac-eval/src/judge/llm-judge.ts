@@ -1,8 +1,9 @@
 /**
  * LLM Judge - evaluates responses using LLM-as-judge pattern
+ * Uses Claude CLI for judging to work with Claude Max subscription
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { ClaudeCLIExecutor } from "../runner/claude-cli-executor.js";
 import type {
   DimensionScore,
   EvalMode,
@@ -19,29 +20,15 @@ import {
   parsePointwiseResponse,
 } from "./prompts.js";
 
-export interface LLMJudgeOptions {
-  /** Anthropic API key */
-  apiKey?: string;
-  /** Model to use for judging */
-  model: string;
-  /** Temperature for judging (lower = more consistent) */
-  temperature?: number;
-}
-
 /**
  * LLM-based judge for scoring responses
+ * Uses Claude CLI subprocess for evaluation
  */
 export class LLMJudge {
-  private client: Anthropic;
-  private model: string;
-  private temperature: number;
+  private executor: ClaudeCLIExecutor;
 
-  constructor(options: LLMJudgeOptions) {
-    this.client = new Anthropic({
-      apiKey: options.apiKey || process.env.ANTHROPIC_API_KEY,
-    });
-    this.model = options.model;
-    this.temperature = options.temperature ?? 0.1; // Low temp for consistency
+  constructor() {
+    this.executor = new ClaudeCLIExecutor();
   }
 
   /**
@@ -53,24 +40,12 @@ export class LLMJudge {
 
     const prompt = buildPointwisePrompt(question, response.response, isEnhanced);
 
-    const result = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 2048,
-      temperature: this.temperature,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    // Use Claude CLI for judging - no tools needed
+    const result = await this.executor.execute(prompt, undefined, {
+      allowTools: false,
     });
 
-    const responseText = result.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("\n");
-
-    const parsed = parsePointwiseResponse(responseText);
+    const parsed = parsePointwiseResponse(result.response);
     const latencyMs = Date.now() - startTime;
 
     const score: PointwiseScore = {
@@ -87,7 +62,7 @@ export class LLMJudge {
       missedFacts: parsed.missedFacts,
       hallucinations: parsed.hallucinations,
       metadata: {
-        judgeModel: this.model,
+        judgeModel: "claude-cli",
         timestamp: new Date().toISOString(),
         latencyMs,
       },
@@ -116,24 +91,12 @@ export class LLMJudge {
 
     const prompt = buildPairwisePrompt(question, baseline.response, enhanced.response);
 
-    const result = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 2048,
-      temperature: this.temperature,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    // Use Claude CLI for judging - no tools needed
+    const result = await this.executor.execute(prompt, undefined, {
+      allowTools: false,
     });
 
-    const responseText = result.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("\n");
-
-    const parsed = parsePairwiseResponse(responseText);
+    const parsed = parsePairwiseResponse(result.response);
     const latencyMs = Date.now() - startTime;
 
     // Map A/B to baseline/enhanced
@@ -171,7 +134,7 @@ export class LLMJudge {
       ],
       reasoning: parsed.overall.reasoning,
       metadata: {
-        judgeModel: this.model,
+        judgeModel: "claude-cli",
         timestamp: new Date().toISOString(),
         latencyMs,
       },

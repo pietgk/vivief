@@ -27,16 +27,14 @@ devac-eval run --benchmark <benchmark-id> [options]
 |--------|-------------|---------|
 | `--benchmark, -b` | Benchmark ID to run | Required |
 | `--hub` | Path to DevAC hub | Auto-detect |
-| `--modes` | Modes to run: `both`, `baseline`, `enhanced` | `both` |
+| `--modes` | Modes to run: `baseline,enhanced` | `baseline,enhanced` |
 | `--questions` | Comma-separated question IDs to run | All |
-| `--model` | Model for generating responses | `claude-sonnet-4-20250514` |
-| `--judge-model` | Model for judging responses | `claude-sonnet-4-20250514` |
 | `--results-dir` | Directory to store results | `./results` |
 
 **Examples:**
 
 ```bash
-# Full evaluation
+# Full evaluation (baseline + enhanced)
 devac-eval run --benchmark devac-self
 
 # Only baseline mode
@@ -44,11 +42,6 @@ devac-eval run --benchmark devac-self --modes baseline
 
 # Specific questions
 devac-eval run --benchmark devac-self --questions devac-001,devac-002
-
-# Custom models
-devac-eval run --benchmark devac-self \
-  --model claude-opus-4-20250514 \
-  --judge-model claude-opus-4-20250514
 ```
 
 ### `devac-eval report`
@@ -252,13 +245,28 @@ results/
 | Comprehensibility | 3.8 | 4.0 | +0.2 |
 ```
 
+## Prerequisites
+
+This framework uses Claude CLI for all LLM operations. Before running evaluations:
+
+1. **Install Claude CLI**: Follow instructions at https://docs.anthropic.com/claude/docs/claude-cli
+2. **Authenticate**: Run `claude login` to authenticate with your Claude account
+3. **Configure MCP** (for enhanced mode): Ensure devac-mcp is configured in Claude CLI settings
+
+```bash
+# Verify Claude CLI is working
+claude --version
+
+# Check MCP tools are available
+claude mcp list
+```
+
+The evaluation uses your Claude CLI subscription - no API key required.
+
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Anthropic API key for LLM calls | Required |
-| `DEVAC_EVAL_MODEL` | Default response model | `claude-sonnet-4-20250514` |
-| `DEVAC_EVAL_JUDGE_MODEL` | Default judge model | `claude-sonnet-4-20250514` |
 | `DEVAC_EVAL_RESULTS_DIR` | Default results directory | `./results` |
 
 ## See Also

@@ -22,7 +22,7 @@ export { validateQuestion, validateBenchmark } from "./benchmark/question-valida
 
 // Runner
 export { EvalRunner } from "./runner/eval-runner.js";
-export { LLMExecutor } from "./runner/llm-executor.js";
+export { ClaudeCLIExecutor } from "./runner/claude-cli-executor.js";
 
 // Judge
 export { LLMJudge } from "./judge/llm-judge.js";

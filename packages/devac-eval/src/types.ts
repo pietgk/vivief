@@ -217,16 +217,14 @@ export interface RunConfig {
   modes: EvalMode[];
   /** Questions to include (undefined = all) */
   questionIds?: string[];
-  /** LLM model for generating responses */
+  /** LLM model for generating responses (metadata only - Claude CLI uses user's config) */
   responseModel: string;
-  /** LLM model for judging */
+  /** LLM model for judging (metadata only - Claude CLI uses user's config) */
   judgeModel: string;
   /** Path to DevAC hub for enhanced mode */
   hubPath: string;
-  /** Temperature for response generation */
-  temperature?: number;
-  /** Max tokens for responses */
-  maxTokens?: number;
+  /** Model override for Claude CLI (e.g., 'sonnet', 'haiku', 'opus') */
+  model?: string;
 }
 
 export interface RunSummary {
@@ -293,18 +291,12 @@ export interface EvalRun {
 // ============================================================================
 
 export interface EvalConfig {
-  /** Default response model */
-  defaultResponseModel: string;
-  /** Default judge model */
-  defaultJudgeModel: string;
   /** Results storage directory */
   resultsDir: string;
   /** Benchmarks directory */
   benchmarksDir: string;
   /** Default hub path */
   defaultHubPath?: string;
-  /** Anthropic API key (from env if not specified) */
-  anthropicApiKey?: string;
 }
 
 // ============================================================================

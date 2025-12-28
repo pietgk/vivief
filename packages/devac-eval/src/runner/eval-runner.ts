@@ -11,13 +11,10 @@ import type {
   EvalRun,
   RunConfig,
 } from "../types.js";
-import { LLMExecutor } from "./llm-executor.js";
-import { MCPClient } from "./mcp-client.js";
+import { ClaudeCLIExecutor } from "./claude-cli-executor.js";
 import { ResponseCollector } from "./response-collector.js";
 
 export interface EvalRunnerOptions {
-  /** Anthropic API key */
-  apiKey?: string;
   /** Callback for progress updates */
   onProgress?: (event: ProgressEvent) => void;
   /** Callback for verbose logging */
@@ -38,8 +35,8 @@ export interface ProgressEvent {
  */
 export class EvalRunner {
   private options: EvalRunnerOptions;
-  private executor: LLMExecutor | null = null;
-  private mcpClient: MCPClient | null = null;
+  private executor: ClaudeCLIExecutor | null = null;
+  private config: RunConfig | null = null;
 
   constructor(options: EvalRunnerOptions = {}) {
     this.options = options;
@@ -54,9 +51,15 @@ export class EvalRunner {
     const collector = new ResponseCollector();
 
     // Filter questions if specific IDs provided
-    const questions = config.questionIds
+    let questions = config.questionIds
       ? benchmark.questions.filter((q) => config.questionIds?.includes(q.id))
       : benchmark.questions;
+
+    // TEMPORARY: Limit to 1 question to avoid rate limits during development
+    if (questions.length > 1) {
+      this.log(`Limiting to 1 question (was ${questions.length}) to avoid rate limits`);
+      questions = questions.slice(0, 1);
+    }
 
     const totalSteps = questions.length * config.modes.length;
     let currentStep = 0;
@@ -69,24 +72,16 @@ export class EvalRunner {
     });
 
     try {
-      // Initialize executor and MCP client if needed
-      this.executor = new LLMExecutor({
-        apiKey: this.options.apiKey,
-        model: config.responseModel,
-        temperature: config.temperature,
-        maxTokens: config.maxTokens,
-      });
+      // Initialize Claude CLI executor and store config
+      this.executor = new ClaudeCLIExecutor();
+      this.config = config;
 
+      this.log("Initialized Claude CLI executor");
+      if (config.model) {
+        this.log(`Using model: ${config.model}`);
+      }
       if (config.modes.includes("enhanced")) {
-        this.mcpClient = new MCPClient({
-          apiKey: this.options.apiKey,
-          model: config.responseModel,
-          hubPath: config.hubPath,
-          temperature: config.temperature,
-          maxTokens: config.maxTokens,
-        });
-        await this.mcpClient.connect();
-        this.log(`Connected to MCP server with ${this.mcpClient.getTools().length} tools`);
+        this.log("Enhanced mode will use MCP tools via Claude CLI");
       }
 
       // Run evaluations
@@ -108,11 +103,6 @@ export class EvalRunner {
 
           this.log(`Completed ${question.id} (${mode}): ${response.metadata.latencyMs}ms`);
         }
-      }
-
-      // Cleanup
-      if (this.mcpClient) {
-        await this.mcpClient.disconnect();
       }
 
       this.emit({
@@ -137,15 +127,6 @@ export class EvalRunner {
 
       return run;
     } catch (error) {
-      // Cleanup on error
-      if (this.mcpClient) {
-        try {
-          await this.mcpClient.disconnect();
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-
       this.emit({
         type: "error",
         current: currentStep,
@@ -174,18 +155,20 @@ export class EvalRunner {
    * Evaluate a single question
    */
   private async evaluateQuestion(question: EvalQuestion, mode: EvalMode): Promise<EvalResponse> {
+    if (!this.executor) {
+      throw new Error("Executor not initialized");
+    }
+
+    const model = this.config?.model;
+
     if (mode === "baseline") {
-      if (!this.executor) {
-        throw new Error("Executor not initialized");
-      }
-      const result = await this.executor.executeBaseline(question);
-      return LLMExecutor.toEvalResponse(question.id, mode, result);
+      const result = await this.executor.executeBaseline(question, model);
+      return ClaudeCLIExecutor.toEvalResponse(question.id, mode, result);
     }
-    if (!this.mcpClient) {
-      throw new Error("MCP client not initialized");
-    }
-    const result = await this.mcpClient.executeEnhanced(question);
-    return LLMExecutor.toEvalResponse(question.id, mode, result);
+
+    // Enhanced mode - Claude CLI will use MCP tools
+    const result = await this.executor.executeEnhanced(question, model);
+    return ClaudeCLIExecutor.toEvalResponse(question.id, mode, result);
   }
 
   /**

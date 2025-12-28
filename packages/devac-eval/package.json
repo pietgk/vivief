@@ -24,8 +24,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@modelcontextprotocol/sdk": "^1.0.0",
     "@pietgk/devac-core": "workspace:*",
     "commander": "^12.1.0",
     "zod": "^3.24.1"

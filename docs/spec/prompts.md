@@ -4,6 +4,33 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
 
+## usefullness and quality check
+
+we used the question:
+
+"can you explain to me how miami works with diagrams and how it interacts with users and other systems using the devac tool"
+
+as a check oh how much the devac tooling contributes to give the answer. we improved it to arround 80% of the answer coming from devac queries.
+
+we would like to have a more formal way to determine the quality of the answers we get from the llm with and without using devac tooling.
+
+so how can we determine "quality of the answer", so what would be the criteria to determine the quality of the answer (completeness, correctness hallucinations, comprehensibility, factualness are terms that come to mind but they need te be determined in a good constructive usable way)
+
+the idea is to determine a set of question like the above inital example question and ask for an llm only and an llm with devac tooling answer and the napply the "quality" criteria to see how good and usefull devac tooling is.
+
+this can then also be used to improve devac over time by seeing how changes in devac affect the quality of the answers.
+
+can we create a plan to be able to get this implemented as the answer-quality feature of devac.
+
+
+## remarks 
+
+remarks on part 2:
+- we have added a fourth pillar workflow to the three pillars so it seems that is missed so lets determine why it is missed and how to fix it.
+- the effect store is implemented as parquet file and that is the current correct approach, previously there where version where effects store was an event stream but that is not implemented and not needed.
+- runtime otel tracing combined with testing is a major feature that needs implementing as its not implemented yet.
+- regarding confidence thresholds we can say that we experimented asking questions and include feedback on how much of the came from devac queries and how much came from other sources. using the deterministic queries ties the confidense to the data we have in the seeds by also asking to explain how the remaining data was extracted can be used as a confidense report. this is work in progress.
+
 ## organise llm context
 
 to organise devac usage by llm and humans we need to organise claude.md claude commands skills.

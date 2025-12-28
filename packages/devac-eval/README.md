@@ -71,14 +71,23 @@ Each response is scored on 5 dimensions (1-5 scale):
 | `list` | List benchmarks, questions, or runs |
 | `validate` | Validate benchmark question files |
 
-## Configuration
+## Prerequisites
+
+This package uses Claude CLI for all LLM operations. Before running evaluations:
+
+1. **Install Claude CLI**: https://docs.anthropic.com/claude/docs/claude-cli
+2. **Authenticate**: Run `claude login` to authenticate with your Claude account
+3. **Configure MCP** (for enhanced mode): Ensure devac-mcp is configured in your Claude CLI settings
 
 ```bash
-# Environment variables
-ANTHROPIC_API_KEY=sk-...          # Required for LLM calls
-DEVAC_EVAL_MODEL=claude-sonnet-4-20250514  # Response model (default)
-DEVAC_EVAL_JUDGE_MODEL=claude-sonnet-4-20250514   # Judge model (default)
+# Verify Claude CLI is working
+claude --version
+
+# Check MCP configuration (optional)
+claude mcp list
 ```
+
+The evaluation uses your Claude CLI subscription - no API key required.
 
 ## Creating Custom Benchmarks
 

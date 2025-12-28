@@ -20,12 +20,9 @@ export interface Config extends EvalConfig {
  * Default configuration values
  */
 export const defaultConfig: EvalConfig = {
-  defaultResponseModel: "claude-sonnet-4-20250514",
-  defaultJudgeModel: "claude-sonnet-4-20250514",
   resultsDir: "./results",
   benchmarksDir: "./benchmarks",
   defaultHubPath: undefined,
-  anthropicApiKey: undefined,
 };
 
 /**
@@ -54,11 +51,6 @@ export async function loadConfig(
     ...overrides,
   };
 
-  // Get API key from environment if not specified
-  if (!merged.anthropicApiKey) {
-    merged.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-  }
-
   // Resolve paths relative to current working directory
   const basePath = configPath ? resolve(configPath, "..") : process.cwd();
 
@@ -79,5 +71,8 @@ export async function loadConfig(
  */
 export function getBuiltinBenchmarksPath(): string {
   // Navigate from dist/config.js to benchmarks/
-  return join(import.meta.dirname, "..", "..", "benchmarks");
+  // import.meta.dirname = .../devac-eval/dist
+  // .. = .../devac-eval
+  // benchmarks = .../devac-eval/benchmarks
+  return join(import.meta.dirname, "..", "benchmarks");
 }

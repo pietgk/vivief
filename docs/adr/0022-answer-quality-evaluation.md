@@ -106,6 +106,39 @@ Example:
 - Can be extended to other codebases with new benchmark JSON files
 - Results stored in `./results/` with full run history
 
+## Implementation Decision: Claude CLI over Anthropic SDK
+
+### Context
+
+The initial design assumed using the Anthropic SDK (`@anthropic-ai/sdk`) for LLM calls. However, this approach requires an `ANTHROPIC_API_KEY` with pay-per-use billing.
+
+### Decision
+
+We replaced the Anthropic SDK with Claude CLI subprocess execution because:
+
+1. **Claude Max compatibility**: Works with Claude Max subscription (unlimited usage)
+2. **No API key required**: Uses existing Claude CLI authentication
+3. **Simpler architecture**: Claude CLI handles the agentic loop internally
+4. **MCP integration**: Claude CLI already has MCP tool support built-in
+
+### Implementation Details
+
+- **ClaudeCLIExecutor**: Spawns `claude -p <prompt> --output-format json`
+- **Baseline mode**: Uses `--allowedTools ""` to disable all tools
+- **Enhanced mode**: Uses default Claude CLI MCP configuration
+- **Working directory**: Runs from `~/ws` for proper directory access
+- **stdin handling**: Uses `stdio: ["ignore", "pipe", "pipe"]` to prevent hanging
+
+### Trade-offs
+
+| Aspect | Anthropic SDK | Claude CLI |
+|--------|--------------|------------|
+| Token tracking | Exact counts | Estimated from response length |
+| Model selection | Full control | Limited to CLI aliases |
+| Cost tracking | Per-request | Subscription-based |
+| MCP control | Programmatic | CLI configuration |
+| Response time | ~2-5 seconds | ~60-120 seconds (includes thinking) |
+
 ## Implementation Notes
 
 Package structure:
