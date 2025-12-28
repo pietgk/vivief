@@ -1,5 +1,12 @@
 # @pietgk/devac-cli
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [936dfb0]
+  - @pietgk/devac-core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
