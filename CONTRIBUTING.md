@@ -39,9 +39,23 @@ After linking, you can use `devac`, `devac-mcp`, and `devac-eval` commands direc
 
 ### Claude Code Plugin Setup
 
-**Working inside the vivief repository:**
+**Option 1: Install via Marketplace (Recommended)**
 
-The plugin loads automatically via marketplace configuration. Simply launch Claude Code from within the vivief directory:
+Install the plugin globally to use in any project:
+
+```bash
+# Add the vivief marketplace (one-time setup)
+claude plugin marketplace add pietgk/vivief
+
+# Install the DevAC plugin
+claude plugin install devac@vivief
+```
+
+Commands are available as `/devac:commit`, `/devac:ship`, `/devac:start-issue`, etc.
+
+**Option 2: Working inside the vivief repository**
+
+The plugin loads automatically via marketplace configuration:
 
 ```bash
 cd ~/ws/vivief
@@ -50,34 +64,20 @@ claude
 
 Commands are available without namespace prefix: `/commit`, `/ship`, `/start-issue`, etc.
 
-**Using the plugin in other projects:**
-
-```bash
-# Option 1: Launch Claude Code with the plugin directory
-claude --plugin-dir /path/to/vivief/plugins/devac
-
-# Option 2: Add to your Claude Code settings (~/.claude/settings.json)
-{
-  "plugins": ["/path/to/vivief/plugins/devac"]
-}
-```
-
-Commands use the `/devac:` prefix: `/devac:commit`, `/devac:ship`, etc.
-
 **Available features:**
 
 **Workflow Commands:**
-- `/commit` (or `/devac:commit`) - Full commit workflow with changeset/ADR checks
-- `/ship` (or `/devac:ship`) - Commit, push, and create PR
-- `/start-issue` (or `/devac:start-issue`) - Start work on a GitHub issue
-- `/devac-status` (or `/devac:devac-status`) - Query DevAC health status
+- `/devac:commit` - Full commit workflow with changeset/ADR checks
+- `/devac:ship` - Commit, push, and create PR
+- `/devac:start-issue` - Start work on a GitHub issue
+- `/devac:devac-status` - Query DevAC health status
 
 **Skills** (activate automatically based on your questions):
 - Ask "What functions are in this file?" → code-analysis skill
 - Ask "What will this change affect?" → impact-analysis skill
 - Ask "What needs fixing?" → diagnostics-triage skill
 
-See [plugins/devac/README.md](./plugins/devac/README.md) for the full list of commands, skills, and options for using the plugin without the vivief repository.
+See [plugins/devac/README.md](./plugins/devac/README.md) for the full list of commands and skills.
 
 ### Making Changes
 

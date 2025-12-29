@@ -10,8 +10,8 @@ Understanding how Claude Code loads plugins is important to avoid confusion:
 
 | Method | Command Format | When to Use |
 |--------|---------------|-------------|
+| **Install via Marketplace** | `/devac:commit` | Recommended - works globally in any project |
 | **Marketplace** (vivief repo) | `/commit` | Working inside the vivief repository |
-| **Standalone install** | `/devac:commit` | Any other project without vivief |
 | **--plugin-dir** | `/devac:commit` | Development/testing of the plugin |
 
 ### What "Project Scope" Means
@@ -29,18 +29,33 @@ When using Claude Code in a **multi-repo workspace** (like `~/ws/` containing mu
 
 ## Setup Guide
 
-### Option 1: Working Inside the Vivief Repository (Recommended for Vivief Developers)
+### Option 1: Install via Marketplace (Recommended)
 
-The vivief repository has a marketplace configuration (`.claude-plugin/marketplace.json`) that automatically loads the DevAC plugin.
+The DevAC plugin is published to GitHub and can be installed globally via Claude Code's plugin system. This works in **any project** without needing the vivief repository.
 
-**How it works:**
+```bash
+# Add the vivief marketplace (one-time setup)
+claude plugin marketplace add pietgk/vivief
+
+# Install the DevAC plugin
+claude plugin install devac@vivief
 ```
-vivief/
-├── .claude-plugin/
-│   └── marketplace.json    ← Registers the plugin
-└── plugins/
-    └── devac/              ← Plugin source
+
+**Verify installation:**
+```bash
+claude plugin marketplace list
+# Should show: vivief - Source: GitHub (pietgk/vivief)
 ```
+
+After installation, commands are available with the `devac:` namespace prefix:
+- `/devac:commit` - Full commit workflow
+- `/devac:ship` - Commit, push, and create PR
+- `/devac:start-issue` - Start work on an issue
+- etc.
+
+### Option 2: Working Inside the Vivief Repository
+
+If you're a vivief developer, the plugin loads automatically via the repository's marketplace configuration.
 
 **Usage:**
 ```bash
@@ -49,64 +64,17 @@ claude
 ```
 
 Commands are available **without namespace prefix**:
-- `/commit` - Full commit workflow
-- `/ship` - Commit, push, and create PR
-- `/start-issue` - Start work on an issue
-- etc.
+- `/commit`, `/ship`, `/start-issue`, etc.
 
-### Option 2: Using the Plugin in Other Projects (Without Vivief)
+### Option 3: Development/Testing (--plugin-dir)
 
-If you want to use the DevAC plugin in your own projects without having the vivief repository in your workspace:
-
-#### Method A: Copy the Plugin to Your Project
+For testing plugin changes during development:
 
 ```bash
-# Copy the plugin to your project
-cp -r /path/to/vivief/plugins/devac /your-project/plugins/devac
-
-# Create a marketplace.json in your project
-mkdir -p /your-project/.claude-plugin
-cat > /your-project/.claude-plugin/marketplace.json << 'EOF'
-{
-  "name": "your-project",
-  "plugins": [
-    {
-      "name": "devac",
-      "source": "./plugins/devac"
-    }
-  ]
-}
-EOF
-```
-
-Commands will be available as `/commit`, `/ship`, etc.
-
-#### Method B: Use --plugin-dir Flag
-
-```bash
-# Point to the plugin directory (can be anywhere on your system)
 claude --plugin-dir /path/to/vivief/plugins/devac
 ```
 
 Commands will be namespaced as `/devac:commit`, `/devac:ship`, etc.
-
-#### Method C: Add to Global Settings
-
-Add to `~/.claude/settings.json`:
-```json
-{
-  "plugins": ["/path/to/vivief/plugins/devac"]
-}
-```
-
-Commands will be namespaced as `/devac:commit`, `/devac:ship`, etc.
-
-### Option 3: From Plugin Registry (Future)
-
-When published to a plugin registry:
-```bash
-/plugin install devac@vivief
-```
 
 ---
 
@@ -114,8 +82,9 @@ When published to a plugin registry:
 
 | If Plugin Loaded Via... | Command Format | Example |
 |------------------------|----------------|---------|
+| Install via Marketplace | `/devac:command` | `/devac:commit` |
 | Marketplace (inside vivief) | `/command` | `/commit` |
-| --plugin-dir or settings.json | `/devac:command` | `/devac:commit` |
+| --plugin-dir | `/devac:command` | `/devac:commit` |
 
 ---
 
@@ -260,12 +229,13 @@ An MCP server configuration is included for `devac-mcp`. MCP provides the same f
 
 ### Commands Not Found
 
-**Symptom**: `/commit` doesn't work
+**Symptom**: `/commit` or `/devac:commit` doesn't work
 
 **Check**:
-1. Are you inside the vivief directory? → Commands work as `/commit`
-2. Using `--plugin-dir`? → Commands are `/devac:commit`
-3. Plugin not loaded? → Run `/help` to see available commands
+1. Installed via marketplace? → Commands are `/devac:commit`
+2. Inside the vivief directory? → Commands are `/commit` (no namespace)
+3. Using `--plugin-dir`? → Commands are `/devac:commit`
+4. Plugin not loaded? → Run `claude plugin list` to check, then `/help` to see available commands
 
 ### Skills Not Activating
 

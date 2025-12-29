@@ -296,25 +296,34 @@ DevAC includes a Claude Code plugin that provides AI-powered code analysis skill
 
 | Method | Command Format | When to Use |
 |--------|---------------|-------------|
+| **Install via Marketplace** | `/devac:commit` | Recommended - works globally |
 | **Marketplace** (inside vivief) | `/commit` | Working inside this repository |
-| **--plugin-dir or settings.json** | `/devac:commit` | Using plugin in other projects |
+| **--plugin-dir** | `/devac:commit` | Development/testing |
 
 ### Activating the Plugin
 
-**Working inside the vivief repository:**
+**Option 1: Install via Marketplace (Recommended)**
 
-The plugin loads automatically via the marketplace configuration. Commands work as `/commit`, `/ship`, etc.
-
-**Using the plugin in other projects:**
+Install globally to use in any project:
 
 ```bash
-# Option 1: Launch Claude Code with plugin directory
-claude --plugin-dir /path/to/vivief/plugins/devac
+# Add the vivief marketplace (one-time setup)
+claude plugin marketplace add pietgk/vivief
 
-# Option 2: Add to your Claude Code settings (~/.claude/settings.json)
-{
-  "plugins": ["/path/to/vivief/plugins/devac"]
-}
+# Install the DevAC plugin
+claude plugin install devac@vivief
+```
+
+Commands are available as `/devac:commit`, `/devac:ship`, etc.
+
+**Option 2: Working inside the vivief repository**
+
+The plugin loads automatically via the marketplace configuration. Commands work as `/commit`, `/ship`, etc. (no namespace).
+
+**Option 3: Development/testing**
+
+```bash
+claude --plugin-dir /path/to/vivief/plugins/devac
 ```
 
 Commands are namespaced as `/devac:commit`, `/devac:ship`, etc.

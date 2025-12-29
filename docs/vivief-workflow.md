@@ -412,14 +412,24 @@ pnpm add @pietgk/devac-core @pietgk/devac-cli
 
 When working with Claude Code, you can use these slash commands for guided workflows. Commands are provided by the DevAC plugin.
 
+### Plugin Installation
+
+To use commands outside the vivief repository, install the plugin globally:
+
+```bash
+claude plugin marketplace add pietgk/vivief
+claude plugin install devac@vivief
+```
+
 ### Command Format
 
 | How Plugin is Loaded | Command Format | Example |
 |----------------------|----------------|---------|
+| **Install via Marketplace** | `/devac:command` | `/devac:commit` |
 | **Marketplace** (inside vivief) | `/command` | `/commit` |
-| **--plugin-dir or settings.json** | `/devac:command` | `/devac:commit` |
+| **--plugin-dir** | `/devac:command` | `/devac:commit` |
 
-> **This document uses the short format** (`/commit`) since it's primarily for vivief developers. If using the plugin in other projects via --plugin-dir, add the `devac:` prefix.
+> **This document uses the short format** (`/commit`) since it's primarily for vivief developers. If using the plugin via marketplace installation, add the `devac:` prefix.
 
 ### Available Commands
 
