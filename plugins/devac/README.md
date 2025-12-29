@@ -140,7 +140,7 @@ Skills activate automatically based on your conversation:
 | `/draft-adr` | Draft architecture decision record |
 | `/devac-status` | Query status across all Four Pillars |
 
-> **Note**: Commands shown without namespace. If using `--plugin-dir`, prefix with `devac:` (e.g., `/devac:commit`).
+> **Note**: Commands shown without namespace. If installed via marketplace or using `--plugin-dir`, prefix with `devac:` (e.g., `/devac:commit`).
 
 ---
 
