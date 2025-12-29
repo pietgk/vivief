@@ -18,7 +18,7 @@ This package provides a framework for evaluating LLM answer quality when answeri
 
 ```bash
 # Run full evaluation (baseline + enhanced modes)
-devac-eval run --benchmark devac-self --hub ~/.devac
+devac-eval run --benchmark devac-self
 
 # Run only baseline (LLM without tools)
 devac-eval run --benchmark devac-self --modes baseline

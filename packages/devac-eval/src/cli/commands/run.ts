@@ -14,7 +14,6 @@ export interface RunCommandOptions {
   benchmark: string;
   modes: string;
   questions?: string;
-  hub: string;
   model?: string;
   output: string;
   verbose?: boolean;
@@ -26,7 +25,6 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
   // Parse options
   const modes = options.modes.split(",").map((m) => m.trim()) as EvalMode[];
   const questionIds = options.questions?.split(",").map((q) => q.trim());
-  const hubPath = options.hub.replace("~", process.env.HOME || "");
   const resultsDir = resolve(options.output);
 
   log(verbose, `Loading benchmark: ${options.benchmark}`);
@@ -41,7 +39,6 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
     questionIds,
     responseModel: options.model ?? "claude-cli",
     judgeModel: options.model ?? "claude-cli",
-    hubPath,
     model: options.model,
   };
 

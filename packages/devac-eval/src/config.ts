@@ -12,7 +12,6 @@ export interface Config extends EvalConfig {
   resolved: {
     resultsDir: string;
     benchmarksDir: string;
-    hubPath?: string;
   };
 }
 
@@ -22,7 +21,6 @@ export interface Config extends EvalConfig {
 export const defaultConfig: EvalConfig = {
   resultsDir: "./results",
   benchmarksDir: "./benchmarks",
-  defaultHubPath: undefined,
 };
 
 /**
@@ -59,7 +57,6 @@ export async function loadConfig(
     resolved: {
       resultsDir: resolve(basePath, merged.resultsDir),
       benchmarksDir: resolve(basePath, merged.benchmarksDir),
-      hubPath: merged.defaultHubPath ? resolve(basePath, merged.defaultHubPath) : undefined,
     },
   };
 

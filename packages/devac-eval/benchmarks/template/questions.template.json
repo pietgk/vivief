@@ -4,7 +4,6 @@
   "name": "Your Benchmark Name",
   "description": "Description of what this benchmark tests",
   "targetRepo": "your-repo-name",
-  "hubPath": "~/.devac",
   "questions": [
     {
       "id": "example-001",

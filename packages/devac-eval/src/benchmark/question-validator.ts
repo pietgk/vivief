@@ -60,7 +60,6 @@ const benchmarkSetSchema = z.object({
   name: z.string().min(3),
   description: z.string().min(10),
   targetRepo: z.string().min(1),
-  hubPath: z.string().optional(),
   questions: z.array(evalQuestionSchema).min(1),
   metadata: benchmarkMetadataSchema,
 });

@@ -79,8 +79,6 @@ export interface BenchmarkSet {
   description: string;
   /** Target repository or codebase */
   targetRepo: string;
-  /** Path to the hub or package for DevAC queries */
-  hubPath?: string;
   /** Questions in this benchmark */
   questions: EvalQuestion[];
   /** Benchmark metadata */
@@ -221,8 +219,6 @@ export interface RunConfig {
   responseModel: string;
   /** LLM model for judging (metadata only - Claude CLI uses user's config) */
   judgeModel: string;
-  /** Path to DevAC hub for enhanced mode */
-  hubPath: string;
   /** Model override for Claude CLI (e.g., 'sonnet', 'haiku', 'opus') */
   model?: string;
 }
@@ -295,8 +291,6 @@ export interface EvalConfig {
   resultsDir: string;
   /** Benchmarks directory */
   benchmarksDir: string;
-  /** Default hub path */
-  defaultHubPath?: string;
 }
 
 // ============================================================================
@@ -310,8 +304,6 @@ export interface RunOptions {
   modes?: EvalMode[];
   /** Specific questions to run */
   questions?: string[];
-  /** Hub path for DevAC */
-  hub?: string;
   /** Output format */
   format?: "json" | "markdown";
   /** Verbose output */

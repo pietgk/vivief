@@ -26,7 +26,6 @@ program
   .requiredOption("-b, --benchmark <name>", "Benchmark to run")
   .option("-m, --modes <modes>", "Modes to run (baseline,enhanced)", "baseline,enhanced")
   .option("-q, --questions <ids>", "Specific question IDs (comma-separated)")
-  .option("--hub <path>", "Path to DevAC hub", "~/.devac")
   .option("--model <model>", "Model to use (sonnet, haiku, opus)")
   .option("-o, --output <dir>", "Output directory", "./results")
   .option("-v, --verbose", "Verbose output")

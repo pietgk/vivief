@@ -3,7 +3,6 @@
   "name": "DevAC Self-Evaluation",
   "description": "Benchmark questions about the DevAC codebase itself, used to evaluate how well DevAC helps answer questions about its own implementation.",
   "targetRepo": "vivief",
-  "hubPath": "~/.devac",
   "questions": [
     {
       "id": "devac-001",
