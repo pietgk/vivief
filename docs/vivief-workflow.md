@@ -1,6 +1,6 @@
 # vivief Development Workflow
 
-> **Version**: 1.4.0
+> **Version**: 1.5.0
 > **Last Updated**: 2025-12-29
 > **ADRs**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md), [ADR-0012: Claude-Assisted Slash Commands](adr/0012-claude-assisted-slash-commands.md)
 
@@ -55,9 +55,9 @@ DevAC provides a layered architecture where Claude and humans can interact throu
 │ Slash Commands  │  │     Skills       │   │  Direct Use    │
 │ (Workflows)     │  │ (Auto-Invoked)   │   │  (Scripting)   │
 ├─────────────────┤  ├──────────────────┤   ├────────────────┤
-│ /devac:commit   │  │ code-analysis    │   │ Terminal/CI    │
-│ /devac:ship     │  │ impact-analysis  │   │ Bash scripts   │
-│ /devac:start-.. │  │ diagnostics      │   │ pnpm scripts   │
+│ /commit         │  │ code-analysis    │   │ Terminal/CI    │
+│ /ship           │  │ impact-analysis  │   │ Bash scripts   │
+│ /start-issue    │  │ diagnostics      │   │ pnpm scripts   │
 └─────────────────┘  └────────────────┬─┘   └────────────────┘
          │                    │       │              │
          │                    │       │              │
@@ -79,6 +79,10 @@ DevAC provides a layered architecture where Claude and humans can interact throu
 │   Storage, Parsers, DuckDB/Parquet, Query Engine, Analysis     │
 └────────────────────────────────────────────────────────────────┘
 ```
+
+> **Note**: Command format depends on how the plugin is loaded:
+> - **Inside vivief repo**: Commands are `/commit`, `/ship`, `/start-issue` (via marketplace)
+> - **In other projects**: Commands are `/devac:commit`, `/devac:ship`, `/devac:start-issue` (via --plugin-dir)
 
 ### Key Principles
 
@@ -189,12 +193,12 @@ There are three ways to create issues:
    - **Constraints**: Changeset/ADR requirements
    - **Open Questions**: Any clarifications needed
 
-#### Option 2: `/devac:issue` command (Claude-assisted)
+#### Option 2: `/issue` command (Claude-assisted)
 
-Use the `/devac:issue` slash command for guided issue creation:
+Use the `/issue` slash command for guided issue creation:
 
 ```
-User: /devac:issue
+User: /issue
 
 Claude: I'll help you create a GitHub issue. Let me ask about:
 - What needs to be done
@@ -208,12 +212,12 @@ Claude: I'll help you create a GitHub issue. Let me ask about:
 
 This creates properly formatted issues directly via `gh issue create`.
 
-#### Option 3: `/devac:start-issue` command (start from existing)
+#### Option 3: `/start-issue` command (start from existing)
 
-If an issue already exists, use `/devac:start-issue` to begin work:
+If an issue already exists, use `/start-issue` to begin work:
 
 ```
-User: /devac:start-issue #42
+User: /start-issue #42
 
 Claude: Fetching issue #42...
 [Presents summary, creates branch, proposes implementation plan]
@@ -406,53 +410,62 @@ pnpm add @pietgk/devac-core @pietgk/devac-cli
 
 ## Claude-Assisted Slash Commands
 
-When working with Claude Code, you can use these slash commands for guided workflows. Commands are provided by the DevAC plugin and use the `devac:` namespace.
+When working with Claude Code, you can use these slash commands for guided workflows. Commands are provided by the DevAC plugin.
+
+### Command Format
+
+| How Plugin is Loaded | Command Format | Example |
+|----------------------|----------------|---------|
+| **Marketplace** (inside vivief) | `/command` | `/commit` |
+| **--plugin-dir or settings.json** | `/devac:command` | `/devac:commit` |
+
+> **This document uses the short format** (`/commit`) since it's primarily for vivief developers. If using the plugin in other projects via --plugin-dir, add the `devac:` prefix.
 
 ### Available Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/devac:issue` | Create a new GitHub issue with Claude assistance |
-| `/devac:start-issue` | Start work on an existing issue (fetch, branch, plan) |
-| `/devac:start-issue-on-new-worktree` | Start issue in an isolated git worktree |
-| `/devac:commit` | Full commit flow: draft message, create changeset, check ADR, commit |
-| `/devac:prepare-commit` | Same as /commit but stops before committing (review first) |
-| `/devac:draft-commit` | Just draft a commit message |
-| `/devac:draft-changeset` | Draft and create a changeset file |
-| `/devac:draft-adr` | Help create an Architecture Decision Record |
-| `/devac:prepare-pr` | Draft PR title and description |
-| `/devac:ship` | Full flow: commit → push → draft PR description |
-| `/devac:devac-status` | Query DevAC Four Pillars and Analytics Layer status |
+| `/issue` | Create a new GitHub issue with Claude assistance |
+| `/start-issue` | Start work on an existing issue (fetch, branch, plan) |
+| `/start-issue-on-new-worktree` | Start issue in an isolated git worktree |
+| `/commit` | Full commit flow: draft message, create changeset, check ADR, commit |
+| `/prepare-commit` | Same as /commit but stops before committing (review first) |
+| `/draft-commit` | Just draft a commit message |
+| `/draft-changeset` | Draft and create a changeset file |
+| `/draft-adr` | Help create an Architecture Decision Record |
+| `/prepare-pr` | Draft PR title and description |
+| `/ship` | Full flow: commit → push → draft PR description |
+| `/devac-status` | Query DevAC Four Pillars and Analytics Layer status |
 
 ### When to Use Each Command
 
 **For issue management:**
-- `/devac:issue` - Create a new issue with guided prompts
-- `/devac:start-issue` - Begin work on an existing issue (fetches, branches, plans)
-- `/devac:start-issue-on-new-worktree` - Same as /devac:start-issue but in an isolated git worktree
+- `/issue` - Create a new issue with guided prompts
+- `/start-issue` - Begin work on an existing issue (fetches, branches, plans)
+- `/start-issue-on-new-worktree` - Same as /start-issue but in an isolated git worktree
 
 **For quick commits:**
-- `/devac:draft-commit` - Just need a commit message, will handle changeset/ADR yourself
+- `/draft-commit` - Just need a commit message, will handle changeset/ADR yourself
 
 **For standard development:**
-- `/devac:commit` - Full guided workflow, executes commit automatically
-- `/devac:prepare-commit` - Same guidance but lets you review before committing
+- `/commit` - Full guided workflow, executes commit automatically
+- `/prepare-commit` - Same guidance but lets you review before committing
 
 **For documentation:**
-- `/devac:draft-changeset` - Creating a changelog entry
-- `/devac:draft-adr` - Documenting an architectural decision
+- `/draft-changeset` - Creating a changelog entry
+- `/draft-adr` - Documenting an architectural decision
 
 **For shipping:**
-- `/devac:prepare-pr` - Ready to open a PR, need description
-- `/devac:ship` - Complete flow from commit to PR
+- `/prepare-pr` - Ready to open a PR, need description
+- `/ship` - Complete flow from commit to PR
 
 **For status checks:**
-- `/devac:devac-status` - Check DevAC health across all Four Pillars
+- `/devac-status` - Check DevAC health across all Four Pillars
 
 ### Example Usage
 
 ```
-User: /devac:commit
+User: /commit
 
 Claude: Let me check your staged changes...
 
@@ -485,7 +498,7 @@ plugins/devac/commands/
 └── devac-status.md
 ```
 
-**Command Namespace**: Plugin commands use the `devac:` namespace prefix (e.g., `/devac:commit`). This is the standard Claude Code plugin approach - commands from plugins are namespaced by plugin name to avoid conflicts.
+**Plugin Loading**: The vivief repository includes a marketplace configuration (`.claude-plugin/marketplace.json`) that automatically loads the DevAC plugin when Claude Code runs from within the vivief directory. For using the plugin in other projects, see [plugins/devac/README.md](../plugins/devac/README.md).
 
 ---
 
@@ -826,6 +839,7 @@ pnpm release            # Build and publish
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2025-12-29 | 1.5.0 | Document plugin loading methods (marketplace vs --plugin-dir), use short command format |
 | 2025-12-29 | 1.4.0 | Add Conceptual Model, complete slash commands table, add Skills section |
 | 2025-12-19 | 1.3.0 | Add multi-repo development section with devac-worktree and devac context |
 | 2025-12-17 | 1.2.0 | Add /issue and /start-issue commands, expand issue creation docs |

@@ -284,31 +284,40 @@ DevAC includes a Claude Code plugin that provides AI-powered code analysis skill
 - **diagnostics-triage** - Triage and prioritize errors and warnings
 - **multi-repo-context** - Work across multiple repositories
 
-**Workflow Commands** (user-invoked via `/devac:` namespace):
-- `/devac:start-issue` - Start work on a GitHub issue
-- `/devac:commit`, `/devac:ship` - Git workflow commands
-- `/devac:devac-status` - Query status across all Four Pillars
+**Workflow Commands** (user-invoked):
+- `/commit` or `/devac:commit` - Full commit workflow with changeset/ADR checks
+- `/ship` or `/devac:ship` - Commit, push, and create PR
+- `/start-issue` or `/devac:start-issue` - Start work on a GitHub issue
+- `/devac-status` or `/devac:devac-status` - Query status across all Four Pillars
+
+> **Note**: Command format depends on how the plugin is loaded. See below.
+
+### How Plugin Loading Works
+
+| Method | Command Format | When to Use |
+|--------|---------------|-------------|
+| **Marketplace** (inside vivief) | `/commit` | Working inside this repository |
+| **--plugin-dir or settings.json** | `/devac:commit` | Using plugin in other projects |
 
 ### Activating the Plugin
 
-**For developers of this repo** (local development):
+**Working inside the vivief repository:**
+
+The plugin loads automatically via the marketplace configuration. Commands work as `/commit`, `/ship`, etc.
+
+**Using the plugin in other projects:**
 
 ```bash
 # Option 1: Launch Claude Code with plugin directory
-claude --plugin-dir ./plugins/devac
+claude --plugin-dir /path/to/vivief/plugins/devac
 
 # Option 2: Add to your Claude Code settings (~/.claude/settings.json)
 {
-  "plugins": ["./path/to/vivief/plugins/devac"]
+  "plugins": ["/path/to/vivief/plugins/devac"]
 }
 ```
 
-After activation, commands are available with the `devac:` namespace prefix (e.g., `/devac:commit`).
-
-**For external users** (when published to plugin registry):
-```bash
-/plugin install devac@vivief
-```
+Commands are namespaced as `/devac:commit`, `/devac:ship`, etc.
 
 ### Plugin Structure
 
@@ -321,7 +330,7 @@ plugins/devac/
 └── README.md                    # Plugin documentation
 ```
 
-See [plugins/devac/README.md](./plugins/devac/README.md) for detailed plugin documentation.
+See [plugins/devac/README.md](./plugins/devac/README.md) for detailed plugin documentation including how to use the plugin without the vivief repository.
 
 ## MCP Integration
 

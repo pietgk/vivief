@@ -2,6 +2,123 @@
 
 DevAC plugin providing Analytics Layer skills and Workflow commands for code analysis and development workflows.
 
+## How Plugin Loading Works
+
+Understanding how Claude Code loads plugins is important to avoid confusion:
+
+### Loading Methods (In Order of Preference)
+
+| Method | Command Format | When to Use |
+|--------|---------------|-------------|
+| **Marketplace** (vivief repo) | `/commit` | Working inside the vivief repository |
+| **Standalone install** | `/devac:commit` | Any other project without vivief |
+| **--plugin-dir** | `/devac:commit` | Development/testing of the plugin |
+
+### What "Project Scope" Means
+
+When using Claude Code in a **multi-repo workspace** (like `~/ws/` containing multiple repositories):
+
+- **Project = the directory where you launched Claude Code**
+- If you run `claude` from `~/ws/vivief/`, the plugin loads for that session
+- If you run `claude` from `~/ws/` (parent directory), the plugin loads if vivief's marketplace is detected
+- Other sibling repositories (`~/ws/other-repo/`) don't automatically get the plugin
+
+**Important**: The plugin scope is tied to the Claude Code session, not individual repositories within your workspace.
+
+---
+
+## Setup Guide
+
+### Option 1: Working Inside the Vivief Repository (Recommended for Vivief Developers)
+
+The vivief repository has a marketplace configuration (`.claude-plugin/marketplace.json`) that automatically loads the DevAC plugin.
+
+**How it works:**
+```
+vivief/
+├── .claude-plugin/
+│   └── marketplace.json    ← Registers the plugin
+└── plugins/
+    └── devac/              ← Plugin source
+```
+
+**Usage:**
+```bash
+cd ~/ws/vivief
+claude
+```
+
+Commands are available **without namespace prefix**:
+- `/commit` - Full commit workflow
+- `/ship` - Commit, push, and create PR
+- `/start-issue` - Start work on an issue
+- etc.
+
+### Option 2: Using the Plugin in Other Projects (Without Vivief)
+
+If you want to use the DevAC plugin in your own projects without having the vivief repository in your workspace:
+
+#### Method A: Copy the Plugin to Your Project
+
+```bash
+# Copy the plugin to your project
+cp -r /path/to/vivief/plugins/devac /your-project/plugins/devac
+
+# Create a marketplace.json in your project
+mkdir -p /your-project/.claude-plugin
+cat > /your-project/.claude-plugin/marketplace.json << 'EOF'
+{
+  "name": "your-project",
+  "plugins": [
+    {
+      "name": "devac",
+      "source": "./plugins/devac"
+    }
+  ]
+}
+EOF
+```
+
+Commands will be available as `/commit`, `/ship`, etc.
+
+#### Method B: Use --plugin-dir Flag
+
+```bash
+# Point to the plugin directory (can be anywhere on your system)
+claude --plugin-dir /path/to/vivief/plugins/devac
+```
+
+Commands will be namespaced as `/devac:commit`, `/devac:ship`, etc.
+
+#### Method C: Add to Global Settings
+
+Add to `~/.claude/settings.json`:
+```json
+{
+  "plugins": ["/path/to/vivief/plugins/devac"]
+}
+```
+
+Commands will be namespaced as `/devac:commit`, `/devac:ship`, etc.
+
+### Option 3: From Plugin Registry (Future)
+
+When published to a plugin registry:
+```bash
+/plugin install devac@vivief
+```
+
+---
+
+## Quick Reference: Command Names
+
+| If Plugin Loaded Via... | Command Format | Example |
+|------------------------|----------------|---------|
+| Marketplace (inside vivief) | `/command` | `/commit` |
+| --plugin-dir or settings.json | `/devac:command` | `/devac:commit` |
+
+---
+
 ## Conceptual Model
 
 ```
@@ -22,51 +139,13 @@ DevAC plugin providing Analytics Layer skills and Workflow commands for code ana
 - **CLI and MCP share implementation** - Both import from `devac-core` and behave identically
 - **MCP is optional** - Skills work without MCP server running
 
-## Activating the Plugin
-
-### For Developers of This Repo
-
-```bash
-# Option 1: Launch Claude Code with plugin directory (recommended)
-claude --plugin-dir ./plugins/devac
-
-# Option 2: Add to Claude Code settings (~/.claude/settings.json)
-{
-  "plugins": ["./path/to/vivief/plugins/devac"]
-}
-```
-
-After activation, commands use the `devac:` namespace prefix (e.g., `/devac:commit`).
-
-### From Plugin Registry (External Users)
-
-```bash
-/plugin install devac@vivief
-```
-
-## Architecture Overview
-
-This plugin provides the LLM interface to DevAC's Four Pillars and Analytics Layer:
-
-```
-        ┌─────────────────────────────────────────────────────────────┐
-        │                      ANALYTICS LAYER                         │
-        │        (Skills query and reason over all outputs)            │
-        └─────────────────────────────────────────────────────────────┘
-              │           │           │           │
-         ┌────┴────┐ ┌────┴────┐ ┌────┴────┐ ┌────┴────┐
-         │  INFRA  │ │ VALID-  │ │ EXTRAC- │ │  WORK-  │
-         │         │ │ ATORS   │ │  TORS   │ │  FLOW   │
-         │ DevAC   │ │ Diag-   │ │  Seeds  │ │  Work   │
-         │ Health  │ │ nostics │ │         │ │Activity │
-         └─────────┘ └─────────┘ └─────────┘ └─────────┘
-```
+---
 
 ## What's Included
 
-### Skills (Model-Invoked)
+### Skills (Auto-Invoked)
 
-Skills activate automatically when you ask relevant questions:
+Skills activate automatically based on your conversation:
 
 | Skill | Triggers On | Description |
 |-------|------------|-------------|
@@ -78,21 +157,23 @@ Skills activate automatically when you ask relevant questions:
 
 ### Commands (User-Invoked)
 
-Workflow commands for development tasks. Commands use the `devac:` namespace prefix:
-
 | Command | Description |
 |---------|-------------|
-| `/devac:start-issue` | Start work on a GitHub issue |
-| `/devac:start-issue-on-new-worktree` | Start issue with new git worktree |
-| `/devac:issue` | Create a new GitHub issue |
-| `/devac:commit` | Full commit workflow |
-| `/devac:ship` | Commit, push, and create PR |
-| `/devac:prepare-commit` | Prepare commit message |
-| `/devac:draft-commit` | Draft commit message |
-| `/devac:prepare-pr` | Prepare PR description |
-| `/devac:draft-changeset` | Draft changeset for release |
-| `/devac:draft-adr` | Draft architecture decision record |
-| `/devac:devac-status` | Query status across all Four Pillars |
+| `/commit` | Full commit workflow with changeset/ADR checks |
+| `/ship` | Commit, push, and create PR |
+| `/start-issue` | Start work on a GitHub issue |
+| `/start-issue-on-new-worktree` | Start issue with new git worktree |
+| `/issue` | Create a new GitHub issue |
+| `/prepare-commit` | Prepare commit message (review before committing) |
+| `/draft-commit` | Draft commit message only |
+| `/prepare-pr` | Prepare PR description |
+| `/draft-changeset` | Draft changeset for release |
+| `/draft-adr` | Draft architecture decision record |
+| `/devac-status` | Query status across all Four Pillars |
+
+> **Note**: Commands shown without namespace. If using `--plugin-dir`, prefix with `devac:` (e.g., `/devac:commit`).
+
+---
 
 ## Prerequisites
 
@@ -112,9 +193,11 @@ Workflow commands for development tasks. Commands use the `devac:` namespace pre
    devac analyze .
    ```
 
-## CLI Commands (Primary)
+---
 
-Skills use CLI commands for all DevAC operations:
+## CLI Commands Used by Skills
+
+Skills invoke CLI commands for all DevAC operations:
 
 ```bash
 # Code analysis
@@ -134,6 +217,8 @@ devac hub status
 devac hub repos
 ```
 
+---
+
 ## MCP Integration (Alternative)
 
 An MCP server configuration is included for `devac-mcp`. MCP provides the same functionality with higher context overhead:
@@ -150,56 +235,55 @@ An MCP server configuration is included for `devac-mcp`. MCP provides the same f
 
 **Note:** CLI is preferred. MCP is useful when you have it configured but is not required.
 
+---
+
 ## Usage Examples
 
-### Code Analysis
+### Skills (Just Ask)
 ```
 "What functions are in the auth module?"
-"Show me the class hierarchy for BaseController"
-```
-
-### Impact Analysis
-```
 "What will be affected if I change UserService?"
-"Show me the call graph for the login function"
-```
-
-### Diagnostics
-```
 "What TypeScript errors need fixing?"
-"Triage the current issues by priority"
-```
-
-### Multi-Repo
-```
 "Show me the workspace status"
-"Find all implementations of authenticate across repos"
 ```
 
-### Workflow
+### Commands (Explicit Invocation)
 ```
-/devac:start-issue 123
-/devac:commit
-/devac:ship
+/start-issue 123
+/commit
+/ship
 ```
 
-## Installation Verification
+---
 
-After installation, verify the plugin is working:
+## Troubleshooting
 
-```bash
-# Check DevAC CLI is available
-devac --version
+### Commands Not Found
 
-# Check hub is initialized
-devac hub status
+**Symptom**: `/commit` doesn't work
 
-# Test a skill by asking Claude:
-"What functions are in this file?"
-```
+**Check**:
+1. Are you inside the vivief directory? → Commands work as `/commit`
+2. Using `--plugin-dir`? → Commands are `/devac:commit`
+3. Plugin not loaded? → Run `/help` to see available commands
+
+### Skills Not Activating
+
+**Check**:
+1. Is DevAC CLI installed? → `devac --version`
+2. Is the repository analyzed? → `devac hub status`
+
+### Plugin Not Loading
+
+**Check**:
+1. Verify marketplace.json exists: `cat .claude-plugin/marketplace.json`
+2. Check plugin structure: `ls plugins/devac/`
+3. Restart Claude Code after changes
+
+---
 
 ## Learn More
 
-- [DevAC Documentation](https://github.com/mindler-sern/vivief)
-- [Concepts and Architecture](../../docs/vision/concepts.md)
-- [MCP Server Reference](../../packages/devac-mcp/README.md)
+- [Vivief Workflow Guide](../../docs/vivief-workflow.md) - Complete development workflow
+- [CLI Reference](../../docs/cli-reference.md) - DevAC CLI commands
+- [MCP Server Reference](../../packages/devac-mcp/README.md) - MCP integration
