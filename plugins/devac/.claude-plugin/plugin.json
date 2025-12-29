@@ -2,53 +2,8 @@
   "name": "devac",
   "version": "1.0.0",
   "description": "DevAC plugin for Claude Code - Analytics Layer skills and Workflow commands for code analysis, impact analysis, and development workflows",
-  "author": "Mindler",
-  "repository": "https://github.com/mindler-sern/vivief",
-  "license": "MIT",
-  "claude_code_version": ">=1.0.0",
-  "capabilities": {
-    "skills": true,
-    "commands": true,
-    "mcp": true
-  },
-  "skills": [
-    {
-      "name": "code-analysis",
-      "description": "Analyze code structure, find symbols, and explore hierarchies",
-      "triggers": ["analyze code", "find functions", "show hierarchy", "code structure"]
-    },
-    {
-      "name": "impact-analysis",
-      "description": "Determine what code changes will affect and find dependencies",
-      "triggers": ["what will this affect", "find dependencies", "impact of change", "call graph"]
-    },
-    {
-      "name": "codebase-navigation",
-      "description": "Navigate and explore the codebase structure",
-      "triggers": ["find where", "explore module", "locate definition", "navigate to"]
-    },
-    {
-      "name": "diagnostics-triage",
-      "description": "Triage and prioritize diagnostics and errors",
-      "triggers": ["what needs fixing", "show errors", "diagnostics", "triage issues"]
-    },
-    {
-      "name": "multi-repo-context",
-      "description": "Work across multiple repositories in a workspace",
-      "triggers": ["cross-repo", "workspace status", "all repos", "multi-repo"]
-    }
-  ],
-  "commands": [
-    "start-issue",
-    "start-issue-on-new-worktree",
-    "issue",
-    "commit",
-    "ship",
-    "prepare-commit",
-    "draft-commit",
-    "prepare-pr",
-    "draft-changeset",
-    "draft-adr",
-    "devac-status"
-  ]
+  "author": {
+    "name": "Piet Groot Kormelink",
+    "email": "grop@me.com"
+  }
 }

@@ -4,6 +4,19 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
 
+
+## wip on installing plugin from marketplace
+
+
+/plugin marketplace add pietgk/vivief
+
+claude plugin marketplace add pietgk/vivief
+
+/plugin install devac@vivief
+
+claude plugin i devac@vivief
+
+
 ## usefullness and quality check
 
 we used the question:
