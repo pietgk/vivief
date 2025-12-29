@@ -284,17 +284,28 @@ DevAC includes a Claude Code plugin that provides AI-powered code analysis skill
 - **diagnostics-triage** - Triage and prioritize errors and warnings
 - **multi-repo-context** - Work across multiple repositories
 
-**Workflow Commands** (user-invoked):
-- `/start-issue` - Start work on a GitHub issue
-- `/commit`, `/ship` - Git workflow commands
-- `/devac-status` - Query status across all Four Pillars
+**Workflow Commands** (user-invoked via `/devac:` namespace):
+- `/devac:start-issue` - Start work on a GitHub issue
+- `/devac:commit`, `/devac:ship` - Git workflow commands
+- `/devac:devac-status` - Query status across all Four Pillars
 
-### Installation
+### Activating the Plugin
 
-**For users of this repo** (local development):
-Commands are available via the symlink at `.claude/commands/`.
+**For developers of this repo** (local development):
 
-**For external users** (when plugin system is available):
+```bash
+# Option 1: Launch Claude Code with plugin directory
+claude --plugin-dir ./plugins/devac
+
+# Option 2: Add to your Claude Code settings (~/.claude/settings.json)
+{
+  "plugins": ["./path/to/vivief/plugins/devac"]
+}
+```
+
+After activation, commands are available with the `devac:` namespace prefix (e.g., `/devac:commit`).
+
+**For external users** (when published to plugin registry):
 ```bash
 /plugin install devac@vivief
 ```

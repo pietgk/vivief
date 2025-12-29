@@ -37,6 +37,35 @@ pnpm link --global --filter @pietgk/devac-eval
 
 After linking, you can use `devac`, `devac-mcp`, and `devac-eval` commands directly.
 
+### Claude Code Plugin Setup
+
+To use the DevAC workflow commands and skills in Claude Code:
+
+```bash
+# Option 1: Launch Claude Code with the plugin directory
+claude --plugin-dir ./plugins/devac
+
+# Option 2: Add to your Claude Code settings (~/.claude/settings.json)
+{
+  "plugins": ["./path/to/vivief/plugins/devac"]
+}
+```
+
+Once activated, you'll have access to:
+
+**Workflow Commands** (use `/devac:` prefix):
+- `/devac:commit` - Full commit workflow with changeset/ADR checks
+- `/devac:ship` - Commit, push, and create PR
+- `/devac:start-issue` - Start work on a GitHub issue
+- `/devac:devac-status` - Query DevAC health status
+
+**Skills** (activate automatically based on your questions):
+- Ask "What functions are in this file?" → code-analysis skill
+- Ask "What will this change affect?" → impact-analysis skill
+- Ask "What needs fixing?" → diagnostics-triage skill
+
+See [plugins/devac/README.md](./plugins/devac/README.md) for the full list of commands and skills.
+
 ### Making Changes
 
 1. Make changes in the appropriate package under `packages/`

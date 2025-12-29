@@ -22,18 +22,26 @@ DevAC plugin providing Analytics Layer skills and Workflow commands for code ana
 - **CLI and MCP share implementation** - Both import from `devac-core` and behave identically
 - **MCP is optional** - Skills work without MCP server running
 
-## Installation
+## Activating the Plugin
 
-### From Vivief Marketplace
+### For Developers of This Repo
+
+```bash
+# Option 1: Launch Claude Code with plugin directory (recommended)
+claude --plugin-dir ./plugins/devac
+
+# Option 2: Add to Claude Code settings (~/.claude/settings.json)
+{
+  "plugins": ["./path/to/vivief/plugins/devac"]
+}
+```
+
+After activation, commands use the `devac:` namespace prefix (e.g., `/devac:commit`).
+
+### From Plugin Registry (External Users)
 
 ```bash
 /plugin install devac@vivief
-```
-
-### Local Development
-
-```bash
-claude --plugin-dir ./plugins/devac
 ```
 
 ## Architecture Overview
