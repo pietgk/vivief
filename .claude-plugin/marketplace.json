@@ -2,6 +2,10 @@
   "name": "vivief",
   "description": "DevAC code analysis tools, skills, and workflow commands for Claude Code",
   "version": "1.0.0",
+  "owner": {
+    "name": "Piet Groot Kormelink",
+    "email": "grop@me.com"
+  },
   "plugins": [
     {
       "name": "devac",
