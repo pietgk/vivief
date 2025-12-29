@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-mcp",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "DevAC MCP server for AI assistants",
   "type": "module",
   "publishConfig": {
@@ -16,7 +16,9 @@
   "bin": {
     "devac-mcp": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "node ../../scripts/generate-version.mjs .",
     "build": "tsc -p tsconfig.json",
