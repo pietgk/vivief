@@ -1,68 +1,52 @@
-# /prepare-commit - Prepare Commit Without Executing
+# /devac:prepare-commit - Prepare Commit Without Executing
 
-You are helping the user prepare a commit by drafting the message, creating changesets, and checking for ADR needs - but NOT executing the commit itself.
+You are helping the user prepare a commit message and related artifacts, but **not** executing the commit itself.
 
-## Purpose
-
-This command is for users who want to:
-- Review everything before committing
-- Make manual adjustments to the commit message
-- Run `git commit` themselves
+This is the same as `/devac:commit` but stops before running `git commit`, allowing the user to review everything first.
 
 ## Steps
 
-### 1. Check for staged changes
-Run `git diff --cached --stat` to see what's staged. If nothing is staged, inform the user.
+Follow the same steps as `/devac:commit`:
 
-### 2. Analyze the changes
-Run `git diff --cached` to understand the actual code changes.
+1. **Check for staged changes** - Run `git diff --cached --stat`
+2. **Analyze the changes** - Run `git diff --cached` to understand changes
+3. **Draft a conventional commit message** - Following the type(scope): description format
+4. **Check if changeset is needed** - Check for `packages/*/src/` modifications
+5. **Check if ADR is needed** - Ask about architectural decisions
 
-### 3. Draft a conventional commit message
-Create a commit message following this format:
-```
-type(scope): description
+## Output
 
-[optional body with more details]
-```
-
-Output the message clearly so the user can copy it.
-
-### 4. Check if changeset is needed
-Check if any files in `packages/*/src/` were modified:
-```bash
-git diff --cached --name-only | grep -E "^packages/.*/src/"
-```
-
-If package source files changed and user confirms:
-- Create the changeset file using `/draft-changeset`
-- Stage it: `git add .changeset/`
-
-### 5. Check if ADR is needed
-Ask if an architectural decision should be documented.
-
-### 6. Output summary
+Instead of executing the commit, provide a summary:
 
 ```
 ## Ready to Commit
 
-**Suggested commit message:**
+**Commit Message:**
 ```
 feat(cli): add watch mode for incremental analysis
+
+- Adds file watcher using chokidar
+- Debounces rapid file changes
 ```
 
-**Changeset:** Created and staged (.changeset/cool-pandas-dance.md)
+**Changeset:** Created (.changeset/happy-tigers-run.md)
 
-**ADR:** Not needed for this change
+**ADR:** Not needed
 
-**To commit, run:**
+---
+
+When ready, run:
 ```bash
 git commit -m "feat(cli): add watch mode for incremental analysis"
 ```
 
-Or simply copy the message and run `git commit`.
+Or use `/devac:commit` to execute with the same analysis.
 ```
 
-## Key Difference from /commit
+## When to Use
 
-- `/commit` executes `git commit` automatically after approval
-- `/prepare-commit` prepares everything but lets the user commit manually
+Use `/devac:prepare-commit` when you want to:
+- Review the commit message before executing
+- Make manual adjustments to the message
+- Verify changeset content before committing
+- Have more control over the commit process

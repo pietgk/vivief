@@ -27,34 +27,35 @@ Understand how functions call each other throughout the codebase.
 ### Change Impact Assessment
 Before making changes, understand the blast radius.
 
-## MCP Tools Used
+## CLI Commands (Primary)
 
-This skill leverages the DevAC MCP server tools:
+Use DevAC CLI commands for impact analysis. CLI is preferred for lower context overhead.
 
-### `get_affected`
+### `devac affected`
 Get files that would be affected by changes to a specific file.
-```
-get_affected(file_path: "src/core/auth.ts")
+```bash
+devac affected src/core/auth.ts
+devac affected src/services/user.ts --depth 2
 ```
 
-### `get_dependencies`
+### `devac deps`
 Get dependencies of a specific file or symbol.
-```
-get_dependencies(file_path: "src/services/user.ts")
+```bash
+devac deps src/services/user.ts
+devac deps src/core/auth.ts --direction both
 ```
 
-### `get_call_graph`
+### `devac call-graph`
 Get the call graph for a specific function or method.
-```
-get_call_graph(symbol: "validateUser", depth: 3)
+```bash
+devac call-graph validateUser --depth 3
+devac call-graph login --direction callers
 ```
 
-### `query_sql`
+### `devac query`
 Advanced queries for complex dependency analysis.
-```sql
-SELECT DISTINCT callee_symbol, callee_file
-FROM calls
-WHERE caller_file = 'src/core/auth.ts'
+```bash
+devac query "SELECT DISTINCT callee_symbol, callee_file FROM calls WHERE caller_file = 'src/core/auth.ts'"
 ```
 
 ## Example Interactions
@@ -62,31 +63,48 @@ WHERE caller_file = 'src/core/auth.ts'
 **User:** "What will be affected if I change the UserService class?"
 
 **Response approach:**
-1. Use `get_affected` to find impacted files
-2. Use `get_call_graph` to show function-level impact
+1. Use `devac affected src/services/user.ts` to find impacted files
+2. Use `devac call-graph UserService` to show function-level impact
 3. Present a summary of the blast radius with risk assessment
 
 **User:** "Show me the call graph for the login function"
 
 **Response approach:**
-1. Use `find_symbol` to locate the login function
-2. Use `get_call_graph` with appropriate depth
+1. Use `devac find-symbol login` to locate the function
+2. Use `devac call-graph login --depth 3`
 3. Visualize the call chain (callers and callees)
 
 **User:** "What are the dependencies of the payment module?"
 
 **Response approach:**
-1. Use `get_dependencies` on payment module files
+1. Use `devac deps src/payment/` on payment module files
 2. Categorize into internal vs external dependencies
 3. Highlight any circular dependencies
 
-## CLI Fallback
+## MCP Tools (Alternative)
 
-If MCP is unavailable, fall back to CLI commands:
-```bash
-devac affected src/core/auth.ts
-devac deps src/services/user.ts
-devac call-graph validateUser --depth 3
+If MCP server is configured, these tools provide equivalent functionality:
+
+### `get_affected`
+```
+get_affected(file_path: "src/core/auth.ts")
+```
+
+### `get_dependencies`
+```
+get_dependencies(file_path: "src/services/user.ts")
+```
+
+### `get_call_graph`
+```
+get_call_graph(symbol: "validateUser", depth: 3)
+```
+
+### `query_sql`
+```sql
+SELECT DISTINCT callee_symbol, callee_file
+FROM calls
+WHERE caller_file = 'src/core/auth.ts'
 ```
 
 ## Notes
@@ -95,3 +113,4 @@ devac call-graph validateUser --depth 3
 - Consider running analysis before major refactoring
 - Cross-repo impact is available when using hub mode
 - Large blast radius may indicate tight coupling
+- CLI and MCP share the same devac-core implementation and return identical results

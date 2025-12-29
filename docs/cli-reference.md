@@ -2,6 +2,13 @@
 
 Complete reference for all DevAC commands.
 
+## Related Documentation
+
+- [vivief Workflow Guide](./vivief-workflow.md) - Complete development workflow with CLI integration
+- [vivief Workflow Guide - Conceptual Model](./vivief-workflow.md#conceptual-model) - How CLI fits in the architecture
+
+**Note:** The CLI is the preferred access method for all DevAC operations. It provides lower context overhead compared to MCP tools and is used by skills, commands, and automation. Both CLI and MCP share the same `devac-core` implementation.
+
 ## Global Options
 
 ```bash

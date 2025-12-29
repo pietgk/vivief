@@ -1,4 +1,4 @@
-# /draft-adr - Create an Architecture Decision Record
+# /devac:draft-adr - Create an Architecture Decision Record
 
 You are helping the user create an ADR (Architecture Decision Record) to document an important technical decision.
 

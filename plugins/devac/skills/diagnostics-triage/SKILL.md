@@ -28,31 +28,30 @@ Understand the distribution of issues by type (TypeScript, ESLint, test failures
 ### Cross-Repository Triage
 See diagnostics across all connected repositories in hub mode.
 
-## MCP Tools Used
+## CLI Commands (Primary)
 
-This skill leverages the DevAC MCP server tools:
+Use DevAC CLI commands for diagnostics. CLI is preferred for lower context overhead.
 
-### `get_diagnostics_summary`
-Get an overview of all diagnostics across the workspace.
-```
-get_diagnostics_summary()
-```
-
-### `get_all_diagnostics`
-Get detailed list of all diagnostics.
-```
-get_all_diagnostics(severity: "error")
+### `devac hub diagnostics`
+Get diagnostics overview across the workspace.
+```bash
+devac hub diagnostics
+devac hub diagnostics --severity error
+devac hub diagnostics --file src/services/
 ```
 
-### `query_sql`
+### `devac validate`
+Run validators and refresh diagnostics.
+```bash
+devac validate
+devac validate --type typescript
+devac validate --type eslint
+```
+
+### `devac query`
 Advanced diagnostic queries.
-```sql
-SELECT file_path, COUNT(*) as error_count
-FROM diagnostics
-WHERE severity = 'error'
-GROUP BY file_path
-ORDER BY error_count DESC
-LIMIT 10
+```bash
+devac query "SELECT file_path, COUNT(*) as error_count FROM diagnostics WHERE severity = 'error' GROUP BY file_path ORDER BY error_count DESC LIMIT 10"
 ```
 
 ## Example Interactions
@@ -60,21 +59,21 @@ LIMIT 10
 **User:** "What needs fixing in the codebase?"
 
 **Response approach:**
-1. Use `get_diagnostics_summary` for overview
+1. Use `devac hub diagnostics` for overview
 2. Highlight critical errors vs warnings
 3. Suggest priority order for fixes
 
 **User:** "Show me all TypeScript errors"
 
 **Response approach:**
-1. Use `get_all_diagnostics` filtered by type
+1. Use `devac hub diagnostics --severity error` filtered by type
 2. Group by file for easier navigation
 3. Show error messages with locations
 
 **User:** "Which files have the most issues?"
 
 **Response approach:**
-1. Query diagnostics grouped by file
+1. Use `devac query` to aggregate diagnostics by file
 2. Rank by issue count and severity
 3. Recommend starting with highest-impact files
 
@@ -93,13 +92,28 @@ When many similar issues exist:
 - Fix systematically with search-and-replace patterns
 - Consider ESLint auto-fix for applicable rules
 
-## CLI Fallback
+## MCP Tools (Alternative)
 
-If MCP is unavailable, fall back to CLI commands:
-```bash
-devac diagnostics
-devac diagnostics --severity error
-devac diagnostics --file src/services/
+If MCP server is configured, these tools provide equivalent functionality:
+
+### `get_diagnostics_summary`
+```
+get_diagnostics_summary()
+```
+
+### `get_all_diagnostics`
+```
+get_all_diagnostics(severity: "error")
+```
+
+### `query_sql`
+```sql
+SELECT file_path, COUNT(*) as error_count
+FROM diagnostics
+WHERE severity = 'error'
+GROUP BY file_path
+ORDER BY error_count DESC
+LIMIT 10
 ```
 
 ## Notes
@@ -108,3 +122,4 @@ devac diagnostics --file src/services/
 - Run `devac validate` to update diagnostics
 - Some issues may be auto-fixable - look for --fix options
 - Consider adding suppression comments for intentional violations
+- CLI and MCP share the same devac-core implementation and return identical results

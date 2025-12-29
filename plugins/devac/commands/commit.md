@@ -1,4 +1,4 @@
-# /commit - Full Commit Workflow
+# /devac:commit - Full Commit Workflow
 
 You are helping the user commit their staged changes following the vivief development workflow.
 
@@ -40,7 +40,7 @@ git diff --cached --name-only | grep -E "^packages/.*/src/"
 
 If package source files changed:
 - Ask the user if this change should be released (affects package consumers)
-- If yes, run `/draft-changeset` to create a changeset
+- If yes, run `/devac:draft-changeset` to create a changeset
 - If no (internal change only), skip the changeset
 
 ### 5. Check if ADR is needed
@@ -52,7 +52,7 @@ Examples of when an ADR is needed:
 - Changing data models or APIs
 - Modifying system architecture
 
-If yes, offer to run `/draft-adr` after the commit.
+If yes, offer to run `/devac:draft-adr` after the commit.
 
 ### 6. Execute the commit
 After user approves the commit message:
@@ -65,12 +65,12 @@ Provide a brief summary:
 - What was committed
 - Whether a changeset was created
 - Whether an ADR should be created
-- Suggest running `/prepare-pr` if ready to open a PR
+- Suggest running `/devac:prepare-pr` if ready to open a PR
 
 ## Example Flow
 
 ```
-User: /commit
+User: /devac:commit
 
 Claude: Let me check your staged changes...
 

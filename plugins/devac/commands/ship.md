@@ -1,118 +1,84 @@
-# /ship - Complete Ship Flow
+# /devac:ship - Complete Ship Flow
 
-You are helping the user ship their changes through the complete workflow: commit, push, and prepare PR.
+You are helping the user ship their changes: commit, push, and prepare a pull request.
 
-## Overview
-
-This command combines multiple steps into one flow:
-1. Commit staged changes (with changeset/ADR checks)
-2. Push to remote
-3. Prepare PR description
-4. Optionally create PR
+This is the complete flow combining `/devac:commit` and `/devac:prepare-pr`.
 
 ## Steps
 
-### 1. Pre-flight checks
+### 1. Run commit flow
 
-```bash
-# Check for staged changes
-git diff --cached --stat
-
-# Check current branch
-git branch --show-current
-```
-
-If on `main`, warn the user to create a feature branch first.
-
-### 2. Commit flow
-
-Run the `/commit` workflow:
+Execute the full commit workflow:
+- Check staged changes
 - Analyze changes
 - Draft commit message
 - Check for changeset need
 - Check for ADR need
 - Execute commit
 
-### 3. Push to remote
+### 2. Push to remote
 
 ```bash
-git push -u origin $(git branch --show-current)
+# Push current branch, setting upstream if needed
+git push -u origin HEAD
 ```
 
-If push fails due to no upstream, set it:
-```bash
-git push --set-upstream origin $(git branch --show-current)
-```
+### 3. Prepare PR description
 
-### 4. Prepare PR
-
-Run the `/prepare-pr` workflow:
-- Analyze commits on branch
+- Gather branch and commit context
+- Check for related issue
 - Draft PR title and description
-- Check changesets are included
+- Note changesets included
 
-### 5. Create PR (optional)
+### 4. Summary
 
-Ask if the user wants to create the PR now:
-
-```bash
-# Via GitHub CLI
-gh pr create --title "title" --body "description"
-
-# Or open in browser
-gh pr create --web
-```
+Provide complete shipping summary with next steps.
 
 ## Example Flow
 
 ```
-User: /ship
+User: /devac:ship
 
-Claude: Starting ship flow...
+Claude: Let me help you ship these changes...
 
-## Step 1: Checking staged changes
-3 files changed, 150 insertions(+), 20 deletions(-)
+## Step 1: Commit
 
-## Step 2: Committing
-Suggested commit message:
+[Runs /devac:commit flow]
 
-  feat(cli): add watch mode for incremental analysis
+Committed: feat(cli): add watch mode (#42)
+Changeset: Created (.changeset/happy-tigers-run.md)
 
-This modifies packages/devac-cli/src/. A changeset is needed.
-Creating changeset... Done.
+## Step 2: Push
 
-Committing... Done.
+Pushing to origin...
+Branch 42-add-watch-mode pushed to origin.
 
-## Step 3: Pushing
-Pushing to origin/feature/watch-mode... Done.
+## Step 3: PR Ready
 
-## Step 4: Preparing PR
-
-**Title:** feat(cli): add watch mode for incremental analysis
+**Title:** feat(cli): add watch mode for incremental analysis (#42)
 
 **Description:**
-[Full PR description]
-
-## Step 5: Create PR?
-
-Would you like me to create the PR now?
-- Yes, create it
-- No, I'll do it manually
-- Open GitHub in browser
+[PR description content]
 
 ---
 
-To create manually:
-gh pr create --title "feat(cli): add watch mode" --web
+To create the PR:
+```bash
+gh pr create --title "feat(cli): add watch mode (#42)" --body "[description]"
 ```
 
-## Safety Features
+Or create manually at: https://github.com/org/repo/compare/42-add-watch-mode
+```
 
-- Warns if on `main` branch
-- Confirms before each major step
-- Shows what will be committed/pushed
-- Validates commit message format
+## When to Use
 
-## Abort at Any Step
+Use `/devac:ship` when:
+- You're ready to commit, push, and open a PR in one flow
+- You want the complete guided workflow
+- You're shipping a feature or fix that's complete
 
-The user can say "stop" or "cancel" at any point to abort the flow.
+## Notes
+
+- This command executes git commit and push
+- Review the commit message and changeset before confirming
+- The PR is not automatically created - you'll get the details to create it

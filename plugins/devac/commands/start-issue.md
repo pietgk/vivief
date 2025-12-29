@@ -1,220 +1,90 @@
-# /start-issue - Start Working on an Issue
+# /devac:start-issue - Start Work on an Existing Issue
 
 You are helping the user start work on an existing GitHub issue.
 
 ## Usage
 
-The user provides an issue reference:
 ```
-/start-issue #42
-/start-issue 42
-/start-issue https://github.com/pietgk/vivief/issues/42
+/devac:start-issue <issue-number>
 ```
-
-If no issue number is provided, ask the user which issue they want to work on.
 
 ## Steps
 
-### 1. Fetch the Issue
-
-Extract the issue number and fetch details:
+### 1. Fetch issue details
 
 ```bash
-gh issue view <number> --json number,title,body,labels,state
+gh issue view <issue-number>
 ```
 
-If the issue doesn't exist or is closed, inform the user.
+Extract:
+- Title
+- Description
+- Labels
+- Acceptance criteria
 
-### 2. Parse and Present
+### 2. Present issue summary
 
-Extract from the issue body:
-- **Description**: What needs to be done
-- **Context**: Current state (if provided)
-- **Acceptance Criteria**: Success conditions
-- **Affected Packages**: Which packages are involved
-- **Constraints**: Changeset, ADR, breaking change requirements
-- **Open Questions**: Any unresolved questions
+Show the user what they're working on:
+- Issue title and number
+- Key requirements
+- Acceptance criteria
+- Affected packages
 
-Present a summary:
+### 3. Create a branch
 
-```markdown
-## Issue #<number>: <title>
-
-**Description:** <summary>
-
-**Acceptance Criteria:**
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-**Affected Packages:** devac-core, devac-cli
-
-**Constraints:**
-- Changeset required: Yes/No
-- ADR required: Yes/No
-- Breaking change: Yes/No
-
-**Open Questions:**
-- <any questions from issue>
-```
-
-### 3. Check Current Branch
-
+Generate branch name from issue:
 ```bash
-git branch --show-current
-git status --porcelain
+# Format: {issue-number}-{short-description}
+git checkout -b <issue-number>-<slug>
 ```
 
-If there are uncommitted changes, warn the user:
-```
-You have uncommitted changes. Would you like to:
-1. Stash them and continue
-2. Commit them first
-3. Cancel
-```
+Example: `42-add-watch-mode`
 
-### 4. Create the Branch
+### 4. Enter plan mode
 
-```bash
-git checkout main
-git pull origin main
-git checkout -b <issue-number>-<short-description>
-```
-
-Branch naming:
-- Use issue number as prefix
-- Add kebab-case description (max 3-4 words)
-- Examples: `42-add-python-parser`, `15-fix-memory-leak`
-
-### 5. Explore and Plan
-
-Based on the issue content, explore the codebase to understand:
-- Where changes need to be made
-- Existing patterns to follow
-- Related code that might be affected
-
-Propose an implementation plan:
-
-```markdown
-## Implementation Plan for Issue #<number>
-
-### Context
-[What you discovered about the current codebase state]
-
-### Proposed Approach
-
-1. **<Step 1>**
-   - Files: `path/to/file.ts`
-   - Changes: <description>
-
-2. **<Step 2>**
-   - Files: `path/to/file.ts`
-   - Changes: <description>
-
-3. **<Step 3>**
-   - Files: `path/to/file.ts`
-   - Changes: <description>
-
-### Testing Strategy
-- <How to verify the changes>
-
-### Checklist
-- [ ] Implementation complete
-- [ ] Tests added/updated
-- [ ] Changeset created (if required)
-- [ ] ADR created (if required)
-- [ ] Documentation updated
-
-### Questions
-- <Any questions that arose during exploration>
-```
-
-### 6. Wait for Approval
-
-Ask the user:
-```
-I've created branch `<branch-name>` and proposed an implementation plan above.
-
-Would you like me to proceed with the implementation?
-```
+Propose an implementation approach:
+- Identify files to modify
+- Suggest implementation order
+- Note any dependencies or considerations
+- Ask clarifying questions if needed
 
 ## Example Flow
 
 ```
-User: /start-issue 42
+User: /devac:start-issue 42
 
 Claude: Fetching issue #42...
 
-## Issue #42: Add Python AST Parser
+## Issue #42: Add watch mode for incremental analysis
 
-**Description:** Implement Python parsing using tree-sitter to extract functions, 
-classes, and imports from Python files.
+**Description:**
+Add a `--watch` flag to the analyze command that monitors file changes.
 
 **Acceptance Criteria:**
-- [ ] Parse function definitions with parameters
-- [ ] Parse class declarations with methods
-- [ ] Parse import statements (import, from...import)
-- [ ] Integrate with existing analysis pipeline
+- [ ] `devac analyze --watch` starts file watcher
+- [ ] Changes trigger incremental re-analysis
+- [ ] Watcher can be stopped with Ctrl+C
 
-**Affected Packages:** devac-core
-
-**Constraints:**
-- Changeset required: Yes
-- ADR required: Maybe (new parser architecture)
-- Breaking change: No
-
-**Open Questions:**
-- Should we support Python 2 syntax?
+**Labels:** enhancement, devac-cli
 
 ---
 
-Creating branch `42-add-python-parser`...
+Creating branch `42-add-watch-mode`...
 
-Let me explore the codebase to understand the existing parser patterns...
+## Implementation Plan
 
-[Explores codebase]
+1. Add chokidar dependency for file watching
+2. Create watcher module in cli/src/commands/
+3. Integrate with existing analyze command
+4. Add tests for watcher behavior
+5. Update CLI help text
 
-## Implementation Plan for Issue #42
-
-### Context
-The TypeScript parser is in `packages/devac-core/src/parsers/typescript-parser.ts` 
-and uses ts-morph. Python would follow a similar pattern but use tree-sitter-python.
-
-### Proposed Approach
-
-1. **Add tree-sitter-python dependency**
-   - Files: `packages/devac-core/package.json`
-   - Add `tree-sitter-python` package
-
-2. **Create Python parser module**
-   - Files: `packages/devac-core/src/parsers/python-parser.ts`
-   - Implement parser following TypeScript parser pattern
-
-3. **Register parser in factory**
-   - Files: `packages/devac-core/src/parsers/index.ts`
-   - Add Python to parser factory
-
-4. **Add tests**
-   - Files: `packages/devac-core/__tests__/parsers/python-parser.test.ts`
-   - Test function, class, and import extraction
-
-### Testing Strategy
-- Unit tests with Python code samples
-- Integration test with sample Python package
-
-### Checklist
-- [ ] Implementation complete
-- [ ] Tests added
-- [ ] Changeset created
-- [ ] ADR considered (probably not needed - follows existing pattern)
-
----
-
-Shall I proceed with the implementation?
+Shall I proceed with this plan, or would you like to discuss the approach first?
 ```
 
-## Notes
+## When to Use
 
-- Always fetch the latest main before creating the branch
-- If the issue has open questions, consider asking the user before starting
-- If constraints aren't clear from the issue, ask the user
-- For complex issues, break down into smaller steps in the plan
+Use `/devac:start-issue` when:
+- You want to start work on an existing GitHub issue
+- You need the issue context loaded into the conversation
+- You want to create a properly named branch automatically

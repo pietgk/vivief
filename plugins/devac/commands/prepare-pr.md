@@ -1,111 +1,114 @@
-# /prepare-pr - Draft PR Title and Description
+# /devac:prepare-pr - Draft PR Title and Description
 
-You are helping the user prepare a pull request by drafting the title and description.
+You are helping the user prepare a pull request title and description.
 
 ## Steps
 
-### 1. Understand the branch context
+### 1. Gather context
 
-Get current branch and commits:
+Check the branch and commits:
+
 ```bash
+# Current branch
 git branch --show-current
+
+# Commits since main
 git log main..HEAD --oneline
-```
 
-### 2. Check for changesets
-
-```bash
-ls .changeset/*.md 2>/dev/null | grep -v README.md
-```
-
-If changesets exist, read them to understand the release notes.
-
-### 3. Analyze the changes
-
-```bash
-git diff main --stat
+# Changed files
 git diff main --name-only
 ```
 
-### 4. Draft the PR title
+### 2. Check for related issue
 
-Follow conventional commit format for consistency:
+Look for issue number in branch name (e.g., `42-add-feature`):
+
+```bash
+# Extract issue number from branch name
+git branch --show-current | grep -oE '^[0-9]+'
 ```
-type(scope): description
-```
 
-Examples:
-- `feat(cli): add watch mode for incremental analysis`
-- `fix(core): resolve memory leak in semantic resolver`
-- `docs: update development workflow documentation`
+### 3. Draft PR title
 
-### 5. Draft the PR description
+Create a concise, descriptive title:
+- Start with type if appropriate (feat, fix, etc.)
+- Reference issue number if applicable
+- Keep under 72 characters
 
-Use the project's PR template structure:
+### 4. Draft PR description
+
+Use the PR template structure:
 
 ```markdown
-## Summary
+## Description
 
-Brief description of what this PR does and why.
+[Brief description of what this PR does]
 
-## Changes
+## Related Issue
 
-- Change 1
-- Change 2
-- Change 3
+Closes #[issue-number]
 
-## Testing
+## Type of Change
 
-- [ ] Tests added/updated
-- [ ] Manual testing performed
-
-Describe how to test:
-1. Step 1
-2. Step 2
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
 
 ## Checklist
 
+- [ ] Tests pass locally
 - [ ] Code follows project conventions
-- [ ] Tests pass (`pnpm test`)
-- [ ] Types check (`pnpm typecheck`)
-- [ ] Lint passes (`pnpm lint`)
 - [ ] Changeset added (if applicable)
 - [ ] Documentation updated (if applicable)
-
-## Related
-
-- Closes #XX (if applicable)
-- Related to #YY
 ```
 
-### 6. Output for easy use
+### 5. Check for changesets
+
+```bash
+ls .changeset/*.md 2>/dev/null | grep -v README
+```
+
+Note if changesets are present for the release.
+
+## Example Output
 
 ```
-## Pull Request Ready
+## PR Ready
 
-**Title:**
-feat(cli): add watch mode for incremental analysis
+**Title:** feat(cli): add watch mode for incremental analysis (#42)
 
 **Description:**
-[Full PR description with all sections filled in]
+
+## Description
+
+Adds a `--watch` flag to the analyze command that monitors file changes and re-analyzes incrementally.
+
+## Related Issue
+
+Closes #42
+
+## Type of Change
+
+- [x] New feature
+
+## Checklist
+
+- [x] Tests pass locally
+- [x] Code follows project conventions
+- [x] Changeset added
 
 ---
 
 To create the PR:
-
-1. Push your branch:
-   git push -u origin $(git branch --show-current)
-
-2. Create PR via GitHub CLI:
-   gh pr create --title "feat(cli): add watch mode" --body "..."
-
-3. Or open in browser:
-   gh pr create --web
+```bash
+gh pr create --title "feat(cli): add watch mode for incremental analysis (#42)" --body "[paste description]"
+```
 ```
 
-## Tips
+## When to Use
 
-- Link related issues with "Closes #XX" or "Fixes #XX"
-- Mention any breaking changes prominently
-- Include screenshots for UI changes
-- Tag relevant reviewers
+Use `/devac:prepare-pr` when:
+- You're ready to open a pull request
+- You want to draft the PR description before creating
+- You need to ensure all checklist items are complete

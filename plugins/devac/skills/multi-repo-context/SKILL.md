@@ -27,35 +27,43 @@ Get a holistic view of dependencies and relationships spanning repos.
 ### Multi-Repo Impact Analysis
 Understand how changes in one repo affect others.
 
-## MCP Tools Used
+## CLI Commands (Primary)
 
-This skill leverages the DevAC MCP server tools:
+Use DevAC CLI commands for multi-repo operations. CLI is preferred for lower context overhead.
 
-### `list_repos`
+### `devac hub status`
+Get hub connection and health status.
+```bash
+devac hub status
+```
+
+### `devac hub repos`
 List all repositories connected to the hub.
-```
-list_repos()
-```
-
-### `get_context`
-Get the current DevAC context including hub status.
-```
-get_context()
+```bash
+devac hub repos
+devac hub repos --verbose
 ```
 
-### `find_symbol`
+### `devac find-symbol`
 Search for symbols across all connected repos.
-```
-find_symbol(name: "UserService")  // searches all repos
+```bash
+devac find-symbol UserService --all-repos
+devac find-symbol authenticate --kind function
 ```
 
-### `query_sql`
+### `devac query`
 Cross-repo queries using the unified Seeds database.
-```sql
-SELECT repo, file_path, name
-FROM symbols
-WHERE name = 'authenticate'
-ORDER BY repo
+```bash
+devac query "SELECT repo, file_path, name FROM symbols WHERE name = 'authenticate' ORDER BY repo"
+devac query "SELECT DISTINCT repo FROM symbols" --hub
+```
+
+### `devac context`
+Get current worktree and issue context.
+```bash
+devac context
+devac context ci    # CI status across repos
+devac context review  # Generate review prompt
 ```
 
 ## Example Interactions
@@ -63,21 +71,21 @@ ORDER BY repo
 **User:** "Show me the workspace status"
 
 **Response approach:**
-1. Use `list_repos` to enumerate all repos
-2. Use `get_context` for hub health
+1. Use `devac hub status` for hub health
+2. Use `devac hub repos` to enumerate all repos
 3. Show repo names, paths, and analysis status
 
 **User:** "Find all implementations of UserService across repos"
 
 **Response approach:**
-1. Use `find_symbol` to search all repos
+1. Use `devac find-symbol UserService --all-repos`
 2. Group results by repository
 3. Show file paths and line numbers for each
 
 **User:** "What repos depend on the shared-utils package?"
 
 **Response approach:**
-1. Query the Seeds database for import references
+1. Use `devac query` to search for import references
 2. Group by repository
 3. Show dependency chain
 
@@ -98,14 +106,31 @@ DevAC Hub
 - Each repo maintains its own analysis but contributes to hub
 - Changes in one repo can show impact on others
 
-## CLI Fallback
+## MCP Tools (Alternative)
 
-If MCP is unavailable, fall back to CLI commands:
-```bash
-devac hub status
-devac hub repos
-devac find UserService --all-repos
-devac query "SELECT DISTINCT repo FROM symbols" --hub
+If MCP server is configured, these tools provide equivalent functionality:
+
+### `list_repos`
+```
+list_repos()
+```
+
+### `get_context`
+```
+get_context()
+```
+
+### `find_symbol`
+```
+find_symbol(name: "UserService")  // searches all repos
+```
+
+### `query_sql`
+```sql
+SELECT repo, file_path, name
+FROM symbols
+WHERE name = 'authenticate'
+ORDER BY repo
 ```
 
 ## Setup Requirements
@@ -113,11 +138,12 @@ devac query "SELECT DISTINCT repo FROM symbols" --hub
 1. Initialize the hub: `devac hub init`
 2. Add repositories: `devac hub add ../repo-path`
 3. Analyze each repo: `devac analyze .` (from each repo)
-4. Query across repos via MCP or CLI
+4. Query across repos via CLI or MCP
 
 ## Notes
 
 - Hub mode requires initial setup but enables powerful cross-repo analysis
 - Re-analyze repos after significant changes
 - Large workspaces may have slower initial indexing
-- The hub database is stored in `~/.devac/hub.db`
+- The hub database is stored in `{workspace}/.devac/`
+- CLI and MCP share the same devac-core implementation and return identical results

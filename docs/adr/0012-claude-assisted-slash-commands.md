@@ -18,17 +18,21 @@ Additionally, the project uses conventional commits enforced by a commit-msg hoo
 
 ## Decision
 
-Create a set of slash command templates in `.claude/commands/` that guide Claude through standardized workflows:
+Create a set of slash command templates in the DevAC plugin (`plugins/devac/commands/`) that guide Claude through standardized workflows. Commands use the `devac:` namespace prefix (standard Claude Code plugin approach):
 
 | Command | Purpose |
 |---------|---------|
-| `/commit` | Full commit flow with changeset/ADR checks |
-| `/prepare-commit` | Same as /commit but stops before executing |
-| `/draft-commit` | Draft only the commit message |
-| `/draft-changeset` | Create a changeset file |
-| `/draft-adr` | Create an Architecture Decision Record |
-| `/prepare-pr` | Draft PR title and description |
-| `/ship` | Complete flow: commit → push → prepare PR |
+| `/devac:commit` | Full commit flow with changeset/ADR checks |
+| `/devac:prepare-commit` | Same as /commit but stops before executing |
+| `/devac:draft-commit` | Draft only the commit message |
+| `/devac:draft-changeset` | Create a changeset file |
+| `/devac:draft-adr` | Create an Architecture Decision Record |
+| `/devac:prepare-pr` | Draft PR title and description |
+| `/devac:ship` | Complete flow: commit → push → prepare PR |
+| `/devac:issue` | Create a new GitHub issue |
+| `/devac:start-issue` | Start work on an existing issue |
+| `/devac:start-issue-on-new-worktree` | Start issue in isolated git worktree |
+| `/devac:devac-status` | Query DevAC Four Pillars status |
 
 Each command is a markdown file that:
 1. Explains its purpose to Claude
@@ -56,6 +60,22 @@ Each command is a markdown file that:
 
 - Commands are suggestions, not enforcement - developers can still work manually
 - May evolve as we learn what works best
+
+## Related: Skills (Auto-Invoked)
+
+In addition to slash commands (user-invoked), the plugin provides **Skills** that activate automatically based on conversation context:
+
+| Skill | Purpose |
+|-------|---------|
+| `code-analysis` | Analyze code structure and symbols |
+| `impact-analysis` | Determine change impact |
+| `codebase-navigation` | Navigate and locate code |
+| `diagnostics-triage` | Triage errors and warnings |
+| `multi-repo-context` | Work across repositories |
+
+Skills complement commands by providing context-aware answers without explicit invocation.
+
+See [vivief-workflow.md](../vivief-workflow.md#skills-auto-invoked) for details.
 
 ## References
 

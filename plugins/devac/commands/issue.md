@@ -1,32 +1,49 @@
-# /issue - Create a New GitHub Issue
+# /devac:issue - Create a New GitHub Issue
 
-You are helping the user create a GitHub issue for the vivief project.
+You are helping the user create a new GitHub issue with proper structure and context.
 
 ## Steps
 
-### 1. Gather Information
+### 1. Gather issue details
 
-Ask the user about the task. If they haven't provided details, ask:
+Ask the user about:
+- **Title**: What is this issue about? (brief, descriptive)
+- **Description**: What needs to be done?
+- **Context**: Current state and why this is needed
+- **Acceptance criteria**: How do we know it's complete?
 
-- **What** needs to be done? (description)
-- **Why** is it needed? (context - current state and motivation)
-- **How** do we know it's done? (acceptance criteria)
-- **Which** packages are affected? (devac-core, devac-cli, devac-mcp, docs, CI/CD)
+### 2. Determine issue type
 
-Also determine:
-- Does this require a **changeset**? (affects published package APIs/behavior)
-- Does this require an **ADR**? (architectural decision)
-- Is a **breaking change** allowed?
-- Any **open questions** about the approach?
+- **Bug**: Something isn't working as expected
+- **Feature**: New functionality to add
+- **Task**: General work item
+- **Documentation**: Docs improvement
 
-### 2. Draft the Issue
+### 3. Identify affected packages
 
-Format the issue body:
+Ask which packages are involved:
+- `devac-core`
+- `devac-cli`
+- `devac-mcp`
+- `devac-worktree`
 
-```markdown
+### 4. Check for constraints
+
+- Does this need a changeset?
+- Might this need an ADR?
+- Are there breaking change considerations?
+
+### 5. Create the issue
+
+Use GitHub CLI to create:
+
+```bash
+gh issue create \
+  --title "Brief descriptive title" \
+  --body "$(cat <<'EOF'
 ## Description
 
-[What needs to be done - clear and actionable]
+[What needs to be done]
 
 ## Context
 
@@ -36,129 +53,52 @@ Format the issue body:
 
 - [ ] Criterion 1
 - [ ] Criterion 2
-- [ ] Criterion 3
-
-## Affected Packages
-
-- [x] devac-core (if applicable)
-- [x] devac-cli (if applicable)
-- [x] devac-mcp (if applicable)
-- [ ] Documentation
-- [ ] CI/CD
-
-## Constraints
-
-- Changeset required: Yes/No
-- ADR required: Yes/No/Maybe
-- Breaking change: Yes/No
-
-## Open Questions
-
-1. [Question about approach, if any]
-```
-
-### 3. Show Draft and Get Approval
-
-Present the draft to the user:
-
-```
-## Draft Issue
-
-**Title:** [Task]: <suggested title>
-
-**Body:**
-<formatted body>
-
----
-
-Does this look good? I can create it with `gh issue create`.
-```
-
-### 4. Create the Issue
-
-After user approval, create via GitHub CLI:
-
-```bash
-gh issue create \
-  --title "[Task]: <title>" \
-  --body "<body>" \
-  --label "task"
-```
-
-Show the created issue URL.
-
-### 5. Offer Next Steps
-
-After creation, ask:
-
-```
-Issue created: <URL>
-
-Would you like to start working on this now? I can:
-- Run `/start-issue #<number>` to create a branch and plan the implementation
-- Or you can start later
-```
-
-## Tips for Good Issues
-
-- **Title**: Should be actionable and specific (e.g., "Add Python AST parser" not "Python support")
-- **Description**: One paragraph explaining what and why
-- **Acceptance Criteria**: Testable, specific outcomes
-- **Context**: Helps Claude understand the codebase state when starting work
-
-## Example
-
-```
-User: /issue
-
-Claude: I'll help you create a new issue. What task do you want to work on?
-
-User: We need to add a command to list all entities in a package
-
-Claude: Got it. Let me draft an issue for adding an entity listing command.
-
-## Draft Issue
-
-**Title:** [Task]: Add `devac list` command to show package entities
-
-**Body:**
-
-## Description
-
-Add a new CLI command `devac list` that displays all entities (functions, classes, 
-interfaces, etc.) found in a package, with options to filter by type and format output.
-
-## Context
-
-Currently users can analyze packages with `devac analyze` but there's no quick way to 
-see what entities were discovered. Users need to query the database directly or use 
-the MCP server.
-
-## Acceptance Criteria
-
-- [ ] `devac list <package-path>` shows all entities
-- [ ] `--type` flag filters by entity kind (function, class, etc.)
-- [ ] `--format` flag supports table (default) and json output
-- [ ] Help text explains usage
 
 ## Affected Packages
 
 - [ ] devac-core
-- [x] devac-cli
-- [ ] devac-mcp
-- [ ] Documentation
+- [ ] devac-cli
 
 ## Constraints
 
-- Changeset required: Yes (new CLI command)
-- ADR required: No (follows existing command patterns)
-- Breaking change: No
-
-## Open Questions
-
-1. Should we support filtering by file path?
-
----
-
-Does this look good? I can create it now.
+- Changeset required: yes/no
+- ADR consideration: yes/no
+EOF
+)"
 ```
+
+## Example Flow
+
+```
+User: /devac:issue
+
+Claude: I'll help you create a GitHub issue. Let me ask a few questions:
+
+1. What's this issue about? (brief title)
+2. What needs to be done? (description)
+3. Why is this needed? (context)
+4. How will we know it's complete? (acceptance criteria)
+5. Which packages are affected?
+
+[User provides answers]
+
+Creating issue...
+
+## Issue Created
+
+**#123**: Add watch mode for incremental analysis
+
+View at: https://github.com/org/repo/issues/123
+
+To start working on this:
+```
+/devac:start-issue 123
+```
+```
+
+## When to Use
+
+Use `/devac:issue` when:
+- You have a new task or feature to track
+- You want properly structured issue documentation
+- You need to capture requirements before starting work

@@ -27,35 +27,35 @@ Navigate between related code across multiple repositories.
 ### File Discovery
 Find files by patterns, symbols they contain, or relationships.
 
-## MCP Tools Used
+## CLI Commands (Primary)
 
-This skill leverages the DevAC MCP server tools:
+Use DevAC CLI commands for codebase navigation. CLI is preferred for lower context overhead.
 
-### `find_symbol`
+### `devac find-symbol`
 Locate symbol definitions by name.
-```
-find_symbol(name: "handleAuthentication")
-```
-
-### `get_file_symbols`
-Explore all symbols in a file.
-```
-get_file_symbols(file_path: "src/auth/index.ts")
+```bash
+devac find-symbol handleAuthentication
+devac find-symbol UserService --kind class
 ```
 
-### `list_repos`
+### `devac file-symbols`
+Explore all symbols in a file or directory.
+```bash
+devac file-symbols src/auth/index.ts
+devac file-symbols src/services/
+```
+
+### `devac hub repos`
 See all repositories connected to the hub.
-```
-list_repos()
+```bash
+devac hub repos
+devac hub status
 ```
 
-### `query_sql`
+### `devac query`
 Advanced navigation queries.
-```sql
-SELECT file_path, name, kind
-FROM symbols
-WHERE file_path LIKE '%/auth/%'
-ORDER BY file_path, line
+```bash
+devac query "SELECT file_path, name, kind FROM symbols WHERE file_path LIKE '%/auth/%' ORDER BY file_path, line"
 ```
 
 ## Example Interactions
@@ -63,31 +63,49 @@ ORDER BY file_path, line
 **User:** "Where is the UserService defined?"
 
 **Response approach:**
-1. Use `find_symbol` to locate UserService
+1. Use `devac find-symbol UserService` to locate it
 2. Return the exact file path and line number
 3. Optionally show the class structure
 
 **User:** "Explore the auth module structure"
 
 **Response approach:**
-1. Query for all files in the auth directory
-2. Use `get_file_symbols` on key files
-3. Present a tree view of the module structure
+1. Use `devac file-symbols src/auth/` for all symbols
+2. Present a tree view of the module structure
+3. Highlight key classes and functions
 
 **User:** "Find all API endpoint handlers"
 
 **Response approach:**
-1. Use `query_sql` to find functions with handler patterns
+1. Use `devac query` to find functions with handler patterns
 2. Group by file/module
 3. Present organized list with locations
 
-## CLI Fallback
+## MCP Tools (Alternative)
 
-If MCP is unavailable, fall back to CLI commands:
-```bash
-devac find UserService
-devac symbols src/auth/
-devac query "SELECT file_path, name FROM symbols WHERE kind = 'function' AND name LIKE '%Handler%'"
+If MCP server is configured, these tools provide equivalent functionality:
+
+### `find_symbol`
+```
+find_symbol(name: "handleAuthentication")
+```
+
+### `get_file_symbols`
+```
+get_file_symbols(file_path: "src/auth/index.ts")
+```
+
+### `list_repos`
+```
+list_repos()
+```
+
+### `query_sql`
+```sql
+SELECT file_path, name, kind
+FROM symbols
+WHERE file_path LIKE '%/auth/%'
+ORDER BY file_path, line
 ```
 
 ## Navigation Tips
@@ -102,3 +120,4 @@ devac query "SELECT file_path, name FROM symbols WHERE kind = 'function' AND nam
 - Navigation is instant with indexed Seeds database
 - Stale indexes may miss recent changes - run `devac analyze` to update
 - Works best with well-named, conventional code
+- CLI and MCP share the same devac-core implementation and return identical results

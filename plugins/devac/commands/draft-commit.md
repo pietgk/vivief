@@ -1,14 +1,13 @@
-# /draft-commit - Draft a Commit Message
+# /devac:draft-commit - Draft a Commit Message
 
-You are helping the user draft a conventional commit message for their staged changes.
+You are helping the user draft a commit message only, without checking for changesets or ADRs.
 
-## Purpose
-
-This is a focused command that only drafts the commit message - no changeset creation, no ADR checks, no committing.
+This is a lightweight version of `/devac:commit` for quick commit message generation.
 
 ## Steps
 
 ### 1. Check for staged changes
+
 ```bash
 git diff --cached --stat
 ```
@@ -16,6 +15,7 @@ git diff --cached --stat
 If nothing is staged, inform the user.
 
 ### 2. Analyze the changes
+
 ```bash
 git diff --cached
 ```
@@ -27,50 +27,48 @@ Consider:
 
 ### 3. Draft the commit message
 
-Output a conventional commit message:
+Follow conventional commit format:
 
 ```
-type(scope): short description
+type(scope): description
 
-- Detail 1
-- Detail 2
+[optional body with more details]
 ```
 
 **Types:**
-| Type | Description |
-|------|-------------|
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation only |
-| refactor | Code restructuring |
-| perf | Performance improvement |
-| test | Adding/updating tests |
-| chore | Maintenance, deps, CI |
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only
+- `refactor` - Code restructuring
+- `perf` - Performance improvement
+- `test` - Adding/updating tests
+- `chore` - Maintenance tasks
 
-**Scope:** Optional, use package name if changes are focused (e.g., `core`, `cli`, `mcp`)
-
-### 4. Output for easy copying
+## Example Output
 
 ```
 ## Suggested Commit Message
 
-feat(cli): add watch mode for incremental analysis
+```
+fix(core): handle empty package.json gracefully
 
-- Adds file watcher using chokidar
-- Debounces rapid file changes
-- Integrates with analysis orchestrator
+- Add null check before accessing package.json fields
+- Return empty array instead of throwing for missing dependencies
+```
 
 ---
 
-Copy the above message and run:
-git commit -m "feat(cli): add watch mode for incremental analysis"
-
-Or for multi-line:
-git commit
+To use this message:
+```bash
+git commit -m "fix(core): handle empty package.json gracefully"
 ```
 
-## Notes
+Or copy and modify as needed.
+```
 
-- This command only drafts the message
-- For full workflow with changeset/ADR checks, use `/commit` or `/prepare-commit`
-- For just creating a changeset, use `/draft-changeset`
+## When to Use
+
+Use `/devac:draft-commit` when:
+- You just need a quick commit message
+- You'll handle changesets/ADRs separately
+- You're making a minor change that doesn't need the full workflow

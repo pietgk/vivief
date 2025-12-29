@@ -1,4 +1,4 @@
-# /draft-changeset - Create a Changeset
+# /devac:draft-changeset - Create a Changeset
 
 You are helping the user create a changeset file for version management and changelog generation.
 

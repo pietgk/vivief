@@ -1,7 +1,7 @@
 # vivief Development Workflow
 
-> **Version**: 1.3.0
-> **Last Updated**: 2025-12-19
+> **Version**: 1.4.0
+> **Last Updated**: 2025-12-29
 > **ADRs**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md), [ADR-0012: Claude-Assisted Slash Commands](adr/0012-claude-assisted-slash-commands.md)
 
 This document describes the development workflow for vivief. For the rationale behind these choices, see ADR-0011.
@@ -11,16 +11,18 @@ This document describes the development workflow for vivief. For the rationale b
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Local Quality Gates](#local-quality-gates)
-3. [Issue-Driven Development](#issue-driven-development)
-4. [Pull Requests](#pull-requests)
-5. [Changesets](#changesets)
-6. [Architecture Decision Records](#architecture-decision-records)
-7. [Release Process](#release-process)
-8. [Claude-Assisted Slash Commands](#claude-assisted-slash-commands)
-9. [Claude Collaboration](#claude-collaboration)
-10. [Multi-Repo Development](#multi-repo-development)
-11. [Quick Reference](#quick-reference)
+2. [Conceptual Model](#conceptual-model)
+3. [Local Quality Gates](#local-quality-gates)
+4. [Issue-Driven Development](#issue-driven-development)
+5. [Pull Requests](#pull-requests)
+6. [Changesets](#changesets)
+7. [Architecture Decision Records](#architecture-decision-records)
+8. [Release Process](#release-process)
+9. [Claude-Assisted Slash Commands](#claude-assisted-slash-commands)
+10. [Skills (Auto-Invoked)](#skills-auto-invoked)
+11. [Claude Collaboration](#claude-collaboration)
+12. [Multi-Repo Development](#multi-repo-development)
+13. [Quick Reference](#quick-reference)
 
 ---
 
@@ -36,6 +38,70 @@ Every meaningful change should include:
 - Code changes
 - Changeset (if user-facing)
 - ADR (if architectural decision)
+
+---
+
+## Conceptual Model
+
+DevAC provides a layered architecture where Claude and humans can interact through different interfaces, all sharing the same underlying implementation.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER / LLM INTERFACE                          │
+└─────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌──────────────────┐   ┌────────────────┐
+│ Slash Commands  │  │     Skills       │   │  Direct Use    │
+│ (Workflows)     │  │ (Auto-Invoked)   │   │  (Scripting)   │
+├─────────────────┤  ├──────────────────┤   ├────────────────┤
+│ /devac:commit   │  │ code-analysis    │   │ Terminal/CI    │
+│ /devac:ship     │  │ impact-analysis  │   │ Bash scripts   │
+│ /devac:start-.. │  │ diagnostics      │   │ pnpm scripts   │
+└─────────────────┘  └────────────────┬─┘   └────────────────┘
+         │                    │       │              │
+         │                    │       │              │
+         └────────────────────┴───────┴──────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────┬─────────────────────┐
+│      CLI (devac, devac-worktree)         │   MCP (devac-mcp)   │
+│  Preferred - low context overhead        │  Alternative access │
+│  devac analyze | devac query | etc.      │  AI tool protocol   │
+└──────────────────────────────────────────┴─────────────────────┘
+         │                                          │
+         │  (direct import)            (direct import)
+         │                                          │
+         └────────────────────┬─────────────────────┘
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    SHARED CORE (devac-core)                     │
+│   Storage, Parsers, DuckDB/Parquet, Query Engine, Analysis     │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Key Principles
+
+1. **CLI and MCP are peer implementations** - Both import from `devac-core` directly and behave identically
+2. **CLI is the preferred access method** - Lower context overhead, works without MCP server running
+3. **Skills/Commands use CLI directly** - They invoke `devac` commands via Bash, not MCP tools
+4. **MCP is an alternative** - Useful when already configured, but not required for Claude workflows
+
+### When to Use What
+
+| Layer | Invoked By | Use When | Context Cost |
+|-------|-----------|----------|--------------|
+| **CLI** | Bash, scripts, skills | All DevAC operations | Low |
+| **MCP** | AI tool calls | When MCP server configured | Higher |
+| **Commands** | `/command` | Guided workflows with LLM reasoning | N/A |
+| **Skills** | Auto by LLM | Context-aware answers to questions | N/A |
+
+### Why CLI Over MCP?
+
+- **No server required**: Skills work even when MCP server isn't running
+- **Lower context**: CLI output is more compact than MCP tool responses
+- **Same behavior**: Both use devac-core, so results are identical
+- **Better for automation**: Scripts and CI can use CLI directly
 
 ---
 
@@ -123,12 +189,12 @@ There are three ways to create issues:
    - **Constraints**: Changeset/ADR requirements
    - **Open Questions**: Any clarifications needed
 
-#### Option 2: `/issue` command (Claude-assisted)
+#### Option 2: `/devac:issue` command (Claude-assisted)
 
-Use the `/issue` slash command for guided issue creation:
+Use the `/devac:issue` slash command for guided issue creation:
 
 ```
-User: /issue
+User: /devac:issue
 
 Claude: I'll help you create a GitHub issue. Let me ask about:
 - What needs to be done
@@ -142,12 +208,12 @@ Claude: I'll help you create a GitHub issue. Let me ask about:
 
 This creates properly formatted issues directly via `gh issue create`.
 
-#### Option 3: `/start-issue` command (start from existing)
+#### Option 3: `/devac:start-issue` command (start from existing)
 
-If an issue already exists, use `/start-issue` to begin work:
+If an issue already exists, use `/devac:start-issue` to begin work:
 
 ```
-User: /start-issue #42
+User: /devac:start-issue #42
 
 Claude: Fetching issue #42...
 [Presents summary, creates branch, proposes implementation plan]
@@ -340,47 +406,53 @@ pnpm add @pietgk/devac-core @pietgk/devac-cli
 
 ## Claude-Assisted Slash Commands
 
-When working with Claude Code, you can use these slash commands for guided workflows:
+When working with Claude Code, you can use these slash commands for guided workflows. Commands are provided by the DevAC plugin and use the `devac:` namespace.
 
 ### Available Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/issue` | Create a new GitHub issue with Claude assistance |
-| `/start-issue` | Start work on an existing issue (fetch, branch, plan) |
-| `/commit` | Full commit flow: draft message, create changeset, check ADR, commit |
-| `/prepare-commit` | Same as /commit but stops before committing (review first) |
-| `/draft-commit` | Just draft a commit message |
-| `/draft-changeset` | Draft and create a changeset file |
-| `/draft-adr` | Help create an Architecture Decision Record |
-| `/prepare-pr` | Draft PR title and description |
-| `/ship` | Full flow: commit → push → draft PR description |
+| `/devac:issue` | Create a new GitHub issue with Claude assistance |
+| `/devac:start-issue` | Start work on an existing issue (fetch, branch, plan) |
+| `/devac:start-issue-on-new-worktree` | Start issue in an isolated git worktree |
+| `/devac:commit` | Full commit flow: draft message, create changeset, check ADR, commit |
+| `/devac:prepare-commit` | Same as /commit but stops before committing (review first) |
+| `/devac:draft-commit` | Just draft a commit message |
+| `/devac:draft-changeset` | Draft and create a changeset file |
+| `/devac:draft-adr` | Help create an Architecture Decision Record |
+| `/devac:prepare-pr` | Draft PR title and description |
+| `/devac:ship` | Full flow: commit → push → draft PR description |
+| `/devac:devac-status` | Query DevAC Four Pillars and Analytics Layer status |
 
 ### When to Use Each Command
 
 **For issue management:**
-- `/issue` - Create a new issue with guided prompts
-- `/start-issue` - Begin work on an existing issue (fetches, branches, plans)
+- `/devac:issue` - Create a new issue with guided prompts
+- `/devac:start-issue` - Begin work on an existing issue (fetches, branches, plans)
+- `/devac:start-issue-on-new-worktree` - Same as /devac:start-issue but in an isolated git worktree
 
 **For quick commits:**
-- `/draft-commit` - Just need a commit message, will handle changeset/ADR yourself
+- `/devac:draft-commit` - Just need a commit message, will handle changeset/ADR yourself
 
 **For standard development:**
-- `/commit` - Full guided workflow, executes commit automatically
-- `/prepare-commit` - Same guidance but lets you review before committing
+- `/devac:commit` - Full guided workflow, executes commit automatically
+- `/devac:prepare-commit` - Same guidance but lets you review before committing
 
 **For documentation:**
-- `/draft-changeset` - Creating a changelog entry
-- `/draft-adr` - Documenting an architectural decision
+- `/devac:draft-changeset` - Creating a changelog entry
+- `/devac:draft-adr` - Documenting an architectural decision
 
 **For shipping:**
-- `/prepare-pr` - Ready to open a PR, need description
-- `/ship` - Complete flow from commit to PR
+- `/devac:prepare-pr` - Ready to open a PR, need description
+- `/devac:ship` - Complete flow from commit to PR
+
+**For status checks:**
+- `/devac:devac-status` - Check DevAC health across all Four Pillars
 
 ### Example Usage
 
 ```
-User: /commit
+User: /devac:commit
 
 Claude: Let me check your staged changes...
 
@@ -396,19 +468,83 @@ Should I create one? (yes/no)
 
 ### Command Files Location
 
-The slash commands are defined in `.claude/commands/`:
+The slash commands are defined in the DevAC plugin at `plugins/devac/commands/`:
 
 ```
-.claude/commands/
+plugins/devac/commands/
 ├── issue.md
 ├── start-issue.md
+├── start-issue-on-new-worktree.md
 ├── commit.md
 ├── prepare-commit.md
 ├── draft-commit.md
 ├── draft-changeset.md
 ├── draft-adr.md
 ├── prepare-pr.md
-└── ship.md
+├── ship.md
+└── devac-status.md
+```
+
+**Command Namespace**: Plugin commands use the `devac:` namespace prefix (e.g., `/devac:commit`). This is the standard Claude Code plugin approach - commands from plugins are namespaced by plugin name to avoid conflicts.
+
+---
+
+## Skills (Auto-Invoked)
+
+Skills are Claude Code capabilities that activate automatically based on your conversation. Unlike slash commands, you don't invoke them directly - Claude recognizes when they're relevant and uses them.
+
+### Available Skills
+
+| Skill | Triggers | Purpose |
+|-------|----------|---------|
+| code-analysis | "analyze code", "find functions", "show hierarchy" | Analyze code structure and find symbols |
+| impact-analysis | "what will this affect", "dependencies", "call graph" | Determine change impact and blast radius |
+| codebase-navigation | "find where", "locate definition", "navigate to" | Navigate and explore the codebase |
+| diagnostics-triage | "what needs fixing", "show errors", "triage issues" | Triage diagnostics by priority |
+| multi-repo-context | "cross-repo", "all repos", "workspace status" | Work across multiple repositories |
+
+### How Skills Work
+
+Skills use CLI commands via Bash to query DevAC:
+
+```bash
+# Code analysis
+devac find-symbol UserService
+devac file-symbols src/auth/
+
+# Impact analysis
+devac affected src/core/auth.ts
+devac deps src/services/user.ts
+
+# Diagnostics
+devac hub diagnostics
+devac hub diagnostics --severity error
+
+# Multi-repo
+devac hub status
+devac hub repos
+```
+
+### Skills vs Commands
+
+| Aspect | Skills | Commands |
+|--------|--------|----------|
+| Invocation | Automatic by Claude | Explicit `/command` |
+| Purpose | Answer questions | Execute workflows |
+| Interaction | Single response | Multi-step dialogue |
+| Example | "What calls this function?" | `/commit` |
+
+### Skill Files Location
+
+Skills are defined in the DevAC plugin at `plugins/devac/skills/`:
+
+```
+plugins/devac/skills/
+├── code-analysis/SKILL.md
+├── impact-analysis/SKILL.md
+├── codebase-navigation/SKILL.md
+├── diagnostics-triage/SKILL.md
+└── multi-repo-context/SKILL.md
 ```
 
 ---
@@ -679,8 +815,9 @@ pnpm release            # Build and publish
 | `.github/ISSUE_TEMPLATE/task.yml` | Issue template |
 | `.github/pull_request_template.md` | PR template |
 | `.github/workflows/ci.yml` | CI workflow |
-| `.claude/commands/` | Claude slash commands |
-| `docs/adr/` | Architecture Decision Records (12 ADRs) |
+| `plugins/devac/commands/` | Claude slash commands (source) |
+| `plugins/devac/skills/` | Claude skills (auto-invoked) |
+| `docs/adr/` | Architecture Decision Records |
 | `.changeset/` | Pending changesets |
 
 ---
@@ -689,6 +826,7 @@ pnpm release            # Build and publish
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2025-12-29 | 1.4.0 | Add Conceptual Model, complete slash commands table, add Skills section |
 | 2025-12-19 | 1.3.0 | Add multi-repo development section with devac-worktree and devac context |
 | 2025-12-17 | 1.2.0 | Add /issue and /start-issue commands, expand issue creation docs |
 | 2025-12-17 | 1.1.0 | Add commit-msg hook docs, fix lint-staged config, update ADR references |

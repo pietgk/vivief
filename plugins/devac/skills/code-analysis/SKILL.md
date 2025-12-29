@@ -23,29 +23,29 @@ Understand inheritance, composition, and module structure.
 ### Code Structure
 Get an overview of how code is organized within files and across the project.
 
-## MCP Tools Used
+## CLI Commands (Primary)
 
-This skill leverages the DevAC MCP server tools:
+Use DevAC CLI commands for code analysis. CLI is preferred for lower context overhead.
 
-### `find_symbol`
+### `devac find-symbol`
 Find symbols by name across all indexed repositories.
-```
-find_symbol(name: "UserService")
-```
-
-### `get_file_symbols`
-Get all symbols defined in a specific file.
-```
-get_file_symbols(file_path: "src/services/user.ts")
+```bash
+devac find-symbol UserService
+devac find-symbol --kind class Controller
 ```
 
-### `query_sql`
+### `devac file-symbols`
+Get all symbols defined in a specific file or directory.
+```bash
+devac file-symbols src/services/user.ts
+devac file-symbols src/auth/
+```
+
+### `devac query`
 Run SQL queries against the Seeds database for advanced analysis.
-```sql
-SELECT name, kind, file_path 
-FROM symbols 
-WHERE kind = 'class'
-ORDER BY name
+```bash
+devac query "SELECT name, kind, file_path FROM symbols WHERE kind = 'class' ORDER BY name"
+devac query "SELECT * FROM symbols WHERE name LIKE '%UserService%'"
 ```
 
 ## Example Interactions
@@ -53,23 +53,37 @@ ORDER BY name
 **User:** "What functions are defined in the auth module?"
 
 **Response approach:**
-1. Use `find_symbol` to locate auth-related symbols
-2. Use `get_file_symbols` on relevant files
+1. Use `devac file-symbols src/auth/` to list all symbols
+2. Filter for functions in the output
 3. Present a structured list of functions with their signatures
 
 **User:** "Show me the class hierarchy for BaseController"
 
 **Response approach:**
-1. Find the BaseController class with `find_symbol`
-2. Query for classes that extend it using `query_sql`
+1. Find the BaseController class with `devac find-symbol BaseController`
+2. Query for classes that extend it using `devac query`
 3. Present the inheritance tree
 
-## CLI Fallback
+## MCP Tools (Alternative)
 
-If MCP is unavailable, fall back to CLI commands:
-```bash
-devac query "SELECT * FROM symbols WHERE name LIKE '%UserService%'"
-devac symbols src/services/
+If MCP server is configured, these tools provide equivalent functionality:
+
+### `find_symbol`
+```
+find_symbol(name: "UserService")
+```
+
+### `get_file_symbols`
+```
+get_file_symbols(file_path: "src/services/user.ts")
+```
+
+### `query_sql`
+```sql
+SELECT name, kind, file_path
+FROM symbols
+WHERE kind = 'class'
+ORDER BY name
 ```
 
 ## Notes
@@ -77,3 +91,4 @@ devac symbols src/services/
 - Requires DevAC hub to be initialized (`devac hub init`)
 - Repository must be analyzed (`devac analyze .`)
 - Works across all repositories connected to the hub
+- CLI and MCP share the same devac-core implementation and return identical results

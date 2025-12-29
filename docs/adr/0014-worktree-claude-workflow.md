@@ -211,5 +211,6 @@ The MCP server provides a `get_context` tool with intelligent caching:
 - Git worktrees: https://git-scm.com/docs/git-worktree
 - GitHub CLI: https://cli.github.com/
 - Claude CLI: https://claude.ai/cli
+- [vivief Workflow Guide](../vivief-workflow.md) - Complete workflow documentation
 - [devac-worktree Reference](./devac-worktree.md)
 - [CLI Reference - Context Commands](./cli-reference.md#context-commands)
