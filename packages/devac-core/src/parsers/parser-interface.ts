@@ -37,6 +37,8 @@ export interface ParserConfig {
   repoName: string;
   /** Package path relative to repo root */
   packagePath: string;
+  /** Absolute path to package root directory (for computing relative file paths) */
+  packageRoot?: string;
   /** Branch name (default: "base") */
   branch: string;
   /** Include JSDoc/documentation comments */
@@ -53,11 +55,29 @@ export interface ParserConfig {
 export const DEFAULT_PARSER_CONFIG: ParserConfig = {
   repoName: "",
   packagePath: "",
+  packageRoot: undefined,
   branch: "base",
   includeDocumentation: true,
   includeTypes: true,
   maxScopeDepth: 10,
 };
+
+/**
+ * Compute relative file path for entity ID generation.
+ * If packageRoot is provided, makes filePath relative to it.
+ * Otherwise uses the filePath as-is (for backwards compatibility).
+ */
+export function computeRelativeFilePath(filePath: string, config: ParserConfig): string {
+  if (config.packageRoot && filePath.startsWith(config.packageRoot)) {
+    // Remove packageRoot prefix and any leading slash
+    let relative = filePath.slice(config.packageRoot.length);
+    if (relative.startsWith("/") || relative.startsWith("\\")) {
+      relative = relative.slice(1);
+    }
+    return relative || filePath;
+  }
+  return filePath;
+}
 
 /**
  * Language parser interface
