@@ -32,9 +32,7 @@
       "import": "./dist/types/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "prebuild": "node ../../scripts/generate-version.mjs .",
     "build": "tsc -p tsconfig.json",
