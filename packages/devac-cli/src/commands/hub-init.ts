@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createCentralHub } from "@pietgk/devac-core";
+import { createCentralHub, getWorkspaceStatus } from "@pietgk/devac-core";
 import type { Command } from "commander";
 import { displayCommandResult } from "../utils/cli-output.js";
 import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
@@ -46,6 +46,8 @@ export interface HubInitResult {
   message: string;
   /** Error message if failed */
   error?: string;
+  /** Hints about next steps */
+  hints?: string[];
 }
 
 /**
@@ -80,11 +82,39 @@ export async function hubInit(options: HubInitOptions): Promise<HubInitResult> {
       const message =
         force && hubExists ? `Hub reinitialized at ${hubPath}` : `Hub initialized at ${hubPath}`;
 
+      // Get workspace status for hints
+      const hints: string[] = [];
+      try {
+        const workspaceDir = path.dirname(hubDir);
+        const status = await getWorkspaceStatus({ path: workspaceDir });
+
+        if (status.repos.length > 0) {
+          const reposWithSeeds = status.summary.reposWithSeeds;
+          const reposNeedingAnalysis = status.repos.length - reposWithSeeds;
+
+          hints.push("");
+          hints.push(`Workspace contains ${status.repos.length} repositories:`);
+
+          if (reposWithSeeds > 0) {
+            hints.push(`  ${reposWithSeeds} ready to register (have seeds)`);
+          }
+          if (reposNeedingAnalysis > 0) {
+            hints.push(`  ${reposNeedingAnalysis} need analysis first`);
+          }
+
+          hints.push("");
+          hints.push("Run: devac hub register --all");
+        }
+      } catch {
+        // Workspace status detection failed, continue without hints
+      }
+
       return {
         success: true,
         hubPath,
         created: true,
         message,
+        hints: hints.length > 0 ? hints : undefined,
       };
     } finally {
       await hub.close();
@@ -128,6 +158,12 @@ export function registerHubCommand(program: Command): void {
           force: options.force,
         });
         displayCommandResult(result);
+        // Show hints if available
+        if (result.hints && result.hints.length > 0) {
+          for (const hint of result.hints) {
+            console.log(hint);
+          }
+        }
       } catch (err) {
         displayCommandResult({
           success: false,
@@ -139,15 +175,22 @@ export function registerHubCommand(program: Command): void {
 
   // hub register
   hub
-    .command("register <path>")
-    .description("Register a repository with the hub")
+    .command("register [path]")
+    .description("Register a repository with the hub (analyzes packages without seeds by default)")
     .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
+    .option("--analyze", "Analyze packages without base seeds before registering (default: true)")
+    .option("--no-analyze", "Only register, skip analysis")
+    .option("--all", "Register all repositories in workspace")
     .action(async (repoPath, options) => {
       try {
         const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const resolvedPath = repoPath ? path.resolve(repoPath) : process.cwd();
         const result = await hubRegister({
           hubDir,
-          repoPath: path.resolve(repoPath),
+          repoPath: resolvedPath,
+          analyze: options.analyze,
+          all: options.all,
+          onProgress: (msg) => console.log(msg),
         });
         displayCommandResult(result);
       } catch (err) {

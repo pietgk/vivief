@@ -204,6 +204,24 @@ export {
   type PackageInfo,
   type DiscoveryError,
   type DiscoveryResult,
+  // Seed state detection
+  hasBaseSeed,
+  hasDeltaSeed,
+  detectPackageSeedState,
+  detectRepoSeedStatus,
+  getPackagesNeedingAnalysis,
+  getAnalyzedPackages,
+  type SeedState,
+  type PackageSeedState,
+  type RepoSeedStatus,
+  // Workspace status
+  getRepoStatus,
+  getWorkspaceStatus,
+  formatStatusBrief,
+  formatStatusFull,
+  type StatusOptions,
+  type RepoStatus,
+  type WorkspaceStatus,
 } from "./workspace/index.js";
 
 // Validation (explicit exports to avoid SymbolInfo conflict with parsers)

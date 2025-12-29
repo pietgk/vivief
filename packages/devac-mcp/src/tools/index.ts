@@ -144,6 +144,25 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: "get_workspace_status",
+    description:
+      "Get workspace status including seed states for all repositories and packages. Shows which packages are analyzed (have base seeds), need analysis, or have delta changes. Use this to understand what needs to be analyzed or registered with the hub.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Path to check (defaults to current working directory)",
+        },
+        full: {
+          type: "boolean",
+          description: "Include per-package details (default: false)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: "get_validation_errors",
     description:
       "Get validation errors (type errors, lint issues, test failures) from the hub cache. Returns errors that need to be fixed. Only available in hub mode.",

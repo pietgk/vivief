@@ -141,3 +141,27 @@ export {
   type DiscoveryError,
   type DiscoveryResult,
 } from "./package-manager.js";
+
+// Seed state detection
+export {
+  hasBaseSeed,
+  hasDeltaSeed,
+  detectPackageSeedState,
+  detectRepoSeedStatus,
+  getPackagesNeedingAnalysis,
+  getAnalyzedPackages,
+  type SeedState,
+  type PackageSeedState,
+  type RepoSeedStatus,
+} from "./seed-state.js";
+
+// Workspace status
+export {
+  getRepoStatus,
+  getWorkspaceStatus,
+  formatStatusBrief,
+  formatStatusFull,
+  type StatusOptions,
+  type RepoStatus,
+  type WorkspaceStatus,
+} from "./status.js";
