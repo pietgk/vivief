@@ -57,6 +57,14 @@ Shows:
 - Last update time
 - Symbol counts
 
+To get symbol counts via MCP, use the `query_sql` tool:
+```sql
+SELECT COUNT(*)::INT as node_count FROM nodes
+SELECT COUNT(*)::INT as edge_count FROM edges
+```
+
+**Important**: Always cast counts to INT (e.g., `COUNT(*)::INT`) to avoid BigInt serialization issues.
+
 ### 4. Check Workflow Activity
 
 ```bash
@@ -112,3 +120,28 @@ Use `/devac:devac-status` when:
 - You're starting a work session
 - You need to know what needs attention
 - You want to check CI/CD status across repos
+
+## Database Schema Reference
+
+When using the `query_sql` MCP tool, these are the available tables:
+
+### Seed Tables (per-package, stored in `.devac/seed/`)
+| Table | Description |
+|-------|-------------|
+| `nodes` | Code entities (functions, classes, variables, interfaces, etc.) |
+| `edges` | Relationships between entities (CALLS, IMPORTS, EXTENDS, IMPLEMENTS, etc.) |
+| `external_refs` | Import references to external packages |
+| `effects` | Code behaviors and execution patterns (v3.0) |
+
+### Hub Tables (cross-repo, stored in `{workspace}/.devac/`)
+| Table | Description |
+|-------|-------------|
+| `repo_registry` | Registered repositories and their metadata |
+| `validation_errors` | Type errors, lint issues from validators |
+| `unified_diagnostics` | All diagnostics unified (validation + CI + GitHub issues) |
+
+### SQL Best Practices
+
+- **Cast aggregates to INT**: Use `COUNT(*)::INT` or `SUM(x)::INT` to avoid BigInt serialization errors
+- **Prefer MCP tools**: Use dedicated tools like `get_diagnostics_counts` instead of raw SQL when available
+- **Use table aliases**: In hub mode, tables are read from multiple Parquet files

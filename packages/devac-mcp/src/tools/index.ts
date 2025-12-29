@@ -101,6 +101,16 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
+    name: "get_schema",
+    description:
+      "Get available tables and columns in the code graph database. Useful for discovering the schema before writing SQL queries. Returns seed tables (nodes, edges, external_refs, effects) and hub tables (repo_registry, validation_errors, unified_diagnostics).",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
     name: "list_repos",
     description:
       "List all registered repositories in the hub. Only available in hub mode. Returns repository metadata including path, package count, status, and last sync time.",

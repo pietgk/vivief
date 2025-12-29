@@ -6,6 +6,14 @@
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+
+/**
+ * JSON.stringify that safely handles BigInt values by converting them to Numbers.
+ * DuckDB returns BigInt for COUNT(*) and SUM() aggregates which JSON.stringify cannot handle.
+ */
+function safeJsonStringify(obj: unknown): string {
+  return JSON.stringify(obj, (_key, value) => (typeof value === "bigint" ? Number(value) : value));
+}
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -102,7 +110,7 @@ export class DevacMCPServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result.data ?? { error: result.error }),
+            text: safeJsonStringify(result.data ?? { error: result.error }),
           },
         ],
         isError: !result.success,
@@ -148,6 +156,9 @@ export class DevacMCPServer {
 
         case "query_sql":
           return await this.executeQuerySql(input);
+
+        case "get_schema":
+          return await this.executeGetSchema();
 
         case "list_repos":
           return await this.executeListRepos();
@@ -273,6 +284,73 @@ export class DevacMCPServer {
 
     const result = await this.provider.querySql(sql);
     return { success: true, data: result.rows };
+  }
+
+  /**
+   * Get database schema information
+   */
+  private async executeGetSchema(): Promise<MCPToolResult> {
+    // Return a static schema description since table structure is known
+    const schema = {
+      seedTables: {
+        nodes: {
+          description: "Code entities (functions, classes, variables, interfaces, etc.)",
+          columns: [
+            "entity_id",
+            "name",
+            "kind",
+            "file_path",
+            "start_line",
+            "end_line",
+            "scope",
+            "visibility",
+            "is_exported",
+          ],
+        },
+        edges: {
+          description: "Relationships between entities (CALLS, IMPORTS, EXTENDS, etc.)",
+          columns: ["source_id", "target_id", "edge_type", "file_path", "line_number"],
+        },
+        external_refs: {
+          description: "Import references to external packages",
+          columns: ["entity_id", "module_name", "import_name", "is_type_only"],
+        },
+        effects: {
+          description: "Code behaviors and execution patterns (v3.0)",
+          columns: ["effect_id", "entity_id", "effect_type", "target", "is_async", "is_external"],
+        },
+      },
+      hubTables: {
+        repo_registry: {
+          description: "Registered repositories and their metadata",
+          columns: ["repo_id", "local_path", "packages", "status", "last_synced"],
+        },
+        validation_errors: {
+          description: "Type errors, lint issues from validators",
+          columns: ["error_id", "repo_id", "source", "severity", "file_path", "line", "message"],
+        },
+        unified_diagnostics: {
+          description: "All diagnostics unified (validation + CI + GitHub issues)",
+          columns: [
+            "diagnostic_id",
+            "repo_id",
+            "source",
+            "severity",
+            "category",
+            "title",
+            "description",
+            "resolved",
+          ],
+        },
+      },
+      tips: [
+        "Use COUNT(*)::INT to avoid BigInt serialization errors",
+        "Prefer dedicated MCP tools (get_diagnostics_counts, etc.) over raw SQL when available",
+        "In hub mode, seed tables query across all registered repositories",
+      ],
+    };
+
+    return { success: true, data: schema };
   }
 
   /**

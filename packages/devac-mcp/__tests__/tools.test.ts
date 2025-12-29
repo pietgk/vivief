@@ -27,6 +27,7 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("get_affected");
       expect(toolNames).toContain("get_call_graph");
       expect(toolNames).toContain("query_sql");
+      expect(toolNames).toContain("get_schema");
       expect(toolNames).toContain("list_repos");
       expect(toolNames).toContain("get_context");
       // Unified diagnostics tools
@@ -35,8 +36,8 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("get_diagnostics_counts");
     });
 
-    it("has exactly 19 tools", () => {
-      expect(MCP_TOOLS.length).toBe(19);
+    it("has exactly 20 tools", () => {
+      expect(MCP_TOOLS.length).toBe(20);
     });
   });
 
