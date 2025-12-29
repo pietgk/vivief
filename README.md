@@ -16,18 +16,20 @@ Fast, local code analysis with DuckDB + Parquet storage.
 
 ### From GitHub Packages (Recommended)
 
-Install the CLI globally from GitHub Packages:
+Install the CLIs globally from GitHub Packages:
 
 ```bash
 # Configure npm for GitHub Packages (one-time setup)
 echo "@pietgk:registry=https://npm.pkg.github.com" >> ~/.npmrc
 echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
 
-# Install the CLI globally
-npm install -g @pietgk/devac-cli
+# Install all CLIs globally
+npm install -g @pietgk/devac-cli @pietgk/devac-mcp @pietgk/devac-worktree
 
 # Verify installation
 devac --version
+devac-mcp --version
+devac-worktree --version
 ```
 
 > **Note:** You need a GitHub Personal Access Token with `read:packages` scope.
@@ -46,8 +48,15 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Link CLI globally
+# Link all CLIs globally
 pnpm --filter @pietgk/devac-cli link --global
+pnpm --filter @pietgk/devac-mcp link --global
+pnpm --filter @pietgk/devac-worktree link --global
+
+# Verify installation
+devac --version
+devac-mcp --version
+devac-worktree --version
 ```
 
 ## Quick Start

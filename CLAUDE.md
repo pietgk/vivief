@@ -61,6 +61,24 @@ pnpm clean
 
 ## Working with Packages
 
+### Link CLIs Globally (First-Time Setup)
+
+After building, link all CLI packages globally for local development:
+
+```bash
+# Link all CLIs globally (run once after build)
+pnpm --filter @pietgk/devac-cli link --global
+pnpm --filter @pietgk/devac-mcp link --global
+pnpm --filter @pietgk/devac-worktree link --global
+
+# Verify installation
+devac --version
+devac-mcp --version
+devac-worktree --version
+```
+
+### Package-Specific Commands
+
 ```bash
 # Build specific package
 pnpm --filter @pietgk/devac-core build
@@ -68,7 +86,7 @@ pnpm --filter @pietgk/devac-core build
 # Run tests for specific package
 pnpm --filter @pietgk/devac-cli test
 
-# Run CLI locally
+# Run CLI locally (alternative to global linking)
 pnpm --filter @pietgk/devac-cli exec devac --help
 
 # Run MCP server locally

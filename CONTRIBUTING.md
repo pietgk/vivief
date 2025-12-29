@@ -26,16 +26,27 @@ pnpm build
 
 ### Local CLI Development
 
-For testing CLI changes locally, link the packages globally:
+For testing CLI changes locally, link all CLI packages globally:
 
 ```bash
 # Link all CLI packages for local development
 pnpm link --global --filter @pietgk/devac-cli
 pnpm link --global --filter @pietgk/devac-mcp
+pnpm link --global --filter @pietgk/devac-worktree
 pnpm link --global --filter @pietgk/devac-eval
+
+# Verify installation
+devac --version
+devac-mcp --version
+devac-worktree --version
+devac-eval --version
 ```
 
-After linking, you can use `devac`, `devac-mcp`, and `devac-eval` commands directly.
+After linking, you can use these commands directly:
+- `devac` - Code analysis and graph queries
+- `devac-mcp` - MCP server for AI assistants
+- `devac-worktree` - Git worktree workflow for GitHub issues
+- `devac-eval` - LLM evaluation framework
 
 ### Claude Code Plugin Setup
 
