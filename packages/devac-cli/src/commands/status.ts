@@ -13,7 +13,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { CentralHub } from "@pietgk/devac-core";
+import { CentralHub, type WorkspaceStatus, getWorkspaceStatus } from "@pietgk/devac-core";
 import type { Command } from "commander";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +29,9 @@ export interface StatusOptions {
 
   /** Output as JSON */
   json?: boolean;
+
+  /** Show only seed status (skip diagnostics) */
+  seedsOnly?: boolean;
 }
 
 export interface StatusResult {
@@ -92,6 +95,9 @@ export interface StatusResult {
 
   /** Suggested next steps */
   next: string[];
+
+  /** Seed status for repos (from devac-core) */
+  seeds?: WorkspaceStatus;
 
   /** Formatted output (for non-JSON) */
   formatted?: string;
@@ -217,7 +223,7 @@ function formatOneLine(result: StatusResult): string {
 /**
  * Format brief status
  */
-function formatBrief(result: StatusResult): string {
+function formatBrief(result: StatusResult, seedsOnly = false): string {
   const lines: string[] = [];
 
   lines.push("DevAC Status");
@@ -243,42 +249,74 @@ function formatBrief(result: StatusResult): string {
   healthParts.push(result.health.hubConnected ? "hub:connected" : "hub:disconnected");
   lines.push(`  DevAC Health: ${healthParts.join("  ")}`);
 
-  // Diagnostics
-  const diagParts: string[] = [];
-  if (result.diagnostics.bySource.tsc.errors > 0 || result.diagnostics.bySource.tsc.warnings > 0) {
-    diagParts.push(
-      `tsc:${result.diagnostics.bySource.tsc.errors}e/${result.diagnostics.bySource.tsc.warnings}w`
-    );
-  }
-  if (
-    result.diagnostics.bySource.eslint.errors > 0 ||
-    result.diagnostics.bySource.eslint.warnings > 0
-  ) {
-    diagParts.push(
-      `lint:${result.diagnostics.bySource.eslint.errors}e/${result.diagnostics.bySource.eslint.warnings}w`
-    );
-  }
-  if (
-    result.diagnostics.bySource.test.errors > 0 ||
-    result.diagnostics.bySource.test.warnings > 0
-  ) {
-    diagParts.push(`test:${result.diagnostics.bySource.test.errors > 0 ? "failing" : "ok"}`);
-  }
-  if (diagParts.length === 0) {
-    diagParts.push("all clear");
-  }
-  lines.push(`  Diagnostics:  ${diagParts.join("  ")}`);
+  // Seed Status (new section)
+  if (result.seeds && result.seeds.repos.length > 0) {
+    lines.push("");
+    lines.push("  Seeds:");
+    for (const repo of result.seeds.repos) {
+      const { summary } = repo.seedStatus;
+      const analyzed = summary.base + summary.both;
+      const total = summary.total;
 
-  // Activity
-  if (result.activity.openPRs > 0 || result.activity.pendingReviews > 0) {
-    const activityParts: string[] = [];
-    if (result.activity.openPRs > 0) {
-      activityParts.push(`prs:${result.activity.openPRs}`);
+      let statusStr: string;
+      if (total === 0) {
+        statusStr = "no packages";
+      } else if (analyzed === total) {
+        statusStr = `${analyzed} package${analyzed !== 1 ? "s" : ""} analyzed`;
+      } else if (analyzed === 0) {
+        statusStr = "not analyzed";
+      } else {
+        statusStr = `${analyzed}/${total} analyzed`;
+      }
+
+      const hubStr = repo.hubStatus === "registered" ? " (registered)" : "";
+      const repoName = repo.name.padEnd(20);
+      lines.push(`    ${repoName}${hubStr}: ${statusStr}`);
     }
-    if (result.activity.pendingReviews > 0) {
-      activityParts.push(`reviews:${result.activity.pendingReviews}`);
+  }
+
+  // Skip diagnostics if --seeds-only
+  if (!seedsOnly) {
+    // Diagnostics
+    const diagParts: string[] = [];
+    if (
+      result.diagnostics.bySource.tsc.errors > 0 ||
+      result.diagnostics.bySource.tsc.warnings > 0
+    ) {
+      diagParts.push(
+        `tsc:${result.diagnostics.bySource.tsc.errors}e/${result.diagnostics.bySource.tsc.warnings}w`
+      );
     }
-    lines.push(`  Activity:     ${activityParts.join("  ")}`);
+    if (
+      result.diagnostics.bySource.eslint.errors > 0 ||
+      result.diagnostics.bySource.eslint.warnings > 0
+    ) {
+      diagParts.push(
+        `lint:${result.diagnostics.bySource.eslint.errors}e/${result.diagnostics.bySource.eslint.warnings}w`
+      );
+    }
+    if (
+      result.diagnostics.bySource.test.errors > 0 ||
+      result.diagnostics.bySource.test.warnings > 0
+    ) {
+      diagParts.push(`test:${result.diagnostics.bySource.test.errors > 0 ? "failing" : "ok"}`);
+    }
+    if (diagParts.length === 0) {
+      diagParts.push("all clear");
+    }
+    lines.push(`  Diagnostics:  ${diagParts.join("  ")}`);
+
+    // Activity
+    if (result.activity.openPRs > 0 || result.activity.pendingReviews > 0) {
+      const activityParts: string[] = [];
+      if (result.activity.openPRs > 0) {
+        activityParts.push(`prs:${result.activity.openPRs}`);
+      }
+      if (result.activity.pendingReviews > 0) {
+        activityParts.push(`reviews:${result.activity.pendingReviews}`);
+      }
+      lines.push(`  Activity:     ${activityParts.join("  ")}`);
+    }
   }
 
   // Next
@@ -292,7 +330,7 @@ function formatBrief(result: StatusResult): string {
 /**
  * Format full status
  */
-function formatFull(result: StatusResult): string {
+function formatFull(result: StatusResult, seedsOnly = false): string {
   const lines: string[] = [];
 
   lines.push("DevAC Full Status Report");
@@ -334,59 +372,116 @@ function formatFull(result: StatusResult): string {
   lines.push(`  Repos:      ${result.health.reposRegistered} registered`);
   lines.push("");
 
-  // DIAGNOSTICS
-  lines.push("DIAGNOSTICS");
-  lines.push("─".repeat(30));
-  if (result.diagnostics.errors === 0 && result.diagnostics.warnings === 0) {
-    lines.push("  ✓ All clear - no issues found");
-  } else {
-    lines.push(
-      `  Total:      ${result.diagnostics.errors} errors, ${result.diagnostics.warnings} warnings`
-    );
-    lines.push("");
-    if (
-      result.diagnostics.bySource.tsc.errors > 0 ||
-      result.diagnostics.bySource.tsc.warnings > 0
-    ) {
-      lines.push(
-        `  TypeScript: ${result.diagnostics.bySource.tsc.errors} errors, ${result.diagnostics.bySource.tsc.warnings} warnings`
-      );
-    }
-    if (
-      result.diagnostics.bySource.eslint.errors > 0 ||
-      result.diagnostics.bySource.eslint.warnings > 0
-    ) {
-      lines.push(
-        `  Lint:       ${result.diagnostics.bySource.eslint.errors} errors, ${result.diagnostics.bySource.eslint.warnings} warnings`
-      );
-    }
-    if (result.diagnostics.bySource.test.errors > 0) {
-      lines.push(`  Tests:      ${result.diagnostics.bySource.test.errors} failing`);
-    }
-    if (result.diagnostics.bySource.coverage.warnings > 0) {
-      lines.push(`  Coverage:   ${result.diagnostics.bySource.coverage.warnings} below threshold`);
-    }
-  }
-  lines.push("");
+  // SEED STATUS (new section)
+  if (result.seeds && result.seeds.repos.length > 0) {
+    lines.push("SEED STATUS");
+    lines.push("─".repeat(50));
 
-  // ACTIVITY
-  if (
-    result.activity.openPRs > 0 ||
-    result.activity.pendingReviews > 0 ||
-    result.activity.openIssues > 0
-  ) {
-    lines.push("ACTIVITY");
+    for (const repo of result.seeds.repos) {
+      const hubStr =
+        repo.hubStatus === "registered"
+          ? "(registered)"
+          : repo.hubStatus === "pending"
+            ? "(pending)"
+            : "(unregistered)";
+
+      lines.push(`${repo.name} ${hubStr}`);
+
+      if (repo.seedStatus.packages.length === 0) {
+        lines.push("  No packages detected");
+      } else {
+        for (const pkg of repo.seedStatus.packages) {
+          const stateStr = formatSeedState(pkg.state);
+          const dateStr = pkg.baseLastModified ? pkg.baseLastModified.split("T")[0] : "";
+
+          let details = "";
+          if (pkg.state === "none") {
+            const relativePath = path.relative(result.seeds.workspacePath, pkg.packagePath);
+            details = `run: devac analyze -p ${relativePath}`;
+          } else if (pkg.state === "both" && pkg.deltaLastModified) {
+            const branchDate = pkg.deltaLastModified.split("T")[0];
+            details = `base: ${dateStr}, delta: ${branchDate}`;
+          } else if (dateStr) {
+            details = dateStr;
+          }
+
+          const pkgName = pkg.packageName.padEnd(20);
+          lines.push(`  ${pkgName} [${stateStr}]  ${details}`);
+        }
+      }
+
+      lines.push("");
+    }
+
+    // Summary
+    lines.push("SEED SUMMARY");
     lines.push("─".repeat(30));
-    if (result.activity.openPRs > 0) {
-      lines.push(`  Open PRs:       ${result.activity.openPRs}`);
-    }
-    if (result.activity.pendingReviews > 0) {
-      lines.push(`  Pending Reviews: ${result.activity.pendingReviews}`);
-    }
-    if (result.activity.openIssues > 0) {
-      lines.push(`  Open Issues:    ${result.activity.openIssues}`);
+    lines.push(`  Repositories:       ${result.seeds.summary.totalRepos}`);
+    lines.push(`  With seeds:         ${result.seeds.summary.reposWithSeeds}`);
+    lines.push(`  Registered in hub:  ${result.seeds.summary.reposRegistered}`);
+    lines.push(`  Packages analyzed:  ${result.seeds.summary.packagesAnalyzed}`);
+    lines.push(`  Packages pending:   ${result.seeds.summary.packagesNeedAnalysis}`);
+    lines.push("");
+  }
+
+  // Skip diagnostics if --seeds-only
+  if (!seedsOnly) {
+    // DIAGNOSTICS
+    lines.push("DIAGNOSTICS");
+    lines.push("─".repeat(30));
+    if (result.diagnostics.errors === 0 && result.diagnostics.warnings === 0) {
+      lines.push("  ✓ All clear - no issues found");
+    } else {
+      lines.push(
+        `  Total:      ${result.diagnostics.errors} errors, ${result.diagnostics.warnings} warnings`
+      );
+      lines.push("");
+      if (
+        result.diagnostics.bySource.tsc.errors > 0 ||
+        result.diagnostics.bySource.tsc.warnings > 0
+      ) {
+        lines.push(
+          `  TypeScript: ${result.diagnostics.bySource.tsc.errors} errors, ${result.diagnostics.bySource.tsc.warnings} warnings`
+        );
+      }
+      if (
+        result.diagnostics.bySource.eslint.errors > 0 ||
+        result.diagnostics.bySource.eslint.warnings > 0
+      ) {
+        lines.push(
+          `  Lint:       ${result.diagnostics.bySource.eslint.errors} errors, ${result.diagnostics.bySource.eslint.warnings} warnings`
+        );
+      }
+      if (result.diagnostics.bySource.test.errors > 0) {
+        lines.push(`  Tests:      ${result.diagnostics.bySource.test.errors} failing`);
+      }
+      if (result.diagnostics.bySource.coverage.warnings > 0) {
+        lines.push(
+          `  Coverage:   ${result.diagnostics.bySource.coverage.warnings} below threshold`
+        );
+      }
     }
     lines.push("");
+
+    // ACTIVITY
+    if (
+      result.activity.openPRs > 0 ||
+      result.activity.pendingReviews > 0 ||
+      result.activity.openIssues > 0
+    ) {
+      lines.push("ACTIVITY");
+      lines.push("─".repeat(30));
+      if (result.activity.openPRs > 0) {
+        lines.push(`  Open PRs:       ${result.activity.openPRs}`);
+      }
+      if (result.activity.pendingReviews > 0) {
+        lines.push(`  Pending Reviews: ${result.activity.pendingReviews}`);
+      }
+      if (result.activity.openIssues > 0) {
+        lines.push(`  Open Issues:    ${result.activity.openIssues}`);
+      }
+      lines.push("");
+    }
   }
 
   // NEXT STEPS
@@ -402,6 +497,24 @@ function formatFull(result: StatusResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Format seed state for display
+ */
+function formatSeedState(state: string): string {
+  switch (state) {
+    case "none":
+      return "none ";
+    case "base":
+      return "base ";
+    case "delta":
+      return "delta";
+    case "both":
+      return "both ";
+    default:
+      return state.padEnd(5);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Command
 // ─────────────────────────────────────────────────────────────────────────────
@@ -411,6 +524,7 @@ function formatFull(result: StatusResult): string {
  */
 export async function statusCommand(options: StatusOptions): Promise<StatusResult> {
   const cwd = path.resolve(options.path);
+  const seedsOnly = options.seedsOnly ?? false;
 
   // Initialize result with defaults
   const result: StatusResult = {
@@ -471,6 +585,16 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
       checkPath = parentPath;
     }
 
+    // Get seed status from devac-core
+    try {
+      result.seeds = await getWorkspaceStatus({ path: cwd, full: true });
+      if (result.seeds.isWorkspace && !workspacePath) {
+        workspacePath = result.seeds.workspacePath;
+      }
+    } catch {
+      // Seed status detection failed, continue without it
+    }
+
     if (workspacePath) {
       result.context.workspacePath = workspacePath;
       result.context.isWorkspace = true;
@@ -492,38 +616,40 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
           const repos = await hub.listRepos();
           result.health.reposRegistered = repos.length;
 
-          // Get diagnostics from hub
-          try {
-            const diagnostics = await hub.getDiagnostics({});
-            for (const item of diagnostics) {
-              const isError = item.severity === "error" || item.severity === "critical";
-              const isWarning = item.severity === "warning";
+          // Get diagnostics from hub (skip if --seeds-only)
+          if (!seedsOnly) {
+            try {
+              const diagnostics = await hub.getDiagnostics({});
+              for (const item of diagnostics) {
+                const isError = item.severity === "error" || item.severity === "critical";
+                const isWarning = item.severity === "warning";
 
-              if (isError) {
-                result.diagnostics.errors++;
-              } else if (isWarning) {
-                result.diagnostics.warnings++;
-              }
-
-              // By source
-              const source = item.source as keyof typeof result.diagnostics.bySource;
-              if (result.diagnostics.bySource[source]) {
                 if (isError) {
-                  result.diagnostics.bySource[source].errors++;
+                  result.diagnostics.errors++;
                 } else if (isWarning) {
-                  result.diagnostics.bySource[source].warnings++;
+                  result.diagnostics.warnings++;
+                }
+
+                // By source
+                const source = item.source as keyof typeof result.diagnostics.bySource;
+                if (result.diagnostics.bySource[source]) {
+                  if (isError) {
+                    result.diagnostics.bySource[source].errors++;
+                  } else if (isWarning) {
+                    result.diagnostics.bySource[source].warnings++;
+                  }
+                }
+
+                // Activity (workflow category)
+                if (item.category === "task" || item.category === "feedback") {
+                  result.activity.openIssues++;
+                } else if (item.category === "code-review") {
+                  result.activity.pendingReviews++;
                 }
               }
-
-              // Activity (workflow category)
-              if (item.category === "task" || item.category === "feedback") {
-                result.activity.openIssues++;
-              } else if (item.category === "code-review") {
-                result.activity.pendingReviews++;
-              }
+            } catch {
+              // Hub might not have diagnostics table yet
             }
-          } catch {
-            // Hub might not have diagnostics table yet
           }
 
           await hub.close();
@@ -534,6 +660,12 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     }
 
     // Determine next steps based on current state
+    // Check for packages needing analysis first
+    if (result.seeds && result.seeds.summary.packagesNeedAnalysis > 0) {
+      result.next.push(
+        `Analyze ${result.seeds.summary.packagesNeedAnalysis} package(s): devac hub register --all`
+      );
+    }
     if (result.diagnostics.errors > 0) {
       if (result.diagnostics.bySource.tsc.errors > 0) {
         result.next.push(`Fix ${result.diagnostics.bySource.tsc.errors} type errors`);
@@ -547,10 +679,10 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } else if (result.diagnostics.warnings > 0) {
       result.next.push(`Address ${result.diagnostics.warnings} warnings`);
     } else if (!result.health.hubConnected) {
-      result.next.push("Initialize hub: devac workspace init");
+      result.next.push("Initialize hub: devac hub init");
     } else if (!result.health.watchActive) {
       result.next.push("Start watch: devac workspace watch");
-    } else {
+    } else if (result.next.length === 0) {
       result.next.push("All clear - ready to code!");
     }
 
@@ -561,10 +693,10 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
           result.formatted = formatOneLine(result);
           break;
         case "brief":
-          result.formatted = formatBrief(result);
+          result.formatted = formatBrief(result, seedsOnly);
           break;
         case "full":
-          result.formatted = formatFull(result);
+          result.formatted = formatFull(result, seedsOnly);
           break;
       }
     }
@@ -585,11 +717,12 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
 export function registerStatusCommand(program: Command): void {
   program
     .command("status")
-    .description("Show DevAC status (context, health, diagnostics, next steps)")
+    .description("Show DevAC status (context, health, seeds, diagnostics, next steps)")
     .option("-p, --path <path>", "Path to check status from", process.cwd())
     .option("--brief", "Show brief summary (default)")
     .option("--full", "Show full detailed status")
     .option("--json", "Output as JSON")
+    .option("--seeds-only", "Show only seed status (skip diagnostics)")
     .action(async (options) => {
       // Determine format
       let format: "oneline" | "brief" | "full" = "brief";
@@ -601,6 +734,7 @@ export function registerStatusCommand(program: Command): void {
         path: options.path,
         format,
         json: options.json,
+        seedsOnly: options.seedsOnly,
       });
 
       if (result.success) {

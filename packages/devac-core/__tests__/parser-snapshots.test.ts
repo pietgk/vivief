@@ -21,12 +21,27 @@ const TS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-typescript/src")
 const PY_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-python");
 const CS_FIXTURES_DIR = path.resolve(__dirname, "../../fixtures-csharp");
 
-// Default test config
+// Default test config for inline code tests (no packageRoot needed - uses relative filenames)
 const testConfig: ParserConfig = {
   ...DEFAULT_PARSER_CONFIG,
   repoName: "snapshot-test-repo",
   packagePath: "snapshot-test-package",
   branch: "main",
+};
+
+// Configs for file-based tests - include packageRoot so entity IDs are deterministic
+// across different worktrees (by making file paths relative to package root)
+const tsTestConfig: ParserConfig = {
+  ...testConfig,
+  packageRoot: TS_FIXTURES_DIR,
+};
+
+// Note: Python parser doesn't need packageRoot since it doesn't include
+// file paths in entity ID hashes (it only uses qualified_name)
+
+const csTestConfig: ParserConfig = {
+  ...testConfig,
+  packageRoot: CS_FIXTURES_DIR,
 };
 
 /**
@@ -107,7 +122,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-class.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-class.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -115,7 +130,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-functions.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-functions.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -123,7 +138,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-jsx.tsx snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-jsx.tsx");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -131,7 +146,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-decorators.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-decorators.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -139,7 +154,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-generics.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-generics.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -147,7 +162,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-advanced-types.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-advanced-types.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -155,7 +170,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-modules.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-modules.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -163,7 +178,7 @@ describe("Parser Snapshots", () => {
 
     it("sample-edge-cases.ts snapshot", async () => {
       const filePath = path.join(TS_FIXTURES_DIR, "sample-edge-cases.ts");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, tsTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -321,7 +336,7 @@ class Comparable(Protocol):
 
     it("sample-class.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-class.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -329,7 +344,7 @@ class Comparable(Protocol):
 
     it("sample-interface.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-interface.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -337,7 +352,7 @@ class Comparable(Protocol):
 
     it("sample-records.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-records.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -345,7 +360,7 @@ class Comparable(Protocol):
 
     it("sample-generics.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-generics.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -353,7 +368,7 @@ class Comparable(Protocol):
 
     it("sample-async.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-async.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -361,7 +376,7 @@ class Comparable(Protocol):
 
     it("sample-attributes.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-attributes.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -369,7 +384,7 @@ class Comparable(Protocol):
 
     it("sample-extension.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-extension.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();
@@ -377,7 +392,7 @@ class Comparable(Protocol):
 
     it("sample-csharp-12.cs snapshot", async () => {
       const filePath = path.join(CS_FIXTURES_DIR, "sample-csharp-12.cs");
-      const result = await parser.parse(filePath, testConfig);
+      const result = await parser.parse(filePath, csTestConfig);
       const normalized = normalizeForSnapshot(result);
 
       expect(normalized).toMatchSnapshot();

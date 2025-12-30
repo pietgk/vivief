@@ -23,6 +23,7 @@ import {
   type DiagnosticsSource,
   type RepoContext,
   discoverContext,
+  getWorkspaceStatus,
 } from "@pietgk/devac-core";
 import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
@@ -165,6 +166,9 @@ export class DevacMCPServer {
 
         case "get_context":
           return await this.executeGetContext(input);
+
+        case "get_workspace_status":
+          return await this.executeGetWorkspaceStatus(input);
 
         case "get_validation_errors":
           return await this.executeGetValidationErrors(input);
@@ -641,6 +645,24 @@ export class DevacMCPServer {
       if (now - entry.timestamp > CONTEXT_CACHE_TTL * 2) {
         this.contextCache.delete(path);
       }
+    }
+  }
+
+  /**
+   * Get workspace status including seed states
+   */
+  private async executeGetWorkspaceStatus(input: Record<string, unknown>): Promise<MCPToolResult> {
+    const targetPath = (input.path as string) ?? process.cwd();
+    const full = (input.full as boolean) ?? false;
+
+    try {
+      const status = await getWorkspaceStatus({ path: targetPath, full });
+      return { success: true, data: status };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 

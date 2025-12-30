@@ -39,7 +39,12 @@ import {
   createSendEffect,
 } from "../types/index.js";
 import { computeStringHash } from "../utils/hash.js";
-import type { LanguageParser, ParserConfig, StructuralParseResult } from "./parser-interface.js";
+import {
+  type LanguageParser,
+  type ParserConfig,
+  type StructuralParseResult,
+  computeRelativeFilePath,
+} from "./parser-interface.js";
 import {
   type ScopeContext,
   createScopeContext,
@@ -1484,6 +1489,13 @@ class ParserContext {
   readonly scopeContext: ScopeContext;
 
   /**
+   * Relative file path used for entity ID generation.
+   * If packageRoot is configured, this is relative to it.
+   * Otherwise, it's the same as filePath.
+   */
+  readonly relativeFilePath: string;
+
+  /**
    * Maps AST node start positions to entity IDs.
    * Used to look up the entity ID of an enclosing function/method for CALLS edges.
    * Key format: "line:column"
@@ -1497,6 +1509,7 @@ class ParserContext {
     readonly result: StructuralParseResult
   ) {
     this.scopeContext = createScopeContext();
+    this.relativeFilePath = computeRelativeFilePath(filePath, config);
   }
 
   /**
@@ -1531,16 +1544,16 @@ class ParserContext {
       repo: this.config.repoName,
       packagePath: this.config.packagePath,
       kind: "module",
-      filePath: this.filePath,
-      scopedName: this.filePath,
+      filePath: this.relativeFilePath,
+      scopedName: this.relativeFilePath,
     });
 
     return createNode({
       entity_id: entityId,
-      name: path.basename(this.filePath),
-      qualified_name: this.filePath,
+      name: path.basename(this.relativeFilePath),
+      qualified_name: this.relativeFilePath,
       kind: "module",
-      file_path: this.filePath,
+      file_path: this.relativeFilePath,
       start_line: 1,
       end_line: loc,
       start_column: 0,
@@ -1574,7 +1587,7 @@ class ParserContext {
       repo: this.config.repoName,
       packagePath: this.config.packagePath,
       kind: opts.kind,
-      filePath: this.filePath,
+      filePath: this.relativeFilePath,
       scopedName: opts.scopedName,
     });
 
@@ -1591,7 +1604,7 @@ class ParserContext {
       name: opts.name,
       qualified_name: opts.scopedName,
       kind: opts.kind,
-      file_path: this.filePath,
+      file_path: this.relativeFilePath,
       start_line: loc?.start.line ?? 1,
       end_line: loc?.end.line ?? 1,
       start_column: loc?.start.column ?? 0,
@@ -1619,7 +1632,7 @@ class ParserContext {
       source_entity_id: sourceId,
       target_entity_id: targetId,
       edge_type: "CONTAINS",
-      source_file_path: this.filePath,
+      source_file_path: this.relativeFilePath,
       source_line: node.loc?.start.line ?? 1,
       source_column: node.loc?.start.column ?? 0,
       source_file_hash: this.sourceFileHash,
@@ -1641,7 +1654,7 @@ class ParserContext {
       source_entity_id: opts.sourceEntityId,
       target_entity_id: opts.targetEntityId,
       edge_type: opts.edgeType,
-      source_file_path: this.filePath,
+      source_file_path: this.relativeFilePath,
       source_line: opts.node.loc?.start.line ?? 1,
       source_column: opts.node.loc?.start.column ?? 0,
       source_file_hash: this.sourceFileHash,

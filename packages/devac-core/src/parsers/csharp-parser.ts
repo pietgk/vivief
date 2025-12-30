@@ -33,12 +33,17 @@ function genEntityId(ctx: ParseContext, kind: string, scopedName: string): strin
     repo: ctx.config.repoName,
     packagePath: ctx.config.packagePath,
     kind,
-    filePath: ctx.filePath,
+    filePath: ctx.relativeFilePath,
     scopedName,
   });
 }
-import type { LanguageParser, ParserConfig, StructuralParseResult } from "./parser-interface.js";
-import { createEmptyParseResult } from "./parser-interface.js";
+import {
+  type LanguageParser,
+  type ParserConfig,
+  type StructuralParseResult,
+  computeRelativeFilePath,
+  createEmptyParseResult,
+} from "./parser-interface.js";
 
 // ============================================================================
 // Types
@@ -47,6 +52,8 @@ import { createEmptyParseResult } from "./parser-interface.js";
 interface ParseContext {
   config: ParserConfig;
   filePath: string;
+  /** Relative file path for entity ID generation (relative to packageRoot if configured) */
+  relativeFilePath: string;
   sourceFileHash: string;
   currentNamespace: string | null;
   currentNamespaceId: string | null;
@@ -230,7 +237,7 @@ function visitNamespaceDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: name,
     kind: "namespace",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -274,7 +281,7 @@ function visitFileScopedNamespace(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: name,
     kind: "namespace",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -320,11 +327,11 @@ function visitUsingDirective(node: SyntaxNode, ctx: ParseContext): void {
   if (!moduleSpecifier) return;
 
   // Determine the source entity - use file-level pseudo entity
-  const sourceEntityId = genEntityId(ctx, "module", ctx.filePath);
+  const sourceEntityId = genEntityId(ctx, "module", ctx.relativeFilePath);
 
   const externalRef = createExternalRef({
     source_entity_id: sourceEntityId,
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     module_specifier: moduleSpecifier,
     imported_symbol: isStatic ? "*" : moduleSpecifier.split(".").pop() || "*",
@@ -383,7 +390,7 @@ function visitEnumDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: qualifiedName,
     kind: "enum",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -435,7 +442,7 @@ function visitEnumMember(
     name,
     qualified_name: qualifiedName,
     kind: "enum_member",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -474,7 +481,7 @@ function visitTypeDeclaration(
     name,
     qualified_name: qualifiedName,
     kind,
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -562,7 +569,7 @@ function visitRecordParameters(
         name,
         qualified_name: qualifiedName,
         kind: "property",
-        file_path: ctx.filePath,
+        file_path: ctx.relativeFilePath,
         source_file_hash: ctx.sourceFileHash,
         start_line: param.startPosition.row + 1,
         end_line: param.endPosition.row + 1,
@@ -623,7 +630,7 @@ function visitBaseList(
         source_entity_id: typeId,
         target_entity_id: targetId,
         edge_type: edgeType,
-        source_file_path: ctx.filePath,
+        source_file_path: ctx.relativeFilePath,
         source_file_hash: ctx.sourceFileHash,
         source_line: baseType.startPosition.row + 1,
         source_column: baseType.startPosition.column,
@@ -661,7 +668,7 @@ function visitMethodDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: qualifiedName,
     kind: "method",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -737,7 +744,7 @@ function visitConstructorDeclaration(node: SyntaxNode, ctx: ParseContext): void 
     name,
     qualified_name: qualifiedName,
     kind: "method",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -817,7 +824,7 @@ function visitParameters(
         name,
         qualified_name: qualifiedName,
         kind: "parameter",
-        file_path: ctx.filePath,
+        file_path: ctx.relativeFilePath,
         source_file_hash: ctx.sourceFileHash,
         start_line: param.startPosition.row + 1,
         end_line: param.endPosition.row + 1,
@@ -834,7 +841,7 @@ function visitParameters(
         source_entity_id: entityId,
         target_entity_id: methodId,
         edge_type: "PARAMETER_OF",
-        source_file_path: ctx.filePath,
+        source_file_path: ctx.relativeFilePath,
         source_file_hash: ctx.sourceFileHash,
         source_line: param.startPosition.row + 1,
         source_column: param.startPosition.column,
@@ -870,7 +877,7 @@ function visitPropertyDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: qualifiedName,
     kind: "property",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -928,7 +935,7 @@ function visitFieldDeclaration(node: SyntaxNode, ctx: ParseContext): void {
         name,
         qualified_name: qualifiedName,
         kind: "variable",
-        file_path: ctx.filePath,
+        file_path: ctx.relativeFilePath,
         source_file_hash: ctx.sourceFileHash,
         start_line: declarator.startPosition.row + 1,
         end_line: declarator.endPosition.row + 1,
@@ -990,7 +997,7 @@ function visitEventDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: qualifiedName,
     kind: "property",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -1033,7 +1040,7 @@ function visitDelegateDeclaration(node: SyntaxNode, ctx: ParseContext): void {
     name,
     qualified_name: qualifiedName,
     kind: "type",
-    file_path: ctx.filePath,
+    file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     start_line: node.startPosition.row + 1,
     end_line: node.endPosition.row + 1,
@@ -1077,7 +1084,7 @@ function visitMethodBody(node: SyntaxNode, ctx: ParseContext): void {
  */
 function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
   // Get the source entity (caller)
-  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.relativeFilePath);
 
   // Extract callee name from the invocation
   const calleeName = extractCalleeName(node);
@@ -1097,7 +1104,7 @@ function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
     source_entity_id: sourceEntityId,
     target_entity_id: targetEntityId,
     edge_type: "CALLS",
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
@@ -1115,7 +1122,7 @@ function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
  * Visit an object creation expression (new Foo()) to create CALLS edge
  */
 function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): void {
-  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.relativeFilePath);
 
   // Get the type being instantiated
   const typeNode = getChildByField(node, "type");
@@ -1136,7 +1143,7 @@ function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): voi
     source_entity_id: sourceEntityId,
     target_entity_id: targetEntityId,
     edge_type: "CALLS",
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
@@ -1154,7 +1161,7 @@ function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): voi
  * Visit constructor initializer (base() or this() calls)
  */
 function visitConstructorInitializer(node: SyntaxNode, ctx: ParseContext): void {
-  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.filePath);
+  const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.relativeFilePath);
 
   // Check if it's base() or this()
   const baseKeyword = findChildByType(node, "base");
@@ -1181,7 +1188,7 @@ function visitConstructorInitializer(node: SyntaxNode, ctx: ParseContext): void 
     source_entity_id: sourceEntityId,
     target_entity_id: targetEntityId,
     edge_type: "CALLS",
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
@@ -1289,7 +1296,7 @@ function addContainsEdge(
     source_entity_id: parentId,
     target_entity_id: childId,
     edge_type: "CONTAINS",
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
@@ -1313,7 +1320,7 @@ function addDecoratesEdge(
     source_entity_id: decoratorId,
     target_entity_id: targetId,
     edge_type: "DECORATES",
-    source_file_path: ctx.filePath,
+    source_file_path: ctx.relativeFilePath,
     source_file_hash: ctx.sourceFileHash,
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
@@ -1447,6 +1454,7 @@ export class CSharpParser implements LanguageParser {
     const ctx: ParseContext = {
       config,
       filePath,
+      relativeFilePath: computeRelativeFilePath(filePath, config),
       sourceFileHash,
       currentNamespace: null,
       currentNamespaceId: null,

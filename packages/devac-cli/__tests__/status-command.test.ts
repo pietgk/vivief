@@ -212,7 +212,7 @@ describe("status command", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.next).toContainEqual(expect.stringContaining("workspace init"));
+      expect(result.next).toContainEqual(expect.stringContaining("hub init"));
     });
 
     it("suggests starting watch when hub connected but watch inactive", async () => {
