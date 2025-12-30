@@ -5,8 +5,21 @@ You are helping the user start work on a GitHub issue using git worktrees for is
 ## Usage
 
 ```
-/devac:start-issue-on-new-worktree <issue-number> [--repos repo1,repo2]
+/devac:start-issue-on-new-worktree <issue-id> [--repos repo1,repo2]
 ```
+
+### Issue ID Format
+
+The `<issue-id>` can be specified in two formats:
+
+1. **Full issue ID** (recommended): `ghrepo-123` - Works from anywhere in the workspace
+   - `gh` = GitHub source prefix
+   - `repo` = repository name (e.g., `vivief`, `api`)
+   - `123` = issue number
+   - Example: `ghvivief-39` for issue #39 in the vivief repo
+
+2. **Legacy numeric format**: `123` - Only works when inside the repo
+   - Example: `39` (must be inside the vivief directory)
 
 ## What is a Git Worktree?
 
@@ -20,7 +33,7 @@ Git worktrees allow multiple working directories from the same repository. This 
 ### 1. Fetch issue details
 
 ```bash
-gh issue view <issue-number>
+gh issue view <issue-number> -R owner/repo
 ```
 
 ### 2. Create worktree
@@ -28,14 +41,19 @@ gh issue view <issue-number>
 Use devac-worktree CLI:
 
 ```bash
-# Single repo
-devac-worktree start <issue-number>
+# From anywhere in workspace (recommended)
+devac-worktree start ghvivief-39
+
+# From inside a repo (legacy)
+devac-worktree start 39
 
 # Multiple repos (from parent directory)
-devac-worktree start <issue-number> --repos api,web,shared
+devac-worktree start ghvivief-39 --repos api,web,shared
 ```
 
 This will:
+- Find the workspace root automatically
+- Locate the repo by name from the issue ID
 - Create branch: `<issue-number>-<slug>`
 - Create worktree: `../<repo>-<issue-number>-<slug>/`
 - Install dependencies
@@ -51,15 +69,15 @@ Show the user:
 ## Example Flow
 
 ```
-User: /devac:start-issue-on-new-worktree 42
+User: /devac:start-issue-on-new-worktree ghvivief-42
 
-Claude: Creating worktree for issue #42...
+Claude: Creating worktree for issue #42 in vivief...
 
 ## Worktree Created
 
 **Issue #42:** Add watch mode for incremental analysis
 
-**Location:** ../vivief-42-add-watch-mode/
+**Location:** /Users/user/ws/vivief-42-add-watch-mode/
 
 **Branch:** 42-add-watch-mode
 
@@ -69,12 +87,12 @@ Dependencies installed.
 
 To navigate:
 ```bash
-cd ../vivief-42-add-watch-mode
+cd /Users/user/ws/vivief-42-add-watch-mode
 ```
 
 Or start a new Claude session there:
 ```bash
-claude --cwd ../vivief-42-add-watch-mode
+claude --cwd /Users/user/ws/vivief-42-add-watch-mode
 ```
 
 ## Implementation Plan
@@ -82,12 +100,30 @@ claude --cwd ../vivief-42-add-watch-mode
 [Proposes implementation approach]
 ```
 
+## Workspace Mode
+
+When using the full issue ID format (`ghrepo-123`), devac-worktree will:
+
+1. **Find workspace** - Walk up directories to find the workspace root (contains `.devac/` or multiple repos)
+2. **Locate repo** - Find the repository by name in the workspace
+3. **Get GitHub info** - Parse the git remote to determine owner/repo for API calls
+4. **Create worktree** - Create the worktree as a sibling in the workspace
+
+This allows starting work from any directory in the workspace:
+
+```bash
+# All of these work with the full issue ID:
+cd /Users/user/ws && devac-worktree start ghvivief-42
+cd /Users/user/ws/vivief && devac-worktree start ghvivief-42
+cd /Users/user/ws/vivief/packages/core && devac-worktree start ghvivief-42
+```
+
 ## Multi-Repo Workflow
 
 For issues spanning multiple repositories:
 
 ```
-/devac:start-issue-on-new-worktree 123 --repos api,web
+/devac:start-issue-on-new-worktree ghvivief-123 --repos api,web
 
 Creates:
   ../api-123-feature/
@@ -105,6 +141,7 @@ Use `/devac:start-issue-on-new-worktree` when:
 - You want complete isolation from other work
 - The issue spans multiple repositories
 - You prefer clean separation between tasks
+- You're working from anywhere in the workspace (use full issue ID)
 
 ## See Also
 

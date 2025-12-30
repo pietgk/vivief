@@ -7,16 +7,18 @@ import type { GitHubIssue } from "./types.js";
 
 /**
  * Fetch issue details from GitHub
+ *
+ * @param issueNumber Issue number to fetch
+ * @param repo Optional owner/repo (e.g., "pietgk/vivief"). If not provided, uses current repo.
  */
-export async function fetchIssue(issueNumber: number): Promise<GitHubIssue> {
-  const { stdout } = await execa("gh", [
-    "issue",
-    "view",
-    String(issueNumber),
-    "--json",
-    "number,title,body,state,labels",
-  ]);
+export async function fetchIssue(issueNumber: number, repo?: string): Promise<GitHubIssue> {
+  const args = ["issue", "view", String(issueNumber), "--json", "number,title,body,state,labels"];
 
+  if (repo) {
+    args.push("-R", repo);
+  }
+
+  const { stdout } = await execa("gh", args);
   return JSON.parse(stdout) as GitHubIssue;
 }
 

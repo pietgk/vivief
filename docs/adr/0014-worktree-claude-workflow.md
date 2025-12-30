@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (Extended 2025-01 with context discovery, multi-repo support, CI/review integration)
+Accepted (Extended 2025-01 with context discovery, multi-repo support, CI/review integration, workspace-aware issue IDs)
 
 ## Context
 
@@ -43,6 +43,31 @@ Create a new `devac-worktree` CLI package that automates the git worktree + Clau
 | `clean <issue>` | Remove worktree after PR merged |
 | `clean-merged` | Clean all worktrees with merged PRs |
 
+### Issue ID Format (Extended)
+
+The `<issue>` parameter supports two formats:
+
+**Full Issue ID (Recommended):**
+```
+ghrepo-123
+```
+- `gh` = GitHub source prefix
+- `repo` = repository name (e.g., `vivief`, `api`)
+- `123` = issue number
+
+This format enables workspace-aware operation - the CLI can be run from anywhere in the workspace and will:
+1. Find the workspace root (directory containing `.devac/` or multiple repos)
+2. Locate the target repository by name
+3. Get GitHub owner/repo from the git remote
+4. Fetch issue details using the resolved owner/repo
+5. Create the worktree in the workspace
+
+**Legacy Numeric Format:**
+```
+123
+```
+Only works when inside the target repository. Maintained for backward compatibility.
+
 ### State Management
 
 - **State file**: `~/.devac/worktrees.json` tracks active worktrees
@@ -51,11 +76,15 @@ Create a new `devac-worktree` CLI package that automates the git worktree + Clau
 
 ### Workflow
 
+**From anywhere in workspace (recommended):**
 ```
-devac-worktree start 42
-  ├── Fetch issue #42 from GitHub
+devac-worktree start ghvivief-42
+  ├── Find workspace root
+  ├── Locate 'vivief' repo in workspace
+  ├── Get GitHub owner/repo from git remote
+  ├── Fetch issue #42 from GitHub (pietgk/vivief)
   ├── Create branch: 42-fix-login-bug
-  ├── Create worktree: ../myrepo-42/
+  ├── Create worktree: ~/ws/vivief-42-fix-login-bug/
   ├── Install dependencies (pnpm/npm/yarn)
   ├── Write issue context to ~/.devac/issue-context.md
   └── Launch claude CLI in worktree
@@ -66,6 +95,16 @@ devac-worktree clean 42
   ├── Verify PR is merged
   ├── Remove worktree
   └── Delete branch
+```
+
+**Legacy (from inside repo):**
+```
+cd ~/ws/vivief
+devac-worktree start 42
+  ├── Fetch issue #42 from GitHub (current repo)
+  ├── Create branch: 42-fix-login-bug
+  ├── Create worktree: ../vivief-42-fix-login-bug/
+  └── ... (same as above)
 ```
 
 ### Context Discovery (Extended)
@@ -188,6 +227,7 @@ The MCP server provides a `get_context` tool with intelligent caching:
 - **CI visibility**: Check PR status across all repos in one command
 - **Review automation**: Generate LLM review prompts for cross-repo changes
 - **MCP integration**: AI assistants can discover context automatically
+- **Workspace-aware**: Full issue ID format (`ghrepo-123`) works from anywhere in workspace
 
 ### Negative
 
@@ -208,6 +248,7 @@ The MCP server provides a `get_context` tool with intelligent caching:
 
 - GitHub Issue (original): https://github.com/pietgk/vivief/issues/12
 - GitHub Issue (context discovery): https://github.com/pietgk/vivief/issues/19
+- GitHub Issue (workspace-aware issue IDs): https://github.com/pietgk/vivief/issues/39
 - Git worktrees: https://git-scm.com/docs/git-worktree
 - GitHub CLI: https://cli.github.com/
 - Claude CLI: https://claude.ai/cli

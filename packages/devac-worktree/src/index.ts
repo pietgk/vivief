@@ -6,6 +6,7 @@
  * Git worktree + Claude CLI workflow for GitHub issues
  */
 
+import { parseIssueId } from "@pietgk/devac-core";
 import { Command } from "commander";
 import {
   cleanCommand,
@@ -18,6 +19,37 @@ import {
   statusCommand,
 } from "./commands/index.js";
 import { VERSION } from "./version.js";
+
+/**
+ * Parse issue argument - supports both formats:
+ * - Legacy: "37" (numeric only, requires being in a repo)
+ * - New: "ghvivief-37" (full issue ID with source and repo)
+ */
+function parseIssueArg(issueArg: string): {
+  issueNumber: number;
+  issueId?: string;
+  repoName?: string;
+} {
+  // Try to parse as full issue ID first (e.g., "ghvivief-37")
+  const parsed = parseIssueId(issueArg);
+  if (parsed) {
+    return {
+      issueNumber: parsed.number,
+      issueId: parsed.full,
+      repoName: parsed.originRepo,
+    };
+  }
+
+  // Fall back to legacy numeric format
+  const numericValue = Number.parseInt(issueArg, 10);
+  if (Number.isNaN(numericValue) || numericValue <= 0) {
+    throw new Error(
+      `Invalid issue: "${issueArg}". Use format "ghrepo-123" (e.g., ghvivief-37) or just the number if inside a repo.`
+    );
+  }
+
+  return { issueNumber: numericValue };
+}
 
 const program = new Command();
 
@@ -48,8 +80,12 @@ function parseRepos(value: string): string[] {
 }
 
 program
-  .command("start <issue-number>")
-  .description("Create worktree and launch Claude for an issue")
+  .command("start <issue>")
+  .description(
+    "Create worktree and launch Claude for an issue. " +
+      "Use 'ghrepo-123' format (e.g., ghvivief-37) to work from anywhere, " +
+      "or just '123' when inside a repo."
+  )
   .option("--skip-install", "Skip dependency installation")
   .option("--skip-claude", "Skip launching Claude CLI")
   .option("--create-pr", "Create a draft PR immediately")
@@ -65,9 +101,19 @@ program
     parseRepos
   )
   .option("-v, --verbose", "Verbose output")
-  .action(async (issueNumber: string, options) => {
+  .action(async (issue: string, options) => {
+    let parsedIssue: ReturnType<typeof parseIssueArg>;
+    try {
+      parsedIssue = parseIssueArg(issue);
+    } catch (err) {
+      console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+
     const result = await startCommand({
-      issueNumber: Number.parseInt(issueNumber, 10),
+      issueNumber: parsedIssue.issueNumber,
+      issueId: parsedIssue.issueId,
+      repoName: parsedIssue.repoName,
       skipInstall: options.skipInstall,
       skipClaude: options.skipClaude,
       createPr: options.createPr,
