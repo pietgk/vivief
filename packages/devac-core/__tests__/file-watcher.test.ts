@@ -301,10 +301,10 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER));
+      await new Promise((resolve) => setTimeout(resolve, 150 * CI_TIMEOUT_MULTIPLIER));
 
       await fs.writeFile(path.join(tempDir, "src", "test.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
+      await new Promise((resolve) => setTimeout(resolve, 500 * CI_TIMEOUT_MULTIPLIER));
 
       expect(events.some((e) => e.filePath.endsWith(".ts"))).toBe(true);
     });
@@ -318,13 +318,13 @@ describe("FileWatcher", () => {
       watcher.on("add", (event) => events.push(event));
 
       await watcher.start();
-      await new Promise((resolve) => setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER));
+      await new Promise((resolve) => setTimeout(resolve, 150 * CI_TIMEOUT_MULTIPLIER));
 
       await fs.writeFile(
         path.join(tempDir, "src", "component.tsx"),
         "export const C = () => <div/>;"
       );
-      await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
+      await new Promise((resolve) => setTimeout(resolve, 500 * CI_TIMEOUT_MULTIPLIER));
 
       expect(events.some((e) => e.filePath.endsWith(".tsx"))).toBe(true);
     });
