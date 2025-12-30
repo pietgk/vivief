@@ -13,7 +13,14 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { CentralHub, type WorkspaceStatus, getWorkspaceStatus } from "@pietgk/devac-core";
+import {
+  CentralHub,
+  type WorkspaceStatus,
+  discoverContext,
+  getCIStatusForContext,
+  getWorkspaceStatus,
+  syncCIStatusToHub,
+} from "@pietgk/devac-core";
 import type { Command } from "commander";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,6 +39,12 @@ export interface StatusOptions {
 
   /** Show only seed status (skip diagnostics) */
   seedsOnly?: boolean;
+
+  /** Skip live CI fetch, use hub cache only (faster) */
+  cached?: boolean;
+
+  /** After gathering, sync CI results to hub */
+  sync?: boolean;
 }
 
 export interface StatusResult {
@@ -83,7 +96,7 @@ export interface StatusResult {
     };
   };
 
-  /** Work activity (GitHub-related) */
+  /** Work activity (GitHub-related) - from hub cache */
   activity: {
     /** Open PRs count */
     openPRs: number;
@@ -91,6 +104,29 @@ export interface StatusResult {
     pendingReviews: number;
     /** Open issues count */
     openIssues: number;
+  };
+
+  /** Workflow status (CI/GitHub) - live from GitHub */
+  workflow?: {
+    /** Whether CI status was fetched successfully */
+    available: boolean;
+    /** Error message if CI fetch failed */
+    error?: string;
+    /** CI status for each repo */
+    statuses: Array<{
+      repo: string;
+      status: "passing" | "failing" | "pending" | "no-pr" | "unknown";
+      prNumber?: number;
+      prTitle?: string;
+    }>;
+    /** Summary counts */
+    summary: {
+      total: number;
+      passing: number;
+      failing: number;
+      pending: number;
+      noPr: number;
+    };
   };
 
   /** Suggested next steps */
@@ -317,6 +353,28 @@ function formatBrief(result: StatusResult, seedsOnly = false): string {
       }
       lines.push(`  Activity:     ${activityParts.join("  ")}`);
     }
+
+    // Workflow (CI/GitHub) - live status
+    if (result.workflow) {
+      lines.push("");
+      lines.push("  Workflow:");
+      if (!result.workflow.available) {
+        lines.push(`    ⚠️  ${result.workflow.error ?? "CI status unavailable"}`);
+      } else if (result.workflow.statuses.length === 0) {
+        lines.push("    No repos with CI status");
+      } else {
+        for (const status of result.workflow.statuses) {
+          const icon = getWorkflowIcon(status.status);
+          const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
+          lines.push(`    ${icon} ${status.repo.padEnd(18)} ${prInfo}`);
+        }
+        // Summary line
+        const { summary } = result.workflow;
+        if (summary.failing > 0) {
+          lines.push(`    Summary: ${summary.failing} failing, ${summary.passing} passing`);
+        }
+      }
+    }
   }
 
   // Next
@@ -325,6 +383,24 @@ function formatBrief(result: StatusResult, seedsOnly = false): string {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Get icon for workflow/CI status
+ */
+function getWorkflowIcon(status: "passing" | "failing" | "pending" | "no-pr" | "unknown"): string {
+  switch (status) {
+    case "passing":
+      return "✓";
+    case "failing":
+      return "✗";
+    case "pending":
+      return "⏳";
+    case "no-pr":
+      return "○";
+    case "unknown":
+      return "?";
+  }
 }
 
 /**
@@ -463,13 +539,13 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
     }
     lines.push("");
 
-    // ACTIVITY
+    // ACTIVITY (from hub cache)
     if (
       result.activity.openPRs > 0 ||
       result.activity.pendingReviews > 0 ||
       result.activity.openIssues > 0
     ) {
-      lines.push("ACTIVITY");
+      lines.push("ACTIVITY (cached)");
       lines.push("─".repeat(30));
       if (result.activity.openPRs > 0) {
         lines.push(`  Open PRs:       ${result.activity.openPRs}`);
@@ -479,6 +555,41 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
       }
       if (result.activity.openIssues > 0) {
         lines.push(`  Open Issues:    ${result.activity.openIssues}`);
+      }
+      lines.push("");
+    }
+
+    // WORKFLOW (CI/GitHub) - live status
+    if (result.workflow) {
+      lines.push("WORKFLOW (CI/GitHub)");
+      lines.push("─".repeat(45));
+      if (!result.workflow.available) {
+        lines.push(`  ⚠️  ${result.workflow.error ?? "CI status unavailable"}`);
+      } else if (result.workflow.statuses.length === 0) {
+        lines.push("  No repos with CI status");
+      } else {
+        for (const status of result.workflow.statuses) {
+          const icon = getWorkflowIcon(status.status);
+          const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
+          let line = `  ${icon} ${status.repo.padEnd(20)} ${prInfo}`;
+          if (status.prTitle) {
+            // Truncate long titles
+            const maxLen = 40;
+            const title =
+              status.prTitle.length > maxLen
+                ? `${status.prTitle.substring(0, maxLen)}...`
+                : status.prTitle;
+            line += ` - ${title}`;
+          }
+          lines.push(line);
+        }
+        lines.push("");
+        // Summary
+        const { summary } = result.workflow;
+        lines.push(
+          `  Summary: ${summary.passing} passing, ${summary.failing} failing, ` +
+            `${summary.pending} pending, ${summary.noPr} no PR`
+        );
       }
       lines.push("");
     }
@@ -659,12 +770,82 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
       }
     }
 
+    // Fetch live CI status (unless --cached or --seeds-only)
+    if (!seedsOnly && !options.cached) {
+      try {
+        // Discover context for CI status
+        const context = await discoverContext(cwd);
+
+        // Get CI status for all repos/worktrees
+        const ciResult = await getCIStatusForContext(context, {
+          includeChecks: false,
+          timeout: 15000,
+        });
+
+        if (ciResult.success) {
+          result.workflow = {
+            available: true,
+            statuses: ciResult.statuses.map((s) => ({
+              repo: s.repo,
+              status: s.status,
+              prNumber: s.prNumber,
+              prTitle: s.prTitle,
+            })),
+            summary: {
+              total: ciResult.summary.total,
+              passing: ciResult.summary.passing,
+              failing: ciResult.summary.failing,
+              pending: ciResult.summary.pending,
+              noPr: ciResult.summary.noPr,
+            },
+          };
+
+          // Optionally sync to hub
+          if (options.sync && workspacePath) {
+            const hubDir = path.join(workspacePath, ".devac");
+            try {
+              const hub = new CentralHub({ hubDir });
+              await hub.init();
+              await syncCIStatusToHub(hub, ciResult, {
+                failingOnly: false,
+                clearExisting: true,
+              });
+              await hub.close();
+            } catch {
+              // Sync failed, but don't fail the whole command
+            }
+          }
+        } else {
+          result.workflow = {
+            available: false,
+            error: ciResult.error,
+            statuses: [],
+            summary: { total: 0, passing: 0, failing: 0, pending: 0, noPr: 0 },
+          };
+        }
+      } catch (error) {
+        result.workflow = {
+          available: false,
+          error: error instanceof Error ? error.message : String(error),
+          statuses: [],
+          summary: { total: 0, passing: 0, failing: 0, pending: 0, noPr: 0 },
+        };
+      }
+    }
+
     // Determine next steps based on current state
     // Check for packages needing analysis first
     if (result.seeds && result.seeds.summary.packagesNeedAnalysis > 0) {
       result.next.push(
         `Analyze ${result.seeds.summary.packagesNeedAnalysis} package(s): devac hub register --all`
       );
+    }
+    // Check for CI failures (highest priority workflow issue)
+    if (result.workflow?.available && result.workflow.summary.failing > 0) {
+      const failingRepos = result.workflow.statuses
+        .filter((s) => s.status === "failing")
+        .map((s) => s.repo);
+      result.next.push(`Fix CI failures in: ${failingRepos.join(", ")}`);
     }
     if (result.diagnostics.errors > 0) {
       if (result.diagnostics.bySource.tsc.errors > 0) {
@@ -717,12 +898,14 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
 export function registerStatusCommand(program: Command): void {
   program
     .command("status")
-    .description("Show DevAC status (context, health, seeds, diagnostics, next steps)")
+    .description("Show DevAC status (context, health, seeds, diagnostics, workflow, next steps)")
     .option("-p, --path <path>", "Path to check status from", process.cwd())
     .option("--brief", "Show brief summary (default)")
     .option("--full", "Show full detailed status")
     .option("--json", "Output as JSON")
     .option("--seeds-only", "Show only seed status (skip diagnostics)")
+    .option("--cached", "Skip live CI fetch, use hub cache only (faster)")
+    .option("--sync", "Sync CI results to hub after gathering")
     .action(async (options) => {
       // Determine format
       let format: "oneline" | "brief" | "full" = "brief";
@@ -735,6 +918,8 @@ export function registerStatusCommand(program: Command): void {
         format,
         json: options.json,
         seedsOnly: options.seedsOnly,
+        cached: options.cached,
+        sync: options.sync,
       });
 
       if (result.success) {
