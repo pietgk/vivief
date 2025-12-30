@@ -49,7 +49,7 @@ Shows:
 ### 3. Check Extractors (Seeds)
 
 ```bash
-devac status --format brief
+devac status --brief
 ```
 
 Shows:
@@ -68,12 +68,14 @@ SELECT COUNT(*)::INT as edge_count FROM edges
 ### 4. Check Workflow Activity
 
 ```bash
-# Check for open PRs
-gh pr list --state open
+# Check CI status across all repos in workspace
+devac workspace ci
 
-# Check CI status
-devac context ci
+# Or check for open PRs per repo (use --repo flag from workspace root)
+gh pr list --state open --repo <owner/repo>
 ```
+
+**Note:** When running from a workspace parent directory (not a git repo), use `devac workspace ci` or specify repos explicitly with `gh pr list --repo owner/repo`.
 
 Shows:
 - Open pull requests

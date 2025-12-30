@@ -65,10 +65,13 @@ devac
 
 **Output:**
 ```
-my-project  errors:0 lint:0 tests:- coverage:-  next:analyze
+DevAC Status
+  Context:      my-project
+  DevAC Health: watch:inactive  hub:connected
+  Seeds:        1 package analyzed
 ```
 
-> **Tip:** Running `devac` with no arguments shows the status one-liner by default.
+> **Tip:** Running `devac` with no arguments shows the brief status by default.
 
 ### 2. Analyze a Package
 
@@ -137,8 +140,8 @@ your-project/
 
 | Command | Description |
 |---------|-------------|
-| `devac` | Show status one-liner (default action) |
-| `devac status` | Show status (supports `--format brief/full/json`) |
+| `devac` | Show brief status (default action) |
+| `devac status` | Show status (supports `--brief`, `--full`, `--json`) |
 | `devac analyze` | Parse and generate seeds |
 | `devac analyze --if-changed` | Only re-analyze changed files |
 | `devac analyze --force` | Force full re-analysis |

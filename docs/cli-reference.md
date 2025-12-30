@@ -23,10 +23,10 @@ Options:
 
 ## Default Action
 
-When running `devac` with no arguments, it displays the status command output (one-liner format):
+When running `devac` with no arguments, it displays the status command output (brief format):
 
 ```bash
-devac                    # Equivalent to: devac status --format oneline
+devac                    # Equivalent to: devac status --brief
 ```
 
 ## Status Command
@@ -39,28 +39,25 @@ Show current DevAC status including context, health, diagnostics, and next steps
 devac status [options]
 
 Options:
-  --format <format>     Output format: oneline (default), brief, full, json
+  --brief              Show brief summary (default)
+  --full               Show full detailed status
+  --json               Output as JSON
+  --seeds-only         Show only seed status (skip diagnostics)
 
 Formats:
-  oneline      Single line summary (default, also shown when running `devac` with no args)
-  brief        Summary per category
-  full         Detailed breakdown with individual items
-  json         Machine-readable JSON output
+  brief (default)  Summary per category
+  full             Detailed breakdown with individual items
+  json             Machine-readable JSON output
 
 Examples:
-  devac                              # One-liner (default action)
+  devac                              # Brief status (default action)
   devac status                       # Same as above
-  devac status --format brief        # Summary view
-  devac status --format full         # Detailed view
-  devac status --format json         # JSON output
+  devac status --brief               # Summary view (explicit)
+  devac status --full                # Detailed view
+  devac status --json                # JSON output
 ```
 
-**Output (oneline):**
-```
-api-gh123-auth  errors:5 lint:3 tests:ok coverage:45%  pr:open  next:errors
-```
-
-**Output (brief):**
+**Output (brief, default):**
 ```
 DevAC Status
   Context:      api-gh123-auth (issue #123)
