@@ -289,7 +289,7 @@ export class PackageDataProvider implements DataProvider {
   async getFileSymbols(filePath: string): Promise<ProviderQueryResult> {
     const startTime = Date.now();
 
-    const sql = `SELECT * FROM nodes WHERE source_file = '${filePath.replace(/'/g, "''")}'`;
+    const sql = `SELECT * FROM nodes WHERE file_path = '${filePath.replace(/'/g, "''")}'`;
     const result = await this.seedReader.querySeeds(sql);
     return {
       rows: result.rows,
@@ -668,7 +668,7 @@ export class HubDataProvider implements DataProvider {
       return { rows: [], rowCount: 0, timeMs: Date.now() - startTime };
     }
 
-    const sql = `SELECT * FROM {nodes} WHERE source_file = '${filePath.replace(/'/g, "''")}'`;
+    const sql = `SELECT * FROM {nodes} WHERE file_path = '${filePath.replace(/'/g, "''")}'`;
     const result = await queryMultiplePackages(this.pool, packagePaths, sql);
     return {
       rows: result.rows,
@@ -769,9 +769,11 @@ export class HubDataProvider implements DataProvider {
       .replace(/\bFROM\s+nodes\b/gi, "FROM {nodes}")
       .replace(/\bFROM\s+edges\b/gi, "FROM {edges}")
       .replace(/\bFROM\s+external_refs\b/gi, "FROM {external_refs}")
+      .replace(/\bFROM\s+effects\b/gi, "FROM {effects}")
       .replace(/\bJOIN\s+nodes\b/gi, "JOIN {nodes}")
       .replace(/\bJOIN\s+edges\b/gi, "JOIN {edges}")
-      .replace(/\bJOIN\s+external_refs\b/gi, "JOIN {external_refs}");
+      .replace(/\bJOIN\s+external_refs\b/gi, "JOIN {external_refs}")
+      .replace(/\bJOIN\s+effects\b/gi, "JOIN {effects}");
 
     const result = await queryMultiplePackages(this.pool, packagePaths, processedSql);
     return {
