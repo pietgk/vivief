@@ -2,19 +2,50 @@
 
 You are helping the user commit their staged changes following the vivief development workflow.
 
+## Workflow Overview
+
+This workflow uses deterministic CLI commands for validation and structured data, while you handle reasoning and drafting.
+
 ## Steps
 
-### 1. Check for staged changes
-Run `git diff --cached --stat` to see what's staged. If nothing is staged, inform the user and ask if they want to stage all changes with `git add -A`.
+### 1. Run pre-commit validation
 
-### 2. Analyze the changes
-Run `git diff --cached` to understand the actual code changes. Consider:
-- What type of change is this? (feat, fix, docs, refactor, perf, test, chore)
-- Which package(s) are affected?
-- What is the main purpose of these changes?
+```bash
+devac workflow pre-commit --json
+```
+
+This returns:
+- `ready`: Whether ready to commit (no blockers)
+- `staged`: List of staged files
+- `blockers`: Any blocking issues
+- `validation.lint.passed`: Lint status
+- `validation.types.passed`: Typecheck status
+- `sensitiveFiles`: Any sensitive files detected
+- `warnings`: Non-blocking issues
+
+**If not ready**: Present blockers to user and ask how to proceed.
+
+**If no staged files**: Ask if user wants to stage all changes with `git add -A`.
+
+### 2. Get diff summary for context
+
+```bash
+devac workflow diff-summary --staged --include-content --json
+```
+
+This returns:
+- `files`: All changed files
+- `byPackage`: Changes grouped by package with line counts
+- `byCategory`: Changes grouped by type (source, tests, docs, config)
+- `stats`: Overall statistics
+- `diff`: The actual diff content
+
+Use this structured data to understand what changed.
 
 ### 3. Draft a conventional commit message
-Based on your analysis, draft a commit message following this format:
+
+Based on the diff summary, draft a commit message:
+
 ```
 type(scope): description
 
@@ -30,62 +61,78 @@ Types:
 - **test**: Adding/updating tests
 - **chore**: Maintenance tasks, dependencies, CI
 
-Scope is optional but recommended when changes are focused on a specific package (e.g., `core`, `cli`, `mcp`).
+Scope should be the package name when changes are focused (e.g., `core`, `cli`, `mcp`).
 
 ### 4. Check if changeset is needed
-Check if any files in `packages/*/src/` were modified:
+
 ```bash
-git diff --cached --name-only | grep -E "^packages/.*/src/"
+devac workflow check-changeset --json
 ```
 
-If package source files changed:
-- Ask the user if this change should be released (affects package consumers)
+This returns:
+- `needsChangeset`: Whether a changeset is required
+- `packagesNeedingChangeset`: Which packages need coverage
+- `existingChangesets`: Any changesets already on this branch
+- `changesetsCoverAll`: Whether existing changesets cover all changed packages
+
+**If needsChangeset is true**:
+- Ask user if this change should be released (affects package consumers)
 - If yes, run `/devac:draft-changeset` to create a changeset
-- If no (internal change only), skip the changeset
+- Stage the changeset: `git add .changeset/`
 
-### 5. Check if ADR is needed
-Ask the user: "Does this change involve an architectural decision that should be documented?"
+### 5. Execute the commit
 
-Examples of when an ADR is needed:
-- Choosing between different technical approaches
-- Adding new dependencies
-- Changing data models or APIs
-- Modifying system architecture
+After user approves the message:
 
-If yes, offer to run `/devac:draft-adr` after the commit.
-
-### 6. Execute the commit
-After user approves the commit message:
 ```bash
-git commit -m "type(scope): description"
+git commit -m "$(cat <<'EOF'
+type(scope): description
+
+[body if any]
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
 ```
 
-### 7. Summary
+### 6. Summary
+
 Provide a brief summary:
 - What was committed
-- Whether a changeset was created
-- Whether an ADR should be created
-- Suggest running `/devac:prepare-pr` if ready to open a PR
+- Whether a changeset was created/needed
+- Suggest running `/devac:ship` if ready to push and create PR
 
 ## Example Flow
 
 ```
 User: /devac:commit
 
-Claude: Let me check your staged changes...
+Claude: Let me run pre-commit validation...
 
-[Shows staged files summary]
+[Runs: devac workflow pre-commit --json]
 
-Based on the changes, I suggest this commit message:
+✓ Validation passed
+  - 3 files staged
+  - Lint: pass
+  - Types: pass
 
-  feat(cli): add watch mode for incremental analysis
+[Runs: devac workflow diff-summary --staged --include-content --json]
 
-  - Adds file watcher using chokidar
-  - Debounces rapid file changes
-  - Integrates with analysis orchestrator
+Based on the changes in devac-cli/src, I suggest:
 
-I see you modified files in packages/devac-cli/src/. This will need a changeset for the release.
-Should I create one? (yes/no)
+  feat(cli): add workflow commands for deterministic operations
 
-Also, does this change involve an architectural decision that should be documented as an ADR?
+  - Add check-changeset command
+  - Add pre-commit validation command
+  - Add diff-summary for structured output
+  - Add prepare-ship command
+  - Add install-local command
+
+[Runs: devac workflow check-changeset --json]
+
+⚠️ Changeset needed for @pietgk/devac-cli
+
+This adds new functionality. Should I create a changeset? (yes/no)
 ```

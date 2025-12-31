@@ -36,6 +36,9 @@ export { registerEffectsCommand } from "./effects.js";
 export { registerRulesCommand } from "./rules.js";
 export { registerC4Command } from "./c4.js";
 
+// Workflow commands (deterministic development operations)
+export { registerWorkflowCommand } from "./workflow/index.js";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Command function exports (for programmatic use)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -249,3 +252,24 @@ export type {
   C4DomainsResult,
   C4ExternalsResult,
 } from "./c4.js";
+
+// Workflow commands (deterministic development operations)
+export {
+  checkChangesetCommand,
+  preCommitCommand,
+  prepareShipCommand,
+  diffSummaryCommand,
+  installLocalCommand,
+} from "./workflow/index.js";
+export type {
+  CheckChangesetOptions,
+  CheckChangesetResult,
+  PreCommitOptions,
+  PreCommitResult,
+  PrepareShipOptions,
+  PrepareShipResult,
+  DiffSummaryOptions,
+  DiffSummaryResult,
+  InstallLocalOptions,
+  InstallLocalResult,
+} from "./workflow/index.js";

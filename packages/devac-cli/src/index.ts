@@ -34,6 +34,7 @@ import {
   registerValidateCommand,
   registerVerifyCommand,
   registerWatchCommand,
+  registerWorkflowCommand,
   registerWorkspaceCommand,
 } from "./commands/index.js";
 import { VERSION } from "./version.js";
@@ -83,6 +84,9 @@ registerDiagnosticsCommand(program);
 registerEffectsCommand(program);
 registerRulesCommand(program);
 registerC4Command(program);
+
+// Workflow commands (deterministic development operations)
+registerWorkflowCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

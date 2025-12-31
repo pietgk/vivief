@@ -1,7 +1,7 @@
 # vivief Development Workflow
 
-> **Version**: 1.5.0
-> **Last Updated**: 2025-12-29
+> **Version**: 1.6.0
+> **Last Updated**: 2025-12-31
 > **ADRs**: [ADR-0011: Development Workflow](adr/0011-development-workflow.md), [ADR-0012: Claude-Assisted Slash Commands](adr/0012-claude-assisted-slash-commands.md)
 
 This document describes the development workflow for vivief. For the rationale behind these choices, see ADR-0011.
@@ -22,7 +22,8 @@ This document describes the development workflow for vivief. For the rationale b
 10. [Skills (Auto-Invoked)](#skills-auto-invoked)
 11. [Claude Collaboration](#claude-collaboration)
 12. [Multi-Repo Development](#multi-repo-development)
-13. [Quick Reference](#quick-reference)
+13. [CLI Workflow Commands](#cli-workflow-commands)
+14. [Quick Reference](#quick-reference)
 
 ---
 
@@ -787,6 +788,146 @@ When making changes that affect multiple repositories:
 
 ---
 
+## CLI Workflow Commands
+
+The DevAC CLI provides deterministic workflow commands that handle mechanical, repeatable tasks. These commands return structured JSON data that can be used by slash commands or scripts.
+
+### Available Commands
+
+```bash
+devac workflow <command> [options]
+```
+
+| Command | Purpose |
+|---------|---------|
+| `check-changeset` | Check if a changeset is needed based on changed packages |
+| `pre-commit` | Validate commit readiness (staged files, lint, types) |
+| `prepare-ship` | Full pre-ship validation (build, test, lint, changeset) |
+| `diff-summary` | Get structured diff information for LLM drafting |
+| `install-local` | Build and link CLI packages globally for local testing |
+
+### Command Details
+
+#### check-changeset
+
+Check if a changeset is needed based on which packages have source changes:
+
+```bash
+devac workflow check-changeset --json
+```
+
+Returns:
+- `needsChangeset`: Whether a changeset is required
+- `packagesNeedingChangeset`: Which packages need coverage
+- `existingChangesets`: Changesets already on this branch
+- `changesetsCoverAll`: Whether existing changesets cover all changes
+
+#### pre-commit
+
+Validate commit readiness before committing:
+
+```bash
+devac workflow pre-commit --json
+```
+
+Returns:
+- `ready`: Whether ready to commit (no blockers)
+- `staged`: List of staged files
+- `blockers`: Any blocking issues
+- `validation.lint.passed`: Lint status
+- `validation.types.passed`: Typecheck status
+- `sensitiveFiles`: Any sensitive files detected
+
+Options:
+- `--skip-lint`: Skip lint check
+- `--skip-types`: Skip typecheck
+
+#### prepare-ship
+
+Full validation before shipping (creating PR):
+
+```bash
+devac workflow prepare-ship --json
+```
+
+Returns:
+- `ready`: Whether ready to ship
+- `blockers`: Blocking issues
+- `branch`: Current branch
+- `validation`: Status of typecheck, lint, test, build
+- `changeset.needed`: Whether changeset is required
+
+Options:
+- `--skip-validation`: Skip all validation
+- `--skip-tests`: Skip test run
+- `--skip-build`: Skip build step
+
+#### diff-summary
+
+Get structured diff information for drafting commit messages or PR descriptions:
+
+```bash
+devac workflow diff-summary --json
+devac workflow diff-summary --staged --include-content --json
+```
+
+Returns:
+- `commits`: Commits on this branch
+- `files`: Changed files
+- `byPackage`: Changes grouped by package with line counts
+- `byCategory`: Changes grouped by type (source, tests, docs, config)
+- `stats`: Overall statistics (files, additions, deletions)
+- `diff`: The actual diff content (if `--include-content`)
+
+Options:
+- `--staged`: Use staged changes instead of branch diff
+- `--include-content`: Include full diff content
+- `--base <branch>`: Base branch to compare against
+
+#### install-local
+
+Build and install CLI packages globally for local testing:
+
+```bash
+devac workflow install-local --json
+```
+
+Returns:
+- `buildSuccess`: Whether build succeeded
+- `packages`: List of linked packages with versions
+- `linkedCount`: Number of packages linked
+- `verifiedCount`: Number verified working
+
+Options:
+- `--skip-build`: Skip build step (just link)
+
+### Design Philosophy
+
+These commands follow key principles:
+
+1. **CLI does deterministic work** - validation, checking, structured output
+2. **LLM does reasoning work** - drafting messages, making decisions
+3. **Commands return structured JSON** - easy for LLM to parse
+4. **Slash commands become thin wrappers** - orchestrate CLI calls
+
+### Example: Using in a Script
+
+```bash
+#!/bin/bash
+# Check if ready to commit
+result=$(devac workflow pre-commit --json)
+ready=$(echo "$result" | jq -r '.ready')
+
+if [ "$ready" = "true" ]; then
+  echo "Ready to commit!"
+else
+  echo "Blockers:"
+  echo "$result" | jq -r '.blockers[]'
+fi
+```
+
+---
+
 ## Quick Reference
 
 ### Daily Development
@@ -849,6 +990,7 @@ pnpm release            # Build and publish
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2025-12-31 | 1.6.0 | Add CLI Workflow Commands section (devac workflow subcommands) |
 | 2025-12-29 | 1.5.0 | Document plugin loading methods (marketplace vs --plugin-dir), use short command format |
 | 2025-12-29 | 1.4.0 | Add Conceptual Model, complete slash commands table, add Skills section |
 | 2025-12-19 | 1.3.0 | Add multi-repo development section with devac-worktree and devac context |
