@@ -7,6 +7,7 @@ Add `devac workflow` command group for deterministic development operations
 New commands that handle mechanical, repeatable tasks while leaving reasoning to the LLM:
 
 - `devac workflow check-changeset` - Check if changeset needed based on package changes
+- `devac workflow check-docs` - Validate documentation health (ADR index, format, package READMEs)
 - `devac workflow pre-commit` - Validate commit readiness (staged files, lint, types)
 - `devac workflow prepare-ship` - Full pre-ship validation (build, test, lint, changeset)
 - `devac workflow diff-summary` - Structured diff info for LLM drafting
