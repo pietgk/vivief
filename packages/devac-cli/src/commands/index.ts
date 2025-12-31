@@ -256,6 +256,7 @@ export type {
 // Workflow commands (deterministic development operations)
 export {
   checkChangesetCommand,
+  checkDocsCommand,
   preCommitCommand,
   prepareShipCommand,
   diffSummaryCommand,
@@ -264,6 +265,9 @@ export {
 export type {
   CheckChangesetOptions,
   CheckChangesetResult,
+  CheckDocsOptions,
+  CheckDocsResult,
+  DocIssue,
   PreCommitOptions,
   PreCommitResult,
   PrepareShipOptions,

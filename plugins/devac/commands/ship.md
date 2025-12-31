@@ -51,6 +51,61 @@ devac workflow diff-summary --staged --include-content --json
 
 Draft and execute commit as in `/devac:commit`.
 
+### 2.5. Documentation Check (Soft Block)
+
+After handling any uncommitted changes, run documentation validation:
+
+```bash
+devac workflow check-docs --json
+```
+
+This returns:
+- `ready`: Whether documentation is in good state
+- `issues`: Array of documentation issues found
+- `suggestions`: Non-blocking recommendations
+- `adr.indexInSync`: Whether ADR index matches files on disk
+- `adr.missingFromIndex`: ADR files not listed in README
+- `adr.missingFromDisk`: Index entries with no file
+- `adr.formatIssues`: ADRs missing required sections
+- `packageReadmes.packagesMissingReadme`: Packages with src/ changes but no README
+- `changedFiles`, `docsChanged`, `sourceChanged`: Context for reasoning
+
+**If issues found:**
+
+Present issues clearly to user:
+
+```
+## Documentation Check
+
+I found [N] documentation issues:
+
+1. **[Issue Type]**
+   - [Details]
+
+2. **[Issue Type]**
+   - [Details]
+```
+
+**Then reason about documentation needs:**
+
+Based on the changes (from `changedFiles` and `sourceChanged`), analyze:
+1. Do code changes warrant new ADRs? (Look for architectural patterns, new dependencies, new modules)
+2. Should existing docs be updated? (API changes → api-reference.md, CLI changes → cli-reference.md)
+3. Are existing ADRs still accurate given the changes?
+
+Present as suggestions:
+```
+**Suggestions based on your changes:**
+- Consider updating docs/implementation/[relevant-doc].md
+- The changes to [area] might warrant an ADR
+
+Would you like to **fix** these first, or **proceed** anyway?
+```
+
+**Soft block handling:**
+- If user says "proceed", "skip", or "continue" → continue with ship flow
+- If user says "fix" → help address the issues before continuing
+
 ### 3. Push to remote
 
 ```bash
@@ -121,6 +176,12 @@ Claude: Let me run pre-ship validation...
 [Runs commit flow]
 
 Committed: feat(cli): add workflow commands
+
+[Runs: devac workflow check-docs --json]
+
+✓ Documentation check passed
+  - ADR index: in sync (22 ADRs)
+  - Package READMEs: all present
 
 [Runs: git push -u origin HEAD]
 

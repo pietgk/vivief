@@ -7,6 +7,7 @@
 
 import type { Command } from "commander";
 import { checkChangesetCommand } from "./check-changeset.js";
+import { checkDocsCommand } from "./check-docs.js";
 import { diffSummaryCommand } from "./diff-summary.js";
 import { installLocalCommand } from "./install-local.js";
 import { preCommitCommand } from "./pre-commit.js";
@@ -14,6 +15,7 @@ import { prepareShipCommand } from "./prepare-ship.js";
 
 // Re-export types
 export type { CheckChangesetOptions, CheckChangesetResult } from "./check-changeset.js";
+export type { CheckDocsOptions, CheckDocsResult, DocIssue } from "./check-docs.js";
 export type { DiffSummaryOptions, DiffSummaryResult } from "./diff-summary.js";
 export type { InstallLocalOptions, InstallLocalResult } from "./install-local.js";
 export type { PreCommitOptions, PreCommitResult } from "./pre-commit.js";
@@ -21,6 +23,7 @@ export type { PrepareShipOptions, PrepareShipResult } from "./prepare-ship.js";
 
 // Re-export command functions
 export { checkChangesetCommand } from "./check-changeset.js";
+export { checkDocsCommand } from "./check-docs.js";
 export { diffSummaryCommand } from "./diff-summary.js";
 export { installLocalCommand } from "./install-local.js";
 export { preCommitCommand } from "./pre-commit.js";
@@ -56,6 +59,35 @@ export function registerWorkflowCommand(program: Command): void {
         console.log(JSON.stringify(result, null, 2));
       }
 
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workflow check-docs
+  workflow
+    .command("check-docs")
+    .description("Check documentation health (ADR index, format, package READMEs)")
+    .option("-p, --path <path>", "Path to repository root")
+    .option("-b, --base <branch>", "Base branch to compare against")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const result = await checkDocsCommand({
+        path: options.path,
+        base: options.base,
+        json: options.json,
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.formatted) {
+        console.log(result.formatted);
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+
+      // Note: check-docs does NOT exit with error on issues
+      // It's a soft check - issues are reported but don't block
       if (!result.success) {
         process.exit(1);
       }
