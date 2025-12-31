@@ -30,10 +30,13 @@ For testing CLI changes locally, link all CLI packages globally:
 
 ```bash
 # Link all CLI packages for local development
-pnpm link --global --filter @pietgk/devac-cli
-pnpm link --global --filter @pietgk/devac-mcp
-pnpm link --global --filter @pietgk/devac-worktree
-pnpm link --global --filter @pietgk/devac-eval
+(cd packages/devac-cli && pnpm link --global)
+(cd packages/devac-mcp && pnpm link --global)
+(cd packages/devac-worktree && pnpm link --global)
+(cd packages/devac-eval && pnpm link --global)
+
+# Or use the workflow command (builds + links + verifies)
+devac workflow install-local
 
 # Verify installation
 devac --version

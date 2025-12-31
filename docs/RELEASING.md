@@ -88,9 +88,12 @@ cd vivief
 pnpm build
 
 # Link CLI packages globally
-pnpm link --global --filter @pietgk/devac-cli
-pnpm link --global --filter @pietgk/devac-mcp
-pnpm link --global --filter @pietgk/devac-eval
+(cd packages/devac-cli && pnpm link --global)
+(cd packages/devac-mcp && pnpm link --global)
+(cd packages/devac-eval && pnpm link --global)
+
+# Or use the workflow command (builds + links + verifies)
+devac workflow install-local
 ```
 
 This creates symlinks to your local workspace, so changes are immediately available.

@@ -43,7 +43,7 @@ pnpm install
 pnpm build
 
 # Link CLI globally
-pnpm --filter @pietgk/devac-cli link --global
+(cd packages/devac-cli && pnpm link --global)
 ```
 
 ## Basic Usage

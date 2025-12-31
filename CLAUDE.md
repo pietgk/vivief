@@ -67,9 +67,12 @@ After building, link all CLI packages globally for local development:
 
 ```bash
 # Link all CLIs globally (run once after build)
-pnpm --filter @pietgk/devac-cli link --global
-pnpm --filter @pietgk/devac-mcp link --global
-pnpm --filter @pietgk/devac-worktree link --global
+(cd packages/devac-cli && pnpm link --global)
+(cd packages/devac-mcp && pnpm link --global)
+(cd packages/devac-worktree && pnpm link --global)
+
+# Or use the workflow command (builds + links + verifies)
+devac workflow install-local
 
 # Verify installation
 devac --version

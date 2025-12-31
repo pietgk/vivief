@@ -31,7 +31,7 @@ pnpm install
 pnpm build
 
 # Link globally
-pnpm --filter @pietgk/devac-worktree link --global
+(cd packages/devac-worktree && pnpm link --global)
 ```
 
 ### Verify Installation

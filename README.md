@@ -49,9 +49,9 @@ pnpm install
 pnpm build
 
 # Link all CLIs globally
-pnpm --filter @pietgk/devac-cli link --global
-pnpm --filter @pietgk/devac-mcp link --global
-pnpm --filter @pietgk/devac-worktree link --global
+(cd packages/devac-cli && pnpm link --global)
+(cd packages/devac-mcp && pnpm link --global)
+(cd packages/devac-worktree && pnpm link --global)
 
 # Verify installation
 devac --version
