@@ -590,19 +590,22 @@ export async function queryMultiplePackages<T = Record<string, unknown>>(
   const nodePaths: string[] = [];
   const edgePaths: string[] = [];
   const refPaths: string[] = [];
+  const effectsPaths: string[] = [];
 
   for (const pkgPath of packagePaths) {
     const paths = getSeedPaths(pkgPath, branch);
     nodePaths.push(path.join(paths.basePath, "nodes.parquet"));
     edgePaths.push(path.join(paths.basePath, "edges.parquet"));
     refPaths.push(path.join(paths.basePath, "external_refs.parquet"));
+    effectsPaths.push(path.join(paths.basePath, "effects.parquet"));
   }
 
   // Replace placeholders in SQL
   const processedSql = sql
     .replace(/{nodes}/g, `read_parquet([${nodePaths.map((p) => `'${p}'`).join(", ")}])`)
     .replace(/{edges}/g, `read_parquet([${edgePaths.map((p) => `'${p}'`).join(", ")}])`)
-    .replace(/{external_refs}/g, `read_parquet([${refPaths.map((p) => `'${p}'`).join(", ")}])`);
+    .replace(/{external_refs}/g, `read_parquet([${refPaths.map((p) => `'${p}'`).join(", ")}])`)
+    .replace(/{effects}/g, `read_parquet([${effectsPaths.map((p) => `'${p}'`).join(", ")}])`);
 
   const rows = await executeWithRecovery(pool, async (conn) => {
     return await conn.all(processedSql);
