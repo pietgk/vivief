@@ -19,19 +19,34 @@ import {
   builtinRules,
   createCentralHub,
   createRuleEngine,
-  createSeedReader,
   discoverDomainBoundaries,
+  discoverPackagesInRepo,
+  executeWithRecovery,
   exportContainersToPlantUML,
   exportContextToPlantUML,
   generateC4Containers,
   generateC4Context,
   queryMultiplePackages,
+  setupQueryContext,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
 import { formatOutput, formatTable } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
   return path.join(os.homedir(), ".devac");
+}
+
+/**
+ * Check if a package has effects.parquet file
+ */
+async function hasEffectsParquet(packagePath: string): Promise<boolean> {
+  const effectsPath = path.join(packagePath, ".devac", "seed", "base", "effects.parquet");
+  try {
+    await fs.promises.access(effectsPath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -257,7 +272,21 @@ async function getDomainEffects(options: C4CommandOptions) {
       try {
         await hub.init();
         const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+
+        if (repos.length === 0) {
+          return { effects: [], pool };
+        }
+
+        // Discover packages with effects.parquet in each repo
+        const packagePaths: string[] = [];
+        for (const repo of repos) {
+          const packages = await discoverPackagesInRepo(repo.localPath);
+          for (const pkg of packages) {
+            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+              packagePaths.push(pkg.path);
+            }
+          }
+        }
 
         if (packagePaths.length === 0) {
           return { effects: [], pool };
@@ -272,10 +301,20 @@ async function getDomainEffects(options: C4CommandOptions) {
       const pkgPath = options.packagePath
         ? path.resolve(options.packagePath)
         : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
 
       const sql = `SELECT * FROM effects ${limitClause}`;
-      effectsResult = await seedReader.querySeeds(sql);
+      const startTime = Date.now();
+      effectsResult = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - startTime,
+        };
+      });
     }
 
     // Run rules engine on effects
@@ -531,9 +570,11 @@ export async function c4ExternalsCommand(options: C4CommandOptions): Promise<C4E
 export function registerC4Command(program: Command): void {
   const c4Cmd = program.command("c4").description("Generate C4 architecture diagrams from effects");
 
-  // Default c4 context command
+  // c4 context subcommand (also the default when no subcommand given)
   c4Cmd
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .command("context", { isDefault: true })
+    .description("Generate C4 Context diagram (default command)")
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-n, --name <name>", "System name", "System")
@@ -542,8 +583,9 @@ export function registerC4Command(program: Command): void {
     .option("-o, --output <path>", "Output file for PlantUML")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ContextCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         systemName: options.name,
@@ -563,7 +605,7 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("containers")
     .description("Generate C4 Container diagram")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-n, --name <name>", "System name", "System")
@@ -576,8 +618,9 @@ export function registerC4Command(program: Command): void {
     .option("-o, --output <path>", "Output file for PlantUML")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ContainersCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         systemName: options.name,
@@ -597,14 +640,15 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("domains")
     .description("Discover domain boundaries from effects")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4DomainsCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
@@ -621,14 +665,15 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("externals")
     .description("List external systems detected from effects")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ExternalsCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,

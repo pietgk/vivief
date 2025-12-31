@@ -5,20 +5,36 @@
  * Part of DevAC v3.0 Foundation.
  */
 
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
   type QueryResult,
   createCentralHub,
-  createSeedReader,
+  discoverPackagesInRepo,
+  executeWithRecovery,
   queryMultiplePackages,
+  setupQueryContext,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
 import { formatOutput, formatTable } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
   return path.join(os.homedir(), ".devac");
+}
+
+/**
+ * Check if a package has effects.parquet file
+ */
+async function hasEffectsParquet(packagePath: string): Promise<boolean> {
+  const effectsPath = path.join(packagePath, ".devac", "seed", "base", "effects.parquet");
+  try {
+    await fs.promises.access(effectsPath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -137,14 +153,36 @@ export async function effectsCommand(
       try {
         await hub.init();
         const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+
+        if (repos.length === 0) {
+          return {
+            success: true,
+            output: options.json
+              ? formatOutput({ effects: [], count: 0 }, { json: true })
+              : "No repositories registered in hub",
+            count: 0,
+            timeMs: Date.now() - startTime,
+            effects: [],
+          };
+        }
+
+        // Discover packages with effects.parquet in each repo
+        const packagePaths: string[] = [];
+        for (const repo of repos) {
+          const packages = await discoverPackagesInRepo(repo.localPath);
+          for (const pkg of packages) {
+            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+              packagePaths.push(pkg.path);
+            }
+          }
+        }
 
         if (packagePaths.length === 0) {
           return {
             success: true,
             output: options.json
               ? formatOutput({ effects: [], count: 0 }, { json: true })
-              : "No repositories registered in hub",
+              : "No packages with effects found in registered repos (run 'devac analyze' first)",
             count: 0,
             timeMs: Date.now() - startTime,
             effects: [],
@@ -161,10 +199,20 @@ export async function effectsCommand(
       const pkgPath = options.packagePath
         ? path.resolve(options.packagePath)
         : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
 
       const sql = `SELECT * FROM effects ${whereClause} ${limitClause}`;
-      result = await seedReader.querySeeds(sql);
+      const queryStartTime = Date.now();
+      result = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - queryStartTime,
+        };
+      });
     }
 
     const effects = result.rows;
@@ -259,14 +307,35 @@ export async function effectsSummaryCommand(
       try {
         await hub.init();
         const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+
+        if (repos.length === 0) {
+          return {
+            success: true,
+            output: options.json
+              ? formatOutput({ summary: [], total: 0 }, { json: true })
+              : "No repositories registered in hub",
+            timeMs: Date.now() - startTime,
+            summary: [],
+          };
+        }
+
+        // Discover packages with effects.parquet in each repo
+        const packagePaths: string[] = [];
+        for (const repo of repos) {
+          const packages = await discoverPackagesInRepo(repo.localPath);
+          for (const pkg of packages) {
+            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+              packagePaths.push(pkg.path);
+            }
+          }
+        }
 
         if (packagePaths.length === 0) {
           return {
             success: true,
             output: options.json
               ? formatOutput({ summary: [], total: 0 }, { json: true })
-              : "No repositories registered in hub",
+              : "No packages with effects found in registered repos (run 'devac analyze' first)",
             timeMs: Date.now() - startTime,
             summary: [],
           };
@@ -281,10 +350,20 @@ export async function effectsSummaryCommand(
       const pkgPath = options.packagePath
         ? path.resolve(options.packagePath)
         : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
 
       const sql = `SELECT ${groupField} as group_key, COUNT(*) as count FROM effects GROUP BY ${groupField} ORDER BY count DESC`;
-      result = await seedReader.querySeeds(sql);
+      const queryStartTime = Date.now();
+      result = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - queryStartTime,
+        };
+      });
     }
 
     const summary = result.rows as Array<{ group_key: string; count: number }>;
@@ -340,9 +419,11 @@ export function registerEffectsCommand(program: Command): void {
     .command("effects")
     .description("Query effects extracted during analysis");
 
-  // Default effects list command
+  // effects list subcommand (also the default when no subcommand given)
   effectsCmd
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .command("list", { isDefault: true })
+    .description("List effects (default command)")
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-t, --type <type>", "Filter by effect type (FunctionCall, Store, etc.)")
@@ -353,8 +434,9 @@ export function registerEffectsCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await effectsCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         type: options.type,
@@ -376,14 +458,15 @@ export function registerEffectsCommand(program: Command): void {
   effectsCmd
     .command("summary")
     .description("Get summary statistics for effects")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
     .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-g, --group-by <field>", "Group by: type, file, entity", "type")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await effectsSummaryCommand({
-        packagePath: options.package ? path.resolve(options.package) : undefined,
+        packagePath,
         hub: options.hub,
         hubDir: options.hubDir,
         groupBy: options.groupBy as "type" | "file" | "entity",
