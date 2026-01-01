@@ -85,3 +85,31 @@ Human-readable markdown with tables:
 - `devac effects verify` in CI catches drift
 - Generated initial documentation reduces bootstrapping effort
 - Clear error messages guide developers to fix gaps
+
+## Implementation Notes
+
+### Markdown Table Parsing
+
+The `package-effects.md` file uses markdown tables with patterns in backticks:
+
+```markdown
+| `userRepo.create` | database | insert | mysql | users |
+```
+
+The parser extracts patterns using the regex `/\|\s*`([^`]+)`\s*\|/` to find the first backtick-wrapped text in each table row.
+
+**Header Row Detection**: Header rows (e.g., `| Pattern | Count | Description |`) are skipped using `/^\|\s*Pattern\s*\|/`. This regex specifically matches rows where "Pattern" appears at the start of the first cell, avoiding false matches with patterns that contain "Pattern" in their name (e.g., `issuePattern.test`).
+
+### Foundational Principle
+
+From the conceptual foundation: **"Everything can be represented as effectHandlers"**
+
+```
+runCode() === handleEffects(extractEffects(code))
+```
+
+This means:
+- ALL code patterns ARE effects - nothing should be excluded during documentation
+- Use Group Types (io:*, compute:*, framework:*, logging:*, workflow:*) to classify patterns
+- Filtering happens at consumption time (when generating docs/diagrams), not during documentation
+- Goal: 0 unmapped patterns in verify output
