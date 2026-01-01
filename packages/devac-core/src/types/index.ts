@@ -82,6 +82,28 @@ export {
   safeParseEffect,
   isCodeEffect,
   isWorkflowEffect,
+  // Effect mapping schemas (developer-defined patterns)
+  StoreEffectMappingSchema,
+  RetrieveEffectMappingSchema,
+  SendEffectMappingSchema,
+  RequestEffectMappingSchema,
+  GroupEffectMappingSchema,
+  PackageEffectMappingsSchema,
+  // Pattern matching utilities
+  matchesPattern,
+  findStoreMapping,
+  findRetrieveMapping,
+  findSendMapping,
+} from "./effects.js";
+
+// Effect mapping types
+export type {
+  StoreEffectMapping,
+  RetrieveEffectMapping,
+  SendEffectMapping,
+  RequestEffectMapping,
+  GroupEffectMapping,
+  PackageEffectMappings,
 } from "./effects.js";
 
 // Configuration types

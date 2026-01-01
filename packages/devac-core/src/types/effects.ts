@@ -777,3 +777,169 @@ export function isCodeEffect(effect: Effect): effect is CodeEffect {
 export function isWorkflowEffect(effect: Effect): effect is WorkflowEffect {
   return WorkflowEffectSchema.safeParse(effect).success;
 }
+
+// =============================================================================
+// Effect Mapping Schemas - Developer-Defined Pattern Mappings
+// =============================================================================
+
+/**
+ * Store operation mapping from FunctionCall pattern to Store effect
+ */
+export const StoreEffectMappingSchema = z.object({
+  /** Pattern to match (e.g., "userRepo.create", "db.insertInto*") */
+  pattern: z.string(),
+  /** Store type: database, cache, file, queue, external */
+  store_type: z.enum(["database", "cache", "file", "queue", "external"]),
+  /** Operation: insert, update, upsert, delete, write, publish */
+  operation: z.string(),
+  /** Provider name (e.g., "mysql", "redis", "dynamodb") */
+  provider: z.string(),
+  /** Target resource name (e.g., "users", "orders") */
+  target: z.string().optional(),
+  /** Optional description */
+  description: z.string().optional(),
+});
+
+export type StoreEffectMapping = z.infer<typeof StoreEffectMappingSchema>;
+
+/**
+ * Retrieve operation mapping from FunctionCall pattern to Retrieve effect
+ */
+export const RetrieveEffectMappingSchema = z.object({
+  /** Pattern to match (e.g., "userRepo.findById", "db.selectFrom*") */
+  pattern: z.string(),
+  /** Retrieve type: database, cache, file, queue, external */
+  retrieve_type: z.enum(["database", "cache", "file", "queue", "external"]),
+  /** Operation: select, get, read, fetch, receive, scan, query */
+  operation: z.string(),
+  /** Provider name (e.g., "mysql", "redis", "dynamodb") */
+  provider: z.string(),
+  /** Target resource name (e.g., "users", "orders") */
+  target: z.string().optional(),
+  /** Optional description */
+  description: z.string().optional(),
+});
+
+export type RetrieveEffectMapping = z.infer<typeof RetrieveEffectMappingSchema>;
+
+/**
+ * Send (external call) mapping from FunctionCall pattern to Send effect
+ */
+export const SendEffectMappingSchema = z.object({
+  /** Pattern to match (e.g., "stripeClient.*", "sendgrid.send") */
+  pattern: z.string(),
+  /** Send type: http, m2m, email, sms, push, webhook, event */
+  send_type: z.enum(["http", "m2m", "email", "sms", "push", "webhook", "event", "external"]),
+  /** Service name (e.g., "stripe", "sendgrid") */
+  service: z.string(),
+  /** Whether this is a third-party service */
+  is_third_party: z.boolean().default(true),
+  /** Optional description */
+  description: z.string().optional(),
+});
+
+export type SendEffectMapping = z.infer<typeof SendEffectMappingSchema>;
+
+/**
+ * Request handler mapping for API endpoints
+ */
+export const RequestEffectMappingSchema = z.object({
+  /** Class.Method pattern (e.g., "UserController.getUser") */
+  pattern: z.string(),
+  /** HTTP method: GET, POST, PUT, DELETE, PATCH */
+  method: z.enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]),
+  /** Route pattern (e.g., "/users/:id") */
+  route: z.string(),
+  /** Framework (e.g., "tsoa", "nestjs", "express") */
+  framework: z.string().optional(),
+  /** Optional description */
+  description: z.string().optional(),
+});
+
+export type RequestEffectMapping = z.infer<typeof RequestEffectMappingSchema>;
+
+/**
+ * Group mapping for architectural organization (C4 diagrams)
+ */
+export const GroupEffectMappingSchema = z.object({
+  /** Name of the group */
+  name: z.string(),
+  /** Group type: System, Container, Component, File, Class */
+  group_type: z.enum(["System", "Container", "Component", "File", "Class"]),
+  /** Technology used (e.g., "typescript", "mysql") */
+  technology: z.string().optional(),
+  /** Parent group name */
+  parent: z.string().optional(),
+  /** Optional description */
+  description: z.string().optional(),
+});
+
+export type GroupEffectMapping = z.infer<typeof GroupEffectMappingSchema>;
+
+/**
+ * Complete package effect mappings schema
+ * This is the structure of docs/package-effects.md parsed into TypeScript
+ */
+export const PackageEffectMappingsSchema = z.object({
+  /** Package metadata */
+  metadata: z.object({
+    package_name: z.string(),
+    last_updated: z.string().optional(),
+    verified: z.boolean().default(false),
+  }),
+  /** Store operation mappings */
+  store_operations: z.array(StoreEffectMappingSchema).default([]),
+  /** Retrieve operation mappings */
+  retrieve_operations: z.array(RetrieveEffectMappingSchema).default([]),
+  /** External service call mappings */
+  external_calls: z.array(SendEffectMappingSchema).default([]),
+  /** Request handler mappings */
+  request_handlers: z.array(RequestEffectMappingSchema).default([]),
+  /** Architectural groups */
+  groups: z.array(GroupEffectMappingSchema).default([]),
+});
+
+export type PackageEffectMappings = z.infer<typeof PackageEffectMappingsSchema>;
+
+/**
+ * Pattern matching utilities for effect mappings
+ */
+
+/**
+ * Check if a callee name matches a pattern
+ * Supports wildcards: "foo.*" matches "foo.bar", "foo.baz"
+ */
+export function matchesPattern(calleeName: string, pattern: string): boolean {
+  // Convert pattern to regex
+  // "foo.*" -> /^foo\..+$/
+  // "foo.bar" -> /^foo\.bar$/
+  const regexPattern = pattern
+    .replace(/\./g, "\\.") // Escape dots
+    .replace(/\*/g, ".+"); // Convert * to .+
+  const regex = new RegExp(`^${regexPattern}$`);
+  return regex.test(calleeName);
+}
+
+/**
+ * Find the first matching mapping for a callee name
+ */
+export function findStoreMapping(
+  calleeName: string,
+  mappings: StoreEffectMapping[]
+): StoreEffectMapping | undefined {
+  return mappings.find((m) => matchesPattern(calleeName, m.pattern));
+}
+
+export function findRetrieveMapping(
+  calleeName: string,
+  mappings: RetrieveEffectMapping[]
+): RetrieveEffectMapping | undefined {
+  return mappings.find((m) => matchesPattern(calleeName, m.pattern));
+}
+
+export function findSendMapping(
+  calleeName: string,
+  mappings: SendEffectMapping[]
+): SendEffectMapping | undefined {
+  return mappings.find((m) => matchesPattern(calleeName, m.pattern));
+}

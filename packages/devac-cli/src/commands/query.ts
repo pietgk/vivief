@@ -261,8 +261,12 @@ export function registerQueryCommand(program: Command): void {
           case "table":
             console.log(result.table);
             break;
-          default:
-            console.log(JSON.stringify(result.rows, null, 2));
+          default: {
+            // BigInt values from DuckDB COUNT(*) need to be converted for JSON serialization
+            const bigIntReplacer = (_key: string, value: unknown) =>
+              typeof value === "bigint" ? Number(value) : value;
+            console.log(JSON.stringify(result.rows, bigIntReplacer, 2));
+          }
         }
 
         if (result.timeMs !== undefined) {
