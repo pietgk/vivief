@@ -974,8 +974,9 @@ function parsePackageEffectsMarkdown(content: string): DocumentedPattern[] {
       continue;
     }
 
-    // Skip header rows
-    if (line.includes("Pattern") && line.includes("|")) {
+    // Skip header rows (e.g., "| Pattern | Count | Description |")
+    // Check for "| Pattern " at start to avoid skipping patterns like "issuePattern.test"
+    if (line.match(/^\|\s*Pattern\s*\|/)) {
       continue;
     }
 
@@ -1239,8 +1240,9 @@ function parsePackageEffectsMappings(content: string): EffectMapping[] {
       continue;
     }
 
-    // Skip header rows
-    if (line.includes("Pattern") && line.includes("|")) {
+    // Skip header rows (e.g., "| Pattern | Count | Description |")
+    // Check for "| Pattern " at start to avoid skipping patterns like "issuePattern.test"
+    if (line.match(/^\|\s*Pattern\s*\|/)) {
       continue;
     }
 

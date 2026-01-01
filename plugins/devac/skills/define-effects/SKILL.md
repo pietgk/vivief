@@ -2,6 +2,24 @@
 
 Help developers create and maintain `docs/package-effects.md` - the source of truth for effect classification in a package.
 
+## Foundational Principle
+
+From `foundation.md`: **"Everything can be represented as effectHandlers"**
+
+```
+runCode() === handleEffects(extractEffects(code))
+```
+
+**DO:**
+- Document ALL effects discovered by `devac effects init`
+- Use Group Type to classify patterns (io:*, compute:*, framework:*, logging:*, workflow:*)
+- Let consumers filter by group when generating docs or diagrams
+
+**DON'T:**
+- Exclude patterns as "not effects" - everything IS an effect
+- Filter during documentation - filter at view/consumption time
+- Create "Not Effects" or "Utility Patterns" sections
+
 ## Triggers
 
 This skill activates when users ask about:
@@ -37,12 +55,12 @@ devac effects init -p <package-path>
 
 This creates a draft `docs/package-effects.md` with discovered patterns.
 
-### Step 2: Review and Refine
+### Step 2: Review and Classify
 Open `docs/package-effects.md` and:
 1. Review each discovered pattern
-2. Add meaningful metadata (provider, target, description)
-3. Remove false positives
-4. Add any missing patterns
+2. Assign a Group Type to each pattern (io:*, compute:*, framework:*, logging:*, workflow:*)
+3. Add meaningful metadata (provider, target, description)
+4. Add any missing patterns (nothing should be removed - all code IS effects)
 
 ### Step 3: Verify
 ```bash
@@ -150,11 +168,11 @@ devac effects list -p packages/user-service --type Store
 
 **Response approach:**
 1. Review the unmapped patterns from verify output
-2. Determine if each pattern is:
-   - A real effect that should be documented (add to package-effects.md)
-   - A false positive that should be ignored
-3. Update `docs/package-effects.md` with new entries
-4. Re-run verify to confirm all patterns are mapped
+2. For each pattern:
+   - Assign an appropriate Group Type (io:*, compute:*, framework:*, logging:*, workflow:*)
+   - Add to `docs/package-effects.md` with metadata
+3. Re-run verify to confirm all patterns are documented
+4. Goal: 0 unmapped, 0 stale - complete coverage
 
 ## Integration with C4 Diagrams
 
@@ -170,10 +188,32 @@ Effects are classified and appear in diagrams:
 - Send (external) → External systems
 - Request → API boundaries
 
+## Group Types
+
+Use these standard group types for classification:
+
+| Group | Description | Filter Use |
+|-------|-------------|------------|
+| `io:filesystem` | File system operations (fs.*, glob) | Architecture docs |
+| `io:database` | Database operations (DuckDB, SQL) | Data flow diagrams |
+| `io:network` | External calls, HTTP, subprocess | Integration docs |
+| `compute:utility` | Pure transformations (path.*, JSON.*, Date.*) | Usually filtered |
+| `compute:transform` | Data transformations | Internal only |
+| `framework:cli` | CLI framework patterns (Commander.js) | Usually filtered |
+| `framework:test` | Test framework patterns (Vitest, Jest) | Usually filtered |
+| `logging:diagnostic` | Logging (console.*, logger.*) | Usually filtered |
+| `workflow:hub` | Hub federation operations | Workflow docs |
+
+When generating docs or diagrams, filter by group:
+- **Architecture docs**: Show only `io:*` groups
+- **Complete audit**: Show all groups
+- **Workflow docs**: Show `workflow:*` groups
+
 ## Notes
 
-- Start with `devac effects init` to get a baseline
-- Focus on classifying high-frequency patterns first
-- Run `devac effects verify` in CI to catch drift
+- Start with `devac effects init` to get ALL patterns
+- Assign Group Types to classify patterns (don't exclude anything)
+- Run `devac effects verify` in CI to catch drift - goal is 0 unmapped
 - The documentation is the source of truth, not the generated TypeScript
+- Filter by Group when consuming, not when documenting
 - Works well in conjunction with `/explain-package` skill
