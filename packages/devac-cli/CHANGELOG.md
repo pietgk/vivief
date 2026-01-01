@@ -1,5 +1,34 @@
 # @pietgk/devac-cli
 
+## 0.10.0
+
+### Minor Changes
+
+- 853b0ed: Add `devac effects verify` and `devac effects sync` commands for developer-maintained effect documentation.
+
+  **New Commands:**
+
+  - `devac effects verify` - Compares documented patterns in `docs/package-effects.md` against actual extracted effects. Reports unmapped patterns (in code but not documented) and stale patterns (documented but not in code).
+
+  - `devac effects sync` - Generates `.devac/effect-mappings.ts` from `docs/package-effects.md` for custom effect classification during analysis.
+
+  **Workflow:**
+
+  1. Run `devac effects init` to create initial `docs/package-effects.md`
+  2. Review and refine the documented patterns
+  3. Run `devac effects verify` to check for gaps
+  4. Run `devac effects sync` to generate TypeScript mappings
+
+### Patch Changes
+
+- 501245f: Fix effects verify parsing for patterns containing "Pattern"
+
+  The `devac effects verify` command was incorrectly skipping patterns that contained the word "Pattern" in their name (e.g., `issuePattern.test`). This was because the header row detection used `line.includes("Pattern")` which matched patterns, not just table headers.
+
+  Fixed by using a more specific regex `/^\|\s*Pattern\s*\|/` that only matches actual header rows starting with `| Pattern |`.
+
+  - @pietgk/devac-core@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes
