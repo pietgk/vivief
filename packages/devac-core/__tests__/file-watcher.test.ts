@@ -453,8 +453,16 @@ describe("FileWatcher", () => {
 
     it("can remove handlers with off()", async () => {
       let callCount = 0;
+      let resolveFirstCall: (() => void) | null = null;
+      const firstCallPromise = new Promise<void>((resolve) => {
+        resolveFirstCall = resolve;
+      });
+
       const handler = () => {
         callCount++;
+        if (callCount === 1 && resolveFirstCall) {
+          resolveFirstCall();
+        }
       };
 
       watcher = createFileWatcher(tempDir, {
@@ -467,7 +475,9 @@ describe("FileWatcher", () => {
       await new Promise((resolve) => setTimeout(resolve, 100 * CI_TIMEOUT_MULTIPLIER));
 
       await fs.writeFile(path.join(tempDir, "src", "test1.ts"), "export const x = 1;");
-      await new Promise((resolve) => setTimeout(resolve, 300 * CI_TIMEOUT_MULTIPLIER));
+
+      // Wait for the handler to be called or timeout after 5 seconds
+      await Promise.race([firstCallPromise, new Promise((resolve) => setTimeout(resolve, 5000))]);
 
       expect(callCount).toBe(1);
 
