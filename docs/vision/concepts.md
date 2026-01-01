@@ -15,6 +15,10 @@ Push as much as possible into the **deterministic world** (systems handle it) so
 effectHandler = (state, effect) => (state', [effect'])
 ```
 
+the main concept is that everything can be presented with effectHandlers  that take a state and an effect, and return a new state and a list of new effects to be handled.
+
+we use the term **effects documentation** to describe the flow from code to effects to documentation.
+
 **Deterministic-first principle**: Always try to make things deterministic before falling back to reasoning.
 
 ---

@@ -502,6 +502,54 @@ export function registerEffectsCommand(program: Command): void {
         process.exit(1);
       }
     });
+
+  // effects verify subcommand - compare documented vs actual effects
+  effectsCmd
+    .command("verify")
+    .description("Verify documented effects against actual extracted effects")
+    .option("-p, --package <path>", "Package path")
+    .option("-f, --file <path>", "Path to package-effects.md", "docs/package-effects.md")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
+      const result = await effectsVerifyCommand({
+        packagePath,
+        effectsFile: options.file,
+        json: options.json,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // effects sync subcommand - generate effect-mappings.ts from package-effects.md
+  effectsCmd
+    .command("sync")
+    .description("Generate .devac/effect-mappings.ts from docs/package-effects.md")
+    .option("-p, --package <path>", "Package path")
+    .option("-f, --file <path>", "Path to package-effects.md", "docs/package-effects.md")
+    .option(
+      "-o, --output <path>",
+      "Output path for effect-mappings.ts",
+      ".devac/effect-mappings.ts"
+    )
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
+      const result = await effectsSyncCommand({
+        packagePath,
+        effectsFile: options.file,
+        outputPath: options.output,
+        json: options.json,
+      });
+
+      console.log(result.output);
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
 }
 
 /**
@@ -865,4 +913,536 @@ function suggestCategory(pattern: string): string {
   )
     return "array-ops";
   return "-";
+}
+
+/**
+ * Options for effects verify command
+ */
+export interface EffectsVerifyOptions {
+  /** Package path */
+  packagePath: string;
+  /** Path to package-effects.md file */
+  effectsFile: string;
+  /** Output as JSON */
+  json?: boolean;
+}
+
+/**
+ * Result from effects verify command
+ */
+export interface EffectsVerifyResult {
+  /** Whether verification passed (no gaps) */
+  success: boolean;
+  /** Formatted output */
+  output: string;
+  /** Patterns in code but not documented */
+  unmappedPatterns: Array<{ pattern: string; count: number }>;
+  /** Patterns documented but not in code */
+  stalePatterns: string[];
+  /** Patterns that match */
+  matchedPatterns: string[];
+  /** Error message if failed */
+  error?: string;
+}
+
+/**
+ * Documented pattern from package-effects.md
+ */
+interface DocumentedPattern {
+  pattern: string;
+  section: string;
+}
+
+/**
+ * Parse package-effects.md to extract documented patterns
+ */
+function parsePackageEffectsMarkdown(content: string): DocumentedPattern[] {
+  const patterns: DocumentedPattern[] = [];
+  const lines = content.split("\n");
+
+  let currentSection = "";
+
+  for (const line of lines) {
+    // Track section headers
+    if (line.startsWith("## ")) {
+      currentSection = line.replace("## ", "").trim();
+      continue;
+    }
+
+    // Skip non-table lines
+    if (!line.startsWith("|") || line.includes("---")) {
+      continue;
+    }
+
+    // Skip header rows
+    if (line.includes("Pattern") && line.includes("|")) {
+      continue;
+    }
+
+    // Extract pattern from table row: | `pattern` | ... |
+    const patternMatch = line.match(/\|\s*`([^`]+)`\s*\|/);
+    if (patternMatch?.[1]) {
+      patterns.push({
+        pattern: patternMatch[1],
+        section: currentSection,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+/**
+ * Verify documented effects against actual extracted effects
+ */
+export async function effectsVerifyCommand(
+  options: EffectsVerifyOptions
+): Promise<EffectsVerifyResult> {
+  let pool: DuckDBPool | null = null;
+
+  try {
+    const pkgPath = path.resolve(options.packagePath);
+    const effectsFile = path.join(pkgPath, options.effectsFile);
+
+    // Check if package-effects.md exists
+    let effectsContent: string;
+    try {
+      effectsContent = await fs.promises.readFile(effectsFile, "utf-8");
+    } catch {
+      return {
+        success: false,
+        output: options.json
+          ? JSON.stringify({ success: false, error: `File not found: ${effectsFile}` })
+          : `Error: File not found: ${effectsFile}\nRun 'devac effects init' first to create it.`,
+        unmappedPatterns: [],
+        stalePatterns: [],
+        matchedPatterns: [],
+        error: "File not found",
+      };
+    }
+
+    // Parse documented patterns
+    const documentedPatterns = parsePackageEffectsMarkdown(effectsContent);
+    const documentedSet = new Set(documentedPatterns.map((p) => p.pattern));
+
+    // Initialize pool and query actual effects
+    pool = new DuckDBPool({ memoryLimit: "256MB" });
+    await pool.initialize();
+    await setupQueryContext(pool, { packagePath: pkgPath });
+
+    // Query all unique callee patterns with counts
+    const sql = `
+      SELECT
+        callee_name,
+        CAST(COUNT(*) AS INTEGER) as count
+      FROM effects
+      WHERE effect_type = 'FunctionCall'
+        AND callee_name IS NOT NULL
+      GROUP BY callee_name
+      ORDER BY count DESC
+    `;
+
+    const result = await executeWithRecovery(pool, async (conn) => {
+      const rows = await conn.all(sql);
+      return { rows, rowCount: rows.length, timeMs: 0 };
+    });
+
+    const actualPatterns = result.rows as Array<{ callee_name: string; count: number }>;
+    const actualSet = new Set(actualPatterns.map((p) => p.callee_name));
+
+    // Find unmapped patterns (in code but not documented)
+    const unmappedPatterns = actualPatterns
+      .filter((p) => !documentedSet.has(p.callee_name))
+      .map((p) => ({ pattern: p.callee_name, count: p.count }));
+
+    // Find stale patterns (documented but not in code)
+    const stalePatterns = documentedPatterns
+      .filter((p) => !actualSet.has(p.pattern))
+      .map((p) => p.pattern);
+
+    // Find matched patterns
+    const matchedPatterns = documentedPatterns
+      .filter((p) => actualSet.has(p.pattern))
+      .map((p) => p.pattern);
+
+    // Determine success
+    const hasGaps = unmappedPatterns.length > 0 || stalePatterns.length > 0;
+
+    // Format output
+    let output: string;
+    if (options.json) {
+      output = JSON.stringify(
+        {
+          success: !hasGaps,
+          documented: documentedPatterns.length,
+          actual: actualPatterns.length,
+          matched: matchedPatterns.length,
+          unmappedCount: unmappedPatterns.length,
+          staleCount: stalePatterns.length,
+          unmappedPatterns: unmappedPatterns.slice(0, 20),
+          stalePatterns,
+        },
+        null,
+        2
+      );
+    } else {
+      output = formatVerifyOutput({
+        effectsFile,
+        documentedCount: documentedPatterns.length,
+        actualCount: actualPatterns.length,
+        matchedCount: matchedPatterns.length,
+        unmappedPatterns,
+        stalePatterns,
+      });
+    }
+
+    return {
+      success: !hasGaps,
+      output,
+      unmappedPatterns,
+      stalePatterns,
+      matchedPatterns,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      output: options.json
+        ? JSON.stringify({ success: false, error: errorMessage })
+        : `Error: ${errorMessage}`,
+      unmappedPatterns: [],
+      stalePatterns: [],
+      matchedPatterns: [],
+      error: errorMessage,
+    };
+  } finally {
+    if (pool) {
+      await pool.shutdown();
+    }
+  }
+}
+
+/**
+ * Format verify command output
+ */
+function formatVerifyOutput(data: {
+  effectsFile: string;
+  documentedCount: number;
+  actualCount: number;
+  matchedCount: number;
+  unmappedPatterns: Array<{ pattern: string; count: number }>;
+  stalePatterns: string[];
+}): string {
+  const lines: string[] = [
+    `Effects Verification: ${data.effectsFile}`,
+    "",
+    "Summary:",
+    `  Documented patterns: ${data.documentedCount}`,
+    `  Actual patterns:     ${data.actualCount}`,
+    `  Matched:             ${data.matchedCount}`,
+    `  Unmapped:            ${data.unmappedPatterns.length}`,
+    `  Stale:               ${data.stalePatterns.length}`,
+    "",
+  ];
+
+  if (data.unmappedPatterns.length === 0 && data.stalePatterns.length === 0) {
+    lines.push("✓ All patterns verified!");
+  } else {
+    if (data.unmappedPatterns.length > 0) {
+      lines.push("⚠ Unmapped patterns (in code but not documented):");
+      const topUnmapped = data.unmappedPatterns.slice(0, 15);
+      for (const p of topUnmapped) {
+        lines.push(`  - ${p.pattern} (${p.count} occurrences)`);
+      }
+      if (data.unmappedPatterns.length > 15) {
+        lines.push(`  ... and ${data.unmappedPatterns.length - 15} more`);
+      }
+      lines.push("");
+    }
+
+    if (data.stalePatterns.length > 0) {
+      lines.push("⚠ Stale patterns (documented but not in code):");
+      for (const p of data.stalePatterns) {
+        lines.push(`  - ${p}`);
+      }
+      lines.push("");
+    }
+
+    lines.push("To update documentation, edit the package-effects.md file.");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Options for effects sync command
+ */
+export interface EffectsSyncOptions {
+  /** Package path */
+  packagePath: string;
+  /** Path to package-effects.md file */
+  effectsFile: string;
+  /** Output path for effect-mappings.ts */
+  outputPath: string;
+  /** Output as JSON */
+  json?: boolean;
+}
+
+/**
+ * Result from effects sync command
+ */
+export interface EffectsSyncResult {
+  /** Whether the command succeeded */
+  success: boolean;
+  /** Formatted output */
+  output: string;
+  /** Path to generated file */
+  filePath?: string;
+  /** Number of mappings generated */
+  mappingCount?: number;
+  /** Error message if failed */
+  error?: string;
+}
+
+/**
+ * Effect mapping extracted from package-effects.md
+ */
+interface EffectMapping {
+  pattern: string;
+  effectType: "Store" | "Retrieve" | "Send" | "FunctionCall";
+  category: string;
+  provider?: string;
+  target?: string;
+  operation?: string;
+  isExternal?: boolean;
+  service?: string;
+}
+
+/**
+ * Parse package-effects.md to extract full effect mappings
+ */
+function parsePackageEffectsMappings(content: string): EffectMapping[] {
+  const mappings: EffectMapping[] = [];
+  const lines = content.split("\n");
+
+  let currentSection = "";
+
+  for (const line of lines) {
+    // Track section headers
+    if (line.startsWith("## ")) {
+      currentSection = line.replace("## ", "").trim();
+      continue;
+    }
+
+    // Skip non-table lines
+    if (!line.startsWith("|") || line.includes("---")) {
+      continue;
+    }
+
+    // Skip header rows
+    if (line.includes("Pattern") && line.includes("|")) {
+      continue;
+    }
+
+    // Parse table cells
+    const cells = line
+      .split("|")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+
+    if (cells.length < 2) continue;
+
+    // Extract pattern from first cell (remove backticks)
+    const firstCell = cells[0];
+    if (!firstCell) continue;
+
+    const patternMatch = firstCell.match(/`([^`]+)`/);
+    if (!patternMatch?.[1]) continue;
+
+    const pattern = patternMatch[1];
+
+    // Map section to effect type
+    if (currentSection === "Store Operations") {
+      mappings.push({
+        pattern,
+        effectType: "Store",
+        category: "store",
+        provider: cells[3] && cells[3] !== "TODO" ? cells[3] : undefined,
+        target: cells[4] && cells[4] !== "TODO" ? cells[4] : undefined,
+        operation: cells[2] || undefined,
+      });
+    } else if (currentSection === "Retrieve Operations") {
+      mappings.push({
+        pattern,
+        effectType: "Retrieve",
+        category: "retrieve",
+        provider: cells[3] && cells[3] !== "TODO" ? cells[3] : undefined,
+        target: cells[4] && cells[4] !== "TODO" ? cells[4] : undefined,
+        operation: cells[2] || undefined,
+      });
+    } else if (currentSection === "External Calls") {
+      mappings.push({
+        pattern,
+        effectType: "Send",
+        category: "external",
+        isExternal: true,
+        service: cells[2] || undefined,
+      });
+    }
+    // Skip "Other Patterns" section - these are not mapped yet
+  }
+
+  return mappings;
+}
+
+/**
+ * Generate TypeScript effect mappings file
+ */
+function generateEffectMappingsTs(mappings: EffectMapping[], packageName: string): string {
+  const date = new Date().toISOString().split("T")[0];
+
+  const lines: string[] = [
+    "/**",
+    ` * Effect Mappings for ${packageName}`,
+    " *",
+    " * Generated by: devac effects sync",
+    ` * Generated on: ${date}`,
+    " *",
+    " * This file defines custom effect classifications for this package.",
+    " * It is read during analysis to enhance effect extraction.",
+    " */",
+    "",
+    'import type { EffectMapping } from "@pietgk/devac-core";',
+    "",
+    "export const effectMappings: EffectMapping[] = [",
+  ];
+
+  for (const mapping of mappings) {
+    const props: string[] = [`    pattern: "${mapping.pattern}"`];
+    props.push(`    effectType: "${mapping.effectType}"`);
+    props.push(`    category: "${mapping.category}"`);
+
+    if (mapping.provider) {
+      props.push(`    provider: "${mapping.provider}"`);
+    }
+    if (mapping.target) {
+      props.push(`    target: "${mapping.target}"`);
+    }
+    if (mapping.operation) {
+      props.push(`    operation: "${mapping.operation}"`);
+    }
+    if (mapping.isExternal) {
+      props.push("    isExternal: true");
+    }
+    if (mapping.service) {
+      props.push(`    service: "${mapping.service}"`);
+    }
+
+    lines.push("  {");
+    lines.push(`${props.join(",\n")},`);
+    lines.push("  },");
+  }
+
+  lines.push("];");
+  lines.push("");
+  lines.push("export default effectMappings;");
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+/**
+ * Sync package-effects.md to .devac/effect-mappings.ts
+ */
+export async function effectsSyncCommand(options: EffectsSyncOptions): Promise<EffectsSyncResult> {
+  try {
+    const pkgPath = path.resolve(options.packagePath);
+    const effectsFile = path.join(pkgPath, options.effectsFile);
+    const outputFile = path.join(pkgPath, options.outputPath);
+
+    // Check if package-effects.md exists
+    let effectsContent: string;
+    try {
+      effectsContent = await fs.promises.readFile(effectsFile, "utf-8");
+    } catch {
+      return {
+        success: false,
+        output: options.json
+          ? JSON.stringify({ success: false, error: `File not found: ${effectsFile}` })
+          : `Error: File not found: ${effectsFile}\nRun 'devac effects init' first to create it.`,
+        error: "File not found",
+      };
+    }
+
+    // Parse mappings from markdown
+    const mappings = parsePackageEffectsMappings(effectsContent);
+
+    if (mappings.length === 0) {
+      return {
+        success: false,
+        output: options.json
+          ? JSON.stringify({ success: false, error: "No mappings found in package-effects.md" })
+          : `Error: No mappings found in ${effectsFile}\nAdd patterns to the Store, Retrieve, or External Calls sections.`,
+        error: "No mappings found",
+      };
+    }
+
+    // Get package name
+    let packageName = path.basename(pkgPath);
+    try {
+      const pkgJsonPath = path.join(pkgPath, "package.json");
+      const pkgJson = JSON.parse(await fs.promises.readFile(pkgJsonPath, "utf-8"));
+      packageName = pkgJson.name || packageName;
+    } catch {
+      // Use directory name as fallback
+    }
+
+    // Generate TypeScript content
+    const tsContent = generateEffectMappingsTs(mappings, packageName);
+
+    // Ensure .devac directory exists
+    const devacDir = path.dirname(outputFile);
+    await fs.promises.mkdir(devacDir, { recursive: true });
+
+    // Write the file
+    await fs.promises.writeFile(outputFile, tsContent, "utf-8");
+
+    const output = options.json
+      ? JSON.stringify(
+          {
+            success: true,
+            filePath: outputFile,
+            mappingCount: mappings.length,
+            mappings: mappings.map((m) => ({ pattern: m.pattern, effectType: m.effectType })),
+          },
+          null,
+          2
+        )
+      : [
+          `Generated: ${outputFile}`,
+          "",
+          `Synced ${mappings.length} effect mappings:`,
+          `  - Store operations: ${mappings.filter((m) => m.effectType === "Store").length}`,
+          `  - Retrieve operations: ${mappings.filter((m) => m.effectType === "Retrieve").length}`,
+          `  - External calls: ${mappings.filter((m) => m.effectType === "Send").length}`,
+          "",
+          "The effect mappings will be used during the next 'devac analyze' run.",
+        ].join("\n");
+
+    return {
+      success: true,
+      output,
+      filePath: outputFile,
+      mappingCount: mappings.length,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      output: options.json
+        ? JSON.stringify({ success: false, error: errorMessage })
+        : `Error: ${errorMessage}`,
+      error: errorMessage,
+    };
+  }
 }
