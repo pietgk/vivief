@@ -292,6 +292,8 @@ DevAC includes a Claude Code plugin that provides AI-powered code analysis skill
 - **codebase-navigation** - Navigate and locate code definitions
 - **diagnostics-triage** - Triage and prioritize errors and warnings
 - **multi-repo-context** - Work across multiple repositories
+- **explain-package** - Generate human-readable package documentation
+- **define-effects** - Create and maintain effect mappings for packages
 
 **Workflow Commands** (user-invoked):
 - `/commit` or `/devac:commit` - Full commit workflow with changeset/ADR checks
@@ -344,7 +346,7 @@ plugins/devac/
 ├── .claude-plugin/plugin.json   # Plugin metadata
 ├── .mcp.json                    # MCP server config
 ├── commands/                    # 11 workflow commands
-├── skills/                      # 5 Analytics Layer skills
+├── skills/                      # 7 Analytics Layer skills
 └── README.md                    # Plugin documentation
 ```
 
