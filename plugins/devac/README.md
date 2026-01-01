@@ -123,6 +123,8 @@ Skills activate automatically based on your conversation:
 | `codebase-navigation` | "find where X is defined" | Navigate and locate code |
 | `diagnostics-triage` | "what needs fixing" | Triage errors and warnings |
 | `multi-repo-context` | "cross-repo", "workspace" | Work across multiple repositories |
+| `explain-package` | "explain this package", "document package" | Generate human-readable package documentation |
+| `define-effects` | "define effects", "map effects" | Create and maintain effect mappings |
 
 ### Commands (User-Invoked)
 
@@ -184,6 +186,12 @@ devac hub diagnostics --severity error
 # Multi-repo
 devac hub status
 devac hub repos
+
+# Effects documentation
+devac effects init -p <package>
+devac effects verify -p <package>
+devac effects sync -p <package>
+devac effects list -p <package>
 ```
 
 ---
