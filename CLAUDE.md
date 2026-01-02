@@ -155,6 +155,7 @@ Example: `myrepo:packages/api:function:abc123`
 | `devac affected <files>` | Find affected files |
 | `devac hub init` | Initialize central hub |
 | `devac hub register` | Register repository |
+| `devac doctor` | Check system health and fix issues |
 | `devac mcp` | Start MCP server |
 
 ## MCP Server

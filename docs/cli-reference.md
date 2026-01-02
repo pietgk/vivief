@@ -1607,6 +1607,80 @@ External Systems
 
 ---
 
+## Doctor - System Health Check
+
+Diagnose and fix common issues with the DevAC CLI/MCP setup.
+
+### devac doctor
+
+Check system health and optionally fix issues.
+
+```bash
+devac doctor [options]
+
+Options:
+  --hub-dir <path>    Hub directory (default: ~/.devac)
+  --fix               Execute fixes (default: dry-run only)
+  --json              Output as JSON
+  --verbose           Show additional details
+
+Examples:
+  devac doctor                    # Check health (dry-run)
+  devac doctor --fix              # Execute fixes automatically
+  devac doctor --json             # JSON output for scripting
+  devac doctor --verbose          # Show additional details
+```
+
+**Checks Performed:**
+
+| Category | Checks |
+|----------|--------|
+| CLI Installation | devac, devac-mcp, devac-worktree availability and version consistency |
+| Hub Health | Database initialization and queryability |
+| MCP Status | Socket file presence and responsiveness |
+| Workspace Builds* | Package dist/index.js existence |
+| Plugin Config* | plugin.json and .mcp.json validity |
+
+*Only run when inside the devac workspace
+
+**Output:**
+```
+DevAC Doctor - Checking system health...
+
+CLI Installation
+  ✓ devac: 0.11.0
+  ✓ devac-mcp: 0.11.0
+  ✓ devac-worktree: 0.11.0
+  ✓ Version consistency: all at v0.11.0
+
+Hub Health
+  ✓ Hub initialized: ~/.devac/central.duckdb
+  ✓ Hub queryable: 5 repos registered
+
+MCP Status
+  ✓ MCP server: not running (socket not found)
+
+Summary: All checks passed
+```
+
+**Fixing Issues:**
+
+When issues are found, running with `--fix` will automatically execute repair commands:
+
+```bash
+devac doctor --fix
+
+# Example output with fixes:
+CLI Installation
+  ✗ devac-mcp: dist/index.js missing
+    Fix: pnpm --filter @pietgk/devac-mcp build
+
+Fixes Applied:
+  ✓ Fixed: devac-mcp
+```
+
+---
+
 ## MCP Server
 
 ### devac mcp start

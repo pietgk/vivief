@@ -141,6 +141,19 @@ devac hub status
 devac hub refresh
 ```
 
+### Diagnostics
+
+```bash
+# Check system health
+devac doctor
+
+# Fix issues automatically
+devac doctor --fix
+
+# JSON output for scripting
+devac doctor --json
+```
+
 ### Context Discovery
 
 DevAC can automatically discover related repositories in a parent directory workflow:
