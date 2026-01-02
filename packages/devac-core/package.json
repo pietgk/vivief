@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-core",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "DevAC core analysis engine - DuckDB/Parquet-based code graph",
   "type": "module",
   "publishConfig": {
