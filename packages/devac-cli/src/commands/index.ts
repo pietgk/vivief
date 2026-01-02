@@ -39,6 +39,9 @@ export { registerC4Command } from "./c4.js";
 // Workflow commands (deterministic development operations)
 export { registerWorkflowCommand } from "./workflow/index.js";
 
+// Doctor command (system health checks)
+export { registerDoctorCommand } from "./doctor.js";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Command function exports (for programmatic use)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,3 +280,7 @@ export type {
   InstallLocalOptions,
   InstallLocalResult,
 } from "./workflow/index.js";
+
+// Doctor command (system health checks)
+export { doctorCommand } from "./doctor.js";
+export type { DoctorOptions, DoctorResult } from "./doctor.js";

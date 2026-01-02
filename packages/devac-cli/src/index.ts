@@ -20,6 +20,7 @@ import {
   registerDependentsCommand,
   registerDepsCommand,
   registerDiagnosticsCommand,
+  registerDoctorCommand,
   registerEffectsCommand,
   registerFileSymbolsCommand,
   registerFindSymbolCommand,
@@ -87,6 +88,9 @@ registerC4Command(program);
 
 // Workflow commands (deterministic development operations)
 registerWorkflowCommand(program);
+
+// Doctor command (system health checks)
+registerDoctorCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {
