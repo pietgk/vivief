@@ -17,7 +17,9 @@ export type CheckCategory =
   | "hub-health"
   | "mcp-status"
   | "workspace-builds"
-  | "plugin-config";
+  | "plugin-config"
+  | "version-updates"
+  | "release-prep";
 
 /**
  * A single health check result

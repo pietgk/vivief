@@ -1640,6 +1640,8 @@ Examples:
 | MCP Status | Socket file presence and responsiveness |
 | Workspace Builds* | Package dist/index.js existence |
 | Plugin Config* | plugin.json and .mcp.json validity |
+| Version Updates | Check if newer version is available via GitHub Releases |
+| Release Preparation* | Detect unreleased changesets that need `changeset version` |
 
 *Only run when inside the devac workspace
 
@@ -1660,7 +1662,15 @@ Hub Health
 MCP Status
   ✓ MCP server: not running (socket not found)
 
-Summary: All checks passed
+Version Updates
+  ✓ Version update: up to date (v0.11.0)
+
+Release Preparation
+  ! Unreleased changesets: 2 unreleased changeset(s)
+    Fix: pnpm version-packages
+
+Summary: 1 issue, 1 fixable
+Run with --fix to apply fixes
 ```
 
 **Fixing Issues:**

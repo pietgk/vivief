@@ -13,6 +13,8 @@ const CATEGORY_TITLES: Record<CheckCategory, string> = {
   "mcp-status": "MCP Status",
   "workspace-builds": "Workspace Builds",
   "plugin-config": "Plugin Configuration",
+  "version-updates": "Version Updates",
+  "release-prep": "Release Preparation",
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -42,6 +44,8 @@ export function formatDoctorOutput(result: DoctorResult, options: DoctorOptions)
     "mcp-status",
     "workspace-builds",
     "plugin-config",
+    "version-updates",
+    "release-prep",
   ];
 
   for (const category of categoryOrder) {
@@ -54,7 +58,11 @@ export function formatDoctorOutput(result: DoctorResult, options: DoctorOptions)
       const icon = STATUS_ICONS[check.status];
       lines.push(`  ${icon} ${check.name}: ${check.message}`);
 
-      if (check.status === "fail" && check.fixCommand && !options.fix) {
+      if (
+        (check.status === "fail" || check.status === "warn") &&
+        check.fixCommand &&
+        !options.fix
+      ) {
         lines.push(`    Fix: ${check.fixCommand}`);
       }
 

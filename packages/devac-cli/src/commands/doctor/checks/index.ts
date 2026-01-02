@@ -5,10 +5,12 @@
  */
 
 import type { CheckCategory, CheckContext, CheckResult, HealthCheck } from "../types.js";
+import { changesetChecks } from "./changeset-check.js";
 import { cliInstallationChecks } from "./cli-installation.js";
 import { hubHealthChecks } from "./hub-health.js";
 import { mcpStatusChecks } from "./mcp-status.js";
 import { pluginConfigChecks } from "./plugin-config.js";
+import { versionChecks } from "./version-check.js";
 import { workspaceBuildChecks } from "./workspace-builds.js";
 
 /**
@@ -21,6 +23,8 @@ export function getAllChecks(): HealthCheck[] {
     ...mcpStatusChecks,
     ...workspaceBuildChecks,
     ...pluginConfigChecks,
+    ...versionChecks,
+    ...changesetChecks,
   ];
 }
 
@@ -72,8 +76,10 @@ export function groupResultsByCategory(results: CheckResult[]): Map<CheckCategor
 }
 
 // Re-export check arrays for direct access if needed
+export { changesetChecks } from "./changeset-check.js";
 export { cliInstallationChecks } from "./cli-installation.js";
 export { hubHealthChecks } from "./hub-health.js";
 export { mcpStatusChecks } from "./mcp-status.js";
-export { workspaceBuildChecks } from "./workspace-builds.js";
 export { pluginConfigChecks } from "./plugin-config.js";
+export { versionChecks } from "./version-check.js";
+export { workspaceBuildChecks } from "./workspace-builds.js";
