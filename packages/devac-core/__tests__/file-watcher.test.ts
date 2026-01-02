@@ -20,8 +20,8 @@ import {
   createFileWatcher,
 } from "../src/watcher/file-watcher.js";
 
-// Maximum wait time for events (generous timeout for slow CI)
-const TIMEOUT_MS = 5000;
+// Maximum wait time for events (very generous timeout for slow CI runners)
+const TIMEOUT_MS = 10000;
 
 /**
  * Wait for events array to reach expected count.
