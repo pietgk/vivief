@@ -80,6 +80,16 @@ describe("State Management", () => {
     expect(state).toEqual(testState);
   });
 
+  it("loadState returns empty state on invalid JSON", async () => {
+    const devacDir = path.join(tempHome, ".devac");
+    await fs.mkdir(devacDir, { recursive: true });
+    await fs.writeFile(path.join(devacDir, "worktrees.json"), "invalid json {");
+
+    const state = await loadState();
+
+    expect(state).toEqual({ worktrees: [] });
+  });
+
   it("saveState creates .devac directory if needed", async () => {
     const testState: WorktreeState = {
       worktrees: [
@@ -97,6 +107,27 @@ describe("State Management", () => {
 
     const saved = await fs.readFile(path.join(tempHome, ".devac", "worktrees.json"), "utf-8");
     expect(JSON.parse(saved)).toEqual(testState);
+  });
+
+  it("saveState overwrites existing state", async () => {
+    const oldState: WorktreeState = { worktrees: [] };
+    const newState: WorktreeState = {
+      worktrees: [
+        {
+          issueNumber: 99,
+          issueTitle: "New",
+          branch: "99-new",
+          path: "/new",
+          createdAt: "2025-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+
+    await saveState(oldState);
+    await saveState(newState);
+
+    const loaded = await loadState();
+    expect(loaded).toEqual(newState);
   });
 
   it("addWorktreeToState adds new worktree", async () => {
@@ -137,6 +168,28 @@ describe("State Management", () => {
     expect(state.worktrees[0].issueTitle).toBe("New title");
   });
 
+  it("addWorktreeToState preserves other worktrees", async () => {
+    await addWorktreeToState({
+      issueNumber: 1,
+      issueTitle: "First",
+      branch: "1-first",
+      path: "/path1",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    await addWorktreeToState({
+      issueNumber: 2,
+      issueTitle: "Second",
+      branch: "2-second",
+      path: "/path2",
+      createdAt: "2025-01-02T00:00:00.000Z",
+    });
+
+    const state = await loadState();
+
+    expect(state.worktrees).toHaveLength(2);
+  });
+
   it("removeWorktreeFromState removes worktree", async () => {
     await addWorktreeToState({
       issueNumber: 10,
@@ -160,6 +213,22 @@ describe("State Management", () => {
 
     expect(state.worktrees).toHaveLength(1);
     expect(state.worktrees[0].issueNumber).toBe(20);
+  });
+
+  it("removeWorktreeFromState does nothing when issue not found", async () => {
+    await addWorktreeToState({
+      issueNumber: 42,
+      issueTitle: "Test",
+      branch: "42-test",
+      path: "/test",
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+
+    await removeWorktreeFromState(999); // Different issue number
+
+    const state = await loadState();
+
+    expect(state.worktrees).toHaveLength(1);
   });
 
   it("findWorktreeForIssue returns path when found in state", async () => {

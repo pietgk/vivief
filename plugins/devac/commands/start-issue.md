@@ -1,16 +1,89 @@
-# /devac:start-issue - Start Work on an Existing Issue
+# /devac:start-issue - Start Work on a GitHub Issue
 
-You are helping the user start work on an existing GitHub issue.
+You are helping the user start work on a GitHub issue.
 
 ## Usage
 
 ```
-/devac:start-issue <issue-number>
+/devac:start-issue <issue-id> [quick]
 ```
 
-## Steps
+## Arguments
 
-### 1. Fetch issue details
+- `<issue-id>`: Issue number (e.g., `42`) or full ID (e.g., `ghvivief-42`)
+- `quick` (optional): Work in current directory with a branch instead of creating a worktree
+
+## Modes
+
+### Default: Worktree Mode (Recommended)
+
+Creates an isolated worktree for the issue. Fully automated via CLI.
+
+**Step 1: Create worktree**
+
+```bash
+devac-worktree start <issue-id>
+```
+
+This handles:
+- Creates worktree at `../<repo>-<issue>-<slug>/`
+- Installs dependencies
+- Does NOT auto-launch Claude (default behavior)
+
+**Step 2: Detect context for session guidance**
+
+```bash
+# Check if we're at workspace level or inside a repo
+git rev-parse --show-toplevel 2>/dev/null
+```
+
+**If at workspace level** (command fails = not in a git repo):
+> Worktree created at `<path>`
+> You can work on it from this session - no need to start a new Claude.
+
+**If inside a repo** (command succeeds):
+> Worktree created at `<path>`
+> Options:
+> 1. Start Claude in worktree: `cd <path> && claude`
+> 2. Start Claude at workspace: `cd ~/ws && claude` (access all repos)
+> 3. Continue here (suboptimal - limited access to worktree)
+
+**Step 3: Fetch issue with comments and enter plan mode**
+
+```bash
+gh issue view <issue-number> --json number,title,body,comments,labels
+```
+
+Create a plan file at `.claude/plans/<generated-name>.md` with:
+
+```markdown
+# Plan: [Issue Title]
+
+> **Issue:** [#<number>](https://github.com/<owner>/<repo>/issues/<number>)
+> **Status:** IN_PROGRESS
+> **Created:** <date>
+
+## From Issue
+
+[Extracted from issue body and comments]
+- Key requirements
+- Acceptance criteria
+- Context from discussion
+
+## Implementation Plan
+
+[Your designed approach]
+- Task 1
+- Task 2
+```
+
+Then enter plan mode to design the implementation.
+
+### Quick Mode
+
+For small fixes in the current directory. Creates a branch only.
+
+**Step 1: Fetch issue details**
 
 ```bash
 gh issue view <issue-number>
@@ -22,9 +95,7 @@ Extract:
 - Labels
 - Acceptance criteria
 
-### 2. Detect current context
-
-Check if we're already set up for this issue:
+**Step 2: Detect current context**
 
 ```bash
 # Get current branch
@@ -39,7 +110,7 @@ ls .claude/plans/*.md 2>/dev/null
 - If a plan file mentions the issue number → Has existing plan
 - Otherwise → Fresh start needed
 
-### 3. Take appropriate action
+**Step 3: Take appropriate action**
 
 **If already on issue branch:**
 - Skip branch creation
@@ -50,65 +121,58 @@ ls .claude/plans/*.md 2>/dev/null
 - Reference the plan file
 - Ask: "Continue with existing plan, or start fresh?"
 
-**If fresh start (different branch, no plan):**
+**If fresh start:**
 - Create branch: `git checkout -b <issue-number>-<slug>`
+- Fetch issue with comments: `gh issue view <issue-number> --json number,title,body,comments,labels`
+- Create plan file with issue link
 - Enter plan mode
 
-### 4. Present summary and next steps
+**Step 4: Present summary and next steps**
 
 Show:
 - Issue title and requirements
 - Current branch status
 - Available plan (if any)
-- Proposed next action
+- Enter plan mode for implementation design
 
-## Example Flows
+## Issue-as-Plan Philosophy
 
-### Already in worktree (most common after /devac:start-issue-on-new-worktree)
+### Two-Level Planning
 
-```
-User: /devac:start-issue 31
+| Level | Location | Purpose | Lifespan |
+|-------|----------|---------|----------|
+| **Long-term** | GitHub Issue | Requirements, acceptance criteria, discussion | Until issue closed |
+| **Short-term** | `.claude/plans/*.md` | Implementation details, tasks, progress | Until work shipped |
 
-Claude: Fetching issue #31...
+### Why This Works
 
-## Issue #31: Workspace Analysis Status & Registration
+- **Issue is canonical** - requirements live in GitHub, not duplicated
+- **Plan links back** - always traceable to source
+- **Comments = context** - discussion informs implementation
+- **Plan is temporary** - shipped work = delete plan
 
-**Branch:** Already on `31-workspace-analysis-status-registration` ✓
-**Plan:** Found `.claude/plans/structured-bouncing-eich.md`
+## Examples
 
-### Summary
-Create `devac status` (read-only) and enhance `devac hub register`
-with `--analyze` flag.
-
-Ready to implement. Would you like to:
-1. Review the plan first
-2. Start with Task 1
-3. Modify the plan
-```
-
-### On issue branch, no plan yet
+### Worktree mode (default, recommended)
 
 ```
-User: /devac:start-issue 31
+User: /devac:start-issue ghvivief-42
 
-Claude: Fetching issue #31...
+Claude: Creating worktree for issue #42...
 
-## Issue #31: Workspace Analysis Status & Registration
+[Runs: devac-worktree start ghvivief-42]
 
-**Branch:** Already on `31-workspace-analysis-status-registration` ✓
-**Plan:** None found
+✓ Worktree created at ~/ws/vivief-42-add-watch-mode/
+✓ Branch: 42-add-watch-mode
+✓ Dependencies installed
 
-[Enters plan mode to design implementation]
-```
+You're at workspace level - you can work on it from this session.
 
-### Fresh start (no worktree, different branch)
-
-```
-User: /devac:start-issue 42
-
-Claude: Fetching issue #42...
+Fetching issue details...
 
 ## Issue #42: Add watch mode for incremental analysis
+
+**Labels:** enhancement, devac-cli
 
 **Description:**
 Add a `--watch` flag to the analyze command that monitors file changes.
@@ -118,25 +182,56 @@ Add a `--watch` flag to the analyze command that monitors file changes.
 - [ ] Changes trigger incremental re-analysis
 - [ ] Watcher can be stopped with Ctrl+C
 
-**Labels:** enhancement, devac-cli
+Creating plan file...
 
----
+[Enters plan mode with issue content as foundation]
+```
 
-Creating branch `42-add-watch-mode`...
+### Quick mode (branch in current dir)
 
-[Enters plan mode to design implementation]
+```
+User: /devac:start-issue 42 quick
+
+Claude: Fetching issue #42...
+
+## Issue #42: Add watch mode for incremental analysis
+
+**Branch:** Creating `42-add-watch-mode`...
+**Plan:** Creating `.claude/plans/42-add-watch-mode.md`
+
+[Enters plan mode with issue content as foundation]
+```
+
+### Already on issue branch
+
+```
+User: /devac:start-issue 31 quick
+
+Claude: Fetching issue #31...
+
+## Issue #31: Workspace Analysis Status & Registration
+
+**Branch:** Already on `31-workspace-analysis-status-registration` ✓
+**Plan:** Found `.claude/plans/structured-bouncing-eich.md`
+
+Ready to implement. Would you like to:
+1. Review the plan first
+2. Start with Task 1
+3. Modify the plan
 ```
 
 ## When to Use
 
-Use `/devac:start-issue` when:
-- Starting work on a GitHub issue
-- Resuming work in an existing worktree
-- Loading issue context into conversation
+| Scenario | Mode |
+|----------|------|
+| New feature work | Default (worktree) |
+| Multi-issue parallel work | Default (worktree) |
+| Small bug fix | `quick` |
+| Quick typo/doc fix | `quick` |
+| Issue spans multiple repos | Default (worktree) with `--repos` |
 
-## Key Behaviors
+## See Also
 
-1. **No redundant branch creation** - Detects if already on issue branch
-2. **Plan awareness** - Finds and references existing plan files
-3. **Smooth resume flow** - Works naturally after `start-issue-on-new-worktree`
-4. **Backward compatible** - Fresh start still works as before
+- `devac-worktree start` - CLI for worktree creation
+- `devac-worktree status` - Check worktree and PR status
+- `devac-worktree clean` - Remove merged worktrees

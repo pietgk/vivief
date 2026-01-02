@@ -241,6 +241,43 @@ When adding features:
 3. Add tests alongside the implementation
 4. Update CLI commands if user-facing
 
+## Test Discovery
+
+**IMPORTANT: Before adding tests to a package, always verify existing test coverage first.**
+
+Glob patterns from the workspace root may fail to find tests in nested packages. Use this workflow:
+
+```bash
+# 1. Check package.json for test script and framework
+cat packages/<pkg>/package.json | grep -A2 '"test"'
+
+# 2. Check test config (vitest.config.ts, jest.config.js, etc.)
+cat packages/<pkg>/vitest.config.ts
+
+# 3. List the test directory structure
+ls -la packages/<pkg>/__tests__/
+# or
+ls -la packages/<pkg>/src/__tests__/
+```
+
+### Test File Conventions
+
+All packages use Vitest with this structure:
+
+| Package | Test Location | Config |
+|---------|---------------|--------|
+| devac-core | `__tests__/*.test.ts` | `vitest.config.ts` |
+| devac-cli | `__tests__/*.test.ts` | `vitest.config.ts` |
+| devac-worktree | `__tests__/*.test.ts` | `vitest.config.ts` |
+| devac-mcp | `__tests__/*.test.ts` | `vitest.config.ts` |
+
+### Before Adding Tests
+
+1. **List existing test files** - Don't assume "no tests exist"
+2. **Read existing tests** - Understand coverage before adding
+3. **Avoid duplicates** - Check if functionality is already tested
+4. **Follow existing patterns** - Match mock setup, assertions style
+
 ## Troubleshooting
 
 ### DuckDB Issues

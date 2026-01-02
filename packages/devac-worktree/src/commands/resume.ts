@@ -9,15 +9,15 @@ import { findWorktreeForIssue, loadState } from "../worktree.js";
 
 export interface ResumeOptions {
   issueNumber: number;
-  skipClaude?: boolean;
+  newSession?: boolean;
   verbose?: boolean;
 }
 
 export async function resumeCommand(options: ResumeOptions): Promise<StartResult> {
-  const { issueNumber, skipClaude, verbose } = options;
+  const { issueNumber, newSession, verbose } = options;
 
   // Check if Claude is installed
-  if (!skipClaude) {
+  if (newSession) {
     const claudeInstalled = await isClaudeInstalled();
     if (!claudeInstalled) {
       return {
@@ -71,7 +71,7 @@ export async function resumeCommand(options: ResumeOptions): Promise<StartResult
   }
 
   // Launch Claude CLI
-  if (!skipClaude) {
+  if (newSession) {
     console.log(`\n✓ Resuming work on issue #${issueNumber}`);
     console.log(`✓ Worktree: ${worktreePath}`);
     console.log(`✓ Branch: ${worktreeInfo.branch}`);

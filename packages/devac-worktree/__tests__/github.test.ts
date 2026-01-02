@@ -10,7 +10,13 @@ vi.mock("execa", () => ({
 }));
 
 import { execa } from "execa";
-import { createPR, fetchIssue, generateBranchName, getPRForBranch } from "../src/github.js";
+import {
+  createPR,
+  fetchIssue,
+  generateBranchName,
+  generateShortDescription,
+  getPRForBranch,
+} from "../src/github.js";
 
 const mockedExeca = vi.mocked(execa);
 
@@ -168,5 +174,31 @@ describe("generateBranchName", () => {
     const branch = generateBranchName(5, "[Task]: Add new feature");
 
     expect(branch).toBe("5-add-new-feature");
+  });
+});
+
+describe("generateShortDescription", () => {
+  it("generates short description from title", () => {
+    expect(generateShortDescription("Add user authentication")).toBe("add-user-authentication");
+  });
+
+  it("limits to 3 words", () => {
+    expect(generateShortDescription("This is a very long title with many words")).toBe("this-is-a");
+  });
+
+  it("removes special characters", () => {
+    expect(generateShortDescription("Fix bug: user's data")).toBe("fix-bug-users");
+  });
+
+  it("handles [prefix]: style titles", () => {
+    expect(generateShortDescription("[Bug]: Login fails")).toBe("login-fails");
+  });
+
+  it("handles empty title", () => {
+    expect(generateShortDescription("")).toBe("");
+  });
+
+  it("handles single word title", () => {
+    expect(generateShortDescription("Refactor")).toBe("refactor");
   });
 });

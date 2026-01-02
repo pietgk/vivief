@@ -25,7 +25,7 @@ import { VERSION } from "./version.js";
  * - Legacy: "37" (numeric only, requires being in a repo)
  * - New: "ghvivief-37" (full issue ID with source and repo)
  */
-function parseIssueArg(issueArg: string): {
+export function parseIssueArg(issueArg: string): {
   issueNumber: number;
   issueId?: string;
   repoName?: string;
@@ -72,7 +72,7 @@ function collectAlso(value: string, previous: string[]): string[] {
 /**
  * Parse comma-separated repos into an array
  */
-function parseRepos(value: string): string[] {
+export function parseRepos(value: string): string[] {
   return value
     .split(",")
     .map((r) => r.trim())
@@ -87,7 +87,7 @@ program
       "or just '123' when inside a repo."
   )
   .option("--skip-install", "Skip dependency installation")
-  .option("--skip-claude", "Skip launching Claude CLI")
+  .option("--new-session", "Launch Claude CLI in the worktree")
   .option("--create-pr", "Create a draft PR immediately")
   .option(
     "--also <repo>",
@@ -115,7 +115,7 @@ program
       issueId: parsedIssue.issueId,
       repoName: parsedIssue.repoName,
       skipInstall: options.skipInstall,
-      skipClaude: options.skipClaude,
+      newSession: options.newSession,
       createPr: options.createPr,
       verbose: options.verbose,
       also: options.also,
@@ -127,7 +127,7 @@ program
       process.exit(1);
     }
 
-    if (options.skipClaude && !options.repos) {
+    if (!options.newSession && !options.repos) {
       console.log(`✓ Worktree created at ${result.worktreePath}`);
       console.log(`✓ Branch: ${result.branch}`);
       console.log("\nTo start working:");
@@ -194,12 +194,12 @@ program
 program
   .command("resume <issue-number>")
   .description("Resume work on an existing worktree")
-  .option("--skip-claude", "Skip launching Claude CLI")
+  .option("--new-session", "Launch Claude CLI in the worktree")
   .option("-v, --verbose", "Verbose output")
   .action(async (issueNumber: string, options) => {
     const result = await resumeCommand({
       issueNumber: Number.parseInt(issueNumber, 10),
-      skipClaude: options.skipClaude,
+      newSession: options.newSession,
       verbose: options.verbose,
     });
 
@@ -208,7 +208,7 @@ program
       process.exit(1);
     }
 
-    if (options.skipClaude) {
+    if (!options.newSession) {
       console.log(`✓ Worktree found at ${result.worktreePath}`);
       console.log(`✓ Branch: ${result.branch}`);
       console.log("\nTo continue working:");
@@ -266,5 +266,10 @@ program
     }
   });
 
-// Parse and run
-program.parse();
+// Parse and run (only when executed as CLI, not when imported for testing)
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("devac-worktree");
+
+if (isMainModule) {
+  program.parse();
+}

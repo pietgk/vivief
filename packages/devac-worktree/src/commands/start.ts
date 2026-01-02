@@ -110,7 +110,7 @@ export interface StartOptions {
   /** Repo name from issue ID (e.g., "vivief") - enables workspace mode */
   repoName?: string;
   skipInstall?: boolean;
-  skipClaude?: boolean;
+  newSession?: boolean;
   createPr?: boolean;
   verbose?: boolean;
   /** Create worktrees in these sibling repos as well (when in a repo) */
@@ -126,7 +126,7 @@ async function startFromParentDirectory(
   options: StartOptions,
   parentDir: string
 ): Promise<StartResult> {
-  const { issueNumber, skipInstall, skipClaude, verbose, repos } = options;
+  const { issueNumber, skipInstall, newSession, verbose, repos } = options;
 
   if (!repos || repos.length === 0) {
     return {
@@ -136,7 +136,7 @@ async function startFromParentDirectory(
   }
 
   // Check if Claude is installed
-  if (!skipClaude) {
+  if (newSession) {
     const claudeInstalled = await isClaudeInstalled();
     if (!claudeInstalled) {
       return {
@@ -209,7 +209,7 @@ async function startFromParentDirectory(
   }
 
   // Launch Claude in the parent directory (to work across all worktrees)
-  if (!skipClaude) {
+  if (newSession) {
     console.log("\n✓ Created worktrees in parent directory mode");
     console.log(`✓ ${successCount}/${repos.length} repos ready`);
     console.log("\nLaunching Claude CLI in parent directory...\n");
@@ -254,7 +254,7 @@ async function isParentDirectory(dir: string): Promise<boolean> {
  * 4. Creates the worktree in the workspace
  */
 async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
-  const { issueNumber, repoName, skipInstall, skipClaude, verbose, createPr } = options;
+  const { issueNumber, repoName, skipInstall, newSession, verbose, createPr } = options;
 
   if (!repoName) {
     return {
@@ -264,7 +264,7 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
   }
 
   // Check if Claude is installed
-  if (!skipClaude) {
+  if (newSession) {
     const claudeInstalled = await isClaudeInstalled();
     if (!claudeInstalled) {
       return {
@@ -446,7 +446,7 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
   await writeIssueContext(issue, worktreePath);
 
   // Launch Claude CLI
-  if (!skipClaude) {
+  if (newSession) {
     console.log(`\n✓ Worktree created at ${worktreePath}`);
     console.log(`✓ Branch: ${branch}`);
     console.log("✓ Issue context written to ~/.devac/issue-context.md");
@@ -471,7 +471,7 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
 }
 
 export async function startCommand(options: StartOptions): Promise<StartResult> {
-  const { issueNumber, skipInstall, skipClaude, createPr, verbose } = options;
+  const { issueNumber, skipInstall, newSession, createPr, verbose } = options;
   const cwd = process.cwd();
 
   // Check if we're in a parent directory with --repos flag
@@ -494,7 +494,7 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
   }
 
   // Check if Claude is installed
-  if (!skipClaude) {
+  if (newSession) {
     const claudeInstalled = await isClaudeInstalled();
     if (!claudeInstalled) {
       return {
@@ -641,7 +641,7 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
   }
 
   // Launch Claude CLI
-  if (!skipClaude) {
+  if (newSession) {
     if (verbose) {
       console.log("Launching Claude CLI...");
     }
