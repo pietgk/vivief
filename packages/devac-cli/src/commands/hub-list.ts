@@ -7,11 +7,11 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createCentralHub } from "@pietgk/devac-core";
-import type { CentralHub } from "@pietgk/devac-core";
+import { createHubClient } from "@pietgk/devac-core";
+import type { HubClient } from "@pietgk/devac-core";
 
-// RepoInfo type from the hub
-type RepoInfo = Awaited<ReturnType<CentralHub["listRepos"]>>[number];
+// RepoInfo type from the hub client
+type RepoInfo = Awaited<ReturnType<HubClient["listRepos"]>>[number];
 
 /**
  * Hub list command options
@@ -61,11 +61,11 @@ export async function hubList(options: HubListOptions): Promise<HubListResult> {
     };
   }
 
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-    const repos = await hub.listRepos();
+    const repos = await client.listRepos();
 
     return {
       success: true,
@@ -79,7 +79,5 @@ export async function hubList(options: HubListOptions): Promise<HubListResult> {
       message: "Failed to list repositories",
       error: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    await hub.close();
   }
 }

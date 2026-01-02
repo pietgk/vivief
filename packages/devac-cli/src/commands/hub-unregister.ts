@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createCentralHub } from "@pietgk/devac-core";
+import { createHubClient } from "@pietgk/devac-core";
 
 /**
  * Hub unregister command options
@@ -52,11 +52,11 @@ export async function hubUnregister(options: HubUnregisterOptions): Promise<HubU
     };
   }
 
-  const hub = createCentralHub({ hubDir });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-    await hub.unregisterRepo(repoId);
+    await client.unregisterRepo(repoId);
 
     return {
       success: true,
@@ -68,7 +68,5 @@ export async function hubUnregister(options: HubUnregisterOptions): Promise<HubU
       message: "Failed to unregister repository",
       error: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    await hub.close();
   }
 }

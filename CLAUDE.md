@@ -111,7 +111,26 @@ pnpm --filter @pietgk/devac-mcp exec devac-mcp --help
 DevAC uses a three-layer storage model:
 1. **Package Seeds**: Parquet files in `.devac/seed/` per package
 2. **Repository Manifest**: `.devac/manifest.json` aggregates packages
-3. **Central Hub**: `{workspace}/.devac/central.duckdb` for cross-repo queries (auto-detected from workspace)
+3. **Central Hub**: `~/.devac/central.duckdb` for cross-repo queries
+
+### Hub Concurrency Model
+
+The Central Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
+
+- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub register`, `devac hub query`, etc.) communicate via Unix socket IPC (`~/.devac/mcp.sock`).
+- **When MCP is not running**: CLI commands access the hub directly.
+
+This is transparent to users - CLI commands work the same regardless of whether MCP is running. The `HubClient` class handles routing automatically.
+
+```typescript
+// In CLI commands, use HubClient (not CentralHub directly)
+import { createHubClient } from "@pietgk/devac-core";
+
+const client = createHubClient();
+await client.registerRepo("/path/to/repo");  // Works with or without MCP
+```
+
+See [ADR-0024](docs/adr/0024-hub-single-writer-ipc.md) for details.
 
 ### Data Model
 

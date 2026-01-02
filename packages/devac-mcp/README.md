@@ -117,6 +117,63 @@ async function createMCPServer(options: MCPServerOptions): Promise<DevacMCPServe
 
 Convenience function that creates and starts a server in one call.
 
+## Hub Mode Architecture
+
+In hub mode, the MCP server owns the central hub database (`~/.devac/central.duckdb`) exclusively. This is required because DuckDB does not support concurrent read-write access from multiple processes.
+
+### How It Works
+
+When the MCP server starts in hub mode:
+
+1. **Hub Server**: Creates a Unix socket at `~/.devac/mcp.sock`
+2. **Exclusive Access**: Opens `central.duckdb` with read-write access
+3. **IPC Handler**: Listens for CLI commands via the socket
+
+CLI commands (`devac hub register`, `devac hub query`, etc.) automatically detect whether MCP is running and route requests accordingly:
+
+```
+┌─────────┐     Unix Socket IPC       ┌─────────────────┐
+│   CLI   │ ────────────────────────► │   MCP Server    │
+│ Command │                           │   (Hub Owner)   │
+└─────────┘                           │ ┌─────────────┐ │
+                                      │ │ CentralHub  │ │
+                                      │ │ (RW access) │ │
+                                      │ └──────┬──────┘ │
+                                      └────────┼────────┘
+                                               │
+                                               ▼
+                                      ┌───────────────┐
+                                      │ central.duckdb│
+                                      └───────────────┘
+```
+
+### Supported Operations
+
+The IPC layer supports all hub operations:
+
+**Write operations:**
+- `register` - Register a repository
+- `unregister` - Unregister a repository
+- `refresh` / `refreshAll` - Refresh manifests
+- `pushDiagnostics` - Push validation errors
+- `clearDiagnostics` - Clear diagnostics
+- `resolveDiagnostics` - Mark diagnostics as resolved
+
+**Read operations:**
+- `query` - Execute SQL queries
+- `listRepos` - List registered repositories
+- `getRepoStatus` - Get hub status
+- `getValidationErrors` / `getValidationSummary` / `getValidationCounts`
+- `getDiagnostics` / `getDiagnosticsSummary` / `getDiagnosticsCounts`
+
+### Fallback Behavior
+
+When MCP is not running, CLI commands fall back to direct database access. This means:
+- Single-developer workflows work without MCP
+- Multi-tool workflows (CLI + MCP) work seamlessly together
+
+See [ADR-0024](../../docs/adr/0024-hub-single-writer-ipc.md) for implementation details.
+
 ## Related Packages
 
 - [@pietgk/devac-core](../devac-core) - Core analysis library
@@ -126,6 +183,7 @@ Convenience function that creates and starts a server in one call.
 
 - [MCP Server Guide](../../docs/mcp-server.md) - Full documentation
 - [API Reference](../../docs/api-reference.md) - Programmatic API
+- [Storage System](../../docs/implementation/storage.md) - Hub IPC architecture
 
 ## License
 

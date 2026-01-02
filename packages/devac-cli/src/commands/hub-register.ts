@@ -10,7 +10,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
   type PackageSeedState,
-  createCentralHub,
+  createHubClient,
   detectRepoSeedStatus,
   discoverWorkspace,
   findWorkspaceDir,
@@ -125,12 +125,11 @@ async function registerSingleRepo(
     );
   }
 
-  // Register with hub
-  const hub = createCentralHub({ hubDir });
+  // Register with hub (delegates to MCP if running, otherwise direct)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-    const result = await hub.registerRepo(repoPath);
+    const result = await client.registerRepo(repoPath);
 
     return {
       success: true,
@@ -150,8 +149,6 @@ async function registerSingleRepo(
       message: "Failed to register repository",
       error: errorMessage,
     };
-  } finally {
-    await hub.close();
   }
 }
 

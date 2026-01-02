@@ -5,6 +5,7 @@ import {
   type DiagnosticsSummary,
   type DomainEffect,
   DuckDBPool,
+  type HubServer,
   type Rule,
   type SeedReader,
   type SymbolAffectedAnalyzer,
@@ -13,7 +14,7 @@ import {
   type ValidationFilter,
   type ValidationSummary,
   builtinRules,
-  createCentralHub,
+  createHubServer,
   createRuleEngine,
   createSeedReader,
   createSymbolAffectedAnalyzer,
@@ -558,7 +559,7 @@ export class PackageDataProvider implements DataProvider {
 export class HubDataProvider implements DataProvider {
   readonly mode = "hub" as const;
   private _pool: DuckDBPool | null = null;
-  private _hub: CentralHub | null = null;
+  private _hubServer: HubServer | null = null;
 
   constructor(
     private hubDir: string,
@@ -571,23 +572,32 @@ export class HubDataProvider implements DataProvider {
   }
 
   private get hub(): CentralHub {
-    if (!this._hub) throw new Error("Provider not initialized");
-    return this._hub;
+    const hub = this._hubServer?.getHub();
+    if (!hub) throw new Error("Hub not initialized");
+    return hub;
+  }
+
+  /**
+   * Get the HubServer instance (for external access to IPC server)
+   */
+  getHubServer(): HubServer | null {
+    return this._hubServer;
   }
 
   async initialize(): Promise<void> {
     this._pool = new DuckDBPool({ memoryLimit: this.memoryLimit });
     await this._pool.initialize();
 
-    // MCP server only does queries, use read-only mode to avoid lock conflicts
-    this._hub = createCentralHub({ hubDir: this.hubDir, readOnly: true });
-    await this._hub.init();
+    // MCP server owns the hub in read-write mode via HubServer
+    // This allows CLI commands to delegate operations via IPC
+    this._hubServer = createHubServer({ hubDir: this.hubDir });
+    await this._hubServer.start();
   }
 
   async shutdown(): Promise<void> {
-    if (this._hub) {
-      await this._hub.close();
-      this._hub = null;
+    if (this._hubServer) {
+      await this._hubServer.stop();
+      this._hubServer = null;
     }
     if (this._pool) {
       await this._pool.shutdown();

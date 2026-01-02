@@ -13,7 +13,7 @@ import {
   type DiagnosticsSeverity,
   type DiagnosticsSource,
   type UnifiedDiagnostics,
-  createCentralHub,
+  createHubClient,
 } from "@pietgk/devac-core";
 import { formatDiagnostics, formatOutput } from "./output-formatter.js";
 
@@ -73,11 +73,10 @@ export async function hubDiagnosticsCommand(
 ): Promise<HubDiagnosticsCommandResult> {
   const startTime = Date.now();
   const hubDir = options.hubDir || getDefaultHubDir();
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-
     const filter: DiagnosticsFilter = {
       repo_id: options.repoId,
       source: options.source,
@@ -89,7 +88,7 @@ export async function hubDiagnosticsCommand(
       limit: options.limit,
     };
 
-    const diagnostics = await hub.getDiagnostics(filter);
+    const diagnostics = await client.getDiagnostics(filter);
 
     const output = options.json
       ? formatOutput({ diagnostics, count: diagnostics.length }, { json: true })
@@ -115,7 +114,5 @@ export async function hubDiagnosticsCommand(
       timeMs: Date.now() - startTime,
       error: errorMessage,
     };
-  } finally {
-    await hub.close();
   }
 }

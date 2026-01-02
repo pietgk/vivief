@@ -10,7 +10,7 @@ import * as path from "node:path";
 import {
   type DiagnosticsSummary,
   type ValidationSummary,
-  createCentralHub,
+  createHubClient,
 } from "@pietgk/devac-core";
 import { formatOutput, formatSummary } from "./output-formatter.js";
 
@@ -70,17 +70,16 @@ export async function hubSummaryCommand(
 ): Promise<HubSummaryCommandResult> {
   const startTime = Date.now();
   const hubDir = options.hubDir || getDefaultHubDir();
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-
     let output: string;
     const result: Partial<HubSummaryCommandResult> = {};
 
     if (options.type === "validation") {
       const groupBy = (options.groupBy || "source") as "repo" | "file" | "source" | "severity";
-      const summary = await hub.getValidationSummary(groupBy);
+      const summary = await client.getValidationSummary(groupBy);
       result.validationSummary = summary;
 
       if (options.json) {
@@ -97,7 +96,7 @@ export async function hubSummaryCommand(
       }
     } else if (options.type === "diagnostics") {
       const groupBy = (options.groupBy || "source") as "repo" | "source" | "severity" | "category";
-      const summary = await hub.getDiagnosticsSummary(groupBy);
+      const summary = await client.getDiagnosticsSummary(groupBy);
       result.diagnosticsSummary = summary;
 
       if (options.json) {
@@ -118,8 +117,8 @@ export async function hubSummaryCommand(
       }
     } else {
       // counts mode
-      const validationCounts = await hub.getValidationCounts();
-      const diagnosticsCounts = await hub.getDiagnosticsCounts();
+      const validationCounts = await client.getValidationCounts();
+      const diagnosticsCounts = await client.getDiagnosticsCounts();
       result.counts = {
         validation: validationCounts,
         diagnostics: diagnosticsCounts,
@@ -190,7 +189,5 @@ export async function hubSummaryCommand(
       timeMs: Date.now() - startTime,
       error: errorMessage,
     };
-  } finally {
-    await hub.close();
   }
 }

@@ -50,13 +50,24 @@ Hub stores only computed data, NOT raw nodes/edges. Queries go directly to Parqu
 - No real-time cross-repo sync
 - Manual `devac hub refresh` needed after repository changes
 - Cross-repo queries require network access to remote seeds
+- **DuckDB single-writer constraint**: Only one process can have read-write access to the hub database at a time (see [ADR-0024](0024-hub-single-writer-ipc.md))
 
 ### Neutral
 
 - Hub can be local (single developer) or shared (team)
 - Computed edges can be regenerated from seeds
 
+## Concurrency Model
+
+Due to DuckDB's single-writer constraint, the hub implements a **Single Writer Architecture** when the MCP server is running:
+
+1. **MCP running**: MCP server owns the hub database exclusively. CLI commands delegate operations via Unix socket IPC.
+2. **MCP not running**: CLI commands access the hub directly (read-only for queries, read-write for mutations).
+
+This ensures CLI commands work seamlessly whether MCP is running or not. See [ADR-0024](0024-hub-single-writer-ipc.md) for implementation details.
+
 ## References
 
-- See ADR-0001 for DuckDB choice rationale
-- See ADR-0002 for package partitioning that enables this federation
+- See [ADR-0001](0001-replace-neo4j-with-duckdb.md) for DuckDB choice rationale
+- See [ADR-0002](0002-per-package-partitioning.md) for package partitioning that enables this federation
+- See [ADR-0024](0024-hub-single-writer-ipc.md) for Single Writer Architecture (IPC layer)

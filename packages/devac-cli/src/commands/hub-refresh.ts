@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type RefreshResult, createCentralHub } from "@pietgk/devac-core";
+import { type RefreshResult, createHubClient } from "@pietgk/devac-core";
 
 /**
  * Hub refresh command options
@@ -66,17 +66,11 @@ export async function hubRefresh(options: HubRefreshOptions): Promise<HubRefresh
     };
   }
 
-  const hub = createCentralHub({ hubDir });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-
-    let result: RefreshResult;
-    if (repoId) {
-      result = await hub.refreshRepo(repoId);
-    } else {
-      result = await hub.refreshAll();
-    }
+    const result: RefreshResult = await client.refresh(repoId);
 
     return {
       success: true,
@@ -96,7 +90,5 @@ export async function hubRefresh(options: HubRefreshOptions): Promise<HubRefresh
       message: "Failed to refresh repositories",
       error: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    await hub.close();
   }
 }

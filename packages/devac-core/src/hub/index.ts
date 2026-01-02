@@ -51,3 +51,28 @@ export {
   type AffectedResult,
   type AffectedRepo,
 } from "./affected-analyzer.js";
+
+// IPC Protocol
+export {
+  HUB_SOCKET_NAME,
+  IPC_TIMEOUT_MS,
+  IPC_CONNECT_TIMEOUT_MS,
+  getSocketPath,
+  getDefaultHubDir,
+  type HubMethod,
+  type HubRequest,
+  type HubResponse,
+  type HubError,
+  HubErrorCode,
+} from "./ipc-protocol.js";
+
+// Hub Server (for MCP)
+export {
+  HubServer,
+  createHubServer,
+  type HubServerOptions,
+  type HubServerEvents,
+} from "./hub-server.js";
+
+// Hub Client (for CLI)
+export { HubClient, createHubClient, type HubClientOptions } from "./hub-client.js";

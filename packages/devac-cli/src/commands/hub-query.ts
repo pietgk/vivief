@@ -8,7 +8,7 @@
 import * as path from "node:path";
 import {
   DuckDBPool,
-  createCentralHub,
+  createHubClient,
   discoverPackagesInRepo,
   executeWithRecovery,
   preprocessSql,
@@ -55,15 +55,13 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
   const { hubDir, sql, json = false, branch = "base" } = options;
   const startTime = Date.now();
 
-  // Initialize hub to get registered repos
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient to get registered repos (delegates to MCP if running)
+  const client = createHubClient({ hubDir });
   let pool: DuckDBPool | null = null;
 
   try {
-    await hub.init();
-
     // Get all registered repositories
-    const repos = await hub.listRepos();
+    const repos = await client.listRepos();
 
     if (repos.length === 0) {
       return {
@@ -218,7 +216,6 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {
-    await hub.close();
     if (pool) {
       await pool.shutdown();
     }

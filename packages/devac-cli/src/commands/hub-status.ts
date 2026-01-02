@@ -7,7 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type HubStatus, createCentralHub } from "@pietgk/devac-core";
+import { type HubStatus, createHubClient } from "@pietgk/devac-core";
 
 /**
  * Hub status command options
@@ -52,11 +52,11 @@ export async function hubStatus(options: HubStatusOptions): Promise<HubStatusRes
     };
   }
 
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-    const status = await hub.getStatus();
+    const status = await client.getStatus();
 
     return {
       success: true,
@@ -69,7 +69,5 @@ export async function hubStatus(options: HubStatusOptions): Promise<HubStatusRes
       message: "Failed to get hub status",
       error: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    await hub.close();
   }
 }

@@ -372,6 +372,120 @@ Note: Pool size and thread count are not configurable via environment variables.
 - `maxConnections`: 4
 - `threads`: `Math.floor(os.cpus().length / 2)`
 
+## Hub IPC Architecture
+
+The Central Hub (`~/.devac/central.duckdb`) requires special handling due to DuckDB's single-writer constraint. When the MCP server is running, it owns the hub database exclusively, and CLI commands communicate via Unix socket IPC.
+
+### Why IPC?
+
+DuckDB does not support concurrent read-write access from multiple processes. When MCP is running with read-write access:
+- No other process can connect (not even read-only)
+- CLI commands would fail with lock errors
+
+### Single Writer Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  HUB ACCESS PATTERNS                                                         │
+│                                                                             │
+│  When MCP is RUNNING:                                                        │
+│  ───────────────────                                                        │
+│  ┌─────────┐     ┌───────────────┐     ┌─────────────────┐                 │
+│  │   CLI   │ ──► │ Unix Socket   │ ──► │   MCP Server    │                 │
+│  │ Command │     │ ~/.devac/     │     │  (Hub Owner)    │                 │
+│  └─────────┘     │ mcp.sock      │     │  ┌───────────┐  │                 │
+│                  └───────────────┘     │  │ CentralHub│  │                 │
+│                                        │  │ (RW mode) │  │                 │
+│                                        │  └─────┬─────┘  │                 │
+│                                        └────────┼────────┘                 │
+│                                                 │                           │
+│                                                 ▼                           │
+│                                        ┌───────────────┐                   │
+│                                        │ central.duckdb│                   │
+│                                        └───────────────┘                   │
+│                                                                             │
+│  When MCP is NOT running:                                                   │
+│  ────────────────────────                                                   │
+│  ┌─────────┐                           ┌───────────────┐                   │
+│  │   CLI   │ ─────────────────────────►│ central.duckdb│                   │
+│  │ Command │    Direct connection      │ (RW or RO)    │                   │
+│  └─────────┘    (no IPC needed)        └───────────────┘                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### IPC Protocol
+
+CLI-MCP communication uses JSON over Unix socket:
+
+```typescript
+// Request from CLI to MCP
+interface HubRequest {
+  id: string;        // UUID for correlation
+  method: HubMethod; // "register", "query", "listRepos", etc.
+  params: unknown;   // Method-specific parameters
+}
+
+// Response from MCP to CLI
+interface HubResponse {
+  id: string;
+  result?: unknown;  // Success result
+  error?: {          // Error details
+    code: number;
+    message: string;
+  };
+}
+```
+
+### HubClient Usage
+
+CLI commands use `HubClient` which handles routing automatically:
+
+```typescript
+import { createHubClient } from "@pietgk/devac-core";
+
+const client = createHubClient({ hubDir: "~/.devac" });
+
+// These work whether MCP is running or not
+const repos = await client.listRepos();
+const result = await client.registerRepo("/path/to/repo");
+const errors = await client.getValidationErrors({ severity: "error" });
+```
+
+### Socket Details
+
+| Property | Value |
+|----------|-------|
+| Location | `~/.devac/mcp.sock` |
+| Format | Newline-delimited JSON |
+| Permissions | `0o600` (owner only) |
+| Operation timeout | 30 seconds |
+| Connection probe | 100ms |
+
+### MCP Detection
+
+```typescript
+async isMCPRunning(): Promise<boolean> {
+  // 1. Check if socket file exists
+  // 2. Attempt connection with 100ms timeout
+  // 3. Return true only if connection succeeds
+}
+```
+
+Failed connection (socket exists but MCP crashed) triggers fallback to direct access.
+
+### Error Codes
+
+| Code | Name | Description |
+|------|------|-------------|
+| -32601 | METHOD_NOT_FOUND | Unknown method name |
+| -32602 | INVALID_PARAMS | Invalid parameters |
+| -32603 | INTERNAL_ERROR | Server error |
+| -32000 | HUB_NOT_READY | Hub not initialized |
+| -32001 | OPERATION_FAILED | Operation error |
+
+For detailed architecture, see [ADR-0024](../adr/0024-hub-single-writer-ipc.md).
+
 ---
 
 *Next: [Parsing Pipeline](./parsing.md) for analysis flow*

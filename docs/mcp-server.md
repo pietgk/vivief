@@ -444,6 +444,36 @@ await hubServer.start();
 // Server now accepts MCP messages via stdin/stdout
 ```
 
+## Hub Mode Architecture
+
+In hub mode, the MCP server owns the central hub database (`~/.devac/central.duckdb`) exclusively. This is required because DuckDB does not support concurrent read-write access from multiple processes.
+
+### Single Writer Architecture
+
+When the MCP server starts in hub mode:
+
+1. **Creates IPC Socket**: Unix socket at `~/.devac/mcp.sock`
+2. **Opens Hub Exclusively**: Read-write access to `central.duckdb`
+3. **Handles CLI Commands**: Routes CLI requests via IPC
+
+CLI commands (`devac hub register`, `devac hub query`, etc.) automatically detect whether MCP is running:
+
+- **MCP running**: Commands route through IPC socket
+- **MCP not running**: Commands access hub directly
+
+This is transparent to users - CLI commands work identically in both scenarios.
+
+### IPC Operations
+
+The MCP server handles all hub operations via IPC:
+
+| Operation Type | Methods |
+|----------------|---------|
+| **Write** | `register`, `unregister`, `refresh`, `refreshAll`, `pushDiagnostics`, `clearDiagnostics`, `resolveDiagnostics` |
+| **Read** | `query`, `listRepos`, `getRepoStatus`, `getValidationErrors`, `getValidationSummary`, `getValidationCounts`, `getDiagnostics`, `getDiagnosticsSummary`, `getDiagnosticsCounts` |
+
+For implementation details, see [ADR-0024: Hub Single Writer Architecture](./adr/0024-hub-single-writer-ipc.md).
+
 ## Prerequisites
 
 Before using the MCP server, ensure your package has been analyzed:
@@ -481,3 +511,5 @@ Common errors:
 - [API Reference](./api-reference.md) - Programmatic API
 - [Data Model](./implementation/data-model.md) - Understanding nodes, edges, and refs
 - [Architecture Overview](./implementation/overview.md) - System design
+- [Storage System](./implementation/storage.md) - Hub IPC architecture details
+- [ADR-0024](./adr/0024-hub-single-writer-ipc.md) - Hub Single Writer Architecture decision

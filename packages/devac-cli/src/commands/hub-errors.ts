@@ -7,7 +7,7 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
-import { type ValidationError, type ValidationFilter, createCentralHub } from "@pietgk/devac-core";
+import { type ValidationError, type ValidationFilter, createHubClient } from "@pietgk/devac-core";
 import { formatOutput, formatValidationIssues } from "./output-formatter.js";
 
 function getDefaultHubDir(): string {
@@ -60,11 +60,10 @@ export async function hubErrorsCommand(
 ): Promise<HubErrorsCommandResult> {
   const startTime = Date.now();
   const hubDir = options.hubDir || getDefaultHubDir();
-  const hub = createCentralHub({ hubDir, readOnly: true });
+  // Use HubClient (delegates to MCP if running, otherwise direct access)
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-
     const filter: ValidationFilter = {
       repo_id: options.repoId,
       severity: options.severity,
@@ -73,7 +72,7 @@ export async function hubErrorsCommand(
       limit: options.limit,
     };
 
-    const errors = await hub.getValidationErrors(filter);
+    const errors = await client.getValidationErrors(filter);
 
     // Convert to ValidationIssue format for formatting
     const issues = errors.map((e) => ({
@@ -110,7 +109,5 @@ export async function hubErrorsCommand(
       timeMs: Date.now() - startTime,
       error: errorMessage,
     };
-  } finally {
-    await hub.close();
   }
 }
