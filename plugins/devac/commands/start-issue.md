@@ -22,33 +22,86 @@ Extract:
 - Labels
 - Acceptance criteria
 
-### 2. Present issue summary
+### 2. Detect current context
 
-Show the user what they're working on:
-- Issue title and number
-- Key requirements
-- Acceptance criteria
-- Affected packages
+Check if we're already set up for this issue:
 
-### 3. Create a branch
-
-Generate branch name from issue:
 ```bash
-# Format: {issue-number}-{short-description}
-git checkout -b <issue-number>-<slug>
+# Get current branch
+git branch --show-current
+
+# Check for existing plan files
+ls .claude/plans/*.md 2>/dev/null
 ```
 
-Example: `42-add-watch-mode`
+**Context Detection Logic:**
+- If current branch starts with `<issue-number>-` → Already on issue branch
+- If a plan file mentions the issue number → Has existing plan
+- Otherwise → Fresh start needed
 
-### 4. Enter plan mode
+### 3. Take appropriate action
 
-Propose an implementation approach:
-- Identify files to modify
-- Suggest implementation order
-- Note any dependencies or considerations
-- Ask clarifying questions if needed
+**If already on issue branch:**
+- Skip branch creation
+- Show "Already on branch X ✓"
+- Check for existing plan file
 
-## Example Flow
+**If existing plan found:**
+- Reference the plan file
+- Ask: "Continue with existing plan, or start fresh?"
+
+**If fresh start (different branch, no plan):**
+- Create branch: `git checkout -b <issue-number>-<slug>`
+- Enter plan mode
+
+### 4. Present summary and next steps
+
+Show:
+- Issue title and requirements
+- Current branch status
+- Available plan (if any)
+- Proposed next action
+
+## Example Flows
+
+### Already in worktree (most common after /devac:start-issue-on-new-worktree)
+
+```
+User: /devac:start-issue 31
+
+Claude: Fetching issue #31...
+
+## Issue #31: Workspace Analysis Status & Registration
+
+**Branch:** Already on `31-workspace-analysis-status-registration` ✓
+**Plan:** Found `.claude/plans/structured-bouncing-eich.md`
+
+### Summary
+Create `devac status` (read-only) and enhance `devac hub register`
+with `--analyze` flag.
+
+Ready to implement. Would you like to:
+1. Review the plan first
+2. Start with Task 1
+3. Modify the plan
+```
+
+### On issue branch, no plan yet
+
+```
+User: /devac:start-issue 31
+
+Claude: Fetching issue #31...
+
+## Issue #31: Workspace Analysis Status & Registration
+
+**Branch:** Already on `31-workspace-analysis-status-registration` ✓
+**Plan:** None found
+
+[Enters plan mode to design implementation]
+```
+
+### Fresh start (no worktree, different branch)
 
 ```
 User: /devac:start-issue 42
@@ -71,20 +124,19 @@ Add a `--watch` flag to the analyze command that monitors file changes.
 
 Creating branch `42-add-watch-mode`...
 
-## Implementation Plan
-
-1. Add chokidar dependency for file watching
-2. Create watcher module in cli/src/commands/
-3. Integrate with existing analyze command
-4. Add tests for watcher behavior
-5. Update CLI help text
-
-Shall I proceed with this plan, or would you like to discuss the approach first?
+[Enters plan mode to design implementation]
 ```
 
 ## When to Use
 
 Use `/devac:start-issue` when:
-- You want to start work on an existing GitHub issue
-- You need the issue context loaded into the conversation
-- You want to create a properly named branch automatically
+- Starting work on a GitHub issue
+- Resuming work in an existing worktree
+- Loading issue context into conversation
+
+## Key Behaviors
+
+1. **No redundant branch creation** - Detects if already on issue branch
+2. **Plan awareness** - Finds and references existing plan files
+3. **Smooth resume flow** - Works naturally after `start-issue-on-new-worktree`
+4. **Backward compatible** - Fresh start still works as before
