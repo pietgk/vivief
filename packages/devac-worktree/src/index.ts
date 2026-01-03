@@ -192,13 +192,24 @@ program
 // ─────────────────────────────────────────────────────────────────────────────
 
 program
-  .command("resume <issue-number>")
-  .description("Resume work on an existing worktree")
+  .command("resume <issue>")
+  .description(
+    "Resume work on an existing worktree. " +
+      "Use 'ghrepo-123' format or just '123' when inside a repo."
+  )
   .option("--new-session", "Launch Claude CLI in the worktree")
   .option("-v, --verbose", "Verbose output")
-  .action(async (issueNumber: string, options) => {
+  .action(async (issue: string, options) => {
+    let parsedIssue: ReturnType<typeof parseIssueArg>;
+    try {
+      parsedIssue = parseIssueArg(issue);
+    } catch (err) {
+      console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+
     const result = await resumeCommand({
-      issueNumber: Number.parseInt(issueNumber, 10),
+      issueNumber: parsedIssue.issueNumber,
       newSession: options.newSession,
       verbose: options.verbose,
     });
@@ -222,16 +233,31 @@ program
 // ─────────────────────────────────────────────────────────────────────────────
 
 program
-  .command("clean <issue-number>")
-  .description("Remove worktree after PR is merged")
-  .option("-f, --force", "Force removal even if PR is not merged")
+  .command("clean <issue>")
+  .description(
+    "Remove worktree after PR is merged. " +
+      "Use 'ghrepo-123' format or just '123' when inside a repo."
+  )
+  .option("-f, --force", "Force removal (skip PR check AND remove with modified files)")
+  .option("--skip-pr-check", "Skip the PR merged check only")
   .option("--keep-branch", "Keep the git branch")
+  .option("-y, --yes", "Skip confirmation prompts")
   .option("-v, --verbose", "Verbose output")
-  .action(async (issueNumber: string, options) => {
+  .action(async (issue: string, options) => {
+    let parsedIssue: ReturnType<typeof parseIssueArg>;
+    try {
+      parsedIssue = parseIssueArg(issue);
+    } catch (err) {
+      console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+
     const result = await cleanCommand({
-      issueNumber: Number.parseInt(issueNumber, 10),
+      issueNumber: parsedIssue.issueNumber,
       force: options.force,
+      skipPrCheck: options.skipPrCheck,
       keepBranch: options.keepBranch,
+      yes: options.yes,
       verbose: options.verbose,
     });
 
@@ -250,9 +276,11 @@ program
 program
   .command("clean-merged")
   .description("Clean all worktrees with merged PRs")
+  .option("-y, --yes", "Skip confirmation prompts")
   .option("-v, --verbose", "Verbose output")
   .action(async (options) => {
     const result = await cleanMergedCommand({
+      yes: options.yes,
       verbose: options.verbose,
     });
 
