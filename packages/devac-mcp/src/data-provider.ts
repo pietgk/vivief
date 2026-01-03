@@ -5,6 +5,7 @@ import {
   type DiagnosticsSummary,
   type DomainEffect,
   DuckDBPool,
+  type HubClient,
   type HubServer,
   type Rule,
   type SeedReader,
@@ -14,6 +15,7 @@ import {
   type ValidationFilter,
   type ValidationSummary,
   builtinRules,
+  createHubClient,
   createHubServer,
   createRuleEngine,
   createSeedReader,
@@ -555,11 +557,16 @@ export class PackageDataProvider implements DataProvider {
  * Hub Data Provider
  *
  * Provides federated data from all registered repositories.
+ * Supports dual-mode operation:
+ * - Server mode: Starts HubServer if no MCP is running
+ * - Client mode: Uses HubClient to delegate to existing MCP server
  */
 export class HubDataProvider implements DataProvider {
   readonly mode = "hub" as const;
   private _pool: DuckDBPool | null = null;
   private _hubServer: HubServer | null = null;
+  private _hubClient: HubClient | null = null;
+  private _isClientMode = false;
 
   constructor(
     private hubDir: string,
@@ -588,17 +595,33 @@ export class HubDataProvider implements DataProvider {
     this._pool = new DuckDBPool({ memoryLimit: this.memoryLimit });
     await this._pool.initialize();
 
-    // MCP server owns the hub in read-write mode via HubServer
-    // This allows CLI commands to delegate operations via IPC
-    this._hubServer = createHubServer({ hubDir: this.hubDir });
-    await this._hubServer.start();
+    // Check if another MCP server is already running
+    const client = createHubClient({ hubDir: this.hubDir });
+    if (await client.isMCPRunning()) {
+      // Client mode: delegate hub operations to existing server
+      console.error("MCP server already running, using client mode");
+      this._hubClient = client;
+      this._isClientMode = true;
+    } else {
+      // Server mode: start our own HubServer
+      // MCP server owns the hub in read-write mode via HubServer
+      // This allows CLI commands to delegate operations via IPC
+      this._hubServer = createHubServer({ hubDir: this.hubDir });
+      await this._hubServer.start();
+    }
   }
 
   async shutdown(): Promise<void> {
+    // Only stop hub server if we're in server mode
     if (this._hubServer) {
       await this._hubServer.stop();
       this._hubServer = null;
     }
+    // Clear client reference in client mode
+    if (this._hubClient) {
+      this._hubClient = null;
+    }
+    this._isClientMode = false;
     if (this._pool) {
       await this._pool.shutdown();
       this._pool = null;
@@ -606,10 +629,74 @@ export class HubDataProvider implements DataProvider {
   }
 
   /**
+   * Check if an error indicates the owner MCP server has disconnected
+   */
+  private isConnectionError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    return (
+      message.includes("ECONNREFUSED") ||
+      message.includes("ENOENT") ||
+      message.includes("IPC timeout") ||
+      message.includes("connect ENOENT")
+    );
+  }
+
+  /**
+   * Promote from client mode to server mode when owner MCP shuts down
+   */
+  private async promoteToServer(): Promise<void> {
+    if (!this._isClientMode) return; // Already a server
+
+    console.error("Owner MCP shutdown detected, promoting to server mode...");
+
+    // Close client connection
+    this._hubClient = null;
+
+    // Try to start as server
+    try {
+      this._hubServer = createHubServer({ hubDir: this.hubDir });
+      await this._hubServer.start();
+      this._isClientMode = false;
+      console.error("Successfully promoted to server mode");
+    } catch {
+      // Another client may have won the race - stay in client mode and retry
+      console.error("Promotion failed (another client may have promoted), staying in client mode");
+      this._hubClient = createHubClient({ hubDir: this.hubDir });
+    }
+  }
+
+  /**
+   * Route hub operations based on current mode (server vs client)
+   * Handles auto-promotion if owner MCP server shuts down
+   */
+  private async hubOperation<T>(
+    serverOperation: (hub: CentralHub) => Promise<T>,
+    clientOperation: (client: HubClient) => Promise<T>
+  ): Promise<T> {
+    if (this._isClientMode && this._hubClient) {
+      try {
+        return await clientOperation(this._hubClient);
+      } catch (err) {
+        // Check if this is a connection error (owner died)
+        if (this.isConnectionError(err)) {
+          await this.promoteToServer();
+          // Retry after promotion
+          return this.hubOperation(serverOperation, clientOperation);
+        }
+        throw err;
+      }
+    }
+    return serverOperation(this.hub);
+  }
+
+  /**
    * Get all package paths from registered repos
    */
   private async getPackagePaths(): Promise<string[]> {
-    const repos = await this.hub.listRepos();
+    const repos = await this.hubOperation(
+      async (hub) => hub.listRepos(),
+      async (client) => client.listRepos()
+    );
     // For now, return the repo paths as package paths
     // In a full implementation, we'd read manifests to get actual package paths
     return repos.map((r) => r.localPath);
@@ -711,6 +798,16 @@ export class HubDataProvider implements DataProvider {
       return { rows: [], rowCount: 0, timeMs: Date.now() - startTime };
     }
 
+    // getAffectedRepos is not available via HubClient IPC
+    // In client mode, we can't perform this operation
+    if (this._isClientMode) {
+      return {
+        rows: [],
+        rowCount: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
     const result = await this.hub.getAffectedRepos(entityIds);
     return {
       rows: [result],
@@ -794,7 +891,10 @@ export class HubDataProvider implements DataProvider {
   }
 
   async listRepos(): Promise<RepoListItem[]> {
-    const repos = await this.hub.listRepos();
+    const repos = await this.hubOperation(
+      async (hub) => hub.listRepos(),
+      async (client) => client.listRepos()
+    );
     return repos.map((repo) => ({
       repoId: repo.repoId,
       localPath: repo.localPath,
@@ -805,13 +905,19 @@ export class HubDataProvider implements DataProvider {
   }
 
   async getValidationErrors(filter: ValidationFilter): Promise<ValidationError[]> {
-    return await this.hub.getValidationErrors(filter);
+    return this.hubOperation(
+      async (hub) => hub.getValidationErrors(filter),
+      async (client) => client.getValidationErrors(filter)
+    );
   }
 
   async getValidationSummary(
     groupBy: "repo" | "file" | "source" | "severity"
   ): Promise<ValidationSummary[]> {
-    return await this.hub.getValidationSummary(groupBy);
+    return this.hubOperation(
+      async (hub) => hub.getValidationSummary(groupBy),
+      async (client) => client.getValidationSummary(groupBy)
+    );
   }
 
   async getValidationCounts(): Promise<{
@@ -819,19 +925,28 @@ export class HubDataProvider implements DataProvider {
     warnings: number;
     total: number;
   }> {
-    return await this.hub.getValidationCounts();
+    return this.hubOperation(
+      async (hub) => hub.getValidationCounts(),
+      async (client) => client.getValidationCounts()
+    );
   }
 
   // ================== Unified Diagnostics Methods ==================
 
   async getAllDiagnostics(filter?: DiagnosticsFilter): Promise<UnifiedDiagnostics[]> {
-    return await this.hub.getDiagnostics(filter);
+    return this.hubOperation(
+      async (hub) => hub.getDiagnostics(filter),
+      async (client) => client.getDiagnostics(filter)
+    );
   }
 
   async getDiagnosticsSummary(
     groupBy: "repo" | "source" | "severity" | "category"
   ): Promise<DiagnosticsSummary[]> {
-    return await this.hub.getDiagnosticsSummary(groupBy);
+    return this.hubOperation(
+      async (hub) => hub.getDiagnosticsSummary(groupBy),
+      async (client) => client.getDiagnosticsSummary(groupBy)
+    );
   }
 
   async getDiagnosticsCounts(): Promise<{
@@ -842,7 +957,10 @@ export class HubDataProvider implements DataProvider {
     note: number;
     total: number;
   }> {
-    return await this.hub.getDiagnosticsCounts();
+    return this.hubOperation(
+      async (hub) => hub.getDiagnosticsCounts(),
+      async (client) => client.getDiagnosticsCounts()
+    );
   }
 
   // ================== Effects, Rules, C4 Methods (v3.0) ==================
