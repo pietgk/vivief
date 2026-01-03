@@ -50,13 +50,13 @@ Phase 4: Iterative Refinement
 | Universal AST extraction | ✅ Done | TypeScript, Python, C# parsers |
 | Seeds (Parquet) | ✅ Done | nodes, edges, external_refs tables |
 | Hub federation | ✅ Done | Cross-repo queries via DuckDB |
-| MCP server | ✅ Done | 12 tools for LLM querying |
+| MCP server | ✅ Done | 22 tools for LLM querying |
 | Worktree workflow | ✅ Done | Issue-based git worktrees |
 | Incremental updates | ✅ Done | Watch mode, delta storage |
 | Context discovery | ✅ Done | Sibling repos, issue grouping |
 | Validation coordinator | ✅ Done | Type-check, lint, test integration |
 | **Workspace module** | ✅ Done | Multi-repo orchestration (Phase 1) |
-| CLI | ✅ Done | 17+ commands |
+| CLI | ✅ Done | 40+ commands |
 
 ### Phase 1: Workspace Discovery + Unified Watcher (COMPLETE)
 
@@ -97,9 +97,11 @@ Source Files → [devac watch] → Seeds → [workspace watch] → Hub → Cross
 | Capability | Priority | Status | Notes |
 |------------|----------|--------|-------|
 | Effect Store (full) | Low | Not started | Seeds provide MVP; full log optional |
-| Effect Schemas | Medium | Not started | Zod schemas for effect types |
-| Rules Engine | Medium | Not started | Pattern matching for aggregation |
-| Vision→View Pipeline | Medium | Partial | Diagram generation from seeds |
+| Effect Schemas | Medium | ✅ Done | Zod schemas in `types/effects.ts` |
+| Effects Extraction | Medium | ✅ Done | Developer-maintained via `devac effects` commands (see [ADR-0023](../adr/0023-developer-maintained-effects.md)) |
+| Rules Engine | Medium | ✅ Done | Pattern matching for aggregation (see [rules-engine.md](../implementation/rules-engine.md)) |
+| Vision→View Pipeline | Medium | ✅ Done | C4 diagram generation via `devac c4` commands |
+| Eval Framework | Medium | ✅ Done | Answer quality evaluation (see [ADR-0022](../adr/0022-eval-framework.md)) |
 | Runtime Extraction | Low | Not started | Test-time instrumentation |
 | GitHub Webhooks | Medium | Not started | Real-time PR/CI events |
 | Vector Queries | Low | Not started | Semantic search over content |

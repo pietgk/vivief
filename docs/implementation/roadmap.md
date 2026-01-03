@@ -468,7 +468,7 @@ See [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) for im
 |-----------|--------|-------------|
 | Feedback Model | ✅ Done | Unified model for validation, CI, issues, reviews |
 | PR Reviews Sync | ✅ Done | Extract and store PR review comments |
-| MCP Tools | ✅ Done | `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts` |
+| MCP Tools | ✅ Done | `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts` |
 | Severity Levels | ✅ Done | critical, error, warning, suggestion, note |
 | Category Grouping | ✅ Done | compilation, linting, testing, ci-check, task, feedback, code-review |
 
