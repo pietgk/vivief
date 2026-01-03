@@ -1,5 +1,19 @@
 # @pietgk/devac-cli
 
+## 0.12.2
+
+### Patch Changes
+
+- 461fa8a: Fix doctor --fix to use workflow install-local command
+
+  - Changed version-check.ts to delegate fix commands to `devac workflow install-local`
+  - Updated formatters.ts to always show error details when fixes fail (not just with --verbose)
+
+  This eliminates duplicate CLI linking logic and provides better error visibility.
+
+- 22ce572: Add plugin-dev and plugin-global workflow commands for switching between local development and marketplace plugin modes
+  - @pietgk/devac-core@0.12.2
+
 ## 0.12.1
 
 ### Patch Changes
