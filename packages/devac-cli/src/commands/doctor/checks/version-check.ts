@@ -102,16 +102,12 @@ const versionCheck: HealthCheck = {
         let fixable = true;
 
         if (context.isDevacWorkspace && context.workspaceRoot) {
-          // All 3 CLIs from current workspace
-          fixCommand =
-            "git pull && pnpm install && pnpm build && " +
-            "(cd packages/devac-cli && pnpm link --global) && " +
-            "(cd packages/devac-mcp && pnpm link --global) && " +
-            "(cd packages/devac-worktree && pnpm link --global)";
+          // Inside devac workspace - delegate to workflow command
+          fixCommand = "git pull && pnpm install && devac workflow install-local";
         } else if (context.installMethod === "pnpm-link" && context.linkedWorkspaceRoot) {
-          // All 3 CLIs from linked source
+          // pnpm-linked from another directory - use --path option
           const root = context.linkedWorkspaceRoot;
-          fixCommand = `(cd ${root} && git pull && pnpm install && pnpm build && (cd packages/devac-cli && pnpm link --global) && (cd packages/devac-mcp && pnpm link --global) && (cd packages/devac-worktree && pnpm link --global))`;
+          fixCommand = `(cd ${root} && git pull && pnpm install) && devac workflow install-local --path ${root}`;
         } else if (context.installMethod === "pnpm-link") {
           // pnpm-linked but couldn't find source - user needs to update manually
           fixCommand =

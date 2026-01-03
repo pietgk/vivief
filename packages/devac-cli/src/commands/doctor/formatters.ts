@@ -102,7 +102,7 @@ export function formatDoctorOutput(result: DoctorResult, options: DoctorOptions)
     for (const fix of result.fixesApplied) {
       const icon = fix.success ? STATUS_ICONS.pass : STATUS_ICONS.fail;
       lines.push(`  ${icon} ${fix.message}`);
-      if (fix.error && options.verbose) {
+      if (!fix.success && fix.error) {
         lines.push(`    Error: ${fix.error}`);
       }
     }
