@@ -10,6 +10,7 @@ import { checkChangesetCommand } from "./check-changeset.js";
 import { checkDocsCommand } from "./check-docs.js";
 import { diffSummaryCommand } from "./diff-summary.js";
 import { installLocalCommand } from "./install-local.js";
+import { pluginDevCommand, pluginGlobalCommand } from "./plugin-dev.js";
 import { preCommitCommand } from "./pre-commit.js";
 import { prepareShipCommand } from "./prepare-ship.js";
 
@@ -18,6 +19,7 @@ export type { CheckChangesetOptions, CheckChangesetResult } from "./check-change
 export type { CheckDocsOptions, CheckDocsResult, DocIssue } from "./check-docs.js";
 export type { DiffSummaryOptions, DiffSummaryResult } from "./diff-summary.js";
 export type { InstallLocalOptions, InstallLocalResult } from "./install-local.js";
+export type { PluginDevOptions, PluginDevResult } from "./plugin-dev.js";
 export type { PreCommitOptions, PreCommitResult } from "./pre-commit.js";
 export type { PrepareShipOptions, PrepareShipResult } from "./prepare-ship.js";
 
@@ -26,6 +28,7 @@ export { checkChangesetCommand } from "./check-changeset.js";
 export { checkDocsCommand } from "./check-docs.js";
 export { diffSummaryCommand } from "./diff-summary.js";
 export { installLocalCommand } from "./install-local.js";
+export { pluginDevCommand, pluginGlobalCommand } from "./plugin-dev.js";
 export { preCommitCommand } from "./pre-commit.js";
 export { prepareShipCommand } from "./prepare-ship.js";
 
@@ -197,6 +200,54 @@ export function registerWorkflowCommand(program: Command): void {
       const result = await installLocalCommand({
         path: options.path,
         skipBuild: options.skipBuild,
+        json: options.json,
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.formatted) {
+        console.log(result.formatted);
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workflow plugin-dev
+  workflow
+    .command("plugin-dev")
+    .description("Switch to local plugin development mode (symlink cache to local)")
+    .option("-p, --path <path>", "Path to repository root")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const result = await pluginDevCommand({
+        path: options.path,
+        json: options.json,
+      });
+
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.formatted) {
+        console.log(result.formatted);
+      } else {
+        console.log(JSON.stringify(result, null, 2));
+      }
+
+      if (!result.success) {
+        process.exit(1);
+      }
+    });
+
+  // workflow plugin-global
+  workflow
+    .command("plugin-global")
+    .description("Switch to global/marketplace plugin mode (copy from marketplace)")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const result = await pluginGlobalCommand({
         json: options.json,
       });
 
