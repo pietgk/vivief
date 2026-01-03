@@ -1,5 +1,21 @@
 # @pietgk/devac-cli
 
+## 0.13.0
+
+### Minor Changes
+
+- 4fb8426: Add `devac sync` command to streamline analyze + register workflow
+
+  - New `devac sync` command combines package analysis and hub registration
+  - Supports `--analyze-only`, `--register-only`, `--force`, and `--dry-run` flags
+  - Uses `--if-changed` optimization by default for faster incremental syncs
+  - **Breaking**: `devac hub register` no longer auto-analyzes packages (use `devac sync` instead)
+  - Status command now recommends `devac sync` in "Next Steps"
+
+### Patch Changes
+
+- @pietgk/devac-core@0.13.0
+
 ## 0.12.2
 
 ### Patch Changes
