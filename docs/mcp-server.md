@@ -297,9 +297,9 @@ Get total counts of validation errors and warnings across all repositories. Only
 **Response:**
 Returns `{ "errors": 18, "warnings": 7 }`.
 
-### get_all_feedback
+### get_all_diagnostics
 
-Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Use this to answer "What do I need to fix?" across all feedback types. Only available in hub mode.
+Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Use this to answer "What do I need to fix?" across all diagnostics types. Only available in hub mode.
 
 **Parameters:**
 - `repo_id` (string, optional): Filter by repository ID
@@ -313,7 +313,7 @@ Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) fro
 **Example:**
 ```json
 {
-  "name": "get_all_feedback",
+  "name": "get_all_diagnostics",
   "arguments": {
     "severity": ["error", "critical"],
     "source": ["tsc", "eslint"],
@@ -322,9 +322,9 @@ Get all feedback (validation errors, CI failures, GitHub issues, PR reviews) fro
 }
 ```
 
-### get_feedback_summary
+### get_diagnostics_summary
 
-Get a summary of all feedback grouped by source, severity, category, or repository. Only available in hub mode.
+Get a summary of all diagnostics grouped by source, severity, category, or repository. Only available in hub mode.
 
 **Parameters:**
 - `groupBy` (string, required): How to group counts ("repo", "source", "severity", or "category")
@@ -332,7 +332,7 @@ Get a summary of all feedback grouped by source, severity, category, or reposito
 **Example:**
 ```json
 {
-  "name": "get_feedback_summary",
+  "name": "get_diagnostics_summary",
   "arguments": {
     "groupBy": "category"
   }
@@ -342,9 +342,9 @@ Get a summary of all feedback grouped by source, severity, category, or reposito
 **Response:**
 Returns grouped counts like `{ "compilation": 5, "linting": 3, "testing": 2 }`.
 
-### get_feedback_counts
+### get_diagnostics_counts
 
-Get total counts of feedback by severity level. Only available in hub mode.
+Get total counts of diagnostics by severity level. Only available in hub mode.
 
 **Parameters:**
 - None
@@ -352,7 +352,7 @@ Get total counts of feedback by severity level. Only available in hub mode.
 **Example:**
 ```json
 {
-  "name": "get_feedback_counts",
+  "name": "get_diagnostics_counts",
   "arguments": {}
 }
 ```

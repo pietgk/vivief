@@ -1021,7 +1021,7 @@ Examples:
 - Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
 - Context discovery: `get_context`, `list_repos`
 - Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
-- Unified feedback: `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts`
+- Unified diagnostics: `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts`
 
 ## Context Commands
 
@@ -1723,7 +1723,7 @@ The `--hub` and `--package` flags are mutually exclusive. Hub mode is the defaul
 - Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
 - Context discovery: `get_context`, `list_repos`
 - Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
-- Unified feedback: `get_all_feedback`, `get_feedback_summary`, `get_feedback_counts`
+- Unified diagnostics: `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts`
 
 See [MCP Server documentation](./mcp-server.md) for full tool reference.
 

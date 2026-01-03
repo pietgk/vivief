@@ -23,6 +23,9 @@ Version 2.3 evolved into v3.0, which added:
 - Updated issueId format (ghapi-123 → gh:mindler/api:123)
 - Refined workspace topology concepts
 - Improved Effect taxonomy
+- Developer-maintained effects workflow (ADR-0023)
+- Rules engine and C4 diagram generation
+- Unified diagnostics model (ADR-0018)
 
 ## Why Archive?
 

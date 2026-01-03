@@ -8,7 +8,7 @@ This directory contains the conceptual architecture for DevAC — the aspiration
 
 | Document | Purpose |
 |----------|---------|
-| [concepts.md](./concepts.md) | **Quick reference**: Three Pillars, terminology, status command, glossary |
+| [concepts.md](./concepts.md) | **Quick reference**: Four Pillars, terminology, status command, glossary |
 | [foundation.md](./foundation.md) | Core concepts: Effect Handler pattern, Seeds, Vision↔View loop, Human/LLM/System division |
 | [foundation-visual.md](./foundation-visual.md) | Visual companion with Mermaid diagrams illustrating the concepts |
 | [foundation-impl-guide.md](./foundation-impl-guide.md) | Guidance on how to implement the foundation concepts |
@@ -24,13 +24,14 @@ This directory contains the conceptual architecture for DevAC — the aspiration
 
 ## Key Concepts
 
-### Three Pillars of DevAC
+### Four Pillars of DevAC
 
 | Pillar | What It Does | Produces |
 |--------|--------------|----------|
 | **Infra** | Runs DevAC itself | DevAC Health |
 | **Validators** | Check code health | Diagnostics |
 | **Extractors** | Extract queryable data | Seeds |
+| **Workflow** | Orchestrates development flow | Issue→PR→Merge automation |
 
 Plus **Analytics** which uses Seeds + Diagnostics to answer questions.
 
