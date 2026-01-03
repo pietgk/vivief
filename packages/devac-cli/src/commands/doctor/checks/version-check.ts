@@ -92,17 +92,42 @@ const versionCheck: HealthCheck = {
       const comparison = compareVersions(latestVersion, VERSION);
 
       if (comparison > 0) {
-        // Newer version available
-        const fixCommand = context.isDevacWorkspace
-          ? "git pull && pnpm install && pnpm build && (cd packages/devac-cli && pnpm link --global)"
-          : "npm update -g @pietgk/devac-cli @pietgk/devac-mcp @pietgk/devac-worktree";
+        // Newer version available - determine the appropriate fix command
+        // Priority:
+        // 1. Currently in devac workspace -> rebuild locally
+        // 2. Installed via pnpm link -> rebuild from linked source
+        // 3. Installed via npm -> npm update
+
+        let fixCommand: string;
+        let fixable = true;
+
+        if (context.isDevacWorkspace && context.workspaceRoot) {
+          // All 3 CLIs from current workspace
+          fixCommand =
+            "git pull && pnpm install && pnpm build && " +
+            "(cd packages/devac-cli && pnpm link --global) && " +
+            "(cd packages/devac-mcp && pnpm link --global) && " +
+            "(cd packages/devac-worktree && pnpm link --global)";
+        } else if (context.installMethod === "pnpm-link" && context.linkedWorkspaceRoot) {
+          // All 3 CLIs from linked source
+          const root = context.linkedWorkspaceRoot;
+          fixCommand = `(cd ${root} && git pull && pnpm install && pnpm build && (cd packages/devac-cli && pnpm link --global) && (cd packages/devac-mcp && pnpm link --global) && (cd packages/devac-worktree && pnpm link --global))`;
+        } else if (context.installMethod === "pnpm-link") {
+          // pnpm-linked but couldn't find source - user needs to update manually
+          fixCommand =
+            "# pnpm-linked but source not found. cd to your devac workspace and run: git pull && pnpm install && pnpm build";
+          fixable = false;
+        } else {
+          // npm global or unknown
+          fixCommand = "npm update -g @pietgk/devac-cli @pietgk/devac-mcp @pietgk/devac-worktree";
+        }
 
         return {
           id: "version-update",
           name: "Version update",
           status: "warn",
           message: `v${latestVersion} available (current: v${VERSION})`,
-          fixable: true,
+          fixable,
           fixCommand,
           category: "version-updates",
         };

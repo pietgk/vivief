@@ -135,11 +135,55 @@ export class HubServer {
   // Private Methods
   // ─────────────────────────────────────────────────────────────
 
+  /**
+   * Check if another server is actively listening on the socket
+   */
+  private async isSocketInUse(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const socket = net.createConnection(this.socketPath);
+      const timeout = setTimeout(() => {
+        socket.destroy();
+        resolve(false);
+      }, 100); // Short timeout - just checking if anyone is listening
+
+      socket.on("connect", () => {
+        clearTimeout(timeout);
+        socket.destroy();
+        resolve(true); // Another MCP is actively listening
+      });
+
+      socket.on("error", () => {
+        clearTimeout(timeout);
+        resolve(false); // Socket file may exist but nothing listening (stale)
+      });
+    });
+  }
+
+  /**
+   * Clean up stale socket file, but refuse if another server is using it
+   */
   private async cleanupSocket(): Promise<void> {
     try {
+      // Check if socket file exists
+      await fs.access(this.socketPath);
+
+      // Socket exists - check if it's actively in use
+      if (await this.isSocketInUse()) {
+        throw new Error(
+          `Another MCP server is already listening on ${this.socketPath}. Stop it first or use a different hub directory.`
+        );
+      }
+
+      // Socket exists but is stale (no one listening) - safe to delete
       await fs.unlink(this.socketPath);
-    } catch {
-      // Ignore if doesn't exist
+      this.log(`Cleaned up stale socket: ${this.socketPath}`);
+    } catch (err) {
+      // Ignore ENOENT (socket doesn't exist) - that's fine
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return;
+      }
+      // Re-throw other errors (including our "already listening" error)
+      throw err;
     }
   }
 
