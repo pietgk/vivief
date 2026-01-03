@@ -1,5 +1,12 @@
 # @pietgk/devac-cli
 
+## 0.12.1
+
+### Patch Changes
+
+- Updated dependencies [fb1410f]
+  - @pietgk/devac-core@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes
