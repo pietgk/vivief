@@ -44,6 +44,11 @@ export interface CheckResult {
 }
 
 /**
+ * How devac CLI is installed
+ */
+export type InstallMethod = "pnpm-link" | "npm-global" | "unknown";
+
+/**
  * Context passed to each check
  */
 export interface CheckContext {
@@ -55,6 +60,10 @@ export interface CheckContext {
   workspaceRoot?: string;
   /** Whether we're inside the devac workspace */
   isDevacWorkspace: boolean;
+  /** How devac CLI is installed */
+  installMethod: InstallMethod;
+  /** If pnpm-linked, the source workspace root (where to run rebuild) */
+  linkedWorkspaceRoot?: string;
   /** Verbose output mode */
   verbose: boolean;
 }
