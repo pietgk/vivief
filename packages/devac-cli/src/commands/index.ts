@@ -42,6 +42,9 @@ export { registerWorkflowCommand } from "./workflow/index.js";
 // Doctor command (system health checks)
 export { registerDoctorCommand } from "./doctor.js";
 
+// Sync command (analyze + register workflow)
+export { registerSyncCommand } from "./sync.js";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Command function exports (for programmatic use)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -284,3 +287,7 @@ export type {
 // Doctor command (system health checks)
 export { doctorCommand } from "./doctor.js";
 export type { DoctorOptions, DoctorResult } from "./doctor.js";
+
+// Sync command (analyze + register workflow)
+export { syncCommand } from "./sync.js";
+export type { SyncOptions, SyncResult } from "./sync.js";

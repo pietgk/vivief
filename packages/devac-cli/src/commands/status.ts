@@ -836,9 +836,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     // Determine next steps based on current state
     // Check for packages needing analysis first
     if (result.seeds && result.seeds.summary.packagesNeedAnalysis > 0) {
-      result.next.push(
-        `Analyze ${result.seeds.summary.packagesNeedAnalysis} package(s): devac hub register --all`
-      );
+      result.next.push("Sync workspace: devac sync");
     }
     // Check for CI failures (highest priority workflow issue)
     if (result.workflow?.available && result.workflow.summary.failing > 0) {
@@ -860,7 +858,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } else if (result.diagnostics.warnings > 0) {
       result.next.push(`Address ${result.diagnostics.warnings} warnings`);
     } else if (!result.health.hubConnected) {
-      result.next.push("Initialize hub: devac hub init");
+      result.next.push("Initialize hub: devac hub init, then devac sync");
     } else if (!result.health.watchActive) {
       result.next.push("Start watch: devac workspace watch");
     } else if (result.next.length === 0) {

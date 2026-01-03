@@ -30,6 +30,7 @@ import {
   registerQueryCommand,
   registerRulesCommand,
   registerStatusCommand,
+  registerSyncCommand,
   registerTestCommand,
   registerTypecheckCommand,
   registerValidateCommand,
@@ -91,6 +92,9 @@ registerWorkflowCommand(program);
 
 // Doctor command (system health checks)
 registerDoctorCommand(program);
+
+// Sync command (analyze + register workflow)
+registerSyncCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

@@ -176,10 +176,8 @@ export function registerHubCommand(program: Command): void {
   // hub register
   hub
     .command("register [path]")
-    .description("Register a repository with the hub (analyzes packages without seeds by default)")
+    .description("Register a repository with the hub (use 'devac sync' to analyze + register)")
     .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
-    .option("--analyze", "Analyze packages without base seeds before registering (default: true)")
-    .option("--no-analyze", "Only register, skip analysis")
     .option("--all", "Register all repositories in workspace")
     .action(async (repoPath, options) => {
       try {
@@ -188,7 +186,6 @@ export function registerHubCommand(program: Command): void {
         const result = await hubRegister({
           hubDir,
           repoPath: resolvedPath,
-          analyze: options.analyze,
           all: options.all,
           onProgress: (msg) => console.log(msg),
         });

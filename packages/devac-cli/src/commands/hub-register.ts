@@ -2,21 +2,13 @@
  * Hub Register Command Implementation
  *
  * Registers a repository with the central federation hub.
- * Enhanced to optionally analyze packages before registration.
+ * Note: Use `devac sync` to analyze packages and register in one step.
  * Based on spec Phase 4: Federation.
  */
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import {
-  type PackageSeedState,
-  createHubClient,
-  detectRepoSeedStatus,
-  discoverWorkspace,
-  findWorkspaceDir,
-  getPackagesNeedingAnalysis,
-} from "@pietgk/devac-core";
-import { analyzeCommand } from "./analyze.js";
+import { createHubClient, discoverWorkspace, findWorkspaceDir } from "@pietgk/devac-core";
 
 /**
  * Hub register command options
@@ -26,8 +18,6 @@ export interface HubRegisterOptions {
   hubDir: string;
   /** Path to the repository to register */
   repoPath: string;
-  /** Analyze packages without base seeds before registering (default: true) */
-  analyze?: boolean;
   /** Register all repos in workspace (when repoPath is a workspace) */
   all?: boolean;
   /** Callback for progress updates */
@@ -46,14 +36,11 @@ export interface HubRegisterResult {
   packages?: number;
   /** Number of cross-repo edges extracted */
   crossRepoEdges?: number;
-  /** Number of packages that were analyzed */
-  packagesAnalyzed?: number;
   /** Results per repo (for --all mode) */
   repos?: Array<{
     repoId: string;
     packages: number;
     crossRepoEdges: number;
-    packagesAnalyzed: number;
   }>;
   /** User-facing message */
   message: string;
@@ -62,84 +49,27 @@ export interface HubRegisterResult {
 }
 
 /**
- * Analyze packages that need base seeds
- */
-async function analyzePackagesWithoutSeeds(
-  repoPath: string,
-  packagesNeedingAnalysis: PackageSeedState[],
-  onProgress?: (message: string) => void
-): Promise<number> {
-  let analyzed = 0;
-
-  for (const pkg of packagesNeedingAnalysis) {
-    const pkgName = pkg.packageName;
-    onProgress?.(`Analyzing ${pkgName}...`);
-
-    try {
-      const result = await analyzeCommand({
-        packagePath: pkg.packagePath,
-        repoName: path.basename(repoPath),
-        branch: "base",
-        ifChanged: false,
-        force: false,
-      });
-
-      if (result.success) {
-        analyzed++;
-        onProgress?.(`  ✓ ${pkgName}: ${result.nodesCreated} nodes, ${result.edgesCreated} edges`);
-      } else {
-        onProgress?.(`  ✗ ${pkgName}: ${result.error || "Analysis failed"}`);
-      }
-    } catch (err) {
-      onProgress?.(`  ✗ ${pkgName}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  return analyzed;
-}
-
-/**
  * Register a single repository with the hub
  */
 async function registerSingleRepo(
   hubDir: string,
   repoPath: string,
-  analyze: boolean,
   onProgress?: (message: string) => void
 ): Promise<HubRegisterResult> {
-  // Get seed status for the repo
-  const seedStatus = await detectRepoSeedStatus(repoPath);
-  const packagesNeedingAnalysis = getPackagesNeedingAnalysis(seedStatus);
-
-  let packagesAnalyzed = 0;
-
-  // Analyze packages without base seeds if requested
-  if (analyze && packagesNeedingAnalysis.length > 0) {
-    onProgress?.(
-      `Found ${packagesNeedingAnalysis.length} package(s) needing analysis in ${seedStatus.repoId}`
-    );
-    packagesAnalyzed = await analyzePackagesWithoutSeeds(
-      repoPath,
-      packagesNeedingAnalysis,
-      onProgress
-    );
-  }
-
   // Register with hub (delegates to MCP if running, otherwise direct)
   const client = createHubClient({ hubDir });
 
   try {
     const result = await client.registerRepo(repoPath);
 
+    onProgress?.(`Registered ${result.repoId} with ${result.packages} package(s)`);
+
     return {
       success: true,
       repoId: result.repoId,
       packages: result.packages,
       crossRepoEdges: result.crossRepoEdges,
-      packagesAnalyzed,
-      message: `Registered ${result.repoId} with ${result.packages} package(s)${
-        packagesAnalyzed > 0 ? ` (${packagesAnalyzed} newly analyzed)` : ""
-      }`,
+      message: `Registered ${result.repoId} with ${result.packages} package(s)`,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -158,7 +88,6 @@ async function registerSingleRepo(
 async function registerAllRepos(
   hubDir: string,
   workspacePath: string,
-  analyze: boolean,
   onProgress?: (message: string) => void
 ): Promise<HubRegisterResult> {
   // Discover all repos in workspace
@@ -177,25 +106,22 @@ async function registerAllRepos(
   const results: HubRegisterResult["repos"] = [];
   let totalPackages = 0;
   let totalEdges = 0;
-  let totalAnalyzed = 0;
   let successCount = 0;
 
   for (const repo of workspace.repos) {
     onProgress?.(`\nProcessing ${repo.name}...`);
 
-    const result = await registerSingleRepo(hubDir, repo.path, analyze, onProgress);
+    const result = await registerSingleRepo(hubDir, repo.path, onProgress);
 
     if (result.success) {
       successCount++;
       totalPackages += result.packages ?? 0;
       totalEdges += result.crossRepoEdges ?? 0;
-      totalAnalyzed += result.packagesAnalyzed ?? 0;
 
       results.push({
         repoId: result.repoId ?? repo.repoId,
         packages: result.packages ?? 0,
         crossRepoEdges: result.crossRepoEdges ?? 0,
-        packagesAnalyzed: result.packagesAnalyzed ?? 0,
       });
 
       onProgress?.(`  ✓ ${result.message}`);
@@ -206,14 +132,13 @@ async function registerAllRepos(
 
   const message =
     successCount === workspace.repos.length
-      ? `Registered all ${successCount} repositories (${totalPackages} packages, ${totalAnalyzed} newly analyzed)`
+      ? `Registered all ${successCount} repositories (${totalPackages} packages)`
       : `Registered ${successCount}/${workspace.repos.length} repositories`;
 
   return {
     success: successCount > 0,
     packages: totalPackages,
     crossRepoEdges: totalEdges,
-    packagesAnalyzed: totalAnalyzed,
     repos: results,
     message,
     error: successCount === 0 ? "No repositories were registered successfully" : undefined,
@@ -225,7 +150,6 @@ async function registerAllRepos(
  */
 export async function hubRegister(options: HubRegisterOptions): Promise<HubRegisterResult> {
   const { hubDir, repoPath, onProgress } = options;
-  const analyze = options.analyze !== false; // default to true
   const all = options.all ?? false;
 
   // Validate repo path exists
@@ -268,9 +192,9 @@ export async function hubRegister(options: HubRegisterOptions): Promise<HubRegis
       };
     }
 
-    return registerAllRepos(hubDir, workspaceDir, analyze, onProgress);
+    return registerAllRepos(hubDir, workspaceDir, onProgress);
   }
 
   // Single repo registration
-  return registerSingleRepo(hubDir, repoPath, analyze, onProgress);
+  return registerSingleRepo(hubDir, repoPath, onProgress);
 }
