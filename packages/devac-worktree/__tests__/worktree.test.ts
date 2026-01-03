@@ -16,6 +16,7 @@ import { execa } from "execa";
 import type { WorktreeState } from "../src/types.js";
 import {
   addWorktreeToState,
+  checkWorktreeStatus,
   createWorktree,
   deleteBranch,
   findWorktreeForIssue,
@@ -373,5 +374,87 @@ describe("Git Worktree Operations", () => {
     await deleteBranch("42-fix-bug", { force: true });
 
     expect(mockedExeca).toHaveBeenCalledWith("git", ["branch", "-D", "42-fix-bug"]);
+  });
+});
+
+describe("checkWorktreeStatus", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns clean status when no changes", async () => {
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult("")) // git diff --name-only HEAD
+      .mockResolvedValueOnce(mockExecaResult("")); // git ls-files --others
+
+    const status = await checkWorktreeStatus("/path/to/worktree");
+
+    expect(status.isClean).toBe(true);
+    expect(status.modifiedFiles).toEqual([]);
+    expect(status.untrackedFiles).toEqual([]);
+  });
+
+  it("detects modified files", async () => {
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult("src/file1.ts\nsrc/file2.ts"))
+      .mockResolvedValueOnce(mockExecaResult(""));
+
+    const status = await checkWorktreeStatus("/path/to/worktree");
+
+    expect(status.isClean).toBe(false);
+    expect(status.modifiedFiles).toEqual(["src/file1.ts", "src/file2.ts"]);
+    expect(status.untrackedFiles).toEqual([]);
+  });
+
+  it("detects untracked files", async () => {
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult(""))
+      .mockResolvedValueOnce(mockExecaResult("new-file.ts\ntemp.log"));
+
+    const status = await checkWorktreeStatus("/path/to/worktree");
+
+    expect(status.isClean).toBe(false);
+    expect(status.modifiedFiles).toEqual([]);
+    expect(status.untrackedFiles).toEqual(["new-file.ts", "temp.log"]);
+  });
+
+  it("detects both modified and untracked files", async () => {
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult("changed.ts"))
+      .mockResolvedValueOnce(mockExecaResult("new.ts"));
+
+    const status = await checkWorktreeStatus("/path/to/worktree");
+
+    expect(status.isClean).toBe(false);
+    expect(status.modifiedFiles).toEqual(["changed.ts"]);
+    expect(status.untrackedFiles).toEqual(["new.ts"]);
+  });
+
+  it("returns clean status on error (graceful degradation)", async () => {
+    mockedExeca.mockRejectedValueOnce(new Error("git failed"));
+
+    const status = await checkWorktreeStatus("/invalid/path");
+
+    expect(status.isClean).toBe(true);
+    expect(status.modifiedFiles).toEqual([]);
+    expect(status.untrackedFiles).toEqual([]);
+  });
+
+  it("passes correct cwd to git commands", async () => {
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult(""))
+      .mockResolvedValueOnce(mockExecaResult(""));
+
+    await checkWorktreeStatus("/my/worktree/path");
+
+    expect(mockedExeca).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "HEAD"], {
+      cwd: "/my/worktree/path",
+    });
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      2,
+      "git",
+      ["ls-files", "--others", "--exclude-standard"],
+      { cwd: "/my/worktree/path" }
+    );
   });
 });

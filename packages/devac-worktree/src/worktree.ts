@@ -116,6 +116,41 @@ export async function pruneWorktrees(): Promise<void> {
 }
 
 /**
+ * Check if a worktree has modified or untracked files
+ * Returns a status object with details about the worktree state
+ */
+export async function checkWorktreeStatus(worktreePath: string): Promise<{
+  isClean: boolean;
+  modifiedFiles: string[];
+  untrackedFiles: string[];
+}> {
+  try {
+    // Check for modified files (staged and unstaged)
+    const { stdout: modifiedOutput } = await execa("git", ["diff", "--name-only", "HEAD"], {
+      cwd: worktreePath,
+    });
+    const modifiedFiles = modifiedOutput.trim().split("\n").filter(Boolean);
+
+    // Check for untracked files
+    const { stdout: untrackedOutput } = await execa(
+      "git",
+      ["ls-files", "--others", "--exclude-standard"],
+      { cwd: worktreePath }
+    );
+    const untrackedFiles = untrackedOutput.trim().split("\n").filter(Boolean);
+
+    return {
+      isClean: modifiedFiles.length === 0 && untrackedFiles.length === 0,
+      modifiedFiles,
+      untrackedFiles,
+    };
+  } catch {
+    // If we can't check status (e.g., path doesn't exist), assume clean
+    return { isClean: true, modifiedFiles: [], untrackedFiles: [] };
+  }
+}
+
+/**
  * Calculate worktree path for an issue
  */
 export async function calculateWorktreePath(
