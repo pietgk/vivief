@@ -157,6 +157,36 @@ Example: `myrepo:packages/api:function:abc123`
 | `devac hub register` | Register repository |
 | `devac doctor` | Check system health and fix issues |
 | `devac mcp` | Start MCP server |
+| `devac workflow plugin-dev` | Switch to local plugin development mode |
+| `devac workflow plugin-global` | Revert to global/marketplace plugin mode |
+
+## Plugin Development
+
+When developing Claude Code skills/commands in `plugins/devac/`, use these workflow commands to manage the plugin cache:
+
+### Development Mode (Local Changes)
+
+```bash
+# Symlink cache to local plugin - changes are immediately reflected
+devac workflow plugin-dev
+
+# Note: Restart Claude Code to pick up the symlink
+```
+
+### Global Mode (Marketplace Version)
+
+```bash
+# Revert to marketplace version (copy from ~/.claude/plugins/marketplaces/)
+devac workflow plugin-global
+```
+
+### Why This Is Needed
+
+Claude Code caches installed plugins at `~/.claude/plugins/cache/`. Without the symlink:
+- Edits to `plugins/devac/commands/*.md` are not reflected
+- You'd need to manually sync or clear cache after each change
+
+The `plugin-dev` command creates a symlink so your local edits are used immediately (after restarting Claude).
 
 ## MCP Server
 

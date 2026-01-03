@@ -13,6 +13,17 @@ You are helping the user start work on a GitHub issue.
 - `<issue-id>`: Issue number (e.g., `42`) or full ID (e.g., `ghvivief-42`)
 - `quick` (optional): Work in current directory with a branch instead of creating a worktree
 
+## Execution Logic
+
+**FIRST**: Check if `quick` argument was provided.
+
+| Argument | Mode | Action |
+|----------|------|--------|
+| No `quick` | Worktree Mode (DEFAULT) | Run `devac-worktree start <issue-id>` |
+| `quick` present | Quick Mode | Create branch with `git checkout -b` |
+
+**IMPORTANT**: Without the `quick` argument, you MUST use `devac-worktree start`. Do NOT create a branch manually with `git checkout -b`.
+
 ## Modes
 
 ### Default: Worktree Mode (Recommended)
