@@ -357,6 +357,20 @@ export type {
   DomainBoundary,
 } from "./views/index.js";
 
+// Effects (v3.0 foundation - Hierarchical mapping loader)
+export {
+  loadEffectMappings,
+  applyMappings,
+  hasMappings,
+  getMappingsPath,
+} from "./effects/index.js";
+export type {
+  MappingLevel,
+  MappingSource,
+  MappingResolutionResult,
+  LoadMappingsOptions,
+} from "./effects/index.js";
+
 /**
  * DevAC Core Version
  */
