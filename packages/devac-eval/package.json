@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-eval",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "Answer quality evaluation framework for DevAC",
   "type": "module",
   "publishConfig": {
