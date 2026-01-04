@@ -5,6 +5,7 @@
  * Implements federated queries without copying seed data.
  */
 
+import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -140,7 +141,10 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
         allNodesPaths.push(`'${nodesPath.replace(/'/g, "''")}'`);
         allEdgesPaths.push(`'${edgesPath.replace(/'/g, "''")}'`);
         allRefsPaths.push(`'${refsPath.replace(/'/g, "''")}'`);
-        allEffectsPaths.push(`'${effectsPath.replace(/'/g, "''")}'`);
+        // Only add effects.parquet if it exists - not all packages have effects yet
+        if (fs.existsSync(effectsPath)) {
+          allEffectsPaths.push(`'${effectsPath.replace(/'/g, "''")}'`);
+        }
       }
 
       // Create views - silently ignore missing files
