@@ -14,8 +14,20 @@ import * as path from "node:path";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 
-import type { NodeKind, ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
-import { createEdge, createExternalRef, createNode } from "../types/index.js";
+import type {
+  CodeEffect,
+  NodeKind,
+  ParsedEdge,
+  ParsedExternalRef,
+  ParsedNode,
+} from "../types/index.js";
+import {
+  createEdge,
+  createExternalRef,
+  createFunctionCallEffect,
+  createNode,
+  createSendEffect,
+} from "../types/index.js";
 import { computeStringHash } from "../utils/hash.js";
 import type { LanguageParser, ParserConfig, StructuralParseResult } from "./parser-interface.js";
 
@@ -46,6 +58,7 @@ interface PythonParserOutput {
   nodes: RawPythonNode[];
   edges: RawPythonEdge[];
   externalRefs: RawPythonRef[];
+  effects: RawPythonEffect[];
   sourceFileHash: string;
   filePath: string;
   parseTimeMs: number;
@@ -97,6 +110,18 @@ interface RawPythonRef {
   local_name?: string;
   is_type_only?: boolean;
   is_relative?: boolean;
+}
+
+interface RawPythonEffect {
+  effect_id: string;
+  effect_type: string;
+  timestamp: number;
+  source_entity_id: string;
+  source_file_path: string;
+  source_line: number;
+  source_column: number;
+  branch: string;
+  properties: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -275,13 +300,17 @@ export class PythonParser implements LanguageParser {
       this.convertExternalRef(raw, sourceFileHash)
     );
 
+    const effects: CodeEffect[] = (output.effects || []).map((raw) =>
+      this.convertEffect(raw, config)
+    );
+
     const parseTimeMs = performance.now() - startTime;
 
     return {
       nodes,
       edges,
       externalRefs,
-      effects: [],
+      effects,
       sourceFileHash,
       filePath,
       parseTimeMs,
@@ -391,6 +420,64 @@ export class PythonParser implements LanguageParser {
       local_alias: raw.local_name ?? null,
       is_type_only: raw.is_type_only ?? false,
       import_style: raw.is_relative ? "named" : "named",
+    });
+  }
+
+  /**
+   * Convert a raw Python effect to CodeEffect
+   */
+  private convertEffect(raw: RawPythonEffect, config: ParserConfig): CodeEffect {
+    const props = raw.properties || {};
+
+    if (raw.effect_type === "Send") {
+      // Valid send types
+      type SendType = "http" | "m2m" | "email" | "sms" | "push" | "webhook" | "event";
+      const validSendTypes: SendType[] = [
+        "http",
+        "m2m",
+        "email",
+        "sms",
+        "push",
+        "webhook",
+        "event",
+      ];
+      const rawSendType = (props.send_type as string) || "http";
+      const sendType: SendType = validSendTypes.includes(rawSendType as SendType)
+        ? (rawSendType as SendType)
+        : "http";
+
+      return createSendEffect({
+        source_entity_id: raw.source_entity_id,
+        source_file_path: raw.source_file_path,
+        source_line: raw.source_line,
+        source_column: raw.source_column,
+        branch: config.branch,
+        send_type: sendType,
+        target: (props.target as string) || (props.callee_name as string) || "",
+        is_third_party: (props.is_third_party as boolean) ?? true,
+        service_name: props.service_name as string | undefined,
+        properties: {
+          callee_name: props.callee_name,
+          http_method: props.http_method,
+          language: "python",
+        },
+      });
+    }
+
+    // Default: FunctionCall effect
+    return createFunctionCallEffect({
+      source_entity_id: raw.source_entity_id,
+      source_file_path: raw.source_file_path,
+      source_line: raw.source_line,
+      source_column: raw.source_column,
+      branch: config.branch,
+      callee_name: (props.callee_name as string) || "",
+      is_async: (props.is_async as boolean) ?? false,
+      is_external: (props.is_external as boolean) ?? false,
+      properties: {
+        argument_count: props.argument_count,
+        language: "python",
+      },
     });
   }
 }

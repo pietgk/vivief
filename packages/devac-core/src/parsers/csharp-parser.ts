@@ -16,13 +16,20 @@ import CSharp from "tree-sitter-c-sharp";
 
 import { generateEntityId as generateEntityIdBase } from "../analyzer/entity-id-generator.js";
 import type {
+  CodeEffect,
   NodeKind,
   ParsedEdge,
   ParsedExternalRef,
   ParsedNode,
   Visibility,
 } from "../types/index.js";
-import { createEdge, createExternalRef, createNode } from "../types/index.js";
+import {
+  createEdge,
+  createExternalRef,
+  createFunctionCallEffect,
+  createNode,
+  createSendEffect,
+} from "../types/index.js";
 import { computeStringHash } from "../utils/hash.js";
 
 /**
@@ -63,6 +70,7 @@ interface ParseContext {
   nodes: ParsedNode[];
   edges: ParsedEdge[];
   externalRefs: ParsedExternalRef[];
+  effects: CodeEffect[];
   warnings: string[];
 }
 
@@ -1080,7 +1088,45 @@ function visitMethodBody(node: SyntaxNode, ctx: ParseContext): void {
 }
 
 /**
- * Visit an invocation expression to create CALLS edge
+ * HTTP client method patterns for Send effect detection
+ */
+const HTTP_CLIENT_PATTERNS: Record<string, string> = {
+  "HttpClient.GetAsync": "GET",
+  "HttpClient.PostAsync": "POST",
+  "HttpClient.PutAsync": "PUT",
+  "HttpClient.DeleteAsync": "DELETE",
+  "HttpClient.PatchAsync": "PATCH",
+  "HttpClient.SendAsync": "REQUEST",
+  "HttpClient.GetStringAsync": "GET",
+  "HttpClient.GetStreamAsync": "GET",
+  "HttpClient.GetByteArrayAsync": "GET",
+  GetAsync: "GET",
+  PostAsync: "POST",
+  PutAsync: "PUT",
+  DeleteAsync: "DELETE",
+  PatchAsync: "PATCH",
+  SendAsync: "REQUEST",
+};
+
+/**
+ * Check if callee name matches an HTTP client pattern
+ */
+function matchHttpClientPattern(calleeName: string): string | null {
+  // Check exact match first
+  if (HTTP_CLIENT_PATTERNS[calleeName]) {
+    return HTTP_CLIENT_PATTERNS[calleeName];
+  }
+  // Check if it ends with a known method
+  for (const [pattern, method] of Object.entries(HTTP_CLIENT_PATTERNS)) {
+    if (calleeName.endsWith(`.${pattern}`) || calleeName === pattern) {
+      return method;
+    }
+  }
+  return null;
+}
+
+/**
+ * Visit an invocation expression to create CALLS edge and effect
  */
 function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
   // Get the source entity (caller)
@@ -1116,10 +1162,56 @@ function visitInvocationExpression(node: SyntaxNode, ctx: ParseContext): void {
   });
 
   ctx.edges.push(edge);
+
+  // Check for HTTP client patterns and emit Send effect
+  const httpMethod = matchHttpClientPattern(calleeName);
+  if (httpMethod) {
+    ctx.effects.push(
+      createSendEffect({
+        source_entity_id: sourceEntityId,
+        source_file_path: ctx.relativeFilePath,
+        source_line: node.startPosition.row + 1,
+        source_column: node.startPosition.column,
+        branch: ctx.config.branch,
+        send_type: "http",
+        target: calleeName,
+        is_third_party: true,
+        properties: {
+          callee_name: calleeName,
+          http_method: httpMethod,
+          argument_count: argumentCount,
+          language: "csharp",
+        },
+      })
+    );
+  } else {
+    // Emit FunctionCall effect for all other calls
+    const isExternal =
+      calleeName.includes(".") &&
+      !calleeName.startsWith("this.") &&
+      !calleeName.startsWith("base.");
+
+    ctx.effects.push(
+      createFunctionCallEffect({
+        source_entity_id: sourceEntityId,
+        source_file_path: ctx.relativeFilePath,
+        source_line: node.startPosition.row + 1,
+        source_column: node.startPosition.column,
+        branch: ctx.config.branch,
+        callee_name: calleeName,
+        is_async: calleeName.endsWith("Async"),
+        is_external: isExternal,
+        properties: {
+          argument_count: argumentCount,
+          language: "csharp",
+        },
+      })
+    );
+  }
 }
 
 /**
- * Visit an object creation expression (new Foo()) to create CALLS edge
+ * Visit an object creation expression (new Foo()) to create CALLS edge and effect
  */
 function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): void {
   const sourceEntityId = ctx.currentMethodId || genEntityId(ctx, "module", ctx.relativeFilePath);
@@ -1138,6 +1230,8 @@ function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): voi
     ? argList.namedChildren.filter((c) => c.type === "argument").length
     : 0;
 
+  const calleeName = `new ${typeName}`;
+
   // Create CALLS edge for constructor
   const edge = createEdge({
     source_entity_id: sourceEntityId,
@@ -1148,13 +1242,33 @@ function visitObjectCreationExpression(node: SyntaxNode, ctx: ParseContext): voi
     source_line: node.startPosition.row + 1,
     source_column: node.startPosition.column,
     properties: {
-      callee: `new ${typeName}`,
+      callee: calleeName,
       argumentCount,
     },
     branch: ctx.config.branch,
   });
 
   ctx.edges.push(edge);
+
+  // Emit FunctionCall effect for constructor call
+  ctx.effects.push(
+    createFunctionCallEffect({
+      source_entity_id: sourceEntityId,
+      source_file_path: ctx.relativeFilePath,
+      source_line: node.startPosition.row + 1,
+      source_column: node.startPosition.column,
+      branch: ctx.config.branch,
+      callee_name: calleeName,
+      is_async: false,
+      is_external: typeName.includes("."),
+      properties: {
+        argument_count: argumentCount,
+        is_constructor: true,
+        type_name: typeName,
+        language: "csharp",
+      },
+    })
+  );
 }
 
 /**
@@ -1464,6 +1578,7 @@ export class CSharpParser implements LanguageParser {
       nodes: [],
       edges: [],
       externalRefs: [],
+      effects: [],
       warnings: [],
     };
 
@@ -1480,7 +1595,7 @@ export class CSharpParser implements LanguageParser {
       nodes: ctx.nodes,
       edges: ctx.edges,
       externalRefs: ctx.externalRefs,
-      effects: [],
+      effects: ctx.effects,
       sourceFileHash,
       filePath,
       parseTimeMs,

@@ -45,7 +45,11 @@ class DevACPythonParser(ast.NodeVisitor):
         self.nodes: List[Dict[str, Any]] = []
         self.edges: List[Dict[str, Any]] = []
         self.external_refs: List[Dict[str, Any]] = []
+        self.effects: List[Dict[str, Any]] = []
         self.warnings: List[str] = []
+
+        # Effect ID counter
+        self.effect_counter = 0
 
         # Scope tracking
         self.scope_stack: List[str] = []
@@ -203,6 +207,31 @@ class DevACPythonParser(ast.NodeVisitor):
         if local_name and local_name != imported_symbol:
             ref_data["local_name"] = local_name
         self.external_refs.append(ref_data)
+
+    def _add_effect(
+        self,
+        effect_type: str,
+        source_entity_id: str,
+        node: ast.AST,
+        **extra_props,
+    ) -> None:
+        """Add an effect to the result."""
+        self.effect_counter += 1
+        location = self._get_location(node)
+        timestamp = int(time.time() * 1000)
+
+        effect_data = {
+            "effect_id": f"effect:{self.filepath}:{self.effect_counter}",
+            "effect_type": effect_type,
+            "timestamp": timestamp,
+            "source_entity_id": source_entity_id,
+            "source_file_path": self.filepath,
+            "source_line": location["start_line"],
+            "source_column": location["start_column"],
+            "branch": self.config.get("branch", "base"),
+            "properties": extra_props,
+        }
+        self.effects.append(effect_data)
 
     def visit_Module(self, node: ast.Module) -> None:
         """Visit the module (file) root."""
@@ -447,7 +476,7 @@ class DevACPythonParser(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-        """Visit a function/method call expression and create CALLS edges."""
+        """Visit a function/method call expression and create CALLS edges and effects."""
         # Determine the source entity (caller)
         source_entity_id = self.current_function_entity_id
         if not source_entity_id:
@@ -475,6 +504,68 @@ class DevACPythonParser(ast.NodeVisitor):
                 start_line=location["start_line"],
                 start_column=location["start_column"],
             )
+
+            # Determine if this is an async call (if inside async function)
+            is_async = False
+            # Check if the call is awaited (parent is Await node)
+            # This is approximate - actual await detection requires parent tracking
+
+            # Check for HTTP client patterns to emit Send effects
+            http_patterns = {
+                "requests.get": ("http", "GET"),
+                "requests.post": ("http", "POST"),
+                "requests.put": ("http", "PUT"),
+                "requests.patch": ("http", "PATCH"),
+                "requests.delete": ("http", "DELETE"),
+                "requests.head": ("http", "HEAD"),
+                "requests.options": ("http", "OPTIONS"),
+                "httpx.get": ("http", "GET"),
+                "httpx.post": ("http", "POST"),
+                "httpx.put": ("http", "PUT"),
+                "httpx.patch": ("http", "PATCH"),
+                "httpx.delete": ("http", "DELETE"),
+                "aiohttp.ClientSession.get": ("http", "GET"),
+                "aiohttp.ClientSession.post": ("http", "POST"),
+                "urllib.request.urlopen": ("http", "GET"),
+                "http.client.HTTPConnection.request": ("http", "REQUEST"),
+            }
+
+            # Check if callee matches an HTTP pattern
+            http_match = None
+            for pattern, (send_type, method) in http_patterns.items():
+                if callee_name == pattern or callee_name.endswith("." + pattern.split(".")[-1]):
+                    http_match = (send_type, method)
+                    break
+
+            if http_match:
+                # Emit Send effect for HTTP calls
+                send_type, method = http_match
+                self._add_effect(
+                    "Send",
+                    source_entity_id,
+                    node,
+                    send_type=send_type,
+                    target=callee_name,
+                    is_third_party=True,
+                    http_method=method,
+                    callee_name=callee_name,
+                )
+            else:
+                # Emit FunctionCall effect for all other calls
+                # Check if it's likely an external module call
+                is_external = "." in callee_name and callee_name.split(".")[0] not in (
+                    "self", "cls", "super"
+                )
+
+                self._add_effect(
+                    "FunctionCall",
+                    source_entity_id,
+                    node,
+                    callee_name=callee_name,
+                    argument_count=len(node.args) + len(node.keywords),
+                    is_async=is_async,
+                    is_external=is_external,
+                )
 
         self.generic_visit(node)
 
@@ -530,6 +621,7 @@ def parse_python_file(filepath: str, config: Dict[str, Any]) -> Dict[str, Any]:
             "nodes": [],
             "edges": [],
             "externalRefs": [],
+            "effects": [],
             "sourceFileHash": "",
             "filePath": filepath,
             "parseTimeMs": 0,
@@ -541,6 +633,7 @@ def parse_python_file(filepath: str, config: Dict[str, Any]) -> Dict[str, Any]:
             "nodes": [],
             "edges": [],
             "externalRefs": [],
+            "effects": [],
             "sourceFileHash": "",
             "filePath": filepath,
             "parseTimeMs": 0,
@@ -560,6 +653,7 @@ def parse_python_file(filepath: str, config: Dict[str, Any]) -> Dict[str, Any]:
             "nodes": [],
             "edges": [],
             "externalRefs": [],
+            "effects": [],
             "sourceFileHash": source_hash,
             "filePath": filepath,
             "parseTimeMs": parse_time_ms,
@@ -576,6 +670,7 @@ def parse_python_file(filepath: str, config: Dict[str, Any]) -> Dict[str, Any]:
         "nodes": parser.nodes,
         "edges": parser.edges,
         "externalRefs": parser.external_refs,
+        "effects": parser.effects,
         "sourceFileHash": source_hash,
         "filePath": filepath,
         "parseTimeMs": parse_time_ms,
