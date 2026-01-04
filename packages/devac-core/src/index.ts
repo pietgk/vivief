@@ -371,6 +371,53 @@ export type {
   LoadMappingsOptions,
 } from "./effects/index.js";
 
+// Docs (v3.0 foundation - Documentation generation with metadata)
+export {
+  // Seed hasher
+  computeSeedHash,
+  getSeedPath,
+  hasSeed,
+  listSeedFiles,
+  // Doc metadata
+  docNeedsRegeneration,
+  generateDocMetadata,
+  generateDocMetadataForMarkdown,
+  generateDocMetadataForPlantUML,
+  parseDocMetadata,
+  parseDocMetadataFromFile,
+  stripDocMetadata,
+  updateDocMetadata,
+  // Effects generator
+  generateEffectsDoc,
+  generateEmptyEffectsDoc,
+  // C4 doc generator
+  generateAllC4Docs,
+  generateC4ContainersDoc,
+  generateC4ContextDoc,
+  generateEmptyC4ContainersDoc,
+  generateEmptyC4ContextDoc,
+  getC4FilePaths,
+} from "./docs/index.js";
+export type {
+  // Seed hasher types
+  SeedFileInfo,
+  SeedHashResult,
+  // Doc metadata types
+  DocMetadata,
+  GenerateMetadataOptions,
+  RegenerationCheckResult,
+  // Effects generator types
+  EffectsDocData,
+  ExternalPattern,
+  GenerateEffectsDocOptions,
+  OtherPattern,
+  RetrievePattern,
+  StorePattern,
+  // C4 doc generator types
+  C4DocResult,
+  GenerateC4DocOptions,
+} from "./docs/index.js";
+
 /**
  * DevAC Core Version
  */
