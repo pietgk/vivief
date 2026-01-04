@@ -608,8 +608,10 @@ export class HubStorage {
     );
 
     if (rows.length === 0) {
-      // Clean up expired entry if it exists
-      await this.db.run("DELETE FROM query_cache WHERE query_hash = ?", queryHash);
+      // Clean up expired entry if it exists (skip in read-only mode)
+      if (!this._readOnlyMode) {
+        await this.db.run("DELETE FROM query_cache WHERE query_hash = ?", queryHash);
+      }
       return null;
     }
 

@@ -105,13 +105,17 @@ export async function queryWorkspaceEffects(hubClient: HubClient): Promise<Works
   let totalPackages = 0;
 
   for (const repo of repos) {
-    // Query effect counts for this repo
+    // Escape single quotes in repo path for SQL LIKE pattern
+    const repoPathEscaped = repo.localPath.replace(/'/g, "''");
+
+    // Query effect counts for this repo by matching filename path
+    // The views have a 'filename' column from read_parquet(..., filename=true)
     const effectCountsQuery = `
       SELECT
         effect_type,
         COUNT(*) as count
       FROM effects
-      WHERE repo_id = '${repo.repoId}'
+      WHERE filename LIKE '${repoPathEscaped}%'
       GROUP BY effect_type
     `;
 
@@ -132,15 +136,17 @@ export async function queryWorkspaceEffects(hubClient: HubClient): Promise<Works
       // Repo might not have effects table populated
     }
 
-    // Query package count for this repo
+    // Query package count for this repo by matching filename path
     let packageCount = 0;
     try {
       const pkgResult = await hubClient.query(`
-        SELECT COUNT(DISTINCT package_path) as count
+        SELECT COUNT(DISTINCT file_path) as count
         FROM nodes
-        WHERE repo_id = '${repo.repoId}'
+        WHERE filename LIKE '${repoPathEscaped}%'
       `);
       packageCount = Number(pkgResult.rows[0]?.count) || 0;
+      // Convert file count to rough package count (estimate 1 package per distinct seed folder)
+      packageCount = packageCount > 0 ? 1 : 0;
     } catch {
       packageCount = 1; // Assume at least one package
     }
@@ -168,7 +174,7 @@ export async function queryWorkspaceEffects(hubClient: HubClient): Promise<Works
           callee_name as pattern,
           COUNT(*) as count
         FROM effects
-        WHERE repo_id = '${repo.repoId}'
+        WHERE filename LIKE '${repoPathEscaped}%'
           AND callee_name IS NOT NULL
           AND callee_name != ''
         GROUP BY callee_name
