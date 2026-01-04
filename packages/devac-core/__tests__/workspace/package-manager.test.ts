@@ -139,6 +139,61 @@ describe("JS/TS Package Discovery", () => {
       const packages = await discoverJSPackages(tempDir);
       expect(packages).toHaveLength(0);
     });
+
+    it("should discover packages/* without workspace config (fallback patterns)", async () => {
+      // This tests repos like npm-private-packages that have packages/* but no workspace config
+      await fs.writeFile(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({ name: "root-pkg" }) // No workspaces field
+      );
+      await fs.mkdir(path.join(tempDir, "packages", "pkg-a"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "packages", "pkg-a", "package.json"),
+        JSON.stringify({ name: "@test/pkg-a" })
+      );
+      await fs.mkdir(path.join(tempDir, "packages", "pkg-b"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "packages", "pkg-b", "package.json"),
+        JSON.stringify({ name: "@test/pkg-b" })
+      );
+
+      const packages = await discoverJSPackages(tempDir);
+
+      expect(packages).toHaveLength(2);
+      expect(packages.map((p) => p.name).sort()).toEqual(["@test/pkg-a", "@test/pkg-b"]);
+      expect(packages[0]?.packageManager).toBeUndefined();
+    });
+
+    it("should discover apps/* and libs/* without workspace config", async () => {
+      await fs.writeFile(path.join(tempDir, "package.json"), JSON.stringify({ name: "root" }));
+      await fs.mkdir(path.join(tempDir, "apps", "web"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "apps", "web", "package.json"),
+        JSON.stringify({ name: "web-app" })
+      );
+      await fs.mkdir(path.join(tempDir, "libs", "shared"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "libs", "shared", "package.json"),
+        JSON.stringify({ name: "shared-lib" })
+      );
+
+      const packages = await discoverJSPackages(tempDir);
+
+      expect(packages).toHaveLength(2);
+      expect(packages.map((p) => p.name).sort()).toEqual(["shared-lib", "web-app"]);
+    });
+
+    it("should fall back to single package when no fallback patterns match", async () => {
+      // No packages/*, apps/*, libs/*, or services/* - just a root package
+      await fs.writeFile(path.join(tempDir, "package.json"), JSON.stringify({ name: "just-root" }));
+      await fs.mkdir(path.join(tempDir, "src"), { recursive: true });
+      await fs.writeFile(path.join(tempDir, "src", "index.ts"), "");
+
+      const packages = await discoverJSPackages(tempDir);
+
+      expect(packages).toHaveLength(1);
+      expect(packages[0]?.name).toBe("just-root");
+    });
   });
 });
 
@@ -202,6 +257,43 @@ describe("Python Package Discovery", () => {
     it("should return empty for non-python directory", async () => {
       const packages = await discoverPythonPackages(tempDir);
       expect(packages).toHaveLength(0);
+    });
+
+    it("should discover Python projects with requirements.txt (fallback)", async () => {
+      // This tests simple Python repos like aws_infra_map_neo4j that use requirements.txt
+      await fs.writeFile(path.join(tempDir, "requirements.txt"), "neo4j==5.0.0\nrequests==2.28.0");
+      await fs.writeFile(path.join(tempDir, "app.py"), 'print("hello")');
+      await fs.writeFile(path.join(tempDir, "utils.py"), "def helper(): pass");
+
+      const packages = await discoverPythonPackages(tempDir);
+
+      expect(packages).toHaveLength(1);
+      expect(packages[0]?.language).toBe("python");
+      expect(packages[0]?.name).toBe(path.basename(tempDir));
+    });
+
+    it("should not discover requirements.txt without .py files", async () => {
+      // Requirements.txt alone is not enough - need actual Python files
+      await fs.writeFile(path.join(tempDir, "requirements.txt"), "requests==2.28.0");
+
+      const packages = await discoverPythonPackages(tempDir);
+
+      expect(packages).toHaveLength(0);
+    });
+
+    it("should prefer pyproject.toml over requirements.txt", async () => {
+      // If there's a pyproject.toml in a subdirectory, don't fallback to requirements.txt
+      await fs.writeFile(path.join(tempDir, "requirements.txt"), "requests==2.28.0");
+      await fs.mkdir(path.join(tempDir, "lib"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "lib", "pyproject.toml"),
+        '[project]\nname = "proper-pkg"'
+      );
+
+      const packages = await discoverPythonPackages(tempDir);
+
+      expect(packages).toHaveLength(1);
+      expect(packages[0]?.name).toBe("proper-pkg");
     });
   });
 });
