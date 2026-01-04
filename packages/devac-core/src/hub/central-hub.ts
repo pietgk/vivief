@@ -468,6 +468,15 @@ export class CentralHub {
 
   /**
    * Execute a query across registered repositories
+   *
+   * The SQL can reference tables directly (nodes, edges, external_refs, effects)
+   * which are created as views pointing to all seed parquet files.
+   *
+   * Also supports placeholders for explicit control:
+   * - {nodes} - union of all nodes.parquet files
+   * - {edges} - union of all edges.parquet files
+   * - {external_refs} - union of all external_refs.parquet files
+   * - {effects} - union of all effects.parquet files (only those that exist)
    */
   async query(sql: string): Promise<QueryResult> {
     this.ensureInitialized();
@@ -481,19 +490,111 @@ export class CentralHub {
       return cached as unknown as QueryResult;
     }
 
-    // For now, just execute the SQL directly
-    // In production, we would build UNION queries across parquet files
+    // Get all registered repos and their packages
+    const repos = await this.storage.listRepos();
+    const nodePaths: string[] = [];
+    const edgePaths: string[] = [];
+    const refPaths: string[] = [];
+    const effectsPaths: string[] = [];
+
+    for (const repo of repos) {
+      const manifest = await this.loadManifest(repo.local_path);
+      if (!manifest) continue;
+
+      for (const pkg of manifest.packages) {
+        const seedPath = path.join(repo.local_path, pkg.seed_path);
+
+        // Check which parquet files exist for this package
+        const nodesFile = path.join(seedPath, "nodes.parquet");
+        const edgesFile = path.join(seedPath, "edges.parquet");
+        const refsFile = path.join(seedPath, "external_refs.parquet");
+        const effectsFile = path.join(seedPath, "effects.parquet");
+
+        // Only add paths that exist
+        if (await this.pathExists(nodesFile)) {
+          nodePaths.push(`'${nodesFile.replace(/'/g, "''")}'`);
+        }
+        if (await this.pathExists(edgesFile)) {
+          edgePaths.push(`'${edgesFile.replace(/'/g, "''")}'`);
+        }
+        if (await this.pathExists(refsFile)) {
+          refPaths.push(`'${refsFile.replace(/'/g, "''")}'`);
+        }
+        if (await this.pathExists(effectsFile)) {
+          effectsPaths.push(`'${effectsFile.replace(/'/g, "''")}'`);
+        }
+      }
+    }
+
+    // Execute query with views created for seed tables
     const db = await Database.create(":memory:");
     try {
-      const rows = await db.all(sql);
+      // Create views for each table type (silently ignore if no files)
+      if (nodePaths.length > 0) {
+        try {
+          await db.run(
+            `CREATE OR REPLACE VIEW nodes AS SELECT * FROM read_parquet([${nodePaths.join(", ")}], union_by_name=true, filename=true)`
+          );
+        } catch {
+          // Some files may not exist or have schema issues
+        }
+      }
+
+      if (edgePaths.length > 0) {
+        try {
+          await db.run(
+            `CREATE OR REPLACE VIEW edges AS SELECT * FROM read_parquet([${edgePaths.join(", ")}], union_by_name=true, filename=true)`
+          );
+        } catch {
+          // Some files may not exist or have schema issues
+        }
+      }
+
+      if (refPaths.length > 0) {
+        try {
+          await db.run(
+            `CREATE OR REPLACE VIEW external_refs AS SELECT * FROM read_parquet([${refPaths.join(", ")}], union_by_name=true, filename=true)`
+          );
+        } catch {
+          // Some files may not exist or have schema issues
+        }
+      }
+
+      if (effectsPaths.length > 0) {
+        try {
+          await db.run(
+            `CREATE OR REPLACE VIEW effects AS SELECT * FROM read_parquet([${effectsPaths.join(", ")}], union_by_name=true, filename=true)`
+          );
+        } catch {
+          // Effects files may not exist yet - this is expected until parsers emit effects
+        }
+      }
+
+      // Also support placeholder syntax for explicit control
+      const buildReadParquet = (paths: string[]): string => {
+        if (paths.length === 0) {
+          return "(SELECT NULL as _empty WHERE 1=0)";
+        }
+        return `read_parquet([${paths.join(", ")}], union_by_name=true, filename=true)`;
+      };
+
+      const processedSql = sql
+        .replace(/{nodes}/g, buildReadParquet(nodePaths))
+        .replace(/{edges}/g, buildReadParquet(edgePaths))
+        .replace(/{external_refs}/g, buildReadParquet(refPaths))
+        .replace(/{effects}/g, buildReadParquet(effectsPaths));
+
+      const rows = await db.all(processedSql);
       const result: QueryResult = {
         rows: rows as Record<string, unknown>[],
         rowCount: rows.length,
         timeMs: Date.now() - startTime,
       };
 
-      // Cache the result
-      await this.storage.cacheQuery(queryHash, result as unknown as Record<string, unknown>);
+      // Cache the result (skip in read-only mode)
+      if (!this._readOnlyMode) {
+        await this.storage.cacheQuery(queryHash, result as unknown as Record<string, unknown>);
+      }
 
       return result;
     } finally {
