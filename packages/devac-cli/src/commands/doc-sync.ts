@@ -165,10 +165,19 @@ async function extractEffectsData(
     const otherPatterns = new Map<string, { count: number; isMethod: boolean; isAsync: boolean }>();
 
     for (const effect of effectsResult.effects) {
-      const props = effect.properties || {};
-      const callee = (props.callee_name as string) || "";
-      const isExternal = (props.is_external as boolean) || false;
-      const isAsync = (props.is_async as boolean) || false;
+      // Access fields directly from effect - they are top-level, not in properties
+      // Use type assertion for FunctionCall-specific fields
+      const eff = effect as {
+        callee_name?: string;
+        is_external?: boolean;
+        is_async?: boolean;
+        external_module?: string | null;
+        store_type?: string;
+        retrieve_type?: string;
+      };
+      const callee = eff.callee_name || "";
+      const isExternal = eff.is_external || false;
+      const isAsync = eff.is_async || false;
 
       if (effect.effect_type === "Store") {
         const current = storePatterns.get(callee) || 0;
@@ -183,7 +192,7 @@ async function extractEffectsData(
         } else {
           externalPatterns.set(callee, {
             count: 1,
-            module: (props.module as string) || null,
+            module: eff.external_module || null,
           });
         }
       } else {
