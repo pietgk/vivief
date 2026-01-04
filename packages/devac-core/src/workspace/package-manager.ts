@@ -123,7 +123,13 @@ export async function detectPackageManager(rootPath: string): Promise<PackageMan
 export async function discoverJSPackages(rootPath: string): Promise<PackageInfo[]> {
   const packageManager = await detectPackageManager(rootPath);
   if (!packageManager) {
-    // Not a JS workspace, check if it's a single package
+    // Not a JS workspace, try fallback patterns for repos without workspace config
+    const fallbackPackages = await discoverFromFallbackPatterns(rootPath);
+    if (fallbackPackages.length > 0) {
+      return fallbackPackages;
+    }
+
+    // Single package fallback
     const packageJsonPath = path.join(rootPath, "package.json");
     if (await fileExists(packageJsonPath)) {
       const name = await getPackageJsonName(packageJsonPath);
@@ -250,17 +256,62 @@ async function parsePackageJsonWorkspaces(rootPath: string): Promise<string[]> {
   }
 }
 
+/**
+ * Fallback patterns for repos without explicit workspace configuration
+ * Used when no pnpm-workspace.yaml or workspaces field is found
+ */
+const FALLBACK_PATTERNS = ["packages/*", "apps/*", "libs/*", "services/*"];
+
+/**
+ * Discover packages using common monorepo patterns as fallback
+ * This handles repos like npm-private-packages that have packages/* but no workspace config
+ */
+async function discoverFromFallbackPatterns(rootPath: string): Promise<PackageInfo[]> {
+  const packages: PackageInfo[] = [];
+
+  for (const pattern of FALLBACK_PATTERNS) {
+    const resolvedPattern = path.join(rootPath, pattern);
+    try {
+      const matches = await glob(resolvedPattern, {
+        ignore: DEFAULT_EXCLUDE.map((e) => `**/${e}/**`),
+      });
+
+      for (const match of matches) {
+        const packageJsonPath = path.join(match, "package.json");
+        if (await fileExists(packageJsonPath)) {
+          const name = await getPackageJsonName(packageJsonPath);
+          packages.push({
+            path: match,
+            name: name || path.basename(match),
+            language: "typescript",
+            packageManager: undefined,
+          });
+        }
+      }
+    } catch {
+      // Pattern didn't match, continue to next
+    }
+  }
+
+  if (packages.length > 0) {
+    logger.debug(`Found ${packages.length} packages using fallback patterns`);
+  }
+
+  return packages;
+}
+
 // ============================================================================
 // Python Package Discovery
 // ============================================================================
 
 /**
- * Discover Python projects via pyproject.toml
+ * Discover Python projects via pyproject.toml or requirements.txt
  */
 export async function discoverPythonPackages(rootPath: string): Promise<PackageInfo[]> {
   const packages: PackageInfo[] = [];
 
   try {
+    // Primary: pyproject.toml based packages
     const pyprojectFiles = await glob("**/pyproject.toml", {
       cwd: rootPath,
       ignore: DEFAULT_EXCLUDE.map((e) => `**/${e}/**`),
@@ -276,6 +327,23 @@ export async function discoverPythonPackages(rootPath: string): Promise<PackageI
         name: name || path.basename(packageDir),
         language: "python",
       });
+    }
+
+    // Fallback: Check root for requirements.txt (simple Python projects)
+    if (packages.length === 0) {
+      const requirementsPath = path.join(rootPath, "requirements.txt");
+      if (await fileExists(requirementsPath)) {
+        // Verify there are actually .py files at the root level
+        const pyFiles = await glob("*.py", { cwd: rootPath, absolute: true });
+        if (pyFiles.length > 0) {
+          packages.push({
+            path: rootPath,
+            name: path.basename(rootPath),
+            language: "python",
+          });
+          logger.debug(`Found Python project with requirements.txt at ${rootPath}`);
+        }
+      }
     }
   } catch (error) {
     logger.warn(`Failed to discover Python packages: ${error}`);
