@@ -10,18 +10,30 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  aggregatePackageEffects,
   computeSeedHash,
   docNeedsRegeneration,
+  generateAllRepoC4Docs,
   generateDocMetadata,
   generateDocMetadataForMarkdown,
   generateDocMetadataForPlantUML,
   generateEffectsDoc,
   generateEmptyEffectsDoc,
+  generateEmptyRepoEffectsDoc,
+  generateEmptyWorkspaceEffectsDoc,
+  generateRepoEffectsDoc,
+  generateWorkspaceC4ContainersDoc,
+  generateWorkspaceC4ContextDoc,
+  generateWorkspaceEffectsDoc,
   getSeedPath,
   hasSeed,
   parseDocMetadata,
 } from "../src/docs/index.js";
-import type { EffectsDocData } from "../src/docs/index.js";
+import type {
+  EffectsDocData,
+  PackageEffectsInput,
+  WorkspaceEffectsData,
+} from "../src/docs/index.js";
 
 describe("Docs Module", () => {
   let testDir: string;
@@ -273,6 +285,279 @@ Just regular content.`;
       expect(doc).toContain("# Package Effects: empty-package");
       expect(doc).toContain("devac:seed-hash: sha256:empty");
       expect(doc).toContain("No effects detected");
+    });
+  });
+
+  describe("Repo Effects Generator", () => {
+    it("should aggregate package effects into repo data", () => {
+      const packageInputs: PackageEffectsInput[] = [
+        {
+          packageName: "pkg-a",
+          packagePath: "/repo/packages/pkg-a",
+          seedHash: "sha256:pkg-a",
+          data: {
+            packageName: "pkg-a",
+            storePatterns: [{ pattern: "db.insert", count: 5 }],
+            retrievePatterns: [{ pattern: "db.query", count: 10 }],
+            externalPatterns: [{ pattern: "axios.get", count: 3, module: "axios" }],
+            otherPatterns: [],
+          },
+        },
+        {
+          packageName: "pkg-b",
+          packagePath: "/repo/packages/pkg-b",
+          seedHash: "sha256:pkg-b",
+          data: {
+            packageName: "pkg-b",
+            storePatterns: [{ pattern: "db.insert", count: 2 }],
+            retrievePatterns: [],
+            externalPatterns: [{ pattern: "axios.get", count: 5, module: "axios" }],
+            otherPatterns: [],
+          },
+        },
+      ];
+
+      const result = aggregatePackageEffects(packageInputs);
+
+      // Check aggregated totals
+      expect(result.totalCounts.packages).toBe(2);
+      expect(result.totalCounts.store).toBe(7); // 5 + 2
+      expect(result.totalCounts.retrieve).toBe(10);
+      expect(result.totalCounts.external).toBe(8); // 3 + 5
+
+      // Check cross-package patterns (db.insert and axios.get appear in both)
+      expect(result.aggregatedPatterns.crossPackagePatterns.length).toBeGreaterThan(0);
+      const dbInsertCross = result.aggregatedPatterns.crossPackagePatterns.find(
+        (p) => p.pattern === "db.insert"
+      );
+      expect(dbInsertCross).toBeDefined();
+      expect(dbInsertCross?.totalCount).toBe(7);
+      expect(dbInsertCross?.packages.length).toBe(2);
+    });
+
+    it("should generate repo effects documentation", () => {
+      const packageInputs: PackageEffectsInput[] = [
+        {
+          packageName: "pkg-a",
+          packagePath: "/repo/packages/pkg-a",
+          seedHash: "sha256:pkg-a",
+          data: {
+            packageName: "pkg-a",
+            storePatterns: [{ pattern: "db.insert", count: 5 }],
+            retrievePatterns: [],
+            externalPatterns: [],
+            otherPatterns: [],
+          },
+        },
+      ];
+
+      const data = aggregatePackageEffects(packageInputs);
+      const doc = generateRepoEffectsDoc(data, {
+        seedHash: "sha256:repo-hash",
+        repoPath: "/repo",
+      });
+
+      expect(doc).toContain("# Repository Effects:");
+      expect(doc).toContain("devac:seed-hash: sha256:repo-hash");
+      expect(doc).toContain("## Packages");
+      expect(doc).toContain("pkg-a");
+    });
+
+    it("should generate empty repo effects documentation", () => {
+      const doc = generateEmptyRepoEffectsDoc("my-repo", {
+        seedHash: "sha256:empty-repo",
+        repoPath: "/repo",
+      });
+
+      expect(doc).toContain("# Repository Effects: my-repo");
+      expect(doc).toContain("devac:seed-hash: sha256:empty-repo");
+      expect(doc).toContain("No effects detected");
+    });
+  });
+
+  describe("Repo C4 Generator", () => {
+    it("should generate repo-level C4 diagrams", () => {
+      const packageInputs: PackageEffectsInput[] = [
+        {
+          packageName: "api-service",
+          packagePath: "/repo/packages/api",
+          seedHash: "sha256:api",
+          data: {
+            packageName: "api-service",
+            storePatterns: [{ pattern: "db.insert", count: 5 }],
+            retrievePatterns: [{ pattern: "db.query", count: 10 }],
+            externalPatterns: [{ pattern: "stripe.charge", count: 2, module: "stripe" }],
+            otherPatterns: [],
+          },
+        },
+        {
+          packageName: "web-app",
+          packagePath: "/repo/packages/web",
+          seedHash: "sha256:web",
+          data: {
+            packageName: "web-app",
+            storePatterns: [],
+            retrievePatterns: [],
+            externalPatterns: [{ pattern: "axios.get", count: 8, module: "axios" }],
+            otherPatterns: [],
+          },
+        },
+      ];
+
+      const data = aggregatePackageEffects(packageInputs);
+      const result = generateAllRepoC4Docs(data, {
+        seedHash: "sha256:c4-hash",
+        repoPath: "/repo",
+      });
+
+      // Check context diagram
+      expect(result.context).toContain("@startuml C4_Context");
+      expect(result.context).toContain("devac:seed-hash: sha256:c4-hash");
+      expect(result.context).toContain("System("); // Main system
+      expect(result.context).toContain("System_Ext("); // External systems
+
+      // Check containers diagram
+      expect(result.containers).toContain("@startuml C4_Container");
+      expect(result.containers).toContain("System_Boundary");
+      expect(result.containers).toContain("Container");
+      expect(result.containers).toContain("api-service");
+      expect(result.containers).toContain("web-app");
+    });
+  });
+
+  describe("Workspace Effects Generator", () => {
+    it("should generate workspace effects documentation", () => {
+      const data: WorkspaceEffectsData = {
+        workspacePath: "/workspace",
+        repos: [
+          {
+            repoId: "github.com/org/repo-a",
+            repoPath: "/workspace/repo-a",
+            packageCount: 3,
+            effectCounts: { store: 10, retrieve: 15, external: 5, other: 2 },
+            hasEffects: true,
+          },
+          {
+            repoId: "github.com/org/repo-b",
+            repoPath: "/workspace/repo-b",
+            packageCount: 2,
+            effectCounts: { store: 5, retrieve: 8, external: 12, other: 0 },
+            hasEffects: true,
+          },
+        ],
+        crossRepoPatterns: [
+          {
+            pattern: "axios.get",
+            totalCount: 20,
+            repos: [
+              { repoId: "github.com/org/repo-a", count: 8 },
+              { repoId: "github.com/org/repo-b", count: 12 },
+            ],
+          },
+        ],
+        totalCounts: {
+          repos: 2,
+          packages: 5,
+          store: 15,
+          retrieve: 23,
+          external: 17,
+          other: 2,
+        },
+      };
+
+      const doc = generateWorkspaceEffectsDoc(data, {
+        seedHash: "sha256:workspace-hash",
+        workspacePath: "/workspace",
+      });
+
+      expect(doc).toContain("# Workspace Effects Overview");
+      expect(doc).toContain("devac:seed-hash: sha256:workspace-hash");
+      expect(doc).toContain("## Summary");
+      expect(doc).toContain("**Repositories:** 2");
+      expect(doc).toContain("**Total Packages:** 5");
+      expect(doc).toContain("## Repositories");
+      expect(doc).toContain("github.com/org/repo-a");
+      expect(doc).toContain("## Cross-Repository Patterns");
+      expect(doc).toContain("`axios.get`");
+    });
+
+    it("should generate empty workspace effects documentation", () => {
+      const doc = generateEmptyWorkspaceEffectsDoc({
+        seedHash: "sha256:empty-workspace",
+        workspacePath: "/workspace",
+      });
+
+      expect(doc).toContain("# Workspace Effects Overview");
+      expect(doc).toContain("devac:seed-hash: sha256:empty-workspace");
+      expect(doc).toContain("No repositories registered");
+    });
+
+    it("should generate workspace C4 context diagram", () => {
+      const data: WorkspaceEffectsData = {
+        workspacePath: "/workspace",
+        repos: [
+          {
+            repoId: "github.com/org/api",
+            repoPath: "/workspace/api",
+            packageCount: 2,
+            effectCounts: { store: 10, retrieve: 15, external: 5, other: 0 },
+            hasEffects: true,
+          },
+        ],
+        crossRepoPatterns: [],
+        totalCounts: {
+          repos: 1,
+          packages: 2,
+          store: 10,
+          retrieve: 15,
+          external: 5,
+          other: 0,
+        },
+      };
+
+      const doc = generateWorkspaceC4ContextDoc(data, {
+        seedHash: "sha256:ws-c4",
+        workspacePath: "/workspace",
+      });
+
+      expect(doc).toContain("@startuml C4_Context");
+      expect(doc).toContain("devac:seed-hash: sha256:ws-c4");
+      expect(doc).toContain("title Workspace - System Context Diagram");
+      expect(doc).toContain("System(");
+    });
+
+    it("should generate workspace C4 containers diagram", () => {
+      const data: WorkspaceEffectsData = {
+        workspacePath: "/workspace",
+        repos: [
+          {
+            repoId: "github.com/org/api",
+            repoPath: "/workspace/api",
+            packageCount: 2,
+            effectCounts: { store: 10, retrieve: 15, external: 5, other: 0 },
+            hasEffects: true,
+          },
+        ],
+        crossRepoPatterns: [],
+        totalCounts: {
+          repos: 1,
+          packages: 2,
+          store: 10,
+          retrieve: 15,
+          external: 5,
+          other: 0,
+        },
+      };
+
+      const doc = generateWorkspaceC4ContainersDoc(data, {
+        seedHash: "sha256:ws-c4-containers",
+        workspacePath: "/workspace",
+      });
+
+      expect(doc).toContain("@startuml C4_Container");
+      expect(doc).toContain("devac:seed-hash: sha256:ws-c4-containers");
+      expect(doc).toContain("title Workspace - Container Diagram");
+      expect(doc).toContain("System_Boundary");
     });
   });
 });

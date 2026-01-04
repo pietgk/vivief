@@ -14,21 +14,37 @@ import {
   type C4Context,
   DuckDBPool,
   type EffectsDocData,
+  type HubClient,
+  type PackageEffectsInput,
+  aggregatePackageEffects,
   builtinRules,
+  computeRepoSeedHash,
   computeSeedHash,
+  computeWorkspaceSeedHash,
   createEffectReader,
+  createHubClient,
   createRuleEngine,
   discoverPackagesInRepo,
   docNeedsRegeneration,
+  findWorkspaceDir,
   generateAllC4Docs,
+  generateAllRepoC4Docs,
   generateC4Containers,
   generateC4Context,
   generateEffectsDoc,
   generateEmptyC4ContainersDoc,
   generateEmptyC4ContextDoc,
   generateEmptyEffectsDoc,
+  generateEmptyRepoEffectsDoc,
+  generateEmptyWorkspaceEffectsDoc,
+  generateRepoEffectsDoc,
+  generateWorkspaceC4ContainersDoc,
+  generateWorkspaceC4ContextDoc,
+  generateWorkspaceEffectsDoc,
   getC4FilePaths,
+  getRepoC4FilePaths,
   hasSeed,
+  queryWorkspaceEffects,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
 import { formatOutput } from "./output-formatter.js";
@@ -90,6 +106,48 @@ export interface PackageSyncResult {
 }
 
 /**
+ * Result of syncing repo-level documentation
+ */
+export interface RepoSyncResult {
+  /** Repo path */
+  repoPath: string;
+  /** Repo name */
+  repoName: string;
+  /** Whether sync was successful */
+  success: boolean;
+  /** Whether docs were regenerated */
+  regenerated: boolean;
+  /** Reason for regeneration (or why skipped) */
+  reason?: string;
+  /** Files that were written */
+  filesWritten: string[];
+  /** Errors encountered */
+  errors: string[];
+  /** Number of packages aggregated */
+  packagesAggregated: number;
+}
+
+/**
+ * Result of syncing workspace-level documentation
+ */
+export interface WorkspaceSyncResult {
+  /** Workspace path */
+  workspacePath: string;
+  /** Whether sync was successful */
+  success: boolean;
+  /** Whether docs were regenerated */
+  regenerated: boolean;
+  /** Reason for regeneration (or why skipped) */
+  reason?: string;
+  /** Files that were written */
+  filesWritten: string[];
+  /** Errors encountered */
+  errors: string[];
+  /** Number of repos aggregated */
+  reposAggregated: number;
+}
+
+/**
  * Result from doc-sync command
  */
 export interface DocSyncResult {
@@ -107,6 +165,10 @@ export interface DocSyncResult {
   timeMs: number;
   /** Per-package results */
   packages: PackageSyncResult[];
+  /** Repo-level result (when --repo) */
+  repoLevel?: RepoSyncResult;
+  /** Workspace-level result (when --workspace) */
+  workspaceLevel?: WorkspaceSyncResult;
   /** Whether docs are in sync (for --check mode) */
   inSync?: boolean;
 }
@@ -431,6 +493,320 @@ async function syncPackage(
   return result;
 }
 
+/**
+ * Sync repo-level documentation by aggregating effects from all packages
+ */
+async function syncRepoLevel(
+  pool: DuckDBPool,
+  repoPath: string,
+  packagePaths: string[],
+  options: DocSyncOptions
+): Promise<RepoSyncResult> {
+  const repoName = path.basename(repoPath);
+  const result: RepoSyncResult = {
+    repoPath,
+    repoName,
+    success: false,
+    regenerated: false,
+    filesWritten: [],
+    errors: [],
+    packagesAggregated: 0,
+  };
+
+  // Compute combined seed hash from all packages
+  const seedHashResult = await computeRepoSeedHash(packagePaths);
+  if (!seedHashResult.hash) {
+    result.reason = "Could not compute repo seed hash";
+    result.errors.push(result.reason);
+    return result;
+  }
+
+  const docsDir = path.join(repoPath, "docs");
+  const effectsDocPath = path.join(docsDir, "repo-effects.md");
+  const c4Paths = getRepoC4FilePaths(repoPath);
+
+  // Determine what to sync
+  const syncEffects = options.effects || options.all || (!options.effects && !options.c4);
+  const syncC4 = options.c4 || options.all || (!options.effects && !options.c4);
+
+  // Check if regeneration is needed
+  let needsEffectsRegen = options.force || false;
+  let needsC4Regen = options.force || false;
+
+  if (!options.force) {
+    if (syncEffects) {
+      const check = await docNeedsRegeneration(effectsDocPath, seedHashResult.hash);
+      needsEffectsRegen = check.needsRegeneration;
+    }
+    if (syncC4) {
+      const check = await docNeedsRegeneration(c4Paths.context, seedHashResult.hash);
+      needsC4Regen = check.needsRegeneration;
+    }
+  }
+
+  // In check mode, just report if docs are out of sync
+  if (options.check) {
+    if ((syncEffects && needsEffectsRegen) || (syncC4 && needsC4Regen)) {
+      result.reason = "Repo documentation is out of sync with seeds";
+      result.success = false;
+    } else {
+      result.reason = "Repo documentation is in sync";
+      result.success = true;
+    }
+    return result;
+  }
+
+  // Skip if nothing needs regeneration
+  if (!needsEffectsRegen && !needsC4Regen) {
+    result.reason = "Repo documentation is up to date";
+    result.success = true;
+    return result;
+  }
+
+  // Collect effects data from all packages
+  const packageInputs: PackageEffectsInput[] = [];
+
+  for (const packagePath of packagePaths) {
+    const packageName = getPackageName(packagePath);
+    const packageSeedHash = seedHashResult.packageHashes.get(packagePath) || null;
+    const effectsData = await extractEffectsData(pool, packagePath);
+
+    if (effectsData) {
+      packageInputs.push({
+        packageName,
+        packagePath,
+        data: effectsData,
+        seedHash: packageSeedHash,
+      });
+    }
+  }
+
+  result.packagesAggregated = packageInputs.length;
+
+  // Ensure docs directory exists
+  await ensureDir(docsDir);
+
+  // Generate repo-level effects documentation
+  if (syncEffects && needsEffectsRegen) {
+    try {
+      if (packageInputs.length > 0) {
+        const repoData = aggregatePackageEffects(packageInputs);
+        const content = generateRepoEffectsDoc(repoData, {
+          seedHash: seedHashResult.hash,
+          repoPath,
+        });
+        await fs.writeFile(effectsDocPath, content, "utf-8");
+      } else {
+        const content = generateEmptyRepoEffectsDoc(repoName, {
+          seedHash: seedHashResult.hash,
+          repoPath,
+        });
+        await fs.writeFile(effectsDocPath, content, "utf-8");
+      }
+      result.filesWritten.push(effectsDocPath);
+    } catch (err) {
+      result.errors.push(`Failed to generate repo effects doc: ${err}`);
+    }
+  }
+
+  // Generate repo-level C4 diagrams
+  if (syncC4 && needsC4Regen) {
+    try {
+      await ensureDir(c4Paths.directory);
+
+      if (packageInputs.length > 0) {
+        const repoData = aggregatePackageEffects(packageInputs);
+        const docs = generateAllRepoC4Docs(repoData, {
+          seedHash: seedHashResult.hash,
+          repoPath,
+        });
+
+        await fs.writeFile(c4Paths.context, docs.context, "utf-8");
+        await fs.writeFile(c4Paths.containers, docs.containers, "utf-8");
+      } else {
+        // Generate empty C4 diagrams
+        const { generateEmptyRepoC4ContextDoc, generateEmptyRepoC4ContainersDoc } = (await import(
+          "@pietgk/devac-core"
+        )) as typeof import("@pietgk/devac-core");
+        const contextDoc = generateEmptyRepoC4ContextDoc(repoName, {
+          seedHash: seedHashResult.hash,
+          repoPath,
+        });
+        const containersDoc = generateEmptyRepoC4ContainersDoc(repoName, {
+          seedHash: seedHashResult.hash,
+          repoPath,
+        });
+
+        await fs.writeFile(c4Paths.context, contextDoc, "utf-8");
+        await fs.writeFile(c4Paths.containers, containersDoc, "utf-8");
+      }
+      result.filesWritten.push(c4Paths.context);
+      result.filesWritten.push(c4Paths.containers);
+    } catch (err) {
+      result.errors.push(`Failed to generate repo C4 diagrams: ${err}`);
+    }
+  }
+
+  result.success = result.errors.length === 0;
+  result.regenerated = result.filesWritten.length > 0;
+  result.reason = result.regenerated
+    ? `Regenerated ${result.filesWritten.length} repo-level files`
+    : "No repo files generated";
+
+  return result;
+}
+
+/**
+ * Sync workspace-level documentation by aggregating effects from hub
+ */
+async function syncWorkspaceLevel(
+  hubClient: HubClient,
+  workspacePath: string,
+  options: DocSyncOptions
+): Promise<WorkspaceSyncResult> {
+  const result: WorkspaceSyncResult = {
+    workspacePath,
+    success: false,
+    regenerated: false,
+    filesWritten: [],
+    errors: [],
+    reposAggregated: 0,
+  };
+
+  // Compute combined seed hash from hub
+  const seedHashResult = await computeWorkspaceSeedHash(hubClient);
+  if (!seedHashResult.hash) {
+    result.reason = "Could not compute workspace seed hash (no repos registered?)";
+    result.errors.push(result.reason);
+    return result;
+  }
+
+  const docsDir = path.join(workspacePath, "docs");
+  const effectsDocPath = path.join(docsDir, "workspace-effects.md");
+  const c4Dir = path.join(docsDir, "c4");
+  const contextPath = path.join(c4Dir, "context.puml");
+  const containersPath = path.join(c4Dir, "containers.puml");
+
+  // Determine what to sync
+  const syncEffects = options.effects || options.all || (!options.effects && !options.c4);
+  const syncC4 = options.c4 || options.all || (!options.effects && !options.c4);
+
+  // Check if regeneration is needed
+  let needsEffectsRegen = options.force || false;
+  let needsC4Regen = options.force || false;
+
+  if (!options.force) {
+    if (syncEffects) {
+      const check = await docNeedsRegeneration(effectsDocPath, seedHashResult.hash);
+      needsEffectsRegen = check.needsRegeneration;
+    }
+    if (syncC4) {
+      const check = await docNeedsRegeneration(contextPath, seedHashResult.hash);
+      needsC4Regen = check.needsRegeneration;
+    }
+  }
+
+  // In check mode, just report if docs are out of sync
+  if (options.check) {
+    if ((syncEffects && needsEffectsRegen) || (syncC4 && needsC4Regen)) {
+      result.reason = "Workspace documentation is out of sync with hub";
+      result.success = false;
+    } else {
+      result.reason = "Workspace documentation is in sync";
+      result.success = true;
+    }
+    return result;
+  }
+
+  // Skip if nothing needs regeneration
+  if (!needsEffectsRegen && !needsC4Regen) {
+    result.reason = "Workspace documentation is up to date";
+    result.success = true;
+    return result;
+  }
+
+  // Query workspace effects from hub
+  let workspaceData: Awaited<ReturnType<typeof queryWorkspaceEffects>> | undefined;
+  try {
+    workspaceData = await queryWorkspaceEffects(hubClient);
+    result.reposAggregated = workspaceData.repos.length;
+  } catch (err) {
+    result.errors.push(`Failed to query workspace effects: ${err}`);
+    return result;
+  }
+
+  // Ensure docs directory exists
+  await ensureDir(docsDir);
+
+  // Generate workspace-level effects documentation
+  if (syncEffects && needsEffectsRegen) {
+    try {
+      if (workspaceData.repos.length > 0) {
+        const content = generateWorkspaceEffectsDoc(workspaceData, {
+          seedHash: seedHashResult.hash,
+          workspacePath,
+        });
+        await fs.writeFile(effectsDocPath, content, "utf-8");
+      } else {
+        const content = generateEmptyWorkspaceEffectsDoc({
+          seedHash: seedHashResult.hash,
+          workspacePath,
+        });
+        await fs.writeFile(effectsDocPath, content, "utf-8");
+      }
+      result.filesWritten.push(effectsDocPath);
+    } catch (err) {
+      result.errors.push(`Failed to generate workspace effects doc: ${err}`);
+    }
+  }
+
+  // Generate workspace-level C4 diagrams
+  if (syncC4 && needsC4Regen) {
+    try {
+      await ensureDir(c4Dir);
+
+      if (workspaceData.repos.length > 0) {
+        const contextContent = generateWorkspaceC4ContextDoc(workspaceData, {
+          seedHash: seedHashResult.hash,
+          workspacePath,
+        });
+        const containersContent = generateWorkspaceC4ContainersDoc(workspaceData, {
+          seedHash: seedHashResult.hash,
+          workspacePath,
+        });
+
+        await fs.writeFile(contextPath, contextContent, "utf-8");
+        await fs.writeFile(containersPath, containersContent, "utf-8");
+      } else {
+        // Empty diagrams for no repos case
+        const contextContent = generateWorkspaceC4ContextDoc(
+          { ...workspaceData, repos: [] },
+          { seedHash: seedHashResult.hash, workspacePath }
+        );
+        const containersContent = generateWorkspaceC4ContainersDoc(
+          { ...workspaceData, repos: [] },
+          { seedHash: seedHashResult.hash, workspacePath }
+        );
+
+        await fs.writeFile(contextPath, contextContent, "utf-8");
+        await fs.writeFile(containersPath, containersContent, "utf-8");
+      }
+      result.filesWritten.push(contextPath);
+      result.filesWritten.push(containersPath);
+    } catch (err) {
+      result.errors.push(`Failed to generate workspace C4 diagrams: ${err}`);
+    }
+  }
+
+  result.success = result.errors.length === 0;
+  result.regenerated = result.filesWritten.length > 0;
+  result.reason = result.regenerated
+    ? `Regenerated ${result.filesWritten.length} workspace-level files`
+    : "No workspace files generated";
+
+  return result;
+}
+
 // ============================================================================
 // Main Command
 // ============================================================================
@@ -457,25 +833,33 @@ export async function docSyncCommand(options: DocSyncOptions): Promise<DocSyncRe
   try {
     // Determine packages to process
     let packagePaths: string[] = [];
+    let repoPath: string | undefined;
+    let workspacePath: string | undefined;
 
     if (options.package) {
       // Single package mode
       packagePaths = [path.resolve(options.package)];
     } else if (options.repo) {
       // Repo mode - discover all packages
-      const repoPath = path.resolve(options.repo);
+      repoPath = path.resolve(options.repo);
       const discovered = await discoverPackagesInRepo(repoPath);
       packagePaths = discovered.map((p) => p.path);
     } else if (options.workspace) {
-      // Workspace mode - for now, treat cwd as repo
-      const discovered = await discoverPackagesInRepo(process.cwd());
-      packagePaths = discovered.map((p) => p.path);
+      // Workspace mode - find workspace and process all registered repos
+      const foundWorkspace = await findWorkspaceDir(process.cwd());
+      workspacePath = foundWorkspace ?? process.cwd();
+      if (foundWorkspace) {
+        const discovered = await discoverPackagesInRepo(workspacePath);
+        packagePaths = discovered.map((p) => p.path);
+        // Also set repo path for the local repo
+        repoPath = workspacePath;
+      }
     } else {
       // Default: current directory as package
       packagePaths = [process.cwd()];
     }
 
-    if (packagePaths.length === 0) {
+    if (packagePaths.length === 0 && !options.workspace) {
       result.output = formatOutput(
         { error: "No packages found to process" },
         { json: options.json || false }
@@ -496,13 +880,59 @@ export async function docSyncCommand(options: DocSyncOptions): Promise<DocSyncRe
       }
     }
 
+    // Repo-level aggregation (after processing all packages)
+    if (options.repo && repoPath && packagePaths.length > 0) {
+      const repoResult = await syncRepoLevel(pool, repoPath, packagePaths, options);
+      result.repoLevel = repoResult;
+    }
+
+    // Workspace-level aggregation (requires hub)
+    if (options.workspace && workspacePath) {
+      const hubDir = path.join(workspacePath, ".devac");
+      try {
+        const hubClient = createHubClient({ hubDir });
+        const repos = await hubClient.listRepos();
+
+        if (repos.length > 0) {
+          const workspaceResult = await syncWorkspaceLevel(hubClient, workspacePath, options);
+          result.workspaceLevel = workspaceResult;
+        } else {
+          result.workspaceLevel = {
+            workspacePath,
+            success: true,
+            regenerated: false,
+            reason: "No repos registered with hub",
+            filesWritten: [],
+            errors: [],
+            reposAggregated: 0,
+          };
+        }
+      } catch {
+        // Hub not available, skip workspace-level docs
+        result.workspaceLevel = {
+          workspacePath,
+          success: true,
+          regenerated: false,
+          reason: "Hub not available - skipping workspace-level docs",
+          filesWritten: [],
+          errors: [],
+          reposAggregated: 0,
+        };
+      }
+    }
+
     // Determine overall success
-    const hasErrors = result.packages.some((p) => p.errors.length > 0);
-    result.success = !hasErrors;
+    const hasPackageErrors = result.packages.some((p) => p.errors.length > 0);
+    const hasRepoErrors = (result.repoLevel?.errors.length ?? 0) > 0;
+    const hasWorkspaceErrors = (result.workspaceLevel?.errors.length ?? 0) > 0;
+    result.success = !hasPackageErrors && !hasRepoErrors && !hasWorkspaceErrors;
 
     // In check mode, success means all docs are in sync
     if (options.check) {
-      result.inSync = result.packages.every((p) => p.success);
+      const packagesInSync = result.packages.every((p) => p.success);
+      const repoInSync = result.repoLevel ? result.repoLevel.success : true;
+      const workspaceInSync = result.workspaceLevel ? result.workspaceLevel.success : true;
+      result.inSync = packagesInSync && repoInSync && workspaceInSync;
       result.success = result.inSync;
     }
 
@@ -519,6 +949,8 @@ export async function docSyncCommand(options: DocSyncOptions): Promise<DocSyncRe
           timeMs: result.timeMs,
           inSync: result.inSync,
           packages: result.packages,
+          repoLevel: result.repoLevel,
+          workspaceLevel: result.workspaceLevel,
         },
         { json: true }
       );
@@ -547,6 +979,44 @@ export async function docSyncCommand(options: DocSyncOptions): Promise<DocSyncRe
           for (const err of pkg.errors) {
             lines.push(`    ✗ ${err}`);
           }
+        }
+      }
+
+      // Repo-level output
+      if (result.repoLevel) {
+        lines.push("");
+        const status = result.repoLevel.success ? "✓" : "✗";
+        lines.push(`${status} Repo: ${result.repoLevel.repoName}`);
+        if (result.repoLevel.reason) {
+          lines.push(`    ${result.repoLevel.reason}`);
+        }
+        if (result.repoLevel.packagesAggregated > 0) {
+          lines.push(`    Aggregated ${result.repoLevel.packagesAggregated} package(s)`);
+        }
+        for (const file of result.repoLevel.filesWritten) {
+          lines.push(`    + ${path.relative(process.cwd(), file)}`);
+        }
+        for (const err of result.repoLevel.errors) {
+          lines.push(`    ✗ ${err}`);
+        }
+      }
+
+      // Workspace-level output
+      if (result.workspaceLevel) {
+        lines.push("");
+        const status = result.workspaceLevel.success ? "✓" : "✗";
+        lines.push(`${status} Workspace`);
+        if (result.workspaceLevel.reason) {
+          lines.push(`    ${result.workspaceLevel.reason}`);
+        }
+        if (result.workspaceLevel.reposAggregated > 0) {
+          lines.push(`    Aggregated ${result.workspaceLevel.reposAggregated} repo(s)`);
+        }
+        for (const file of result.workspaceLevel.filesWritten) {
+          lines.push(`    + ${path.relative(process.cwd(), file)}`);
+        }
+        for (const err of result.workspaceLevel.errors) {
+          lines.push(`    ✗ ${err}`);
         }
       }
 

@@ -61,3 +61,48 @@ export {
   getC4FilePaths,
 } from "./c4-doc-generator.js";
 export type { C4DocResult, GenerateC4DocOptions } from "./c4-doc-generator.js";
+
+// Repo Effects Generator
+export {
+  aggregatePackageEffects,
+  computeRepoSeedHash,
+  generateEmptyRepoEffectsDoc,
+  generateRepoEffectsDoc,
+} from "./repo-effects-generator.js";
+export type {
+  AggregatedPattern,
+  GenerateRepoEffectsDocOptions,
+  PackageEffectsInput,
+  PackageEffectsSummary,
+  RepoEffectsData,
+} from "./repo-effects-generator.js";
+
+// Repo C4 Generator
+export {
+  generateAllRepoC4Docs,
+  generateEmptyRepoC4ContainersDoc,
+  generateEmptyRepoC4ContextDoc,
+  generateRepoC4ContainersDoc,
+  generateRepoC4ContextDoc,
+  getRepoC4FilePaths,
+} from "./repo-c4-generator.js";
+export type {
+  GenerateRepoC4DocOptions,
+  RepoC4DocResult,
+} from "./repo-c4-generator.js";
+
+// Workspace Effects Generator
+export {
+  computeWorkspaceSeedHash,
+  generateEmptyWorkspaceEffectsDoc,
+  generateWorkspaceC4ContainersDoc,
+  generateWorkspaceC4ContextDoc,
+  generateWorkspaceEffectsDoc,
+  queryWorkspaceEffects,
+} from "./workspace-effects-generator.js";
+export type {
+  CrossRepoPattern,
+  GenerateWorkspaceEffectsDocOptions,
+  RepoEffectsSummary,
+  WorkspaceEffectsData,
+} from "./workspace-effects-generator.js";

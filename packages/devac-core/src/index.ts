@@ -397,6 +397,24 @@ export {
   generateEmptyC4ContainersDoc,
   generateEmptyC4ContextDoc,
   getC4FilePaths,
+  // Repo-level generators
+  aggregatePackageEffects,
+  computeRepoSeedHash,
+  generateAllRepoC4Docs,
+  generateEmptyRepoC4ContainersDoc,
+  generateEmptyRepoC4ContextDoc,
+  generateEmptyRepoEffectsDoc,
+  generateRepoC4ContainersDoc,
+  generateRepoC4ContextDoc,
+  generateRepoEffectsDoc,
+  getRepoC4FilePaths,
+  // Workspace-level generators
+  computeWorkspaceSeedHash,
+  generateEmptyWorkspaceEffectsDoc,
+  generateWorkspaceC4ContainersDoc,
+  generateWorkspaceC4ContextDoc,
+  generateWorkspaceEffectsDoc,
+  queryWorkspaceEffects,
 } from "./docs/index.js";
 export type {
   // Seed hasher types
@@ -416,6 +434,19 @@ export type {
   // C4 doc generator types
   C4DocResult,
   GenerateC4DocOptions,
+  // Repo-level types
+  AggregatedPattern,
+  GenerateRepoC4DocOptions,
+  GenerateRepoEffectsDocOptions,
+  PackageEffectsInput,
+  PackageEffectsSummary,
+  RepoC4DocResult,
+  RepoEffectsData,
+  // Workspace-level types
+  CrossRepoPattern,
+  GenerateWorkspaceEffectsDocOptions,
+  RepoEffectsSummary,
+  WorkspaceEffectsData,
 } from "./docs/index.js";
 
 /**
