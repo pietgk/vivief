@@ -1,5 +1,16 @@
 # @pietgk/devac-core
 
+## 0.13.3
+
+### Patch Changes
+
+- 190116a: Add fallback discovery for repos without workspace config
+
+  - JS packages: Try common patterns (packages/_, apps/_, libs/_, services/_) when no pnpm-workspace.yaml or workspaces field exists
+  - Python packages: Discover projects with requirements.txt + .py files (in addition to pyproject.toml)
+
+  Fixes #69
+
 ## 0.13.2
 
 ## 0.13.1
