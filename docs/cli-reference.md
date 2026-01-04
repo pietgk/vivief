@@ -1398,6 +1398,56 @@ export const effectMappings = [
 3. Run `devac effects verify` to check for gaps
 4. Run `devac effects sync` to generate TypeScript mappings
 
+### devac doc-sync
+
+Generate documentation from code analysis seeds. Produces effects documentation and C4 diagrams at package, repo, and workspace levels.
+
+```bash
+devac doc-sync [options]
+
+Options:
+  -p, --package <path>    Sync specific package
+  -r, --repo <path>       Sync all packages in repo (generates repo-level docs)
+  -w, --workspace         Sync entire workspace (generates workspace-level docs)
+  --effects               Effects documentation only
+  --c4                    C4 diagrams only
+  --all                   All documentation (default)
+  --force                 Regenerate even if unchanged
+  --check                 CI mode: verify docs are in sync
+  --json                  Output as JSON
+  -v, --verbose           Detailed progress
+
+Examples:
+  devac doc-sync                           # Sync current package
+  devac doc-sync -p ./packages/auth        # Sync specific package
+  devac doc-sync --repo                    # Sync all packages + repo-level docs
+  devac doc-sync --workspace               # Sync workspace-level docs
+  devac doc-sync --check                   # CI mode: verify docs are in sync
+  devac doc-sync --effects                 # Only effects documentation
+  devac doc-sync --c4                      # Only C4 diagrams
+  devac doc-sync --force                   # Regenerate all docs
+```
+
+**Output Files:**
+
+| Level | Files Generated |
+|-------|-----------------|
+| Package | `docs/package-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
+| Repo | `docs/repo-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
+| Workspace | `docs/workspace-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
+
+**Change Detection:**
+
+Documents include a seed hash in their metadata. On subsequent runs, doc-sync compares the current seed hash against the embedded hash and only regenerates if seeds have changed. Use `--force` to bypass this check.
+
+**CI Integration:**
+
+Use `--check` in CI pipelines to verify documentation is in sync without regenerating:
+
+```bash
+devac doc-sync --check || echo "Docs out of sync, run: devac doc-sync"
+```
+
 ## Rules Commands (v3.0)
 
 Commands for running the Rules Engine on effects.

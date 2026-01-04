@@ -357,6 +357,98 @@ export type {
   DomainBoundary,
 } from "./views/index.js";
 
+// Effects (v3.0 foundation - Hierarchical mapping loader)
+export {
+  loadEffectMappings,
+  applyMappings,
+  hasMappings,
+  getMappingsPath,
+} from "./effects/index.js";
+export type {
+  MappingLevel,
+  MappingSource,
+  MappingResolutionResult,
+  LoadMappingsOptions,
+} from "./effects/index.js";
+
+// Docs (v3.0 foundation - Documentation generation with metadata)
+export {
+  // Seed hasher
+  computeSeedHash,
+  getSeedPath,
+  hasSeed,
+  listSeedFiles,
+  // Doc metadata
+  docNeedsRegeneration,
+  generateDocMetadata,
+  generateDocMetadataForMarkdown,
+  generateDocMetadataForPlantUML,
+  parseDocMetadata,
+  parseDocMetadataFromFile,
+  stripDocMetadata,
+  updateDocMetadata,
+  // Effects generator
+  generateEffectsDoc,
+  generateEmptyEffectsDoc,
+  // C4 doc generator
+  generateAllC4Docs,
+  generateC4ContainersDoc,
+  generateC4ContextDoc,
+  generateEmptyC4ContainersDoc,
+  generateEmptyC4ContextDoc,
+  getC4FilePaths,
+  // Repo-level generators
+  aggregatePackageEffects,
+  computeRepoSeedHash,
+  generateAllRepoC4Docs,
+  generateEmptyRepoC4ContainersDoc,
+  generateEmptyRepoC4ContextDoc,
+  generateEmptyRepoEffectsDoc,
+  generateRepoC4ContainersDoc,
+  generateRepoC4ContextDoc,
+  generateRepoEffectsDoc,
+  getRepoC4FilePaths,
+  // Workspace-level generators
+  computeWorkspaceSeedHash,
+  generateEmptyWorkspaceEffectsDoc,
+  generateWorkspaceC4ContainersDoc,
+  generateWorkspaceC4ContextDoc,
+  generateWorkspaceEffectsDoc,
+  queryWorkspaceEffects,
+} from "./docs/index.js";
+export type {
+  // Seed hasher types
+  SeedFileInfo,
+  SeedHashResult,
+  // Doc metadata types
+  DocMetadata,
+  GenerateMetadataOptions,
+  RegenerationCheckResult,
+  // Effects generator types
+  EffectsDocData,
+  ExternalPattern,
+  GenerateEffectsDocOptions,
+  OtherPattern,
+  RetrievePattern,
+  StorePattern,
+  // C4 doc generator types
+  C4DocResult,
+  GenerateC4DocOptions,
+  // Repo-level types
+  AggregatedPattern,
+  GenerateRepoC4DocOptions,
+  GenerateRepoEffectsDocOptions,
+  PackageEffectsInput,
+  PackageEffectsSummary,
+  RepoC4DocResult,
+  RepoEffectsData,
+  // Workspace-level types
+  CrossRepoPattern,
+  GenerateWorkspaceEffectsDocOptions,
+  RepoEffectsSummary,
+  WorkspaceEffectsData,
+} from "./docs/index.js";
+
 /**
  * DevAC Core Version
  */

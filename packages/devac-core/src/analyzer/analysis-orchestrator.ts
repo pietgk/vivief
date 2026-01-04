@@ -11,6 +11,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
 
+import { applyMappings, loadEffectMappings } from "../effects/index.js";
 import type { ParserConfig } from "../parsers/parser-interface.js";
 import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
 import {
@@ -22,6 +23,7 @@ import {
 import type { DuckDBPool } from "../storage/duckdb-pool.js";
 import { createSeedReader } from "../storage/seed-reader.js";
 import type { ResolvedRefUpdate, SeedWriter } from "../storage/seed-writer.js";
+import { findGitRoot } from "../workspace/discover.js";
 import type { LanguageRouter } from "./language-router.js";
 
 // ============================================================================
@@ -372,6 +374,22 @@ export function createAnalysisOrchestrator(
       const config = createParserConfig(event.packagePath);
       const parseResult = await parser.parse(event.filePath, config);
       const parseTimeMs = performance.now() - parseStart;
+
+      // Apply effect mappings to classify raw effects
+      // Load hierarchical mappings from package -> repo -> workspace
+      if (parseResult.effects.length > 0) {
+        const repoPath = await findGitRoot(event.packagePath);
+        const mappingResult = await loadEffectMappings({
+          packagePath: event.packagePath,
+          repoPath: repoPath ?? undefined,
+          // workspacePath could be added later for workspace-level mappings
+        });
+
+        if (mappingResult.hasMappings) {
+          // Apply mappings to classify FunctionCall effects into Store/Retrieve/Send
+          parseResult.effects = applyMappings(parseResult.effects, mappingResult.mappings);
+        }
+      }
 
       // Write seeds (atomic)
       const writeStart = performance.now();

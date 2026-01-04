@@ -20,6 +20,7 @@ import {
   registerDependentsCommand,
   registerDepsCommand,
   registerDiagnosticsCommand,
+  registerDocSyncCommand,
   registerDoctorCommand,
   registerEffectsCommand,
   registerFileSymbolsCommand,
@@ -95,6 +96,9 @@ registerDoctorCommand(program);
 
 // Sync command (analyze + register workflow)
 registerSyncCommand(program);
+
+// Doc-sync command (documentation generation)
+registerDocSyncCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

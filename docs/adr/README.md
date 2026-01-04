@@ -35,6 +35,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0023](0023-developer-maintained-effects.md) | Developer Maintained Effects | Accepted | 2025-12 |
 | [0024](0024-hub-single-writer-ipc.md) | Hub Single Writer Architecture with IPC | Accepted | 2026-01 |
 | [0025](0025-unified-start-issue-command.md) | Unified Start-Issue Command | Accepted | 2026-01 |
+| [0026](0026-federated-documentation-generation.md) | Federated Documentation Generation | Accepted | 2026-01 |
 
 ## Creating a New ADR
 
