@@ -943,6 +943,10 @@ export class TypeScriptParser implements LanguageParser {
         continue;
       }
 
+      // Track import for external call detection (use local name, not imported name)
+      const localName = localAlias ?? importedSymbol;
+      ctx.trackImport(localName, moduleSpecifier);
+
       // Check for type-only import on specifier (TypeScript)
       const specifierIsTypeOnly =
         t.isImportSpecifier(specifier) &&
@@ -1101,6 +1105,10 @@ export class TypeScriptParser implements LanguageParser {
       })
     );
 
+    // Check if this is a call to an external module
+    const baseIdentifier = this.extractBaseIdentifier(node.callee);
+    const externalModule = baseIdentifier ? ctx.getExternalModuleForSymbol(baseIdentifier) : null;
+
     // Create FunctionCallEffect
     const effect = createFunctionCallEffect({
       source_entity_id: sourceEntityId,
@@ -1115,8 +1123,8 @@ export class TypeScriptParser implements LanguageParser {
       is_async: isAsync,
       is_constructor: isConstructor,
       argument_count: node.arguments.length,
-      is_external: false, // Will be resolved during edge resolution
-      external_module: null,
+      is_external: externalModule !== null,
+      external_module: externalModule,
     });
 
     ctx.result.effects.push(effect);
@@ -1173,6 +1181,10 @@ export class TypeScriptParser implements LanguageParser {
       })
     );
 
+    // Check if this is a constructor call to an external module
+    const baseIdentifier = this.extractBaseIdentifier(node.callee);
+    const externalModule = baseIdentifier ? ctx.getExternalModuleForSymbol(baseIdentifier) : null;
+
     // Create FunctionCallEffect for constructor call
     const effect = createFunctionCallEffect({
       source_entity_id: sourceEntityId,
@@ -1187,8 +1199,8 @@ export class TypeScriptParser implements LanguageParser {
       is_async: isAsync,
       is_constructor: true,
       argument_count: node.arguments.length,
-      is_external: false,
-      external_module: null,
+      is_external: externalModule !== null,
+      external_module: externalModule,
     });
 
     ctx.result.effects.push(effect);
@@ -1267,6 +1279,30 @@ export class TypeScriptParser implements LanguageParser {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * Extract the base (leftmost) identifier from a callee expression.
+   * Used for external call detection.
+   *
+   * Examples:
+   * - s3Client.send() → "s3Client"
+   * - stripe.customers.create() → "stripe"
+   * - foo() → "foo"
+   * - new S3Client() → "S3Client"
+   */
+  private extractBaseIdentifier(callee: t.Expression | t.V8IntrinsicIdentifier): string | null {
+    if (t.isIdentifier(callee)) {
+      return callee.name;
+    }
+
+    if (t.isMemberExpression(callee)) {
+      // Recursively get the leftmost identifier
+      return this.extractBaseIdentifier(callee.object);
+    }
+
+    // For other expressions (call results, etc.), we can't determine the base
     return null;
   }
 
@@ -1502,6 +1538,14 @@ class ParserContext {
    */
   readonly nodeToEntityId: Map<string, string> = new Map();
 
+  /**
+   * Maps imported symbol local names to their module info.
+   * Used to determine if a call is to an external module.
+   * Key: local name (e.g., "s3Client", "S3Client", "stripe")
+   * Value: { module: module specifier, isExternal: whether it's from node_modules }
+   */
+  readonly importedSymbols: Map<string, { module: string; isExternal: boolean }> = new Map();
+
   constructor(
     readonly filePath: string,
     readonly config: ParserConfig,
@@ -1531,6 +1575,45 @@ class ParserContext {
       return this.nodeToEntityId.get(key);
     }
     return undefined;
+  }
+
+  /**
+   * Check if a module specifier refers to an external package (from node_modules).
+   * External modules don't start with . or / (relative paths).
+   */
+  isExternalModule(moduleSpecifier: string): boolean {
+    // Relative imports start with . or /
+    if (moduleSpecifier.startsWith(".") || moduleSpecifier.startsWith("/")) {
+      return false;
+    }
+    // Built-in Node.js modules (node:fs, fs, path, etc.)
+    if (moduleSpecifier.startsWith("node:")) {
+      return true;
+    }
+    // Everything else is a package from node_modules
+    return true;
+  }
+
+  /**
+   * Track an imported symbol for external call detection.
+   */
+  trackImport(localName: string, moduleSpecifier: string): void {
+    this.importedSymbols.set(localName, {
+      module: moduleSpecifier,
+      isExternal: this.isExternalModule(moduleSpecifier),
+    });
+  }
+
+  /**
+   * Get external module info for a symbol if it was imported from an external module.
+   * Returns null if the symbol is not from an external module.
+   */
+  getExternalModuleForSymbol(symbolName: string): string | null {
+    const importInfo = this.importedSymbols.get(symbolName);
+    if (importInfo?.isExternal) {
+      return importInfo.module;
+    }
+    return null;
   }
 
   /**
