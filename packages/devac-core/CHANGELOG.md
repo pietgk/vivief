@@ -1,5 +1,15 @@
 # @pietgk/devac-core
 
+## 0.15.1
+
+### Patch Changes
+
+- 8e86197: Fix doc-sync bugs: incorrect package counts, wrong column name, is_external never set
+
+  - Fix package counts always showing "1" by using repo.packages from manifest
+  - Fix wrong column name in effects queries (filename → source_file_path)
+  - Add external call detection to typescript-parser for is_external flag
+
 ## 0.15.0
 
 ### Minor Changes
