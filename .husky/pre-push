@@ -1,2 +1,9 @@
 pnpm typecheck
-pnpm test
+
+# Run tests, excluding performance tests (they're flaky locally due to machine load variability)
+# Performance tests run in CI where the environment is controlled
+# See: https://github.com/pietgk/vivief/issues/98
+pnpm --filter @pietgk/devac-core test -- --exclude="__tests__/performance/**"
+pnpm --filter @pietgk/devac-cli test
+pnpm --filter @pietgk/devac-mcp test
+pnpm --filter @pietgk/devac-worktree test
