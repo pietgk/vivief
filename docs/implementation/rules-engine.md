@@ -42,7 +42,6 @@ const stripeChargeRule = defineRule({
   match: {
     effectType: "FunctionCall",
     callee: /stripe\.(charges|paymentIntents)\.(create|confirm)/i,
-    isExternal: true,
   },
   emit: {
     domain: "Payment",
@@ -148,14 +147,14 @@ defineRule({
   // Generic SQL rule - fallback
   id: "db-sql",
   priority: 5,   // Lower = evaluated later
-  match: { callee: /\.insert\(/ },
+  match: { callee: /\.insert$/ },
   emit: { domain: "Database", action: "Write" },
 });
 ```
 
 ## Builtin Rules
 
-DevAC includes 25+ builtin rules organized by domain:
+DevAC includes 30+ builtin rules organized by domain:
 
 ### Database Rules
 
@@ -163,10 +162,12 @@ DevAC includes 25+ builtin rules organized by domain:
 |---------|-------------|---------|
 | `db-write-dynamodb` | DynamoDB put/update/delete | `dynamodb.put`, `dynamodb.update` |
 | `db-read-dynamodb` | DynamoDB get/query/scan | `dynamodb.get`, `dynamodb.query` |
+| `db-kysely-read` | Kysely query operations | `.selectFrom`, `.executeTakeFirst` |
+| `db-kysely-write` | Kysely write operations | `.insertInto`, `.updateTable`, `.deleteFrom` |
 | `db-prisma-write` | Prisma create/update/delete | `prisma.user.create` |
 | `db-prisma-read` | Prisma find/count | `prisma.user.findMany` |
-| `db-write-sql` | Generic SQL writes | `.insert(`, `.update(` |
-| `db-read-sql` | Generic SQL reads | `.select(`, `.query(` |
+| `db-write-sql` | Generic SQL writes | `.insert`, `.update`, `.execute` |
+| `db-read-sql` | Generic SQL reads | `.select`, `.query`, `.find` |
 
 ### Payment Rules
 
@@ -190,8 +191,16 @@ DevAC includes 25+ builtin rules organized by domain:
 
 | Rule ID | Description | Pattern |
 |---------|-------------|---------|
-| `http-fetch` | Fetch API | `fetch(` |
-| `http-axios` | Axios requests | `axios.get`, `axios.post` |
+| `http-fetch` | Fetch API | `fetch` (external only) |
+| `http-axios` | Axios requests | `axios.get`, `axios.post` (external only) |
+
+### API Rules (tRPC)
+
+| Rule ID | Description | Pattern |
+|---------|-------------|---------|
+| `api-trpc-mutation` | tRPC mutation definitions | `procedure.mutation` |
+| `api-trpc-query` | tRPC query definitions | `procedure.query` |
+| `api-trpc-procedure` | tRPC procedure definitions | `.procedure` |
 
 ### Messaging Rules
 
@@ -270,7 +279,7 @@ defineRule({
       if (effect.effect_type !== "FunctionCall") return false;
       // Match async calls that look like database writes
       return effect.is_async &&
-             /\.(insert|update|save)\(/i.test(effect.callee_name);
+             /\.(insert|update|save)$/i.test(effect.callee_name);
     },
   },
   emit: {
