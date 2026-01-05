@@ -5,7 +5,6 @@
  * Based on MCP get_call_graph tool.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -14,11 +13,8 @@ import {
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for call-graph command
@@ -32,8 +28,6 @@ export interface CallGraphCommandOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Maximum depth for recursive queries (default: 3) */
   maxDepth?: number;
   /** Maximum results per direction */
@@ -129,7 +123,7 @@ export async function callGraphCommand(
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -255,7 +249,6 @@ export function registerCallGraphCommand(program: Command): void {
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("-d, --direction <dir>", "Direction (callers, callees, both)", "both")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--max-depth <depth>", "Maximum depth", "3")
     .option("-l, --limit <count>", "Maximum results per direction", "100")
     .option("--json", "Output as JSON")
@@ -265,7 +258,6 @@ export function registerCallGraphCommand(program: Command): void {
         direction: options.direction as "callers" | "callees" | "both",
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

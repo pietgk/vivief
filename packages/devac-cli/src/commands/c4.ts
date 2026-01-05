@@ -6,7 +6,6 @@
  */
 
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   type C4ContainerDiagram,
@@ -30,11 +29,8 @@ import {
   setupQueryContext,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput, formatTable } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Check if a package has effects.parquet file
@@ -57,8 +53,6 @@ export interface C4CommandOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** System name for diagrams */
   systemName?: string;
   /** System description */
@@ -266,7 +260,7 @@ async function getDomainEffects(options: C4CommandOptions) {
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "LIMIT 5000";
 
     if (options.hub) {
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -576,7 +570,6 @@ export function registerC4Command(program: Command): void {
     .description("Generate C4 Context diagram (default command)")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-n, --name <name>", "System name", "System")
     .option("-d, --description <desc>", "System description")
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
@@ -587,7 +580,6 @@ export function registerC4Command(program: Command): void {
       const result = await c4ContextCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         systemName: options.name,
         systemDescription: options.description,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
@@ -607,7 +599,6 @@ export function registerC4Command(program: Command): void {
     .description("Generate C4 Container diagram")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-n, --name <name>", "System name", "System")
     .option(
       "-g, --grouping <strategy>",
@@ -622,7 +613,6 @@ export function registerC4Command(program: Command): void {
       const result = await c4ContainersCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         systemName: options.name,
         grouping: options.grouping as "directory" | "package" | "flat",
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
@@ -642,7 +632,6 @@ export function registerC4Command(program: Command): void {
     .description("Discover domain boundaries from effects")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
@@ -650,7 +639,6 @@ export function registerC4Command(program: Command): void {
       const result = await c4DomainsCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });
@@ -667,7 +655,6 @@ export function registerC4Command(program: Command): void {
     .description("List external systems detected from effects")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
@@ -675,7 +662,6 @@ export function registerC4Command(program: Command): void {
       const result = await c4ExternalsCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });

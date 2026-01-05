@@ -4,8 +4,6 @@
  * Syncs external diagnostics (CI status, issues, reviews) to the Hub's unified_diagnostics table.
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import {
   CentralHub,
   discoverContext,
@@ -17,13 +15,7 @@ import {
   syncReviewsToHub,
 } from "@pietgk/devac-core";
 import type { CISyncResult, IssueSyncResult, ReviewSyncResult } from "@pietgk/devac-core";
-
-/**
- * Get default hub directory
- */
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 
 /**
  * Options for hub sync command
@@ -72,7 +64,7 @@ export interface HubSyncResult {
  * Sync feedback to the Hub
  */
 export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncResult> {
-  const hubDir = getDefaultHubDir();
+  const hubDir = await getWorkspaceHubDir();
   const hub = new CentralHub({ hubDir });
 
   try {

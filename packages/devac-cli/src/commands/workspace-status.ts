@@ -5,8 +5,8 @@ import {
   createWorkspaceManager,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { contextCICommand, contextIssuesCommand, contextReviewCommand } from "./context.js";
-import { getDefaultHubDir } from "./hub-init.js";
 import { hubList } from "./hub-list.js";
 import { hubRefresh } from "./hub-refresh.js";
 import { hubRegister } from "./hub-register.js";
@@ -263,14 +263,19 @@ export function registerWorkspaceCommand(program: Command): void {
   workspace
     .command("register <path>")
     .description("Register a repository with the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
-    .action(async (repoPath, options) => {
-      const result = await hubRegister({
-        hubDir: options.hubDir,
-        repoPath: path.resolve(repoPath),
-      });
-      console.log(result.message);
-      if (!result.success) {
+    .action(async (repoPath) => {
+      try {
+        const hubDir = await getWorkspaceHubDir();
+        const result = await hubRegister({
+          hubDir,
+          repoPath: path.resolve(repoPath),
+        });
+        console.log(result.message);
+        if (!result.success) {
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);
       }
     });
@@ -279,11 +284,16 @@ export function registerWorkspaceCommand(program: Command): void {
   workspace
     .command("unregister <repoId>")
     .description("Unregister a repository from the hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
-    .action(async (repoId, options) => {
-      const result = await hubUnregister({ hubDir: options.hubDir, repoId });
-      console.log(result.message);
-      if (!result.success) {
+    .action(async (repoId) => {
+      try {
+        const hubDir = await getWorkspaceHubDir();
+        const result = await hubUnregister({ hubDir, repoId });
+        console.log(result.message);
+        if (!result.success) {
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);
       }
     });
@@ -292,24 +302,29 @@ export function registerWorkspaceCommand(program: Command): void {
   workspace
     .command("list")
     .description("List registered repositories")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Verbose output")
     .action(async (options) => {
-      const result = await hubList({
-        hubDir: options.hubDir,
-        json: options.json,
-        verbose: options.verbose,
-      });
-      if (options.json) {
-        console.log(JSON.stringify(result.repos, null, 2));
-      } else {
-        console.log(result.message);
-        for (const repo of result.repos) {
-          console.log(`  ${repo.repoId}: ${repo.localPath} (${repo.packages} packages)`);
+      try {
+        const hubDir = await getWorkspaceHubDir();
+        const result = await hubList({
+          hubDir,
+          json: options.json,
+          verbose: options.verbose,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result.repos, null, 2));
+        } else {
+          console.log(result.message);
+          for (const repo of result.repos) {
+            console.log(`  ${repo.repoId}: ${repo.localPath} (${repo.packages} packages)`);
+          }
         }
-      }
-      if (!result.success) {
+        if (!result.success) {
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);
       }
     });
@@ -318,22 +333,27 @@ export function registerWorkspaceCommand(program: Command): void {
   workspace
     .command("refresh [repoId]")
     .description("Refresh repository manifests")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--force", "Force regenerate all manifests")
     .action(async (repoId, options) => {
-      const result = await hubRefresh({
-        hubDir: options.hubDir,
-        repoId,
-        force: options.force,
-      });
-      console.log(result.message);
-      if (result.errors.length > 0) {
-        console.log("Errors:");
-        for (const error of result.errors) {
-          console.log(`  ${error}`);
+      try {
+        const hubDir = await getWorkspaceHubDir();
+        const result = await hubRefresh({
+          hubDir,
+          repoId,
+          force: options.force,
+        });
+        console.log(result.message);
+        if (result.errors.length > 0) {
+          console.log("Errors:");
+          for (const error of result.errors) {
+            console.log(`  ${error}`);
+          }
         }
-      }
-      if (!result.success) {
+        if (!result.success) {
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);
       }
     });

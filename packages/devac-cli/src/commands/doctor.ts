@@ -7,8 +7,9 @@
 import { execSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { findGitRoot, getDefaultHubDir } from "@pietgk/devac-core";
+import { findGitRoot } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { runChecks } from "./doctor/checks/index.js";
 import { executeFixes, getFixableChecks } from "./doctor/fixes.js";
 import { formatDoctorOutput } from "./doctor/formatters.js";
@@ -128,7 +129,18 @@ async function detectInstallMethod(): Promise<{
  * Run the doctor command
  */
 export async function doctorCommand(options: DoctorOptions): Promise<DoctorResult> {
-  const hubDir = options.hubDir ?? getDefaultHubDir();
+  // Get hubDir from options or try to detect from workspace
+  let hubDir: string;
+  if (options.hubDir) {
+    hubDir = options.hubDir;
+  } else {
+    try {
+      hubDir = await getWorkspaceHubDir();
+    } catch {
+      // Not in a workspace - use a placeholder for doctor diagnostics
+      hubDir = path.join(process.env.HOME || process.env.USERPROFILE || "", ".devac");
+    }
+  }
   const cwd = options.cwd ?? process.cwd();
 
   // Detect workspace context
@@ -200,13 +212,11 @@ export function registerDoctorCommand(program: Command): void {
   program
     .command("doctor")
     .description("Check DevAC system health and fix issues")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--fix", "Execute fixes (default: dry-run only)")
     .option("--json", "Output as JSON")
     .option("--verbose", "Show additional details")
     .action(async (options) => {
       const result = await doctorCommand({
-        hubDir: options.hubDir,
         fix: options.fix,
         json: options.json,
         verbose: options.verbose,

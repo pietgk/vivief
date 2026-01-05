@@ -5,7 +5,6 @@
  * Part of DevAC v3.0 Foundation.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   type CodeEffect,
@@ -23,11 +22,8 @@ import {
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput, formatTable } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for rules run command
@@ -37,8 +33,6 @@ export interface RulesRunOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Filter output by domain */
   domain?: string;
   /** Maximum effects to process */
@@ -200,7 +194,7 @@ export async function rulesRunCommand(options: RulesRunOptions): Promise<RulesRu
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -301,7 +295,7 @@ export async function rulesStatsCommand(options: RulesRunOptions): Promise<Rules
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "";
 
     if (options.hub) {
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -412,7 +406,6 @@ export function registerRulesCommand(program: Command): void {
   rulesCmd
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-d, --domain <domain>", "Filter by domain (e.g., Payment, Auth)")
     .option("-l, --limit <count>", "Maximum effects to process", "1000")
     .option("--json", "Output as JSON")
@@ -420,7 +413,6 @@ export function registerRulesCommand(program: Command): void {
       const result = await rulesRunCommand({
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         domain: options.domain,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
@@ -455,14 +447,12 @@ export function registerRulesCommand(program: Command): void {
     .description("Show rule match statistics")
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum effects to process")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await rulesStatsCommand({
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });

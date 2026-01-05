@@ -7,7 +7,6 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   CentralHub,
@@ -19,13 +18,7 @@ import {
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
-
-/**
- * Get the default Hub directory path
- */
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 
 /**
  * Options for validate command
@@ -53,8 +46,6 @@ export interface ValidateOptions {
   pushToHub?: boolean;
   /** Repository ID for Hub push (required if pushToHub is true) */
   repoId?: string;
-  /** Hub directory (defaults to ~/.devac) */
-  hubDir?: string;
 }
 
 /**
@@ -131,7 +122,7 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
 
     // Push to Hub if requested
     if (options.pushToHub && options.repoId) {
-      const hubDir = options.hubDir ?? getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       let hub: CentralHub | null = null;
       try {
         hub = new CentralHub({ hubDir });
@@ -268,7 +259,6 @@ export function registerValidateCommand(program: Command): void {
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--push-to-hub", "Push results to central Hub")
     .option("--repo-id <id>", "Repository ID for Hub push")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await validateCommand({
@@ -282,7 +272,6 @@ export function registerValidateCommand(program: Command): void {
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
         pushToHub: options.pushToHub,
         repoId: options.repoId,
-        hubDir: options.hubDir,
       });
 
       if (options.json) {

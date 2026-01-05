@@ -6,18 +6,13 @@
  * @see docs/vision/concepts.md for the Three Pillars model
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import {
   type HubDiagnosticsCommandOptions,
   type HubDiagnosticsCommandResult,
   hubDiagnosticsCommand,
 } from "./hub-diagnostics.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 // Re-export types
 export type DiagnosticsCommandOptions = HubDiagnosticsCommandOptions;
@@ -39,7 +34,6 @@ export function registerDiagnosticsCommand(program: Command): void {
   program
     .command("diagnostics")
     .description("Query all diagnostics from the hub (validation + workflow)")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("--repo <id>", "Filter by repository")
     .option(
       "--source <source>",
@@ -53,8 +47,9 @@ export function registerDiagnosticsCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
+      const hubDir = await getWorkspaceHubDir();
       const result = await diagnosticsCommand({
-        hubDir: options.hubDir,
+        hubDir,
         repoId: options.repo,
         source: options.source,
         severity: options.severity,

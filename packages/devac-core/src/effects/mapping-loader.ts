@@ -183,9 +183,9 @@ function extractMappingArray<T>(content: string, arrayName: string): T[] {
 
   // Match object literals
   const objectPattern = /\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
-  let objectMatch: RegExpExecArray | null;
+  let objectMatch = objectPattern.exec(arrayContent);
 
-  while ((objectMatch = objectPattern.exec(arrayContent)) !== null) {
+  while (objectMatch !== null) {
     try {
       const obj = parseObjectLiteral<T>(objectMatch[1] ?? "");
       if (obj) {
@@ -194,6 +194,7 @@ function extractMappingArray<T>(content: string, arrayName: string): T[] {
     } catch {
       // Skip malformed objects
     }
+    objectMatch = objectPattern.exec(arrayContent);
   }
 
   return objects;
@@ -209,9 +210,9 @@ function parseObjectLiteral<T>(content: string): T | null {
 
     // Match pattern: key: value or "key": value
     const propPattern = /["']?(\w+)["']?\s*:\s*(?:"([^"]*?)"|'([^']*?)'|(\w+)|(\d+))/g;
-    let propMatch: RegExpExecArray | null;
+    let propMatch = propPattern.exec(content);
 
-    while ((propMatch = propPattern.exec(content)) !== null) {
+    while (propMatch !== null) {
       const key = propMatch[1];
       const value = propMatch[2] ?? propMatch[3] ?? propMatch[4] ?? propMatch[5];
 
@@ -227,6 +228,7 @@ function parseObjectLiteral<T>(content: string): T | null {
           obj[key] = value;
         }
       }
+      propMatch = propPattern.exec(content);
     }
 
     return Object.keys(obj).length > 0 ? (obj as T) : null;

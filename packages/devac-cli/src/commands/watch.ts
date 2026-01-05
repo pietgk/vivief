@@ -7,7 +7,6 @@
 
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   type CrossRepoDetector,
@@ -452,8 +451,10 @@ class WatchControllerImpl implements WatchController {
    * Write a cross-repo need notification to file
    */
   private async writeNotification(need: WatchCrossRepoNeedEvent): Promise<void> {
+    // Use notifications path from options, or default to workspace/.devac/notifications.log
     const notificationsPath =
-      this.options.notificationsPath || path.join(os.homedir(), ".devac", "notifications.log");
+      this.options.notificationsPath ||
+      path.join(this.options.packagePath, "..", ".devac", "notifications.log");
 
     try {
       // Ensure directory exists

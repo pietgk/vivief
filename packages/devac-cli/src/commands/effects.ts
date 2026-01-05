@@ -7,7 +7,6 @@
  */
 
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -19,11 +18,8 @@ import {
   setupQueryContext,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput, formatTable } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Check if a package has effects.parquet file
@@ -46,8 +42,6 @@ export interface EffectsCommandOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Filter by effect type */
   type?: string;
   /** Filter by file path */
@@ -148,7 +142,7 @@ export async function effectsCommand(
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -254,8 +248,6 @@ export interface EffectsSummaryOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Group by field: type, file, entity */
   groupBy?: "type" | "file" | "entity";
   /** Output as JSON */
@@ -302,7 +294,7 @@ export async function effectsSummaryCommand(
     let result: QueryResult<unknown>;
 
     if (options.hub) {
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -426,7 +418,6 @@ export function registerEffectsCommand(program: Command): void {
     .description("List effects (default command)")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-t, --type <type>", "Filter by effect type (FunctionCall, Store, etc.)")
     .option("-f, --file <path>", "Filter by file path")
     .option("-e, --entity <id>", "Filter by source entity ID")
@@ -439,7 +430,6 @@ export function registerEffectsCommand(program: Command): void {
       const result = await effectsCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         type: options.type,
         file: options.file,
         entity: options.entity,
@@ -461,7 +451,6 @@ export function registerEffectsCommand(program: Command): void {
     .description("Get summary statistics for effects")
     .option("-p, --package <path>", "Package path")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-g, --group-by <field>", "Group by: type, file, entity", "type")
     .option("--json", "Output as JSON")
     .action(async (options) => {
@@ -469,7 +458,6 @@ export function registerEffectsCommand(program: Command): void {
       const result = await effectsSummaryCommand({
         packagePath,
         hub: options.hub,
-        hubDir: options.hubDir,
         groupBy: options.groupBy as "type" | "file" | "entity",
         json: options.json,
       });
