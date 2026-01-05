@@ -20,7 +20,6 @@ export const databaseRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /dynamodb.*\.(put|update|delete|batchWrite)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Database",
@@ -37,12 +36,44 @@ export const databaseRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /dynamodb.*\.(get|query|scan|batchGet)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Database",
       action: "Read",
       metadata: { provider: "dynamodb" },
+    },
+    priority: 10,
+  }),
+
+  // Kysely ORM rules (higher priority than generic SQL)
+  defineRule({
+    id: "db-kysely-read",
+    name: "Kysely Read",
+    description: "Detects Kysely query operations",
+    match: {
+      effectType: "FunctionCall",
+      callee: /\.(selectFrom|selectAll|executeTakeFirst|executeTakeFirstOrThrow)$/i,
+    },
+    emit: {
+      domain: "Database",
+      action: "Read",
+      metadata: { provider: "kysely" },
+    },
+    priority: 10,
+  }),
+
+  defineRule({
+    id: "db-kysely-write",
+    name: "Kysely Write",
+    description: "Detects Kysely write operations",
+    match: {
+      effectType: "FunctionCall",
+      callee: /\.(insertInto|updateTable|deleteFrom)$/i,
+    },
+    emit: {
+      domain: "Database",
+      action: "Write",
+      metadata: { provider: "kysely" },
     },
     priority: 10,
   }),
@@ -53,7 +84,7 @@ export const databaseRules: Rule[] = [
     description: "Detects SQL INSERT/UPDATE/DELETE operations",
     match: {
       effectType: "FunctionCall",
-      callee: /\.(insert|update|delete|execute|run)\(/i,
+      callee: /\.(insert|update|delete|execute|run)$/i,
     },
     emit: {
       domain: "Database",
@@ -69,7 +100,7 @@ export const databaseRules: Rule[] = [
     description: "Detects SQL SELECT/query operations",
     match: {
       effectType: "FunctionCall",
-      callee: /\.(select|query|find|all|first|get)\(/i,
+      callee: /\.(select|query|find|all|first|get)$/i,
     },
     emit: {
       domain: "Database",
@@ -123,7 +154,6 @@ export const paymentRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /stripe\.(charges|paymentIntents)\.(create|confirm)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Payment",
@@ -140,7 +170,6 @@ export const paymentRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /stripe\.refunds\.create/i,
-      isExternal: true,
     },
     emit: {
       domain: "Payment",
@@ -157,7 +186,6 @@ export const paymentRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /stripe\.subscriptions\.(create|update|cancel)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Payment",
@@ -241,7 +269,6 @@ export const authRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /cognito.*\.(adminInitiateAuth|initiateAuth|signUp|confirmSignUp)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Auth",
@@ -292,6 +319,65 @@ export const httpRules: Rule[] = [
 ];
 
 /**
+ * tRPC API rules
+ *
+ * These patterns are specific to tRPC's procedure builder pattern:
+ * - t.procedure.query(...) or publicProcedure.query(...)
+ * - t.procedure.mutation(...) or publicProcedure.mutation(...)
+ */
+export const trpcRules: Rule[] = [
+  defineRule({
+    id: "api-trpc-mutation",
+    name: "tRPC Mutation",
+    description: "Detects tRPC mutation definitions (procedure.mutation pattern)",
+    match: {
+      effectType: "FunctionCall",
+      // Match procedure.mutation pattern (e.g., t.procedure.mutation, publicProcedure.mutation)
+      callee: /procedure\.mutation$/i,
+    },
+    emit: {
+      domain: "API",
+      action: "Mutation",
+      metadata: { framework: "trpc" },
+    },
+    priority: 15,
+  }),
+
+  defineRule({
+    id: "api-trpc-query",
+    name: "tRPC Query",
+    description: "Detects tRPC query definitions (procedure.query pattern)",
+    match: {
+      effectType: "FunctionCall",
+      // Match procedure.query pattern (e.g., t.procedure.query, publicProcedure.query)
+      callee: /procedure\.query$/i,
+    },
+    emit: {
+      domain: "API",
+      action: "Query",
+      metadata: { framework: "trpc" },
+    },
+    priority: 15,
+  }),
+
+  defineRule({
+    id: "api-trpc-procedure",
+    name: "tRPC Procedure",
+    description: "Detects tRPC procedure definitions",
+    match: {
+      effectType: "FunctionCall",
+      callee: /\.procedure$/i,
+    },
+    emit: {
+      domain: "API",
+      action: "Procedure",
+      metadata: { framework: "trpc" },
+    },
+    priority: 15,
+  }),
+];
+
+/**
  * Messaging and queue rules
  */
 export const messagingRules: Rule[] = [
@@ -302,7 +388,6 @@ export const messagingRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /sqs.*\.(sendMessage|sendMessageBatch)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Messaging",
@@ -319,7 +404,6 @@ export const messagingRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /sqs.*\.(receiveMessage)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Messaging",
@@ -336,7 +420,6 @@ export const messagingRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /sns.*\.(publish)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Messaging",
@@ -353,7 +436,6 @@ export const messagingRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /eventbridge.*\.(putEvents)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Messaging",
@@ -375,7 +457,6 @@ export const storageRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /s3.*\.(putObject|upload)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Storage",
@@ -392,7 +473,6 @@ export const storageRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /s3.*\.(getObject)/i,
-      isExternal: true,
     },
     emit: {
       domain: "Storage",
@@ -462,7 +542,6 @@ export const observabilityRules: Rule[] = [
     match: {
       effectType: "FunctionCall",
       callee: /dd-trace|datadog/i,
-      isExternal: true,
     },
     emit: {
       domain: "Observability",
@@ -481,6 +560,7 @@ export const builtinRules: Rule[] = [
   ...paymentRules,
   ...authRules,
   ...httpRules,
+  ...trpcRules,
   ...messagingRules,
   ...storageRules,
   ...observabilityRules,

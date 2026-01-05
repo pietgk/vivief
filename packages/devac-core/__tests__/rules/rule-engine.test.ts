@@ -5,7 +5,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { builtinRules, databaseRules, getRulesByDomain } from "../../src/rules/builtin-rules.js";
+import {
+  builtinRules,
+  databaseRules,
+  getRulesByDomain,
+  trpcRules,
+} from "../../src/rules/builtin-rules.js";
 import { createRuleEngine, defineRule } from "../../src/rules/rule-engine.js";
 import type { CodeEffect } from "../../src/types/effects.js";
 
@@ -357,6 +362,247 @@ describe("RuleEngine", () => {
       const result = engine.process(effects);
 
       expect(result.processTimeMs).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("SQL pattern matching (regex bug fix)", () => {
+    it("matches SQL patterns without parentheses in callee name", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      // Callee names should NOT include parentheses - this was the bug
+      const sqlSelect = createFunctionCallEffect({
+        callee_name: "db.select",
+      });
+      const sqlInsert = createFunctionCallEffect({
+        callee_name: "db.insert",
+      });
+
+      const selectResult = engine.process([sqlSelect]);
+      expect(selectResult.matchedCount).toBe(1);
+      expect(selectResult.domainEffects[0]?.domain).toBe("Database");
+      expect(selectResult.domainEffects[0]?.action).toBe("Read");
+
+      const insertResult = engine.process([sqlInsert]);
+      expect(insertResult.matchedCount).toBe(1);
+      expect(insertResult.domainEffects[0]?.domain).toBe("Database");
+      expect(insertResult.domainEffects[0]?.action).toBe("Write");
+    });
+
+    it("matches various SQL read operations", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const readOperations = ["select", "query", "find", "all", "first", "get"];
+
+      for (const op of readOperations) {
+        const effect = createFunctionCallEffect({
+          callee_name: `db.${op}`,
+        });
+        const result = engine.process([effect]);
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.action).toBe("Read");
+      }
+    });
+
+    it("matches various SQL write operations", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const writeOperations = ["insert", "update", "delete", "execute", "run"];
+
+      for (const op of writeOperations) {
+        const effect = createFunctionCallEffect({
+          callee_name: `db.${op}`,
+        });
+        const result = engine.process([effect]);
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.action).toBe("Write");
+      }
+    });
+  });
+
+  describe("Kysely ORM patterns", () => {
+    it("matches Kysely read operations", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const kyselyReadOps = [
+        "dbClient.selectFrom",
+        "db.selectAll",
+        "query.executeTakeFirst",
+        "db.executeTakeFirstOrThrow",
+      ];
+
+      for (const callee of kyselyReadOps) {
+        const effect = createFunctionCallEffect({ callee_name: callee });
+        const result = engine.process([effect]);
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.domain).toBe("Database");
+        expect(result.domainEffects[0]?.action).toBe("Read");
+        expect(result.domainEffects[0]?.metadata?.provider).toBe("kysely");
+      }
+    });
+
+    it("matches Kysely write operations", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const kyselyWriteOps = ["dbClient.insertInto", "db.updateTable", "db.deleteFrom"];
+
+      for (const callee of kyselyWriteOps) {
+        const effect = createFunctionCallEffect({ callee_name: callee });
+        const result = engine.process([effect]);
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.domain).toBe("Database");
+        expect(result.domainEffects[0]?.action).toBe("Write");
+        expect(result.domainEffects[0]?.metadata?.provider).toBe("kysely");
+      }
+    });
+  });
+
+  describe("tRPC patterns", () => {
+    it("has tRPC rules defined", () => {
+      expect(trpcRules.length).toBeGreaterThan(0);
+      expect(trpcRules.every((r) => r.emit.domain === "API")).toBe(true);
+    });
+
+    it("matches tRPC mutation (procedure.mutation pattern)", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      // Various tRPC mutation patterns
+      const patterns = [
+        "t.procedure.mutation",
+        "publicProcedure.mutation",
+        "protectedProcedure.mutation",
+      ];
+
+      for (const callee of patterns) {
+        const effect = createFunctionCallEffect({ callee_name: callee });
+        const result = engine.process([effect]);
+
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.domain).toBe("API");
+        expect(result.domainEffects[0]?.action).toBe("Mutation");
+        expect(result.domainEffects[0]?.metadata?.framework).toBe("trpc");
+      }
+    });
+
+    it("matches tRPC query (procedure.query pattern)", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      // Various tRPC query patterns
+      const patterns = ["t.procedure.query", "publicProcedure.query", "protectedProcedure.query"];
+
+      for (const callee of patterns) {
+        const effect = createFunctionCallEffect({ callee_name: callee });
+        const result = engine.process([effect]);
+
+        expect(result.matchedCount).toBe(1);
+        expect(result.domainEffects[0]?.domain).toBe("API");
+        expect(result.domainEffects[0]?.action).toBe("Query");
+        expect(result.domainEffects[0]?.metadata?.framework).toBe("trpc");
+      }
+    });
+
+    it("matches tRPC procedure", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const effect = createFunctionCallEffect({
+        callee_name: "router.procedure",
+      });
+      const result = engine.process([effect]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("API");
+      expect(result.domainEffects[0]?.action).toBe("Procedure");
+    });
+
+    it("does not match generic .query as tRPC", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      // db.query should be SQL, not tRPC
+      const effect = createFunctionCallEffect({
+        callee_name: "db.query",
+      });
+      const result = engine.process([effect]);
+
+      expect(result.matchedCount).toBe(1);
+      // Should match SQL read, not tRPC
+      expect(result.domainEffects[0]?.domain).toBe("Database");
+      expect(result.domainEffects[0]?.action).toBe("Read");
+    });
+  });
+
+  describe("isExternal relaxation", () => {
+    it("matches DynamoDB patterns without isExternal flag", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      // Internal wrapper function that calls DynamoDB - no isExternal flag
+      const dynamodbPut = createFunctionCallEffect({
+        callee_name: "dynamodb.client.put",
+        is_external: false, // Internal wrapper
+      });
+
+      const result = engine.process([dynamodbPut]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("Database");
+      expect(result.domainEffects[0]?.action).toBe("Write");
+    });
+
+    it("matches Stripe patterns without isExternal flag", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const stripeCharge = createFunctionCallEffect({
+        callee_name: "stripe.charges.create",
+        is_external: false, // Internal wrapper
+      });
+
+      const result = engine.process([stripeCharge]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("Payment");
+    });
+
+    it("matches SQS patterns without isExternal flag", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const sqsSend = createFunctionCallEffect({
+        callee_name: "sqs.client.sendMessage",
+        is_external: false, // Internal wrapper
+      });
+
+      const result = engine.process([sqsSend]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("Messaging");
+      expect(result.domainEffects[0]?.action).toBe("Send");
+    });
+
+    it("matches S3 patterns without isExternal flag", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const s3Put = createFunctionCallEffect({
+        callee_name: "s3.client.putObject",
+        is_external: false, // Internal wrapper
+      });
+
+      const result = engine.process([s3Put]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("Storage");
+      expect(result.domainEffects[0]?.action).toBe("Write");
+    });
+
+    it("matches Cognito patterns without isExternal flag", () => {
+      const engine = createRuleEngine({ rules: builtinRules });
+
+      const cognitoAuth = createFunctionCallEffect({
+        callee_name: "cognito.client.adminInitiateAuth",
+        is_external: false, // Internal wrapper
+      });
+
+      const result = engine.process([cognitoAuth]);
+
+      expect(result.matchedCount).toBe(1);
+      expect(result.domainEffects[0]?.domain).toBe("Auth");
+      expect(result.domainEffects[0]?.action).toBe("CognitoAuth");
     });
   });
 });
