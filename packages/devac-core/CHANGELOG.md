@@ -1,5 +1,16 @@
 # @pietgk/devac-core
 
+## 0.15.0
+
+### Minor Changes
+
+- b63a413: Consolidate query architecture and reduce code duplication
+
+  - Add `queryWithContext()` for consistent view-based package queries
+  - Fix `getUnifiedQuery()` to use correct deduplication keys for effects (effect_id vs entity_id)
+  - Add `getParquetFilePaths()` helper for consistent parquet path construction
+  - Consolidate duplicate `fileExists` implementations into single canonical utility
+
 ## 0.14.2
 
 ### Patch Changes
