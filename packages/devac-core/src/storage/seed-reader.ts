@@ -12,6 +12,7 @@ import { type SeedPaths, getSeedPaths } from "../types/config.js";
 import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { getUnifiedQuery } from "./parquet-schemas.js";
+import { type ContextQueryResult, queryWithContext } from "./query-context.js";
 
 /**
  * Query result type
@@ -130,6 +131,31 @@ export class SeedReader {
       rowCount: rows.length,
       timeMs: Date.now() - startTime,
     };
+  }
+
+  /**
+   * Execute a SQL query with views pre-configured
+   *
+   * This is the preferred method for queries that reference tables by name.
+   * Views are created for nodes, edges, external_refs, and effects
+   * in the same connection context as the query.
+   *
+   * @example
+   * ```typescript
+   * const result = await reader.queryWithViews(
+   *   "SELECT * FROM nodes WHERE kind = 'function'"
+   * );
+   * ```
+   */
+  async queryWithViews<T = Record<string, unknown>>(
+    sql: string,
+    branch = "base"
+  ): Promise<ContextQueryResult<T>> {
+    return queryWithContext<T>(this.pool, {
+      packagePath: this.packagePath,
+      sql,
+      branch,
+    });
   }
 
   /**

@@ -9,6 +9,7 @@ import * as fs from "node:fs/promises";
 import { getSeedPaths } from "../types/config.js";
 import type { CodeEffect, EffectType } from "../types/index.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
+import { queryWithContext } from "./query-context.js";
 
 /**
  * Filter options for reading effects
@@ -219,6 +220,9 @@ export class EffectReader {
 
   /**
    * Execute custom SQL query on effects
+   *
+   * Uses queryWithContext() to create views for all seed tables
+   * (nodes, edges, external_refs, effects) in the same connection.
    */
   async query(sql: string): Promise<unknown[]> {
     const paths = getSeedPaths(this.packagePath);
@@ -230,17 +234,13 @@ export class EffectReader {
       return [];
     }
 
-    return await executeWithRecovery(this.pool, async (conn) => {
-      // Create view for easier querying
-      await conn.run(`
-        CREATE OR REPLACE VIEW effects AS
-        SELECT * FROM read_parquet('${paths.effectsParquet}')
-        WHERE is_deleted = false
-      `);
-
-      const results = await conn.all(sql);
-      return results;
+    // Use queryWithContext for consistent view creation
+    const result = await queryWithContext(this.pool, {
+      packagePath: this.packagePath,
+      sql,
     });
+
+    return result.rows;
   }
 
   /**

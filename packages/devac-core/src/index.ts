@@ -43,6 +43,7 @@ export {
   queryMultiplePackages,
   // Query context (ergonomic query UX)
   setupQueryContext,
+  queryWithContext,
   preprocessSql,
   discoverPackagesInRepo,
   buildPackageMap,
@@ -64,6 +65,7 @@ export type {
   // Query context types
   QueryContextConfig,
   QueryContextResult,
+  ContextQueryResult,
   DiscoveredPackage,
   // Effect storage types (v3.0 foundation)
   EffectWriteOptions,

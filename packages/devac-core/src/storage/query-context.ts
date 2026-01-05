@@ -9,8 +9,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Connection } from "duckdb-async";
 import { getSeedPaths } from "../types/config.js";
-import type { DuckDBPool } from "./duckdb-pool.js";
-import { executeWithRecovery } from "./duckdb-pool.js";
+import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 
 /**
  * Query context configuration
@@ -359,4 +358,81 @@ export function buildPackageMap(packages: DiscoveredPackage[]): Map<string, stri
     }
   }
   return map;
+}
+
+/**
+ * Query result from context-aware query execution
+ */
+export interface ContextQueryResult<T = Record<string, unknown>> {
+  rows: T[];
+  rowCount: number;
+  timeMs: number;
+  viewsCreated: string[];
+}
+
+/**
+ * Execute a SQL query with views pre-configured for a package
+ *
+ * This is the canonical way to run queries against package seeds.
+ * It creates views (nodes, edges, external_refs, effects) in the same
+ * connection context as the query, ensuring views are available.
+ *
+ * @example
+ * ```typescript
+ * const result = await queryWithContext(pool, {
+ *   packagePath: "/path/to/package",
+ *   sql: "SELECT * FROM nodes WHERE kind = 'function'",
+ * });
+ * ```
+ */
+export async function queryWithContext<T = Record<string, unknown>>(
+  pool: DuckDBPool,
+  options: {
+    packagePath: string;
+    sql: string;
+    branch?: string;
+  }
+): Promise<ContextQueryResult<T>> {
+  const { packagePath, sql, branch = "base" } = options;
+  const startTime = Date.now();
+  const viewsCreated: string[] = [];
+
+  const rows = await executeWithRecovery(pool, async (conn) => {
+    const paths = getSeedPaths(packagePath, branch);
+
+    // Create views for all seed tables
+    const nodesPath = path.join(paths.basePath, "nodes.parquet");
+    if (await fileExists(nodesPath)) {
+      await createView(conn, "nodes", nodesPath);
+      viewsCreated.push("nodes");
+    }
+
+    const edgesPath = path.join(paths.basePath, "edges.parquet");
+    if (await fileExists(edgesPath)) {
+      await createView(conn, "edges", edgesPath);
+      viewsCreated.push("edges");
+    }
+
+    const refsPath = path.join(paths.basePath, "external_refs.parquet");
+    if (await fileExists(refsPath)) {
+      await createView(conn, "external_refs", refsPath);
+      viewsCreated.push("external_refs");
+    }
+
+    const effectsPath = path.join(paths.basePath, "effects.parquet");
+    if (await fileExists(effectsPath)) {
+      await createView(conn, "effects", effectsPath);
+      viewsCreated.push("effects");
+    }
+
+    // Execute the query
+    return await conn.all(sql);
+  });
+
+  return {
+    rows: rows as T[],
+    rowCount: rows.length,
+    timeMs: Date.now() - startTime,
+    viewsCreated,
+  };
 }
