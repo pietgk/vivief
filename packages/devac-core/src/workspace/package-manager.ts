@@ -8,6 +8,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { glob } from "glob";
+import { fileExists } from "../utils/atomic-write.js";
 import { createLogger } from "../utils/logger.js";
 
 const logger = createLogger({ prefix: "[PackageManager]" });
@@ -478,15 +479,6 @@ export async function discoverAllPackages(rootPath: string): Promise<DiscoveryRe
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function getPackageJsonName(packageJsonPath: string): Promise<string | null> {
   try {

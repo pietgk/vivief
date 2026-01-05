@@ -225,8 +225,38 @@ export function getReadFromParquet(filePath: string, tableName?: string): string
 }
 
 /**
+ * Get the deduplication condition for a table type.
+ * Each table has different key columns for identifying unique records.
+ */
+function getDeduplicationCondition(tableName: string): string {
+  switch (tableName) {
+    case "nodes":
+      return "branch.entity_id = base.entity_id";
+    case "edges":
+      // Edges are uniquely identified by source, target, and type
+      return "branch.source_entity_id = base.source_entity_id AND branch.target_entity_id = base.target_entity_id AND branch.edge_type = base.edge_type";
+    case "external_refs":
+      // External refs are uniquely identified by source, module, and symbol
+      return "branch.source_entity_id = base.source_entity_id AND branch.module_specifier = base.module_specifier AND branch.imported_symbol = base.imported_symbol";
+    case "effects":
+      // Effects use effect_id as the unique identifier
+      return "branch.effect_id = base.effect_id";
+    default:
+      // Fallback to entity_id for unknown tables
+      return "branch.entity_id = base.entity_id";
+  }
+}
+
+/**
  * Query to get unified view of base + branch partitions
- * Used for querying current state across both partitions
+ * Used for querying current state across both partitions.
+ *
+ * Branch records take precedence over base records when keys match.
+ * Each table type uses appropriate deduplication keys:
+ * - nodes: entity_id
+ * - edges: source_entity_id + target_entity_id + edge_type
+ * - external_refs: source_entity_id + module_specifier + imported_symbol
+ * - effects: effect_id
  */
 export function getUnifiedQuery(
   tableName: string,
@@ -246,6 +276,8 @@ export function getUnifiedQuery(
     return `SELECT * FROM read_parquet('${branchPath}') WHERE is_deleted = false`;
   }
 
+  const dedupeCondition = getDeduplicationCondition(tableName);
+
   // Union with branch taking precedence
   return `
     SELECT * FROM (
@@ -255,7 +287,7 @@ export function getUnifiedQuery(
       SELECT base.* FROM read_parquet('${basePath}') base
       WHERE NOT EXISTS (
         SELECT 1 FROM read_parquet('${branchPath}') branch
-        WHERE branch.entity_id = base.entity_id
+        WHERE ${dedupeCondition}
       )
       AND base.is_deleted = false
     )

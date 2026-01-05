@@ -12,6 +12,7 @@ import type { Connection } from "duckdb-async";
 import type { StructuralParseResult } from "../parsers/parser-interface.js";
 import { SCHEMA_VERSION, type SeedPaths, getSeedPaths } from "../types/config.js";
 import type { CodeEffect, ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
+import { fileExists } from "../utils/atomic-write.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { withSeedLock } from "./file-lock.js";
 import { getCopyToParquet, initializeSchemas } from "./parquet-schemas.js";
@@ -197,7 +198,7 @@ export class SeedWriter {
   ): Promise<number> {
     const refsPath = path.join(paths.basePath, "external_refs.parquet");
 
-    if (!(await this.fileExists(refsPath))) {
+    if (!(await fileExists(refsPath))) {
       return 0;
     }
 
@@ -679,7 +680,7 @@ export class SeedWriter {
           let refsWritten = 0;
 
           // Read existing and filter
-          if (await this.fileExists(nodesPath)) {
+          if (await fileExists(nodesPath)) {
             const rows = await conn.all(
               `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(
                 excludeFiles
@@ -691,7 +692,7 @@ export class SeedWriter {
             }
           }
 
-          if (await this.fileExists(edgesPath)) {
+          if (await fileExists(edgesPath)) {
             const rows = await conn.all(
               `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(
                 excludeFiles
@@ -703,7 +704,7 @@ export class SeedWriter {
             }
           }
 
-          if (await this.fileExists(refsPath)) {
+          if (await fileExists(refsPath)) {
             const rows = await conn.all(
               `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(
                 excludeFiles
@@ -792,7 +793,7 @@ export class SeedWriter {
     const edgesPath = path.join(basePath, "edges.parquet");
     const refsPath = path.join(basePath, "external_refs.parquet");
 
-    if (await this.fileExists(nodesPath)) {
+    if (await fileExists(nodesPath)) {
       const nodes = await conn.all(
         `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path IN (${this.toSqlList(
           filePaths
@@ -840,7 +841,7 @@ export class SeedWriter {
       }
     }
 
-    if (await this.fileExists(edgesPath)) {
+    if (await fileExists(edgesPath)) {
       const edges = await conn.all(
         `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path IN (${this.toSqlList(
           filePaths
@@ -871,7 +872,7 @@ export class SeedWriter {
       }
     }
 
-    if (await this.fileExists(refsPath)) {
+    if (await fileExists(refsPath)) {
       const refs = await conn.all(
         `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path IN (${this.toSqlList(
           filePaths
@@ -963,7 +964,7 @@ export class SeedWriter {
     const refsPath = path.join(paths.basePath, "external_refs.parquet");
 
     // Read existing data excluding changed files
-    if (await this.fileExists(nodesPath)) {
+    if (await fileExists(nodesPath)) {
       const existingNodes = await conn.all(
         `SELECT * FROM read_parquet('${nodesPath}') WHERE file_path NOT IN (${this.toSqlList(
           changedFiles
@@ -974,7 +975,7 @@ export class SeedWriter {
       }
     }
 
-    if (await this.fileExists(edgesPath)) {
+    if (await fileExists(edgesPath)) {
       const existingEdges = await conn.all(
         `SELECT * FROM read_parquet('${edgesPath}') WHERE source_file_path NOT IN (${this.toSqlList(
           changedFiles
@@ -985,7 +986,7 @@ export class SeedWriter {
       }
     }
 
-    if (await this.fileExists(refsPath)) {
+    if (await fileExists(refsPath)) {
       const existingRefs = await conn.all(
         `SELECT * FROM read_parquet('${refsPath}') WHERE source_file_path NOT IN (${this.toSqlList(
           changedFiles
@@ -1178,18 +1179,6 @@ export class SeedWriter {
       row.is_deleted,
       row.updated_at
     );
-  }
-
-  /**
-   * Check if a file exists
-   */
-  private async fileExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   /**

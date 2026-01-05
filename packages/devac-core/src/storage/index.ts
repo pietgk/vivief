@@ -60,11 +60,13 @@ export {
   preprocessSql,
   discoverPackagesInRepo,
   buildPackageMap,
+  queryWithContext,
 } from "./query-context.js";
 export type {
   QueryContextConfig,
   QueryContextResult,
   DiscoveredPackage,
+  ContextQueryResult,
 } from "./query-context.js";
 
 // Effect writer (v3.0 foundation)

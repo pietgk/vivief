@@ -9,6 +9,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { CentralHub } from "../hub/central-hub.js";
+import { fileExists } from "../utils/atomic-write.js";
 import {
   discoverWorkspace,
   findGitRoot,
@@ -390,14 +391,5 @@ function formatSeedState(state: string): string {
       return "both ";
     default:
       return state.padEnd(5);
-  }
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
   }
 }

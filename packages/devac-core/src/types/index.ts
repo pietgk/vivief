@@ -114,6 +114,7 @@ export type {
   SeedPaths,
   OutputFormat,
   QueryOptions,
+  ParquetFilePaths,
 } from "./config.js";
 
 export {
@@ -121,4 +122,5 @@ export {
   DEFAULT_ANALYSIS_OPTIONS,
   DEFAULT_QUERY_OPTIONS,
   getSeedPaths,
+  getParquetFilePaths,
 } from "./config.js";
