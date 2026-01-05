@@ -5,8 +5,6 @@
  * Based on MCP get_validation_summary and get_diagnostics_summary tools.
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import {
   type DiagnosticsSummary,
   type ValidationSummary,
@@ -14,16 +12,12 @@ import {
 } from "@pietgk/devac-core";
 import { formatOutput, formatSummary } from "./output-formatter.js";
 
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
-
 /**
  * Options for hub-summary command
  */
 export interface HubSummaryCommandOptions {
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
+  /** Hub directory (required - from workspace) */
+  hubDir: string;
   /** Summary type: validation, diagnostics, or counts */
   type: "validation" | "diagnostics" | "counts";
   /** Group by field (for validation/diagnostics) */
@@ -69,9 +63,8 @@ export async function hubSummaryCommand(
   options: HubSummaryCommandOptions
 ): Promise<HubSummaryCommandResult> {
   const startTime = Date.now();
-  const hubDir = options.hubDir || getDefaultHubDir();
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir: options.hubDir });
 
   try {
     let output: string;

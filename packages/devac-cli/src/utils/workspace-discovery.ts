@@ -25,7 +25,9 @@ export async function getWorkspaceHubDir(startDir?: string): Promise<string> {
   const hubDir = await coreFindWorkspaceHubDir(startDir);
   if (!hubDir) {
     throw new Error(
-      "Not in a workspace. Run from a workspace directory or a repository within a workspace."
+      "Not in a workspace. Run from a workspace directory or a repository within a workspace.\n\n" +
+        "To initialize the current directory as a workspace, run:\n" +
+        "  devac workspace init"
     );
   }
   return hubDir;

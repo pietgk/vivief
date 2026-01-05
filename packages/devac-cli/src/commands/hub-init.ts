@@ -131,14 +131,6 @@ export async function hubInit(options: HubInitOptions): Promise<HubInitResult> {
 }
 
 /**
- * Get the default hub directory path
- */
-export function getDefaultHubDir(): string {
-  const home = process.env.HOME || process.env.USERPROFILE || "";
-  return path.join(home, ".devac");
-}
-
-/**
  * Register the hub command with all subcommands
  */
 export function registerHubCommand(program: Command): void {
@@ -148,11 +140,10 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("init")
     .description("Initialize the workspace hub")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--force", "Force reinitialization")
     .action(async (options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubInit({
           hubDir,
           force: options.force,
@@ -177,11 +168,10 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("register [path]")
     .description("Register a repository with the hub (use 'devac sync' to analyze + register)")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--all", "Register all repositories in workspace")
     .action(async (repoPath, options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const resolvedPath = repoPath ? path.resolve(repoPath) : process.cwd();
         const result = await hubRegister({
           hubDir,
@@ -203,10 +193,9 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("unregister <repoId>")
     .description("Unregister a repository from the hub")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
-    .action(async (repoId, options) => {
+    .action(async (repoId) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubUnregister({ hubDir, repoId });
         displayCommandResult(result);
       } catch (err) {
@@ -222,12 +211,11 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("list")
     .description("List registered repositories")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Verbose output")
     .action(async (options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubList({
           hubDir,
           json: options.json,
@@ -258,11 +246,10 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("status")
     .description("Show hub status")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubStatus({ hubDir });
         if (!result.success) {
           displayCommandResult(result);
@@ -286,11 +273,10 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("refresh [repoId]")
     .description("Refresh repository manifests")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--force", "Force regenerate all manifests")
     .action(async (repoId, options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubRefresh({
           hubDir,
           repoId,
@@ -349,7 +335,6 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("errors")
     .description("Query validation errors from the hub")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--repo <id>", "Filter by repository")
     .option("--severity <level>", "Filter by severity (error, warning)")
     .option("--source <source>", "Filter by source (tsc, eslint, test)")
@@ -358,7 +343,7 @@ export function registerHubCommand(program: Command): void {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubErrorsCommand({
           hubDir,
           repoId: options.repo,
@@ -404,7 +389,6 @@ export function registerHubCommand(program: Command): void {
     .command("diagnostics")
     .alias("feedback")
     .description("Query unified diagnostics from the hub")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--repo <id>", "Filter by repository")
     .option("--source <source>", "Filter by source")
     .option("--severity <level>", "Filter by severity")
@@ -416,7 +400,7 @@ export function registerHubCommand(program: Command): void {
     .option("--json", "Output as JSON")
     .action(async (options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubDiagnosticsCommand({
           hubDir,
           repoId: options.repo,
@@ -464,12 +448,11 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("summary <type>")
     .description("Get summary/counts (validation, diagnostics, counts)")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--group-by <field>", "Group by field")
     .option("--json", "Output as JSON")
     .action(async (type, options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubSummaryCommand({
           hubDir,
           type: type as "validation" | "diagnostics" | "counts",
@@ -511,12 +494,11 @@ export function registerHubCommand(program: Command): void {
   hub
     .command("query <sql>")
     .description("Execute SQL query across all registered repositories")
-    .option("--hub-dir <path>", "Hub directory (auto-detected from workspace)")
     .option("--branch <branch>", "Branch to query (default: base)", "base")
     .option("--json", "Output as JSON")
     .action(async (sql, options) => {
       try {
-        const hubDir = options.hubDir || (await getWorkspaceHubDir());
+        const hubDir = await getWorkspaceHubDir();
         const result = await hubQueryCommand({
           hubDir,
           sql,

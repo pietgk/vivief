@@ -5,8 +5,6 @@
  * Based on MCP get_all_diagnostics tool.
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import {
   type DiagnosticsCategory,
   type DiagnosticsFilter,
@@ -17,16 +15,12 @@ import {
 } from "@pietgk/devac-core";
 import { formatDiagnostics, formatOutput } from "./output-formatter.js";
 
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
-
 /**
  * Options for hub-diagnostics command
  */
 export interface HubDiagnosticsCommandOptions {
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
+  /** Hub directory (required - from workspace) */
+  hubDir: string;
   /** Filter by repository ID */
   repoId?: string;
   /** Filter by source(s) */
@@ -72,9 +66,8 @@ export async function hubDiagnosticsCommand(
   options: HubDiagnosticsCommandOptions
 ): Promise<HubDiagnosticsCommandResult> {
   const startTime = Date.now();
-  const hubDir = options.hubDir || getDefaultHubDir();
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir: options.hubDir });
 
   try {
     const filter: DiagnosticsFilter = {

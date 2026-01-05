@@ -5,7 +5,6 @@
  * CLI commands communicate with MCP via Unix socket IPC.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 
 // ─────────────────────────────────────────────────────────────
@@ -106,13 +105,6 @@ export const HubErrorCode = {
  */
 export function getSocketPath(hubDir: string): string {
   return path.join(hubDir, HUB_SOCKET_NAME);
-}
-
-/**
- * Get the default hub directory (~/.devac)
- */
-export function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
 }
 
 /**

@@ -5,7 +5,6 @@
  * Based on MCP get_dependents tool.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -15,11 +14,8 @@ import {
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatDependencies, formatOutput } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for dependents command
@@ -31,8 +27,6 @@ export interface DependentsCommandOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.) */
   edgeType?: string;
   /** Maximum results to return */
@@ -76,7 +70,7 @@ export async function dependentsCommand(
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -184,7 +178,6 @@ export function registerDependentsCommand(program: Command): void {
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("-t, --type <type>", "Filter by edge type (CALLS, IMPORTS, etc.)")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (entityId, options) => {
@@ -192,7 +185,6 @@ export function registerDependentsCommand(program: Command): void {
         entityId,
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         edgeType: options.type,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

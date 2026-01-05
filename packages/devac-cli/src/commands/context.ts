@@ -5,8 +5,6 @@
  * Includes CI status and LLM review subcommands.
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import {
   CentralHub,
   buildReviewPrompt,
@@ -42,13 +40,7 @@ import type {
   ReviewsResult,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
-
-/**
- * Get default hub directory
- */
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 
 export interface ContextOptions {
   /** Current working directory */
@@ -146,7 +138,7 @@ export async function contextCICommand(options: ContextCIOptions): Promise<Conte
     // Optionally sync to Hub
     let syncResult: CISyncResult | undefined;
     if (options.syncToHub) {
-      const hubDir = getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = new CentralHub({ hubDir });
       try {
         await hub.init();
@@ -276,7 +268,7 @@ export async function contextIssuesCommand(
     // Optionally sync to Hub
     let syncResult: IssueSyncResult | undefined;
     if (options.syncToHub) {
-      const hubDir = getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = new CentralHub({ hubDir });
       try {
         await hub.init();
@@ -374,7 +366,7 @@ export async function contextReviewsCommand(
     // Optionally sync to Hub
     let syncResult: ReviewSyncResult | undefined;
     if (options.syncToHub) {
-      const hubDir = getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = new CentralHub({ hubDir });
       try {
         await hub.init();

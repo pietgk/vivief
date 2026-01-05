@@ -5,7 +5,6 @@
  * Based on MCP get_file_symbols tool.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -15,11 +14,8 @@ import {
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput, formatSymbols } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for file-symbols command
@@ -31,8 +27,6 @@ export interface FileSymbolsCommandOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Filter by kind (function, class, variable, etc.) */
   kind?: string;
   /** Maximum results to return */
@@ -76,7 +70,7 @@ export async function fileSymbolsCommand(
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -184,7 +178,6 @@ export function registerFileSymbolsCommand(program: Command): void {
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("-k, --kind <kind>", "Filter by symbol kind")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (filePath, options) => {
@@ -192,7 +185,6 @@ export function registerFileSymbolsCommand(program: Command): void {
         filePath,
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         kind: options.kind,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

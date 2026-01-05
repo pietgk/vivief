@@ -5,21 +5,15 @@
  * Based on MCP get_validation_errors tool.
  */
 
-import * as os from "node:os";
-import * as path from "node:path";
 import { type ValidationError, type ValidationFilter, createHubClient } from "@pietgk/devac-core";
 import { formatOutput, formatValidationIssues } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for hub-errors command
  */
 export interface HubErrorsCommandOptions {
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
+  /** Hub directory (required - from workspace) */
+  hubDir: string;
   /** Filter by repository ID */
   repoId?: string;
   /** Filter by severity (error, warning) */
@@ -59,9 +53,8 @@ export async function hubErrorsCommand(
   options: HubErrorsCommandOptions
 ): Promise<HubErrorsCommandResult> {
   const startTime = Date.now();
-  const hubDir = options.hubDir || getDefaultHubDir();
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir: options.hubDir });
 
   try {
     const filter: ValidationFilter = {

@@ -5,7 +5,6 @@
  * Based on MCP find_symbol tool.
  */
 
-import * as os from "node:os";
 import * as path from "node:path";
 import {
   DuckDBPool,
@@ -15,11 +14,8 @@ import {
   queryMultiplePackages,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 import { formatOutput, formatSymbols } from "./output-formatter.js";
-
-function getDefaultHubDir(): string {
-  return path.join(os.homedir(), ".devac");
-}
 
 /**
  * Options for find-symbol command
@@ -33,8 +29,6 @@ export interface FindSymbolOptions {
   packagePath?: string;
   /** Use hub mode for federated queries */
   hub?: boolean;
-  /** Hub directory (default: ~/.devac) */
-  hubDir?: string;
   /** Maximum results to return */
   limit?: number;
   /** Output as JSON */
@@ -74,7 +68,7 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
 
     if (options.hub) {
       // Hub mode: query all registered repos
-      const hubDir = options.hubDir || getDefaultHubDir();
+      const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
       try {
@@ -166,7 +160,6 @@ export function registerFindSymbolCommand(program: Command): void {
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("-k, --kind <kind>", "Symbol kind filter")
     .option("--hub", "Query all registered repos via Hub")
-    .option("--hub-dir <path>", "Hub directory", getDefaultHubDir())
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
@@ -175,7 +168,6 @@ export function registerFindSymbolCommand(program: Command): void {
         kind: options.kind,
         packagePath: options.package ? path.resolve(options.package) : undefined,
         hub: options.hub,
-        hubDir: options.hubDir,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });

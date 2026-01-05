@@ -58,7 +58,6 @@ export {
   IPC_TIMEOUT_MS,
   IPC_CONNECT_TIMEOUT_MS,
   getSocketPath,
-  getDefaultHubDir,
   type HubMethod,
   type HubRequest,
   type HubResponse,

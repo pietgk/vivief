@@ -31,7 +31,6 @@ import {
   type HubResponse,
   IPC_CONNECT_TIMEOUT_MS,
   IPC_TIMEOUT_MS,
-  getDefaultHubDir,
   getSocketPath,
 } from "./ipc-protocol.js";
 
@@ -40,8 +39,8 @@ import {
 // ─────────────────────────────────────────────────────────────
 
 export interface HubClientOptions {
-  /** Hub directory (defaults to ~/.devac) */
-  hubDir?: string;
+  /** Hub directory (required - use findWorkspaceHubDir to get it) */
+  hubDir: string;
   /** Timeout for IPC operations (ms) */
   timeout?: number;
 }
@@ -55,8 +54,8 @@ export class HubClient {
   private socketPath: string;
   private timeout: number;
 
-  constructor(options: HubClientOptions = {}) {
-    this.hubDir = options.hubDir ?? getDefaultHubDir();
+  constructor(options: HubClientOptions) {
+    this.hubDir = options.hubDir;
     this.socketPath = getSocketPath(this.hubDir);
     this.timeout = options.timeout ?? IPC_TIMEOUT_MS;
   }
@@ -378,6 +377,6 @@ export class HubClient {
 // Factory Function
 // ─────────────────────────────────────────────────────────────
 
-export function createHubClient(options?: HubClientOptions): HubClient {
+export function createHubClient(options: HubClientOptions): HubClient {
   return new HubClient(options);
 }
