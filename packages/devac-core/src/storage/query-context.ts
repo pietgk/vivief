@@ -8,7 +8,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Connection } from "duckdb-async";
-import { getSeedPaths } from "../types/config.js";
+import { getParquetFilePaths, getSeedPaths } from "../types/config.js";
+import { fileExists } from "../utils/atomic-write.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 
 /**
@@ -50,18 +51,6 @@ export interface DiscoveredPackage {
 }
 
 /**
- * Check if a file exists
- */
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Set up query context with views for a package
  *
  * Creates views:
@@ -80,39 +69,36 @@ export async function setupQueryContext(
 
   try {
     const paths = getSeedPaths(packagePath, branch);
+    const parquetPaths = getParquetFilePaths(paths.basePath);
 
     await executeWithRecovery(pool, async (conn) => {
       // Create view for nodes
-      const nodesPath = path.join(paths.basePath, "nodes.parquet");
-      if (await fileExists(nodesPath)) {
-        await createView(conn, "nodes", nodesPath);
+      if (await fileExists(parquetPaths.nodes)) {
+        await createView(conn, "nodes", parquetPaths.nodes);
         viewsCreated.push("nodes");
       } else {
-        warnings.push(`nodes.parquet not found at ${nodesPath}`);
+        warnings.push(`nodes.parquet not found at ${parquetPaths.nodes}`);
       }
 
       // Create view for edges
-      const edgesPath = path.join(paths.basePath, "edges.parquet");
-      if (await fileExists(edgesPath)) {
-        await createView(conn, "edges", edgesPath);
+      if (await fileExists(parquetPaths.edges)) {
+        await createView(conn, "edges", parquetPaths.edges);
         viewsCreated.push("edges");
       } else {
-        warnings.push(`edges.parquet not found at ${edgesPath}`);
+        warnings.push(`edges.parquet not found at ${parquetPaths.edges}`);
       }
 
       // Create view for external_refs
-      const refsPath = path.join(paths.basePath, "external_refs.parquet");
-      if (await fileExists(refsPath)) {
-        await createView(conn, "external_refs", refsPath);
+      if (await fileExists(parquetPaths.externalRefs)) {
+        await createView(conn, "external_refs", parquetPaths.externalRefs);
         viewsCreated.push("external_refs");
       } else {
-        warnings.push(`external_refs.parquet not found at ${refsPath}`);
+        warnings.push(`external_refs.parquet not found at ${parquetPaths.externalRefs}`);
       }
 
       // Create view for effects (v3.0 foundation)
-      const effectsPath = path.join(paths.basePath, "effects.parquet");
-      if (await fileExists(effectsPath)) {
-        await createView(conn, "effects", effectsPath);
+      if (await fileExists(parquetPaths.effects)) {
+        await createView(conn, "effects", parquetPaths.effects);
         viewsCreated.push("effects");
       }
       // Note: No warning for missing effects - it's optional until parsers emit effects
@@ -121,30 +107,27 @@ export async function setupQueryContext(
       if (config.packages) {
         for (const [pkgName, pkgPath] of config.packages) {
           const pkgPaths = getSeedPaths(pkgPath, branch);
+          const pkgParquetPaths = getParquetFilePaths(pkgPaths.basePath);
 
           // Create package-specific views (e.g., nodes_core, edges_core)
-          const pkgNodesPath = path.join(pkgPaths.basePath, "nodes.parquet");
-          if (await fileExists(pkgNodesPath)) {
-            await createView(conn, `nodes_${pkgName}`, pkgNodesPath);
+          if (await fileExists(pkgParquetPaths.nodes)) {
+            await createView(conn, `nodes_${pkgName}`, pkgParquetPaths.nodes);
             viewsCreated.push(`nodes_${pkgName}`);
           }
 
-          const pkgEdgesPath = path.join(pkgPaths.basePath, "edges.parquet");
-          if (await fileExists(pkgEdgesPath)) {
-            await createView(conn, `edges_${pkgName}`, pkgEdgesPath);
+          if (await fileExists(pkgParquetPaths.edges)) {
+            await createView(conn, `edges_${pkgName}`, pkgParquetPaths.edges);
             viewsCreated.push(`edges_${pkgName}`);
           }
 
-          const pkgRefsPath = path.join(pkgPaths.basePath, "external_refs.parquet");
-          if (await fileExists(pkgRefsPath)) {
-            await createView(conn, `external_refs_${pkgName}`, pkgRefsPath);
+          if (await fileExists(pkgParquetPaths.externalRefs)) {
+            await createView(conn, `external_refs_${pkgName}`, pkgParquetPaths.externalRefs);
             viewsCreated.push(`external_refs_${pkgName}`);
           }
 
           // Create effects view for package (v3.0 foundation)
-          const pkgEffectsPath = path.join(pkgPaths.basePath, "effects.parquet");
-          if (await fileExists(pkgEffectsPath)) {
-            await createView(conn, `effects_${pkgName}`, pkgEffectsPath);
+          if (await fileExists(pkgParquetPaths.effects)) {
+            await createView(conn, `effects_${pkgName}`, pkgParquetPaths.effects);
             viewsCreated.push(`effects_${pkgName}`);
           }
         }
@@ -399,29 +382,26 @@ export async function queryWithContext<T = Record<string, unknown>>(
 
   const rows = await executeWithRecovery(pool, async (conn) => {
     const paths = getSeedPaths(packagePath, branch);
+    const parquetPaths = getParquetFilePaths(paths.basePath);
 
     // Create views for all seed tables
-    const nodesPath = path.join(paths.basePath, "nodes.parquet");
-    if (await fileExists(nodesPath)) {
-      await createView(conn, "nodes", nodesPath);
+    if (await fileExists(parquetPaths.nodes)) {
+      await createView(conn, "nodes", parquetPaths.nodes);
       viewsCreated.push("nodes");
     }
 
-    const edgesPath = path.join(paths.basePath, "edges.parquet");
-    if (await fileExists(edgesPath)) {
-      await createView(conn, "edges", edgesPath);
+    if (await fileExists(parquetPaths.edges)) {
+      await createView(conn, "edges", parquetPaths.edges);
       viewsCreated.push("edges");
     }
 
-    const refsPath = path.join(paths.basePath, "external_refs.parquet");
-    if (await fileExists(refsPath)) {
-      await createView(conn, "external_refs", refsPath);
+    if (await fileExists(parquetPaths.externalRefs)) {
+      await createView(conn, "external_refs", parquetPaths.externalRefs);
       viewsCreated.push("external_refs");
     }
 
-    const effectsPath = path.join(paths.basePath, "effects.parquet");
-    if (await fileExists(effectsPath)) {
-      await createView(conn, "effects", effectsPath);
+    if (await fileExists(parquetPaths.effects)) {
+      await createView(conn, "effects", parquetPaths.effects);
       viewsCreated.push("effects");
     }
 

@@ -134,6 +134,38 @@ export function getSeedPaths(packagePath: string, branch = "base"): SeedPaths {
 }
 
 /**
+ * Parquet file paths for a partition
+ */
+export interface ParquetFilePaths {
+  nodes: string;
+  edges: string;
+  externalRefs: string;
+  effects: string;
+}
+
+/**
+ * Get parquet file paths for a given partition directory.
+ *
+ * Use this when you need paths for a specific partition (base or branch)
+ * rather than the paths from getSeedPaths which are branch-dependent.
+ *
+ * @example
+ * ```typescript
+ * const paths = getSeedPaths(packagePath);
+ * const basePaths = getParquetFilePaths(paths.basePath);
+ * const branchPaths = getParquetFilePaths(paths.branchPath);
+ * ```
+ */
+export function getParquetFilePaths(partitionPath: string): ParquetFilePaths {
+  return {
+    nodes: `${partitionPath}/nodes.parquet`,
+    edges: `${partitionPath}/edges.parquet`,
+    externalRefs: `${partitionPath}/external_refs.parquet`,
+    effects: `${partitionPath}/effects.parquet`,
+  };
+}
+
+/**
  * CLI output format options
  */
 export type OutputFormat = "json" | "csv" | "table" | "pretty";

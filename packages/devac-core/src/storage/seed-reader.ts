@@ -10,6 +10,7 @@ import * as path from "node:path";
 import type { Connection } from "duckdb-async";
 import { type SeedPaths, getSeedPaths } from "../types/config.js";
 import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
+import { fileExists } from "../utils/atomic-write.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { getUnifiedQuery } from "./parquet-schemas.js";
 import { type ContextQueryResult, queryWithContext } from "./query-context.js";
@@ -170,8 +171,8 @@ export class SeedReader {
 
     return await executeWithRecovery(this.pool, async (conn) => {
       const idList = entityIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(", ");
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -209,8 +210,8 @@ export class SeedReader {
 
     return await executeWithRecovery(this.pool, async (conn) => {
       const escapedPath = filePath.replace(/'/g, "''");
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -248,8 +249,8 @@ export class SeedReader {
 
     return await executeWithRecovery(this.pool, async (conn) => {
       const escapedId = sourceEntityId.replace(/'/g, "''");
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -289,8 +290,8 @@ export class SeedReader {
 
     return await executeWithRecovery(this.pool, async (conn) => {
       const escapedId = targetEntityId.replace(/'/g, "''");
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -330,8 +331,8 @@ export class SeedReader {
 
     return await executeWithRecovery(this.pool, async (conn) => {
       const escapedPath = filePath.replace(/'/g, "''");
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -370,8 +371,8 @@ export class SeedReader {
     const branchPath = path.join(paths.branchPath, "external_refs.parquet");
 
     return await executeWithRecovery(this.pool, async (conn) => {
-      const baseExists = await this.fileExists(basePath);
-      const branchExists = await this.fileExists(branchPath);
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
 
       if (!baseExists && !branchExists) return [];
 
@@ -411,7 +412,7 @@ export class SeedReader {
     return await executeWithRecovery(this.pool, async (conn) => {
       const hashMap = new Map<string, string>();
 
-      if (!(await this.fileExists(basePath))) return hashMap;
+      if (!(await fileExists(basePath))) return hashMap;
 
       const query = `SELECT DISTINCT file_path, source_file_hash FROM read_parquet('${basePath}') WHERE is_deleted = false`;
       const rows = await conn.all(query);
@@ -446,7 +447,7 @@ export class SeedReader {
       let orphanedEdges = 0;
 
       // Check nodes
-      if (await this.fileExists(nodesPath)) {
+      if (await fileExists(nodesPath)) {
         try {
           const nodeStats = await conn.all(
             `SELECT COUNT(*) as count, COUNT(DISTINCT file_path) as files FROM read_parquet('${nodesPath}') WHERE is_deleted = false`
@@ -464,7 +465,7 @@ export class SeedReader {
       }
 
       // Check edges
-      if (await this.fileExists(edgesPath)) {
+      if (await fileExists(edgesPath)) {
         try {
           const edgeStats = await conn.all(
             `SELECT COUNT(*) as count FROM read_parquet('${edgesPath}') WHERE is_deleted = false`
@@ -473,7 +474,7 @@ export class SeedReader {
           edgeCount = Number(firstRow?.count ?? 0);
 
           // Check for orphaned edges (referencing non-existent nodes)
-          if (await this.fileExists(nodesPath)) {
+          if (await fileExists(nodesPath)) {
             const orphanCheck = await conn.all(`
               SELECT COUNT(*) as count FROM read_parquet('${edgesPath}') e
               WHERE e.is_deleted = false
@@ -496,7 +497,7 @@ export class SeedReader {
       }
 
       // Check external refs
-      if (await this.fileExists(refsPath)) {
+      if (await fileExists(refsPath)) {
         try {
           const refStats = await conn.all(`
             SELECT
@@ -517,7 +518,7 @@ export class SeedReader {
 
       // Check meta.json
       const metaPath = paths.metaJson;
-      if (!(await this.fileExists(metaPath))) {
+      if (!(await fileExists(metaPath))) {
         warnings.push("meta.json does not exist");
       } else {
         try {
@@ -568,8 +569,8 @@ export class SeedReader {
     const basePath = path.join(paths.basePath, `${tableName}.parquet`);
     const branchPath = path.join(paths.branchPath, `${tableName}.parquet`);
 
-    const baseExists = await this.fileExists(basePath);
-    const branchExists = await this.fileExists(branchPath);
+    const baseExists = await fileExists(basePath);
+    const branchExists = await fileExists(branchPath);
 
     if (!baseExists && !branchExists) {
       return null;
@@ -579,18 +580,6 @@ export class SeedReader {
       base: baseExists,
       branch: branchExists,
     });
-  }
-
-  /**
-   * Check if a file exists
-   */
-  private async fileExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
   }
 }
 
