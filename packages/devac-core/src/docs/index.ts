@@ -102,7 +102,9 @@ export type {
 // Workspace Effects Generator
 export {
   computeWorkspaceSeedHash,
+  generateEmptyUnifiedWorkspaceLikeC4,
   generateEmptyWorkspaceEffectsDoc,
+  generateUnifiedWorkspaceLikeC4,
   generateWorkspaceC4ContainersDoc,
   generateWorkspaceC4ContextDoc,
   generateWorkspaceEffectsDoc,

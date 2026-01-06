@@ -58,6 +58,11 @@ import { formatOutput } from "./output-formatter.js";
 // ============================================================================
 
 /**
+ * Output format for C4 documentation
+ */
+export type C4OutputFormat = "likec4" | "plantuml" | "both";
+
+/**
  * Options for doc-sync command
  */
 export interface DocSyncOptions {
@@ -85,6 +90,8 @@ export interface DocSyncOptions {
   json?: boolean;
   /** Verbose output */
   verbose?: boolean;
+  /** Output format for C4 diagrams (default: "likec4") */
+  format?: C4OutputFormat;
 }
 
 /**
@@ -207,6 +214,17 @@ async function ensureDir(dirPath: string): Promise<void> {
   } catch {
     // Directory may already exist
   }
+}
+
+/**
+ * Check if a specific format should be written
+ */
+function shouldWriteFormat(
+  format: C4OutputFormat | undefined,
+  targetFormat: "likec4" | "plantuml"
+): boolean {
+  const effectiveFormat = format ?? "likec4"; // Default to likec4
+  return effectiveFormat === "both" || effectiveFormat === targetFormat;
 }
 
 /**
@@ -456,6 +474,8 @@ async function syncPackage(
       await ensureDir(c4Paths.directory);
 
       const c4Data = await generateC4FromEffects(pool, packagePath, packageName);
+      const writePlantUML = shouldWriteFormat(options.format, "plantuml");
+      const writeLikeC4 = shouldWriteFormat(options.format, "likec4");
 
       if (c4Data) {
         const docs = generateAllC4Docs(c4Data.context, c4Data.containers, {
@@ -463,50 +483,56 @@ async function syncPackage(
           packagePath,
         });
 
-        await fs.writeFile(c4Paths.context, docs.context, "utf-8");
-        await fs.writeFile(c4Paths.containers, docs.containers, "utf-8");
+        // Write PlantUML files if requested
+        if (writePlantUML) {
+          await fs.writeFile(c4Paths.context, docs.context, "utf-8");
+          await fs.writeFile(c4Paths.containers, docs.containers, "utf-8");
+          result.filesWritten.push(c4Paths.context);
+          result.filesWritten.push(c4Paths.containers);
+        }
 
-        // Write LikeC4 files
-        const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-        const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-        await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
-        await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
-
-        result.filesWritten.push(c4Paths.context);
-        result.filesWritten.push(c4Paths.containers);
-        result.filesWritten.push(contextC4Path);
-        result.filesWritten.push(containersC4Path);
+        // Write LikeC4 files if requested
+        if (writeLikeC4) {
+          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
+          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       } else {
         // Generate empty C4 diagrams
-        const contextDoc = generateEmptyC4ContextDoc(packageName, {
-          seedHash: seedHashResult.hash,
-          packagePath,
-        });
-        const containersDoc = generateEmptyC4ContainersDoc(packageName, {
-          seedHash: seedHashResult.hash,
-          packagePath,
-        });
-        const contextLikeC4 = generateEmptyLikeC4ContextDoc(packageName, {
-          seedHash: seedHashResult.hash,
-          packagePath,
-        });
-        const containersLikeC4 = generateEmptyLikeC4ContainersDoc(packageName, {
-          seedHash: seedHashResult.hash,
-          packagePath,
-        });
+        if (writePlantUML) {
+          const contextDoc = generateEmptyC4ContextDoc(packageName, {
+            seedHash: seedHashResult.hash,
+            packagePath,
+          });
+          const containersDoc = generateEmptyC4ContainersDoc(packageName, {
+            seedHash: seedHashResult.hash,
+            packagePath,
+          });
+          await fs.writeFile(c4Paths.context, contextDoc, "utf-8");
+          await fs.writeFile(c4Paths.containers, containersDoc, "utf-8");
+          result.filesWritten.push(c4Paths.context);
+          result.filesWritten.push(c4Paths.containers);
+        }
 
-        await fs.writeFile(c4Paths.context, contextDoc, "utf-8");
-        await fs.writeFile(c4Paths.containers, containersDoc, "utf-8");
-
-        const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-        const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-        await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-        await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-
-        result.filesWritten.push(c4Paths.context);
-        result.filesWritten.push(c4Paths.containers);
-        result.filesWritten.push(contextC4Path);
-        result.filesWritten.push(containersC4Path);
+        if (writeLikeC4) {
+          const contextLikeC4 = generateEmptyLikeC4ContextDoc(packageName, {
+            seedHash: seedHashResult.hash,
+            packagePath,
+          });
+          const containersLikeC4 = generateEmptyLikeC4ContainersDoc(packageName, {
+            seedHash: seedHashResult.hash,
+            packagePath,
+          });
+          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
+          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       }
     } catch (err) {
       result.errors.push(`Failed to generate C4 diagrams: ${err}`);
@@ -642,6 +668,8 @@ async function syncRepoLevel(
   if (syncC4 && needsC4Regen) {
     try {
       await ensureDir(c4Paths.directory);
+      const writePlantUML = shouldWriteFormat(options.format, "plantuml");
+      const writeLikeC4 = shouldWriteFormat(options.format, "likec4");
 
       if (packageInputs.length > 0) {
         const repoData = aggregatePackageEffects(packageInputs);
@@ -650,19 +678,23 @@ async function syncRepoLevel(
           repoPath,
         });
 
-        await fs.writeFile(c4Paths.context, docs.context, "utf-8");
-        await fs.writeFile(c4Paths.containers, docs.containers, "utf-8");
+        // Write PlantUML files if requested
+        if (writePlantUML) {
+          await fs.writeFile(c4Paths.context, docs.context, "utf-8");
+          await fs.writeFile(c4Paths.containers, docs.containers, "utf-8");
+          result.filesWritten.push(c4Paths.context);
+          result.filesWritten.push(c4Paths.containers);
+        }
 
-        // Write LikeC4 files
-        const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-        const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-        await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
-        await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
-
-        result.filesWritten.push(c4Paths.context);
-        result.filesWritten.push(c4Paths.containers);
-        result.filesWritten.push(contextC4Path);
-        result.filesWritten.push(containersC4Path);
+        // Write LikeC4 files if requested
+        if (writeLikeC4) {
+          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
+          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       } else {
         // Generate empty C4 diagrams
         const {
@@ -671,35 +703,38 @@ async function syncRepoLevel(
           generateEmptyRepoLikeC4ContainersDoc,
           generateEmptyRepoLikeC4ContextDoc,
         } = (await import("@pietgk/devac-core")) as typeof import("@pietgk/devac-core");
-        const contextDoc = generateEmptyRepoC4ContextDoc(repoName, {
-          seedHash: seedHashResult.hash,
-          repoPath,
-        });
-        const containersDoc = generateEmptyRepoC4ContainersDoc(repoName, {
-          seedHash: seedHashResult.hash,
-          repoPath,
-        });
-        const contextLikeC4 = generateEmptyRepoLikeC4ContextDoc(repoName, {
-          seedHash: seedHashResult.hash,
-          repoPath,
-        });
-        const containersLikeC4 = generateEmptyRepoLikeC4ContainersDoc(repoName, {
-          seedHash: seedHashResult.hash,
-          repoPath,
-        });
 
-        await fs.writeFile(c4Paths.context, contextDoc, "utf-8");
-        await fs.writeFile(c4Paths.containers, containersDoc, "utf-8");
+        if (writePlantUML) {
+          const contextDoc = generateEmptyRepoC4ContextDoc(repoName, {
+            seedHash: seedHashResult.hash,
+            repoPath,
+          });
+          const containersDoc = generateEmptyRepoC4ContainersDoc(repoName, {
+            seedHash: seedHashResult.hash,
+            repoPath,
+          });
+          await fs.writeFile(c4Paths.context, contextDoc, "utf-8");
+          await fs.writeFile(c4Paths.containers, containersDoc, "utf-8");
+          result.filesWritten.push(c4Paths.context);
+          result.filesWritten.push(c4Paths.containers);
+        }
 
-        const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-        const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-        await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-        await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-
-        result.filesWritten.push(c4Paths.context);
-        result.filesWritten.push(c4Paths.containers);
-        result.filesWritten.push(contextC4Path);
-        result.filesWritten.push(containersC4Path);
+        if (writeLikeC4) {
+          const contextLikeC4 = generateEmptyRepoLikeC4ContextDoc(repoName, {
+            seedHash: seedHashResult.hash,
+            repoPath,
+          });
+          const containersLikeC4 = generateEmptyRepoLikeC4ContainersDoc(repoName, {
+            seedHash: seedHashResult.hash,
+            repoPath,
+          });
+          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
+          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       }
     } catch (err) {
       result.errors.push(`Failed to generate repo C4 diagrams: ${err}`);
@@ -823,54 +858,77 @@ async function syncWorkspaceLevel(
   if (syncC4 && needsC4Regen) {
     try {
       await ensureDir(c4Dir);
+      const writePlantUML = shouldWriteFormat(options.format, "plantuml");
+      const writeLikeC4 = shouldWriteFormat(options.format, "likec4");
 
       if (workspaceData.repos.length > 0) {
-        const contextContent = generateWorkspaceC4ContextDoc(workspaceData, {
-          seedHash: seedHashResult.hash,
-          workspacePath,
-        });
-        const containersContent = generateWorkspaceC4ContainersDoc(workspaceData, {
-          seedHash: seedHashResult.hash,
-          workspacePath,
-        });
-        const contextLikeC4 = generateWorkspaceLikeC4ContextDoc(workspaceData, {
-          seedHash: seedHashResult.hash,
-          workspacePath,
-        });
-        const containersLikeC4 = generateWorkspaceLikeC4ContainersDoc(workspaceData, {
-          seedHash: seedHashResult.hash,
-          workspacePath,
-        });
+        // Generate PlantUML if requested
+        if (writePlantUML) {
+          const contextContent = generateWorkspaceC4ContextDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          const containersContent = generateWorkspaceC4ContainersDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          await fs.writeFile(contextPath, contextContent, "utf-8");
+          await fs.writeFile(containersPath, containersContent, "utf-8");
+          result.filesWritten.push(contextPath);
+          result.filesWritten.push(containersPath);
+        }
 
-        await fs.writeFile(contextPath, contextContent, "utf-8");
-        await fs.writeFile(containersPath, containersContent, "utf-8");
-
-        // Write LikeC4 files
-        const contextC4Path = contextPath.replace(".puml", ".c4");
-        const containersC4Path = containersPath.replace(".puml", ".c4");
-        await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-        await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-
-        result.filesWritten.push(contextPath);
-        result.filesWritten.push(containersPath);
-        result.filesWritten.push(contextC4Path);
-        result.filesWritten.push(containersC4Path);
+        // Generate LikeC4 if requested
+        if (writeLikeC4) {
+          const contextLikeC4 = generateWorkspaceLikeC4ContextDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          const containersLikeC4 = generateWorkspaceLikeC4ContainersDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          const contextC4Path = contextPath.replace(".puml", ".c4");
+          const containersC4Path = containersPath.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       } else {
         // Empty diagrams for no repos case
-        const contextContent = generateWorkspaceC4ContextDoc(
-          { ...workspaceData, repos: [] },
-          { seedHash: seedHashResult.hash, workspacePath }
-        );
-        const containersContent = generateWorkspaceC4ContainersDoc(
-          { ...workspaceData, repos: [] },
-          { seedHash: seedHashResult.hash, workspacePath }
-        );
+        if (writePlantUML) {
+          const contextContent = generateWorkspaceC4ContextDoc(
+            { ...workspaceData, repos: [] },
+            { seedHash: seedHashResult.hash, workspacePath }
+          );
+          const containersContent = generateWorkspaceC4ContainersDoc(
+            { ...workspaceData, repos: [] },
+            { seedHash: seedHashResult.hash, workspacePath }
+          );
+          await fs.writeFile(contextPath, contextContent, "utf-8");
+          await fs.writeFile(containersPath, containersContent, "utf-8");
+          result.filesWritten.push(contextPath);
+          result.filesWritten.push(containersPath);
+        }
 
-        await fs.writeFile(contextPath, contextContent, "utf-8");
-        await fs.writeFile(containersPath, containersContent, "utf-8");
+        if (writeLikeC4) {
+          const contextLikeC4 = generateWorkspaceLikeC4ContextDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          const containersLikeC4 = generateWorkspaceLikeC4ContainersDoc(workspaceData, {
+            seedHash: seedHashResult.hash,
+            workspacePath,
+          });
+          const contextC4Path = contextPath.replace(".puml", ".c4");
+          const containersC4Path = containersPath.replace(".puml", ".c4");
+          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
+          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
+          result.filesWritten.push(contextC4Path);
+          result.filesWritten.push(containersC4Path);
+        }
       }
-      result.filesWritten.push(contextPath);
-      result.filesWritten.push(containersPath);
     } catch (err) {
       result.errors.push(`Failed to generate workspace C4 diagrams: ${err}`);
     }
@@ -1141,7 +1199,19 @@ export function registerDocSyncCommand(program: Command): void {
     .option("--require-verified", "Only process verified packages")
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Detailed progress")
+    .option(
+      "-f, --format <format>",
+      "C4 output format: likec4, plantuml, or both (default: likec4)",
+      "likec4"
+    )
     .action(async (opts) => {
+      // Validate format option
+      const validFormats = ["likec4", "plantuml", "both"];
+      if (opts.format && !validFormats.includes(opts.format)) {
+        console.error(`Invalid format: ${opts.format}. Valid options: ${validFormats.join(", ")}`);
+        process.exit(1);
+      }
+
       const result = await docSyncCommand({
         package: opts.package,
         repo: opts.repo,
@@ -1155,6 +1225,7 @@ export function registerDocSyncCommand(program: Command): void {
         requireVerified: opts.requireVerified,
         json: opts.json,
         verbose: opts.verbose,
+        format: opts.format as C4OutputFormat,
       });
 
       console.log(result.output);

@@ -12,6 +12,13 @@
  */
 
 import type { DomainEffect } from "../rules/rule-engine.js";
+import {
+  exportSpecificationToLikeC4,
+  generateElementTags,
+  generateLikeC4Specification,
+  getExternalElementKind,
+  getRelationshipKind,
+} from "./likec4-spec-generator.js";
 
 // =============================================================================
 // C4 Model Types
@@ -618,12 +625,326 @@ export function exportContainersToLikeC4(diagram: C4ContainerDiagram): string {
 /**
  * Sanitize ID for LikeC4
  */
-function sanitizeLikeC4Id(id: string): string {
+export function sanitizeLikeC4Id(id: string): string {
   const sanitized = id.replace(/[^a-zA-Z0-9_]/g, "_");
   if (/^[0-9]/.test(sanitized)) {
     return `_${sanitized}`;
   }
   return sanitized;
+}
+
+// =============================================================================
+// Enhanced LikeC4 Export (with custom specification)
+// =============================================================================
+
+/**
+ * Options for enhanced LikeC4 export
+ */
+export interface EnhancedLikeC4Options {
+  /** Domain effects for generating specification */
+  domainEffects?: DomainEffect[];
+  /** Include source code links with line numbers */
+  includeSourceLinks?: boolean;
+  /** Base path to prepend to source links */
+  sourceBasePath?: string;
+}
+
+/**
+ * Export C4 Context to enhanced LikeC4 format with custom specification
+ *
+ * Features:
+ * - Custom element kinds based on detected domains
+ * - Tags for domain categorization
+ * - Rich relationship types
+ * - External system type mapping
+ */
+export function exportContextToEnhancedLikeC4(
+  context: C4Context,
+  options: EnhancedLikeC4Options = {}
+): string {
+  const { domainEffects = [] } = options;
+
+  // Generate specification from effects
+  const spec = generateLikeC4Specification(domainEffects, context.externalSystems);
+  const specBlock = exportSpecificationToLikeC4(spec);
+
+  const lines: string[] = [specBlock, "", "model {"];
+
+  // System definition
+  lines.push(`  system = system '${escapeString(context.systemName)}' {`);
+  lines.push(`    description '${escapeString(context.systemDescription ?? "Our system")}'`);
+
+  // Add domain summary as metadata
+  if (context.domains.length > 0) {
+    lines.push("    metadata {");
+    lines.push(`      domains '${context.domains.map((d) => d.domain).join(", ")}'`);
+    lines.push(`      effect_count '${context.effectCount}'`);
+    lines.push("    }");
+  }
+  lines.push("  }");
+  lines.push("");
+
+  // External systems with proper element kinds
+  for (const ext of context.externalSystems) {
+    const elementKind = getExternalElementKind(ext.provider, ext.type);
+    const safeId = sanitizeLikeC4Id(ext.id);
+
+    lines.push(`  ${safeId} = ${elementKind} '${escapeString(ext.name)}' {`);
+    lines.push(`    description '${escapeString(ext.type)}'`);
+
+    // Add provider link if available
+    if (ext.provider) {
+      const providerLink = getProviderDocLink(ext.provider);
+      if (providerLink) {
+        lines.push(`    link ${providerLink} 'Documentation'`);
+      }
+    }
+
+    lines.push("  }");
+  }
+
+  lines.push("");
+
+  // Relationships with proper relationship kinds
+  for (const ext of context.externalSystems) {
+    // Group relationships by action for cleaner output
+    const actionGroups = new Map<string, number>();
+    for (const rel of ext.relationships) {
+      actionGroups.set(rel.label, (actionGroups.get(rel.label) ?? 0) + 1);
+    }
+
+    const sortedActions = Array.from(actionGroups.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    const label = sortedActions.map((a) => a[0]).join(", ");
+    const safeId = sanitizeLikeC4Id(ext.id);
+
+    // Determine relationship kind from first action
+    const firstAction = ext.relationships[0]?.label ?? "";
+    const [domain, action] = firstAction.split(":");
+    const relKind = domain && action ? getRelationshipKind(domain, action) : "calls";
+
+    lines.push(`  system -[${relKind}]-> ${safeId} '${label}'`);
+  }
+
+  lines.push("}");
+  lines.push("");
+
+  // Views section
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push(`    title '${escapeString(context.systemName)} - System Context'`);
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Export C4 Containers to enhanced LikeC4 format with custom specification
+ *
+ * Features:
+ * - Custom element kinds based on detected domains
+ * - Tags for domain categorization (#Payment, #Database)
+ * - Source code links with line numbers
+ * - Rich relationship types
+ * - navigateTo support for drill-down
+ */
+export function exportContainersToEnhancedLikeC4(
+  diagram: C4ContainerDiagram,
+  options: EnhancedLikeC4Options = {}
+): string {
+  const { domainEffects = [], includeSourceLinks = true, sourceBasePath = "./" } = options;
+
+  // Generate specification from effects
+  const spec = generateLikeC4Specification(domainEffects, diagram.externalSystems);
+  const specBlock = exportSpecificationToLikeC4(spec);
+
+  const lines: string[] = [specBlock, "", "model {"];
+
+  // System with containers
+  lines.push(`  system = system '${escapeString(diagram.systemName)}' {`);
+  lines.push(`    description 'System boundary'`);
+  lines.push("");
+
+  // Containers
+  for (const container of diagram.containers) {
+    const safeContainerId = sanitizeLikeC4Id(container.id);
+
+    // Determine container element kind from effects
+    const containerEffects = domainEffects.filter(
+      (e) => getContainerId(e.filePath, "directory") === container.id
+    );
+    const containerTags = generateElementTags(containerEffects);
+
+    lines.push(`    ${safeContainerId} = container '${escapeString(container.name)}' {`);
+
+    if (container.technology) {
+      lines.push(`      technology '${escapeString(container.technology)}'`);
+    }
+
+    // Add description from effect summary
+    const effectSummary = container.effects.slice(0, 3).join(", ");
+    if (effectSummary) {
+      lines.push(`      description '${escapeString(effectSummary)}'`);
+    }
+
+    // Add tags
+    for (const tag of containerTags) {
+      lines.push(`      #${tag}`);
+    }
+
+    // Components with source links
+    if (container.components.length > 0) {
+      lines.push("");
+      for (const component of container.components) {
+        const safeComponentId = sanitizeLikeC4Id(component.id);
+        lines.push(`      ${safeComponentId} = component '${escapeString(component.name)}' {`);
+
+        if (component.technology) {
+          lines.push(`        technology '${escapeString(component.technology)}'`);
+        }
+
+        // Enhanced source code link with line numbers
+        if (includeSourceLinks && component.filePath) {
+          const sourceLink = formatSourceLink(component.filePath, sourceBasePath);
+          lines.push(`        link ${sourceLink} 'Source Code'`);
+        }
+
+        // Add tags from component effects
+        const componentEffects = domainEffects.filter(
+          (e) => e.sourceEntityId === component.sourceEntityId
+        );
+        const componentTags = generateElementTags(componentEffects);
+        for (const tag of componentTags) {
+          lines.push(`        #${tag}`);
+        }
+
+        lines.push("      }");
+      }
+    }
+
+    lines.push("    }");
+  }
+
+  lines.push("  }"); // End system
+  lines.push("");
+
+  // External systems with proper element kinds
+  for (const ext of diagram.externalSystems) {
+    const elementKind = getExternalElementKind(ext.provider, ext.type);
+    const safeId = sanitizeLikeC4Id(ext.id);
+
+    lines.push(`  ${safeId} = ${elementKind} '${escapeString(ext.name)}' {`);
+    lines.push(`    description '${escapeString(ext.type)}'`);
+
+    if (ext.provider) {
+      const providerLink = getProviderDocLink(ext.provider);
+      if (providerLink) {
+        lines.push(`    link ${providerLink} 'Documentation'`);
+      }
+    }
+
+    lines.push("  }");
+  }
+
+  lines.push("");
+
+  // Relationships with proper relationship kinds
+  for (const container of diagram.containers) {
+    const safeContainerId = sanitizeLikeC4Id(container.id);
+
+    for (const rel of container.relationships) {
+      const safeToId = sanitizeLikeC4Id(rel.to);
+
+      // Parse domain:action from label
+      const [domain, action] = rel.label.split(":");
+      const relKind = domain && action ? getRelationshipKind(domain, action) : "calls";
+
+      // Add tag for the domain
+      const tag = domain ? ` #${domain}` : "";
+
+      lines.push(
+        `  system.${safeContainerId} -[${relKind}]-> ${safeToId} '${escapeString(rel.label)}'${tag}`
+      );
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+
+  // Views section with container drill-down
+  lines.push("views {");
+  lines.push("  view containers {");
+  lines.push(`    title '${escapeString(diagram.systemName)} - Container Diagram'`);
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+
+  // Create a view for each container to enable drill-down
+  for (const container of diagram.containers) {
+    if (container.components.length > 0) {
+      const safeContainerId = sanitizeLikeC4Id(container.id);
+      lines.push("");
+      lines.push(`  view ${safeContainerId}_components of system.${safeContainerId} {`);
+      lines.push(`    title '${escapeString(container.name)} - Components'`);
+      lines.push("    include *");
+      lines.push("    autoLayout TopBottom");
+      lines.push("  }");
+    }
+  }
+
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Escape single quotes in strings for LikeC4
+ */
+function escapeString(str: string): string {
+  return str.replace(/'/g, "\\'");
+}
+
+/**
+ * Format source link with optional line numbers
+ */
+function formatSourceLink(filePath: string, basePath = "./"): string {
+  // Ensure path starts with ./ for relative links
+  let link = filePath;
+  if (!link.startsWith("./") && !link.startsWith("/") && !link.startsWith("http")) {
+    link = `${basePath}${link}`;
+  }
+
+  // The link is already formatted - LikeC4 supports file#L10-L50 syntax
+  return link;
+}
+
+/**
+ * Get documentation link for known providers
+ */
+function getProviderDocLink(provider: string): string | undefined {
+  const providerLinks: Record<string, string> = {
+    stripe: "https://stripe.com/docs",
+    dynamodb: "https://docs.aws.amazon.com/dynamodb/",
+    s3: "https://docs.aws.amazon.com/s3/",
+    sqs: "https://docs.aws.amazon.com/sqs/",
+    sns: "https://docs.aws.amazon.com/sns/",
+    cognito: "https://docs.aws.amazon.com/cognito/",
+    lambda: "https://docs.aws.amazon.com/lambda/",
+    rds: "https://docs.aws.amazon.com/rds/",
+    redis: "https://redis.io/docs/",
+    elasticsearch: "https://www.elastic.co/guide/",
+    datadog: "https://docs.datadoghq.com/",
+    cloudwatch: "https://docs.aws.amazon.com/cloudwatch/",
+    prisma: "https://www.prisma.io/docs/",
+    kysely: "https://kysely.dev/docs/",
+  };
+
+  return providerLinks[provider.toLowerCase()];
 }
 
 // =============================================================================
