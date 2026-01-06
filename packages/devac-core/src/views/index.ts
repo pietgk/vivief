@@ -65,3 +65,12 @@ export {
   type DynamicViewStep,
   type DynamicViewOptions,
 } from "./likec4-dynamic-generator.js";
+
+// Effect Enricher (for readable C4 diagrams)
+export {
+  enrichDomainEffects,
+  extractFallbackName,
+  computeRelativePath,
+  buildNodeLookupMap,
+  buildInternalEdges,
+} from "./effect-enricher.js";

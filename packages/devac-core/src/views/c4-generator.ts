@@ -12,6 +12,7 @@
  */
 
 import type { DomainEffect } from "../rules/rule-engine.js";
+import type { EnrichedDomainEffect, InternalEdge } from "../types/enriched-effects.js";
 import {
   exportSpecificationToLikeC4,
   generateElementTags,
@@ -19,6 +20,13 @@ import {
   getExternalElementKind,
   getRelationshipKind,
 } from "./likec4-spec-generator.js";
+
+/**
+ * Type guard to check if a DomainEffect is enriched with node metadata
+ */
+function isEnrichedEffect(effect: DomainEffect): effect is EnrichedDomainEffect {
+  return "sourceName" in effect && "relativeFilePath" in effect;
+}
 
 // =============================================================================
 // C4 Model Types
@@ -72,6 +80,8 @@ export interface C4Component {
   sourceEntityId: string;
   /** File path */
   filePath: string;
+  /** Start line number in source file */
+  startLine?: number;
   /** Technology/framework */
   technology?: string;
   /** Effects produced by this component */
@@ -148,6 +158,8 @@ export interface C4GeneratorOptions {
   containerGrouping?: "directory" | "package" | "flat";
   /** Include effects with no external relationships */
   includeInternalOnly?: boolean;
+  /** Internal CALLS edges for adding call graph relationships */
+  internalEdges?: InternalEdge[];
 }
 
 // =============================================================================
@@ -202,12 +214,17 @@ export function generateC4Containers(
   effects: DomainEffect[],
   options: C4GeneratorOptions
 ): C4ContainerDiagram {
-  const { systemName, containerGrouping = "directory" } = options;
+  const { systemName, containerGrouping = "directory", internalEdges = [] } = options;
+
+  // For enriched effects, use relative path for grouping
+  const getEffectPath = (effect: DomainEffect): string => {
+    return isEnrichedEffect(effect) ? effect.relativeFilePath : effect.filePath;
+  };
 
   // Group effects by container (based on file path)
   const containerMap = new Map<string, DomainEffect[]>();
   for (const effect of effects) {
-    const containerId = getContainerId(effect.filePath, containerGrouping);
+    const containerId = getContainerId(getEffectPath(effect), containerGrouping);
     if (!containerMap.has(containerId)) {
       containerMap.set(containerId, []);
     }
@@ -224,19 +241,41 @@ export function generateC4Containers(
   // Extract external systems
   const externalSystems = extractExternalSystems(effects);
 
-  // Add relationships between containers and external systems
+  // Collect raw relationships for aggregation
+  const rawRelationships: Array<{ containerId: string; targetId: string; label: string }> = [];
+
   for (const container of containers) {
     for (const effect of containerMap.get(container.id) ?? []) {
       const externalTarget = getExternalTarget(effect);
       if (externalTarget) {
-        container.relationships.push({
-          from: container.id,
-          to: externalTarget.id,
+        rawRelationships.push({
+          containerId: container.id,
+          targetId: externalTarget.id,
           label: `${effect.domain}:${effect.action}`,
-          direction: "outbound",
         });
       }
     }
+  }
+
+  // Aggregate relationships by (container, target) tuple
+  const aggregatedRelationships = aggregateRelationships(rawRelationships);
+
+  // Apply aggregated relationships to containers
+  for (const container of containers) {
+    const containerRels = aggregatedRelationships.filter((r) => r.containerId === container.id);
+    for (const rel of containerRels) {
+      container.relationships.push({
+        from: container.id,
+        to: rel.targetId,
+        label: rel.label,
+        direction: "outbound",
+      });
+    }
+  }
+
+  // Add internal call graph edges if provided
+  if (internalEdges.length > 0) {
+    addInternalRelationships(containers, internalEdges, containerGrouping, getEffectPath, effects);
   }
 
   return {
@@ -247,20 +286,191 @@ export function generateC4Containers(
 }
 
 /**
- * Extract container ID from file path
+ * Aggregated relationship for cleaner diagram output
+ */
+interface AggregatedRelationship {
+  containerId: string;
+  targetId: string;
+  label: string;
+  count: number;
+  /** Individual labels before aggregation (for drill-down views) */
+  originalLabels: string[];
+}
+
+/**
+ * Aggregate relationships by (container, target) tuple.
+ *
+ * Groups multiple relationships to the same target into a single relationship
+ * with combined labels and count.
+ *
+ * Example: 43 lines of "Storage:Read" becomes "Read, Write (45 calls)"
+ */
+function aggregateRelationships(
+  rawRelationships: Array<{ containerId: string; targetId: string; label: string }>
+): AggregatedRelationship[] {
+  const aggregateMap = new Map<
+    string,
+    { containerId: string; targetId: string; labels: Set<string>; count: number }
+  >();
+
+  for (const rel of rawRelationships) {
+    const key = `${rel.containerId}::${rel.targetId}`;
+    const existing = aggregateMap.get(key);
+
+    if (existing) {
+      existing.labels.add(rel.label);
+      existing.count++;
+    } else {
+      aggregateMap.set(key, {
+        containerId: rel.containerId,
+        targetId: rel.targetId,
+        labels: new Set([rel.label]),
+        count: 1,
+      });
+    }
+  }
+
+  return Array.from(aggregateMap.values()).map((agg) => {
+    const labels = Array.from(agg.labels);
+
+    // For single calls, keep the full label (e.g., "Payment:Charge")
+    if (agg.count === 1 && labels.length === 1) {
+      return {
+        containerId: agg.containerId,
+        targetId: agg.targetId,
+        label: labels[0] ?? "",
+        count: agg.count,
+        originalLabels: labels,
+      };
+    }
+
+    // For multiple calls, extract just the action part from domain:action labels
+    const actions = labels.map((label) => {
+      const parts = label.split(":");
+      return parts[1] ?? label;
+    });
+
+    // Create aggregated label with count if there are multiple calls
+    const uniqueActions = [...new Set(actions)].sort();
+    const actionsStr = uniqueActions.slice(0, 3).join(", ");
+    const label =
+      agg.count > 1 ? `${actionsStr} (${agg.count} calls)` : (uniqueActions[0] ?? actionsStr);
+
+    return {
+      containerId: agg.containerId,
+      targetId: agg.targetId,
+      label,
+      count: agg.count,
+      originalLabels: labels,
+    };
+  });
+}
+
+/**
+ * Add internal call graph relationships between containers.
+ *
+ * Takes CALLS edges from the code graph and adds them as relationships
+ * between containers that contain the source and target components.
+ */
+function addInternalRelationships(
+  containers: C4Container[],
+  internalEdges: InternalEdge[],
+  containerGrouping: "directory" | "package" | "flat",
+  getEffectPath: (effect: DomainEffect) => string,
+  effects: DomainEffect[]
+): void {
+  // Build entity -> container mapping
+  const entityToContainer = new Map<string, string>();
+  for (const effect of effects) {
+    const containerId = getContainerId(getEffectPath(effect), containerGrouping);
+    entityToContainer.set(effect.sourceEntityId, containerId);
+  }
+
+  // Collect internal relationships for aggregation
+  const internalRels: Array<{ containerId: string; targetId: string; label: string }> = [];
+
+  for (const edge of internalEdges) {
+    const sourceContainer = entityToContainer.get(edge.sourceEntityId);
+    const targetContainer = entityToContainer.get(edge.targetEntityId);
+
+    // Only add if both are known and they're different containers
+    if (sourceContainer && targetContainer && sourceContainer !== targetContainer) {
+      internalRels.push({
+        containerId: sourceContainer,
+        targetId: targetContainer,
+        label: "calls",
+      });
+    }
+  }
+
+  // Aggregate internal relationships
+  const aggregatedInternal = aggregateRelationships(internalRels);
+
+  // Apply to containers
+  for (const container of containers) {
+    const containerRels = aggregatedInternal.filter((r) => r.containerId === container.id);
+    for (const rel of containerRels) {
+      // Avoid duplicates - check if relationship already exists
+      const exists = container.relationships.some(
+        (r) => r.to === rel.targetId && r.label.includes("calls")
+      );
+      if (!exists) {
+        container.relationships.push({
+          from: container.id,
+          to: rel.targetId,
+          label: rel.count > 1 ? `calls (${rel.count})` : "calls",
+          direction: "outbound",
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Extract container ID from file path.
+ *
+ * Handles both absolute paths (/Users/grop/...) and relative paths (src/...).
+ * For enriched effects, the relativeFilePath is already cleaned up.
  */
 function getContainerId(filePath: string, grouping: "directory" | "package" | "flat"): string {
   switch (grouping) {
     case "directory": {
-      // Group by top-level directory (e.g., src/api -> api)
-      // Filter out empty parts to handle absolute paths like /Users/...
+      // Filter out empty parts
       const parts = filePath.split("/").filter((p) => p.length > 0);
-      if (parts.length >= 2) {
-        // Skip 'src' or similar common prefixes
-        const idx = parts[0] === "src" || parts[0] === "lib" ? 1 : 0;
-        return parts[idx] ?? "root";
+
+      // Skip common absolute path prefixes (Users, home, etc.)
+      // These indicate the path wasn't properly relativized
+      const skipPrefixes = ["Users", "home", "var", "tmp", "opt"];
+      let startIdx = 0;
+
+      // Skip absolute path components (e.g., Users/grop/ws/project)
+      while (startIdx < parts.length && skipPrefixes.includes(parts[startIdx] ?? "")) {
+        // Skip the prefix and the next 3 components (user/workspace/project)
+        startIdx += 4;
       }
-      return parts[0] ?? "root";
+
+      // Get remaining meaningful parts
+      const meaningfulParts = parts.slice(startIdx);
+
+      if (meaningfulParts.length === 0) {
+        return "root";
+      }
+
+      // Skip common source directory prefixes
+      const sourcePrefixes = ["src", "lib", "dist", "build", "packages"];
+      let dirIdx = 0;
+
+      // Skip src/lib prefix to get to meaningful directory
+      if (sourcePrefixes.includes(meaningfulParts[0] ?? "")) {
+        dirIdx = 1;
+      }
+
+      // For packages/xxx/src/..., use the package name
+      if (meaningfulParts[0] === "packages" && meaningfulParts.length >= 2) {
+        return meaningfulParts[1] ?? "root";
+      }
+
+      return meaningfulParts[dirIdx] ?? meaningfulParts[0] ?? "root";
     }
     case "package": {
       // Group by package path (from entity ID)
@@ -273,7 +483,10 @@ function getContainerId(filePath: string, grouping: "directory" | "package" | "f
 }
 
 /**
- * Create a container from effects
+ * Create a container from effects.
+ *
+ * If effects are enriched with node metadata, uses readable names and relative paths.
+ * Otherwise falls back to extracting names from entity IDs.
  */
 function createContainer(id: string, effects: DomainEffect[]): C4Container {
   // Collect unique effect types
@@ -296,11 +509,21 @@ function createContainer(id: string, effects: DomainEffect[]): C4Container {
     const firstEffect = entityEffects[0];
     if (!firstEffect) continue;
 
+    // Use enriched data if available, otherwise fall back to extraction
+    const componentName = isEnrichedEffect(firstEffect)
+      ? firstEffect.sourceName
+      : extractComponentName(entityId);
+
+    const componentFilePath = isEnrichedEffect(firstEffect)
+      ? firstEffect.relativeFilePath
+      : firstEffect.filePath;
+
     components.push({
       id: entityId,
-      name: extractComponentName(entityId),
+      name: componentName,
       sourceEntityId: entityId,
-      filePath: firstEffect.filePath,
+      filePath: componentFilePath,
+      startLine: firstEffect.startLine,
       effects: entityEffects.map((e) => `${e.domain}:${e.action}`),
       relationships: [],
     });

@@ -32,10 +32,19 @@ import { generateDocMetadataForLikeC4, generateDocMetadataForPlantUML } from "./
  *
  * @param absolutePath - Absolute path to the source file
  * @param packagePath - Package root path (parent of docs/c4)
+ * @param lineNumber - Optional line number to append as anchor (e.g., #L42)
  * @returns Relative path from docs/c4 to source file, or original path if not within package
  */
-function computeRelativeLinkPath(absolutePath: string, packagePath: string | undefined): string {
+function computeRelativeLinkPath(
+  absolutePath: string,
+  packagePath: string | undefined,
+  lineNumber?: number
+): string {
   if (!packagePath) {
+    // Even without package path, add line number if provided
+    if (lineNumber && lineNumber > 0) {
+      return `${absolutePath}#L${lineNumber}`;
+    }
     return absolutePath;
   }
 
@@ -43,14 +52,19 @@ function computeRelativeLinkPath(absolutePath: string, packagePath: string | und
   const c4DocsDir = path.join(packagePath, "docs", "c4");
 
   // Compute relative path from c4DocsDir to the source file
-  const relativePath = path.relative(c4DocsDir, absolutePath);
+  let relativePath = path.relative(c4DocsDir, absolutePath);
 
   // If the path goes outside the package (starts with too many ..), just use the filename
   if (
     relativePath.startsWith("..") &&
     relativePath.split("/").filter((p) => p === "..").length > 5
   ) {
-    return `./${path.basename(absolutePath)}`;
+    relativePath = `./${path.basename(absolutePath)}`;
+  }
+
+  // Add line number anchor if provided
+  if (lineNumber && lineNumber > 0) {
+    return `${relativePath}#L${lineNumber}`;
   }
 
   return relativePath;
@@ -523,7 +537,12 @@ export function generateUnifiedLikeC4Doc(
         lines.push(`        technology '${escapeString(component.technology)}'`);
       }
       if (component.filePath) {
-        const relativePath = computeRelativeLinkPath(component.filePath, packagePath);
+        // Include line number in link if available (e.g., file.ts#L42)
+        const relativePath = computeRelativeLinkPath(
+          component.filePath,
+          packagePath,
+          component.startLine
+        );
         // LikeC4 link syntax: link <uri> [description] - URI should NOT be quoted
         lines.push(`        link ${relativePath}`);
       }
@@ -574,7 +593,7 @@ export function generateUnifiedLikeC4Doc(
   lines.push("}");
   lines.push("");
 
-  // Views section with both context and container views
+  // Views section with context, container, and per-container drill-down views
   lines.push("views {");
   lines.push("  view context {");
   lines.push("    title 'System Context'");
@@ -587,6 +606,23 @@ export function generateUnifiedLikeC4Doc(
   lines.push("    include *");
   lines.push("    autoLayout TopBottom");
   lines.push("  }");
+
+  // Generate scoped drill-down views for each container with components
+  // These views show individual component relationships (not aggregated)
+  for (const container of containers.containers) {
+    const safeContainerId = sanitizeLikeC4Id(container.id);
+    if (!safeContainerId || container.components.length === 0) {
+      continue;
+    }
+
+    lines.push("");
+    lines.push(`  view ${safeContainerId}_detail of system.${safeContainerId} {`);
+    lines.push(`    title '${escapeString(container.name)} - Components'`);
+    lines.push("    include *");
+    lines.push("    autoLayout TopBottom");
+    lines.push("  }");
+  }
+
   lines.push("}");
 
   return lines.join("\n");

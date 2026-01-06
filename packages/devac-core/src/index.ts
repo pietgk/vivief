@@ -346,6 +346,12 @@ export {
   exportContextToPlantUML,
   exportContainersToPlantUML,
   discoverDomainBoundaries,
+  // Effect enrichment (for readable C4 diagrams)
+  enrichDomainEffects,
+  extractFallbackName,
+  computeRelativePath,
+  buildNodeLookupMap,
+  buildInternalEdges,
 } from "./views/index.js";
 export type {
   C4ExternalSystem,
@@ -358,6 +364,15 @@ export type {
   C4GeneratorOptions,
   DomainBoundary,
 } from "./views/index.js";
+
+// Enriched Effects Types (for C4 enrichment)
+export type {
+  EnrichedDomainEffect,
+  NodeMetadata,
+  NodeLookupMap,
+  InternalEdge,
+  EnrichmentResult,
+} from "./types/enriched-effects.js";
 
 // Effects (v3.0 foundation - Hierarchical mapping loader)
 export {

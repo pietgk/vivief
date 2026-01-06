@@ -15,8 +15,11 @@ import {
   DuckDBPool,
   type EffectsDocData,
   type HubClient,
+  type InternalEdge,
   type PackageEffectsInput,
   aggregatePackageEffects,
+  buildInternalEdges,
+  buildNodeLookupMap,
   builtinRules,
   computeRepoSeedHash,
   computeSeedHash,
@@ -26,6 +29,8 @@ import {
   createRuleEngine,
   discoverPackagesInRepo,
   docNeedsRegeneration,
+  enrichDomainEffects,
+  executeWithRecovery,
   findWorkspaceDir,
   generateAllC4Docs,
   generateAllRepoC4Docs,
@@ -379,15 +384,73 @@ async function generateC4FromEffects(
       return null;
     }
 
-    // Generate C4 diagrams
-    const context = generateC4Context(rulesResult.domainEffects, {
+    // Collect unique entity IDs from domain effects for enrichment
+    const entityIds = [...new Set(rulesResult.domainEffects.map((e) => e.sourceEntityId))];
+
+    // Fetch node metadata for enrichment (readable function names)
+    let nodeLookup = new Map<string, { name: string; qualified_name: string; kind: string }>();
+    let internalEdges: InternalEdge[] = [];
+
+    if (entityIds.length > 0) {
+      try {
+        // Query node metadata from seeds
+        const escapedIds = entityIds.map((id) => id.replace(/'/g, "''"));
+        const nodeRows = await executeWithRecovery(pool, async (conn) => {
+          const nodeQuery = `
+            SELECT entity_id, name, qualified_name, kind
+            FROM read_parquet('${packagePath}/.devac/seed/nodes.parquet')
+            WHERE entity_id IN (${escapedIds.map((id) => `'${id}'`).join(", ")})
+          `;
+          return await conn.all(nodeQuery);
+        });
+        nodeLookup = buildNodeLookupMap(
+          nodeRows as Array<{
+            entity_id: string;
+            name: string;
+            qualified_name: string;
+            kind: string;
+          }>
+        );
+
+        // Query internal CALLS edges from seeds
+        const edgeRows = await executeWithRecovery(pool, async (conn) => {
+          const edgeQuery = `
+            SELECT source_entity_id, target_entity_id
+            FROM read_parquet('${packagePath}/.devac/seed/edges.parquet')
+            WHERE edge_type = 'CALLS'
+              AND source_entity_id IN (${escapedIds.map((id) => `'${id}'`).join(", ")})
+          `;
+          return await conn.all(edgeQuery);
+        });
+        internalEdges = buildInternalEdges(
+          edgeRows as Array<{
+            source_entity_id: string;
+            target_entity_id: string;
+          }>
+        );
+      } catch {
+        // If queries fail (e.g., missing parquet files), continue with un-enriched effects
+      }
+    }
+
+    // Enrich domain effects with readable names
+    const enrichmentResult = enrichDomainEffects(
+      rulesResult.domainEffects,
+      nodeLookup,
+      packagePath,
+      internalEdges
+    );
+
+    // Generate C4 diagrams with enriched effects
+    const context = generateC4Context(enrichmentResult.effects, {
       systemName: packageName,
       systemDescription: `Package: ${packageName}`,
     });
 
-    const containers = generateC4Containers(rulesResult.domainEffects, {
+    const containers = generateC4Containers(enrichmentResult.effects, {
       systemName: packageName,
       systemDescription: `Package: ${packageName}`,
+      internalEdges: enrichmentResult.internalEdges,
     });
 
     return { context, containers };
