@@ -1412,29 +1412,44 @@ Options:
   --effects               Effects documentation only
   --c4                    C4 diagrams only
   --all                   All documentation (default)
+  --format <format>       C4 output format: likec4 (default), plantuml, both
   --force                 Regenerate even if unchanged
   --check                 CI mode: verify docs are in sync
   --json                  Output as JSON
   -v, --verbose           Detailed progress
 
 Examples:
-  devac doc-sync                           # Sync current package
+  devac doc-sync                           # Sync current package (LikeC4 format)
   devac doc-sync -p ./packages/auth        # Sync specific package
   devac doc-sync --repo                    # Sync all packages + repo-level docs
   devac doc-sync --workspace               # Sync workspace-level docs
   devac doc-sync --check                   # CI mode: verify docs are in sync
   devac doc-sync --effects                 # Only effects documentation
   devac doc-sync --c4                      # Only C4 diagrams
+  devac doc-sync --c4 --format plantuml    # C4 diagrams in PlantUML format
+  devac doc-sync --c4 --format both        # C4 diagrams in both formats
   devac doc-sync --force                   # Regenerate all docs
 ```
 
 **Output Files:**
 
-| Level | Files Generated |
-|-------|-----------------|
-| Package | `docs/package-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
-| Repo | `docs/repo-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
-| Workspace | `docs/workspace-effects.md`, `docs/c4/context.puml`, `docs/c4/containers.puml` |
+| Level | LikeC4 (default) | PlantUML (legacy) |
+|-------|------------------|-------------------|
+| Package | `docs/c4/context.c4`, `docs/c4/containers.c4` | `docs/c4/context.puml`, `docs/c4/containers.puml` |
+| Repo | `docs/c4/context.c4`, `docs/c4/containers.c4` | `docs/c4/context.puml`, `docs/c4/containers.puml` |
+| Workspace | `docs/c4/workspace.c4` | `docs/c4/context.puml`, `docs/c4/containers.puml` |
+
+Effects documentation is always generated as Markdown: `docs/package-effects.md`, `docs/repo-effects.md`, `docs/workspace-effects.md`.
+
+**Format Options:**
+
+| Format | Description |
+|--------|-------------|
+| `likec4` | LikeC4 DSL with source links, tags, dynamic views (default) |
+| `plantuml` | PlantUML C4 macros for static diagrams |
+| `both` | Generate both LikeC4 and PlantUML files |
+
+See [ADR-0027](./adr/0027-likec4-primary-format.md) for the decision to use LikeC4 as the primary format.
 
 **Change Detection:**
 

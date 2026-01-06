@@ -30,24 +30,25 @@ Package Level (single package)
 
 ### Output Structure
 
+C4 diagrams default to LikeC4 format (`.c4`). Use `--format plantuml` or `--format both` for PlantUML output. See [ADR-0027](./0027-likec4-primary-format.md).
+
 ```
 package/docs/
 ├── package-effects.md        # Effects patterns for one package
 └── c4/
-    ├── context.puml          # External systems
-    └── containers.puml       # Components
+    ├── context.c4            # External systems (LikeC4)
+    └── containers.c4         # Components (LikeC4)
 
 repo/docs/
 ├── repo-effects.md           # Aggregated across packages
 └── c4/
-    ├── context.puml          # All external systems
-    └── containers.puml       # Packages as containers
+    ├── context.c4            # All external systems
+    └── containers.c4         # Packages as containers
 
 workspace/docs/
 ├── workspace-effects.md      # Aggregated across repos
 └── c4/
-    ├── context.puml          # All repos as systems
-    └── containers.puml       # Repos as system boundaries
+    └── workspace.c4          # Unified model with all repos
 ```
 
 ### Seed Hash Change Detection
@@ -142,3 +143,4 @@ devac doc-sync [options]
 - ADR-0016: Workspace module
 - ADR-0021: Pipeline docs
 - ADR-0023: Developer-maintained effects
+- ADR-0027: LikeC4 as primary C4 format (output format decision)

@@ -9,7 +9,7 @@
 
 import * as path from "node:path";
 
-import { generateDocMetadataForPlantUML } from "./doc-metadata.js";
+import { generateDocMetadataForLikeC4, generateDocMetadataForPlantUML } from "./doc-metadata.js";
 import type { AggregatedPattern, RepoEffectsData } from "./repo-effects-generator.js";
 
 // ============================================================================
@@ -36,10 +36,16 @@ export interface RepoC4DocResult {
   context: string;
   /** Container diagram PlantUML showing packages as containers */
   containers: string;
+  /** Context diagram LikeC4 */
+  contextLikeC4: string;
+  /** Container diagram LikeC4 */
+  containersLikeC4: string;
   /** File names for the diagrams */
   files: {
     context: string;
     containers: string;
+    contextLikeC4: string;
+    containersLikeC4: string;
   };
 }
 
@@ -311,6 +317,157 @@ export function generateRepoC4ContainersDoc(
 }
 
 /**
+ * Generate repo-level C4 context diagram in LikeC4 format
+ */
+export function generateRepoLikeC4ContextDoc(
+  data: RepoEffectsData,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath, maxExternalSystems = 10 } = options;
+
+  // Generate metadata header
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  // Extract external systems
+  const externalSystems = extractExternalSystems(data.aggregatedPatterns.externalPatterns);
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element external_system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${data.repoName}' {`,
+    `    description '${data.packages.length} packages, ${data.totalCounts.store + data.totalCounts.retrieve + data.totalCounts.external + data.totalCounts.other} effects'`,
+    "  }",
+    "",
+  ];
+
+  // Add external systems
+  if (externalSystems.length > 0) {
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      lines.push(`  ${sanitizeId(sys.name)} = external_system '${sys.name}' {`);
+      lines.push(`    description '${sys.count} calls from ${sys.packages.length} packages'`);
+      lines.push("  }");
+    }
+    lines.push("");
+
+    // Add relationships
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      lines.push(`  system -> ${sanitizeId(sys.name)} 'Uses'`);
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push("    title 'System Context'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate repo-level C4 container diagram in LikeC4 format
+ */
+export function generateRepoLikeC4ContainersDoc(
+  data: RepoEffectsData,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath, maxExternalSystems = 8 } = options;
+
+  // Generate metadata header
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  // Extract external systems
+  const externalSystems = extractExternalSystems(data.aggregatedPatterns.externalPatterns);
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "  element external_system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${data.repoName}' {`,
+  ];
+
+  // Add packages as containers
+  for (const pkg of data.packages) {
+    const pkgId = sanitizeId(pkg.name);
+    const totalEffects =
+      pkg.effectCounts.store +
+      pkg.effectCounts.retrieve +
+      pkg.effectCounts.external +
+      pkg.effectCounts.other;
+
+    lines.push(`    ${pkgId} = container '${pkg.name}' {`);
+    lines.push("      technology 'TypeScript'");
+    if (totalEffects > 0) {
+      lines.push(`      description '${totalEffects} effects'`);
+    }
+    // Link to package directory
+    lines.push(`      link '${pkg.packagePath}'`);
+    lines.push("    }");
+  }
+  lines.push("  }"); // End system
+
+  lines.push("");
+
+  // Add external systems
+  if (externalSystems.length > 0) {
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      lines.push(`  ${sanitizeId(sys.name)} = external_system '${sys.name}' {`);
+      lines.push(`    description '${sys.count} calls'`);
+      lines.push("  }");
+    }
+    lines.push("");
+
+    // Add relationships
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      const sysId = sanitizeId(sys.name);
+      for (const pkgName of sys.packages) {
+        const pkg = data.packages.find((p) => p.name === pkgName);
+        if (pkg && pkg.effectCounts.external > 0) {
+          const pkgId = sanitizeId(pkg.name);
+          lines.push(`  system.${pkgId} -> ${sysId} 'Uses'`);
+        }
+      }
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view containers {");
+  lines.push("    title 'Container Diagram'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
  * Generate all repo-level C4 documentation files
  *
  * @param data - Aggregated repo effects data
@@ -324,9 +481,13 @@ export function generateAllRepoC4Docs(
   return {
     context: generateRepoC4ContextDoc(data, options),
     containers: generateRepoC4ContainersDoc(data, options),
+    contextLikeC4: generateRepoLikeC4ContextDoc(data, options),
+    containersLikeC4: generateRepoLikeC4ContainersDoc(data, options),
     files: {
       context: "context.puml",
       containers: "containers.puml",
+      contextLikeC4: "context.c4",
+      containersLikeC4: "containers.c4",
     },
   };
 }
@@ -400,6 +561,90 @@ export function generateEmptyRepoC4ContainersDoc(
     "}",
     "",
     "@enduml",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate empty repo C4 context diagram in LikeC4 format
+ */
+export function generateEmptyRepoLikeC4ContextDoc(
+  repoName: string,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${repoName}' {`,
+    "    description 'No effects extracted yet'",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view context {",
+    "    title 'System Context'",
+    "    include *",
+    "    autoLayout tb",
+    "  }",
+    "}",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate empty repo C4 container diagram in LikeC4 format
+ */
+export function generateEmptyRepoLikeC4ContainersDoc(
+  repoName: string,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "}",
+    "",
+    "model {",
+    `  system = system '${repoName}' {`,
+    "    description 'No effects extracted yet'",
+    "    container placeholder {",
+    "      description 'Run devac analyze first'",
+    "    }",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view containers {",
+    "    title 'Container Diagram'",
+    "    include *",
+    "    autoLayout tb",
+    "  }",
+    "}",
   ];
 
   return lines.join("\n");

@@ -268,6 +268,47 @@ export function generateDocMetadataForPlantUML(options: GenerateMetadataOptions)
   return lines.join("\n");
 }
 
+/**
+ * Generate metadata for LikeC4 files
+ *
+ * Uses LikeC4 comment syntax (double slashes).
+ *
+ * @param options - Metadata options
+ * @returns LikeC4 comment block with metadata
+ */
+export function generateDocMetadataForLikeC4(options: GenerateMetadataOptions): string {
+  const {
+    seedHash,
+    verified = false,
+    verifiedAt,
+    packagePath,
+    generatorVersion = GENERATOR_VERSION,
+  } = options;
+
+  const generatedAt = new Date().toISOString();
+  const generator = `${GENERATOR_NAME}@${generatorVersion}`;
+
+  const lines = [
+    "// DevAC Generated Documentation",
+    `// ${METADATA_PREFIX}seed-hash: ${seedHash}`,
+    `// ${METADATA_PREFIX}generated-at: ${generatedAt}`,
+    `// ${METADATA_PREFIX}generator: ${generator}`,
+    `// ${METADATA_PREFIX}verified: ${verified}`,
+  ];
+
+  if (verifiedAt) {
+    lines.push(`// ${METADATA_PREFIX}verified-at: ${verifiedAt}`);
+  }
+
+  if (packagePath) {
+    lines.push(`// ${METADATA_PREFIX}package-path: ${packagePath}`);
+  }
+
+  lines.push("");
+
+  return lines.join("\n");
+}
+
 // ============================================================================
 // Change Detection
 // ============================================================================

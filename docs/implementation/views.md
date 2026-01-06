@@ -4,6 +4,13 @@ The Views layer generates C4 architecture diagrams from domain effects, implemen
 
 ## Overview
 
+DevAC supports two output formats for C4 diagrams:
+
+- **LikeC4** (default): Interactive diagrams with source code links, dynamic views, and rich styling
+- **PlantUML**: Static diagrams for legacy compatibility
+
+See [ADR-0027](../adr/0027-likec4-primary-format.md) for the decision rationale.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  C4 DIAGRAM GENERATION PIPELINE                                             │
@@ -12,14 +19,16 @@ The Views layer generates C4 architecture diagrams from domain effects, implemen
 │       │                                                                     │
 │       ▼                                                                     │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────────────────────┐   │
-│  │  C4Context  │     │ C4Container │     │   PlantUML Export           │   │
+│  │  C4Context  │     │ C4Container │     │   Output Formats            │   │
 │  │  Generator  │     │  Generator  │     │                             │   │
-│  │             │     │             │     │   @startuml C4_Context      │   │
-│  │ System-level│     │ App-level   │     │   !include C4-PlantUML...   │   │
-│  │ overview    │     │ containers  │     │   System(...)               │   │
-│  └─────────────┘     └─────────────┘     └─────────────────────────────┘   │
+│  │             │     │             │     │   ┌───────────────────────┐ │   │
+│  │ System-level│     │ App-level   │     │   │ LikeC4 (.c4) default  │ │   │
+│  │ overview    │     │ containers  │     │   │ PlantUML (.puml)      │ │   │
+│  └─────────────┘     └─────────────┘     │   │ Dynamic Views         │ │   │
+│                                          │   └───────────────────────┘ │   │
+│                                          └─────────────────────────────┘   │
 │                                                                             │
-│  effects → domain effects → C4 models → PlantUML diagrams                  │
+│  effects → domain effects → C4 models → LikeC4/PlantUML diagrams           │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -122,6 +131,7 @@ interface C4Relationship {
 ```typescript
 import {
   generateC4Context,
+  exportContextToLikeC4,
   exportContextToPlantUML
 } from "@pietgk/devac-core";
 
@@ -131,12 +141,45 @@ const context = generateC4Context(domainEffects, {
   systemDescription: "Main backend service",
 });
 
-// Export to PlantUML
+// Export to LikeC4 (recommended)
+const likeC4 = exportContextToLikeC4(context);
+
+// Or export to PlantUML (legacy)
 const plantUML = exportContextToPlantUML(context);
-console.log(plantUML);
 ```
 
-Output:
+**LikeC4 Output:**
+```c4
+specification {
+  element system
+  element external_system
+}
+
+model {
+  system = system 'My Application' {
+    description 'Main backend service'
+  }
+  external_Payment_stripe = external_system 'Stripe (Payment)' {
+    description 'payment'
+  }
+  external_Database_dynamodb = external_system 'DynamoDB (Database)' {
+    description 'database'
+  }
+
+  system -> external_Payment_stripe 'Charge, Refund...'
+  system -> external_Database_dynamodb 'Read, Write...'
+}
+
+views {
+  view context {
+    title 'My Application - System Context'
+    include *
+    autoLayout TopBottom
+  }
+}
+```
+
+**PlantUML Output:**
 ```plantuml
 @startuml C4_Context
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
@@ -159,6 +202,7 @@ Rel(system, external_Database_dynamodb, "Read, Write...")
 ```typescript
 import {
   generateC4Containers,
+  exportContainersToLikeC4,
   exportContainersToPlantUML
 } from "@pietgk/devac-core";
 
@@ -167,11 +211,49 @@ const diagram = generateC4Containers(domainEffects, {
   containerGrouping: "directory",  // Group by directory
 });
 
+// Export to LikeC4 (recommended)
+const likeC4 = exportContainersToLikeC4(diagram);
+
+// Or export to PlantUML (legacy)
 const plantUML = exportContainersToPlantUML(diagram);
-console.log(plantUML);
 ```
 
-Output:
+**LikeC4 Output:**
+```c4
+specification {
+  element system
+  element container
+  element component
+  element external_system
+}
+
+model {
+  system = system 'My Application' {
+    api = container 'Api' {
+      description 'Payment:Charge, Database:Read, Auth:TokenVerify'
+    }
+    worker = container 'Worker' {
+      description 'Messaging:Receive, Database:Write'
+    }
+  }
+
+  external_Payment_stripe = external_system 'Stripe (Payment)'
+  external_Database_dynamodb = external_system 'DynamoDB (Database)'
+
+  system.api -> external_Payment_stripe 'Payment:Charge'
+  system.worker -> external_Database_dynamodb 'Database:Write'
+}
+
+views {
+  view containers of system {
+    title 'My Application - Containers'
+    include *
+    autoLayout TopBottom
+  }
+}
+```
+
+**PlantUML Output:**
 ```plantuml
 @startuml C4_Container
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
@@ -315,19 +397,225 @@ const context = generateC4Context(result.domainEffects, {
 const plantUML = exportContextToPlantUML(context);
 ```
 
-## PlantUML Rendering
+## Enhanced LikeC4 Export
+
+For production use, the enhanced LikeC4 exports add source code links, domain tags, and custom element kinds:
+
+```typescript
+import {
+  generateC4Context,
+  generateC4Containers,
+  exportContextToEnhancedLikeC4,
+  exportContainersToEnhancedLikeC4
+} from "@pietgk/devac-core";
+
+const context = generateC4Context(domainEffects, { systemName: "My App" });
+const containers = generateC4Containers(domainEffects, { systemName: "My App" });
+
+// Enhanced exports with source links and tags
+const enhancedContext = exportContextToEnhancedLikeC4(context, domainEffects, {
+  includeSourceLinks: true,
+  includeDomainTags: true,
+});
+
+const enhancedContainers = exportContainersToEnhancedLikeC4(containers, domainEffects, {
+  includeSourceLinks: true,
+  includeDomainTags: true,
+});
+```
+
+**Enhanced Output:**
+```c4
+specification {
+  element api_server {
+    style { shape rectangle; color green }
+  }
+  element database {
+    style { shape storage; color blue }
+  }
+  element external_system
+
+  tag Payment
+  tag Database
+  tag Auth
+
+  relationship calls
+  relationship stores
+}
+
+model {
+  myApp = api_server 'My App' {
+    paymentService = component 'PaymentService' {
+      link ./src/services/payment.ts#L45-L120 'Source'
+      #Payment
+    }
+  }
+
+  stripe = external_system 'Stripe'
+  myApp.paymentService -> stripe 'charges.create()' #Payment
+}
+```
+
+## LikeC4 Specification Generator
+
+Generate custom specifications based on detected domains and providers:
+
+```typescript
+import {
+  generateLikeC4Specification,
+  exportSpecificationToLikeC4
+} from "@pietgk/devac-core";
+
+// Generate specification from effects
+const spec = generateLikeC4Specification(domainEffects, externalSystems);
+
+// Export to DSL
+const specDSL = exportSpecificationToLikeC4(spec);
+```
+
+### Specification Types
+
+```typescript
+interface LikeC4Specification {
+  elements: LikeC4ElementKind[];    // Custom element kinds
+  tags: LikeC4Tag[];                // Domain tags
+  relationships: LikeC4RelationshipKind[];
+}
+
+interface LikeC4ElementKind {
+  name: string;     // "api_server", "database", "queue"
+  shape: LikeC4Shape;
+  color: LikeC4Color;
+  icon?: string;
+}
+
+// Available shapes
+type LikeC4Shape =
+  | "rectangle" | "person" | "browser"
+  | "mobile" | "cylinder" | "storage"
+  | "queue" | "component";
+
+// Available colors
+type LikeC4Color =
+  | "primary" | "secondary" | "muted" | "slate"
+  | "blue" | "indigo" | "sky" | "red"
+  | "gray" | "green" | "amber";
+```
+
+### Default Element Kinds
+
+| Domain | Element Kind | Shape | Color |
+|--------|--------------|-------|-------|
+| Database | `database` | storage | blue |
+| Payment | `payment_service` | rectangle | green |
+| Auth | `auth_service` | rectangle | indigo |
+| HTTP | `http_client` | rectangle | sky |
+| API | `api_endpoint` | rectangle | primary |
+| Messaging | `message_queue` | queue | amber |
+
+### External Provider Kinds
+
+| Provider | Element Kind | Shape | Color |
+|----------|--------------|-------|-------|
+| stripe | `stripe` | rectangle | indigo |
+| dynamodb | `dynamodb` | storage | amber |
+| s3 | `s3_bucket` | storage | green |
+| sqs | `sqs_queue` | queue | amber |
+| redis | `redis_cache` | storage | red |
+
+## Dynamic View Generation
+
+Generate sequence-like diagrams from effect chains:
+
+```typescript
+import {
+  identifyEffectChains,
+  generateDynamicViews,
+  generateEffectsFlowLikeC4
+} from "@pietgk/devac-core";
+
+// Identify top effect chains
+const chains = identifyEffectChains(domainEffects, {
+  maxChains: 5,           // Top 5 chains
+  maxStepsPerChain: 8,    // Max steps per chain
+});
+
+// Generate dynamic views
+const dynamicViews = generateDynamicViews(chains, {
+  titlePrefix: "My App",
+});
+
+// Or generate complete file with model + views
+const completeFile = generateEffectsFlowLikeC4(domainEffects, "My App");
+```
+
+### Effect Chain Analysis
+
+Effect chains are scored by:
+- External system involvement (+10 per external effect)
+- Domain importance (Payment: +5, Auth: +4, Database: +2)
+- Chain length (bonus for 3+ steps)
+
+```typescript
+interface EffectChain {
+  id: string;              // "payment_stripe_flow"
+  name: string;            // "Payment Stripe Flow"
+  primaryDomain: string;   // "Payment"
+  effects: DomainEffect[]; // Ordered effects
+  score: number;           // Importance score
+}
+
+interface DynamicViewStep {
+  from: string;            // Source element ID
+  to: string;              // Target element ID
+  label: string;           // "charges.create()"
+  relationKind: string;    // "calls", "stores"
+  tag?: string;            // Domain tag
+}
+```
+
+### Dynamic View Output
+
+```c4
+dynamic view payment_stripe_flow {
+  title 'My App - Payment Stripe Flow'
+  description 'Effect flow for Payment operations'
+
+  paymentHandler -> stripe 'charges.create()' #Payment
+  paymentHandler -> orderRepo 'saveOrder()' #Database
+  orderRepo -> dynamodb 'PutItem' #Database
+}
+```
+
+## Rendering Diagrams
+
+### LikeC4 (Recommended)
+
+**VSCode Extension:**
+Install [LikeC4](https://marketplace.visualstudio.com/items?itemName=likec4.likec4-vscode) for live preview.
+
+**CLI:**
+```bash
+npx likec4 serve    # Live preview server
+npx likec4 export   # Export to PNG/SVG
+```
+
+**Web Embedding:**
+LikeC4 provides React components for embedding diagrams in documentation.
+
+### PlantUML (Legacy)
 
 The generated PlantUML uses the [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) library. To render:
 
-### Online
+**Online:**
 Use [PlantUML Server](https://www.plantuml.com/plantuml/uml/)
 
-### Local (with PlantUML installed)
+**Local (with PlantUML installed):**
 ```bash
 plantuml diagram.puml
 ```
 
-### VS Code
+**VS Code:**
 Install the "PlantUML" extension and preview `.puml` files.
 
 ## Full Pipeline Example
@@ -339,6 +627,11 @@ import {
   generateC4Context,
   generateC4Containers,
   discoverDomainBoundaries,
+  exportContainersToEnhancedLikeC4,
+  exportContextToEnhancedLikeC4,
+  identifyEffectChains,
+  generateEffectsFlowLikeC4,
+  // Legacy PlantUML exports
   exportContextToPlantUML,
   exportContainersToPlantUML
 } from "@pietgk/devac-core";
@@ -370,13 +663,31 @@ const containers = generateC4Containers(domainEffects, {
 
 console.log(`Containers: ${containers.containers.length}`);
 
-// Step 5: Export PlantUML diagrams
-const contextDiagram = exportContextToPlantUML(context);
-const containerDiagram = exportContainersToPlantUML(containers);
+// Step 5: Export LikeC4 diagrams (recommended)
+const contextLikeC4 = exportContextToEnhancedLikeC4(context, domainEffects, {
+  includeSourceLinks: true,
+  includeDomainTags: true,
+});
+const containerLikeC4 = exportContainersToEnhancedLikeC4(containers, domainEffects, {
+  includeSourceLinks: true,
+  includeDomainTags: true,
+});
 
-// Write to files
-fs.writeFileSync("c4-context.puml", contextDiagram);
-fs.writeFileSync("c4-container.puml", containerDiagram);
+// Step 6: Generate dynamic effect flow views
+const effectsFlow = generateEffectsFlowLikeC4(domainEffects, "Payment Service", {
+  maxChains: 5,
+});
+
+// Write LikeC4 files
+fs.writeFileSync("docs/c4/context.c4", contextLikeC4);
+fs.writeFileSync("docs/c4/containers.c4", containerLikeC4);
+fs.writeFileSync("docs/c4/effects-flow.c4", effectsFlow);
+
+// Optional: Also export PlantUML for legacy systems
+const contextPuml = exportContextToPlantUML(context);
+const containerPuml = exportContainersToPlantUML(containers);
+fs.writeFileSync("docs/c4/context.puml", contextPuml);
+fs.writeFileSync("docs/c4/containers.puml", containerPuml);
 ```
 
 ---
@@ -385,10 +696,12 @@ fs.writeFileSync("c4-container.puml", containerDiagram);
 
 | Document | Purpose |
 |----------|---------|
+| [ADR-0027](../adr/0027-likec4-primary-format.md) | LikeC4 as primary C4 format decision |
 | [pipeline.md](./pipeline.md) | Complete AST-to-Views transformation pipeline |
 | [rules-engine.md](./rules-engine.md) | Rules engine that produces domain effects |
 | [data-model.md](./data-model.md) | Effects schema definitions |
 | [../vision/foundation.md](../vision/foundation.md) | Conceptual foundation |
+| [LikeC4 Official Site](https://likec4.dev/) | LikeC4 DSL documentation |
 
 ---
 

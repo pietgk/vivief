@@ -58,6 +58,10 @@ export {
   generateC4ContextDoc,
   generateEmptyC4ContainersDoc,
   generateEmptyC4ContextDoc,
+  generateEmptyLikeC4ContainersDoc,
+  generateEmptyLikeC4ContextDoc,
+  generateLikeC4ContainersDoc,
+  generateLikeC4ContextDoc,
   getC4FilePaths,
 } from "./c4-doc-generator.js";
 export type { C4DocResult, GenerateC4DocOptions } from "./c4-doc-generator.js";
@@ -82,8 +86,12 @@ export {
   generateAllRepoC4Docs,
   generateEmptyRepoC4ContainersDoc,
   generateEmptyRepoC4ContextDoc,
+  generateEmptyRepoLikeC4ContainersDoc,
+  generateEmptyRepoLikeC4ContextDoc,
   generateRepoC4ContainersDoc,
   generateRepoC4ContextDoc,
+  generateRepoLikeC4ContainersDoc,
+  generateRepoLikeC4ContextDoc,
   getRepoC4FilePaths,
 } from "./repo-c4-generator.js";
 export type {
@@ -94,10 +102,14 @@ export type {
 // Workspace Effects Generator
 export {
   computeWorkspaceSeedHash,
+  generateEmptyUnifiedWorkspaceLikeC4,
   generateEmptyWorkspaceEffectsDoc,
+  generateUnifiedWorkspaceLikeC4,
   generateWorkspaceC4ContainersDoc,
   generateWorkspaceC4ContextDoc,
   generateWorkspaceEffectsDoc,
+  generateWorkspaceLikeC4ContainersDoc,
+  generateWorkspaceLikeC4ContextDoc,
   queryWorkspaceEffects,
 } from "./workspace-effects-generator.js";
 export type {
