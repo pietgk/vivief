@@ -1,5 +1,12 @@
 # @pietgk/devac-mcp
 
+## 0.18.0
+
+### Patch Changes
+
+- Updated dependencies [5c08659]
+  - @pietgk/devac-core@0.18.0
+
 ## 0.17.1
 
 ### Patch Changes
