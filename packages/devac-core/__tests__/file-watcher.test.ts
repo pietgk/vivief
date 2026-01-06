@@ -63,9 +63,10 @@ async function waitFor(
 
 /**
  * Small delay for watcher stabilization after start.
+ * CI runners can be slow, so we use a generous delay.
  */
 async function waitForWatcherReady(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 }
 
 describe("FileWatcher", () => {

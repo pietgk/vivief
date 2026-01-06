@@ -253,13 +253,14 @@ function getContainerId(filePath: string, grouping: "directory" | "package" | "f
   switch (grouping) {
     case "directory": {
       // Group by top-level directory (e.g., src/api -> api)
-      const parts = filePath.split("/");
+      // Filter out empty parts to handle absolute paths like /Users/...
+      const parts = filePath.split("/").filter((p) => p.length > 0);
       if (parts.length >= 2) {
         // Skip 'src' or similar common prefixes
         const idx = parts[0] === "src" || parts[0] === "lib" ? 1 : 0;
         return parts[idx] ?? "root";
       }
-      return "root";
+      return parts[0] ?? "root";
     }
     case "package": {
       // Group by package path (from entity ID)

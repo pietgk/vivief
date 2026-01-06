@@ -5,16 +5,56 @@
  * with embedded metadata for change detection and verification tracking.
  *
  * Based on DevAC v2.0 spec Phase 3 requirements.
+ *
+ * IMPORTANT: LikeC4 merges all .c4 files in a directory into a single model.
+ * To avoid duplicate definition errors, we generate a single unified .c4 file
+ * with one specification block, one model block, and multiple views.
  */
 
+import * as path from "node:path";
 import type { C4ContainerDiagram, C4Context } from "../views/c4-generator.js";
 import {
   exportContainersToLikeC4,
   exportContainersToPlantUML,
   exportContextToLikeC4,
   exportContextToPlantUML,
+  sanitizeLikeC4Id,
 } from "../views/c4-generator.js";
 import { generateDocMetadataForLikeC4, generateDocMetadataForPlantUML } from "./doc-metadata.js";
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Compute relative path from docs/c4 directory to a source file.
+ * LikeC4 requires relative paths for the link property.
+ *
+ * @param absolutePath - Absolute path to the source file
+ * @param packagePath - Package root path (parent of docs/c4)
+ * @returns Relative path from docs/c4 to source file, or original path if not within package
+ */
+function computeRelativeLinkPath(absolutePath: string, packagePath: string | undefined): string {
+  if (!packagePath) {
+    return absolutePath;
+  }
+
+  // The C4 docs are at packagePath/docs/c4/
+  const c4DocsDir = path.join(packagePath, "docs", "c4");
+
+  // Compute relative path from c4DocsDir to the source file
+  const relativePath = path.relative(c4DocsDir, absolutePath);
+
+  // If the path goes outside the package (starts with too many ..), just use the filename
+  if (
+    relativePath.startsWith("..") &&
+    relativePath.split("/").filter((p) => p === "..").length > 5
+  ) {
+    return `./${path.basename(absolutePath)}`;
+  }
+
+  return relativePath;
+}
 
 // ============================================================================
 // Types
@@ -398,4 +438,221 @@ export function getC4FilePaths(docsDir: string): {
     context: `${c4Dir}/context.puml`,
     containers: `${c4Dir}/containers.puml`,
   };
+}
+
+// ============================================================================
+// Unified LikeC4 Generation (Single File)
+// ============================================================================
+
+/**
+ * Generate a unified LikeC4 file with both context and container views.
+ *
+ * IMPORTANT: LikeC4 merges all .c4 files in a directory into a single model.
+ * To avoid duplicate definition errors, this function generates a single file
+ * with one specification block, one model, and multiple views.
+ *
+ * @param context - C4 context data
+ * @param containers - C4 container diagram data
+ * @param options - Generation options including seed hash
+ * @returns Unified LikeC4 content
+ */
+export function generateUnifiedLikeC4Doc(
+  context: C4Context,
+  containers: C4ContainerDiagram,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, verified = false, verifiedAt, packagePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified,
+    verifiedAt,
+    packagePath,
+  });
+
+  // Collect all element kinds needed
+  const elementKinds = new Set(["system"]);
+  if (containers.containers.length > 0) {
+    elementKinds.add("container");
+    // Check if any containers have components
+    for (const container of containers.containers) {
+      if (container.components.length > 0) {
+        elementKinds.add("component");
+        break;
+      }
+    }
+  }
+  if (context.externalSystems.length > 0 || containers.externalSystems.length > 0) {
+    elementKinds.add("external_system");
+  }
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    ...Array.from(elementKinds).map((kind) => `  element ${kind}`),
+    "}",
+    "",
+    "model {",
+    `  system = system '${escapeString(context.systemName)}' {`,
+    `    description '${escapeString(context.systemDescription ?? "Our system")}'`,
+  ];
+
+  // Add containers inside the system
+  for (const container of containers.containers) {
+    const safeContainerId = sanitizeLikeC4Id(container.id);
+    // Skip containers with empty IDs (safety check)
+    if (!safeContainerId || !container.name) {
+      continue;
+    }
+    lines.push("");
+    lines.push(`    ${safeContainerId} = container '${escapeString(container.name)}' {`);
+
+    if (container.description) {
+      lines.push(`      description '${escapeString(container.description)}'`);
+    }
+    if (container.technology) {
+      lines.push(`      technology '${escapeString(container.technology)}'`);
+    }
+
+    // Add components
+    for (const component of container.components) {
+      const safeComponentId = sanitizeLikeC4Id(component.id);
+      lines.push(`      ${safeComponentId} = component '${escapeString(component.name)}' {`);
+      if (component.technology) {
+        lines.push(`        technology '${escapeString(component.technology)}'`);
+      }
+      if (component.filePath) {
+        const relativePath = computeRelativeLinkPath(component.filePath, packagePath);
+        // LikeC4 link syntax: link <uri> [description] - URI should NOT be quoted
+        lines.push(`        link ${relativePath}`);
+      }
+      lines.push("      }");
+    }
+
+    lines.push("    }");
+  }
+
+  lines.push("  }"); // End system
+  lines.push("");
+
+  // Add external systems (deduplicated)
+  const externalSystemsMap = new Map<string, (typeof context.externalSystems)[0]>();
+  for (const ext of context.externalSystems) {
+    externalSystemsMap.set(ext.id, ext);
+  }
+  for (const ext of containers.externalSystems) {
+    externalSystemsMap.set(ext.id, ext);
+  }
+
+  for (const ext of externalSystemsMap.values()) {
+    const safeId = sanitizeLikeC4Id(ext.id);
+    lines.push(`  ${safeId} = external_system '${escapeString(ext.name)}' {`);
+    lines.push(`    description '${escapeString(ext.type)}'`);
+    lines.push("  }");
+  }
+
+  lines.push("");
+
+  // Add relationships from context
+  for (const ext of context.externalSystems) {
+    const labels = ext.relationships.map((r) => r.label).slice(0, 3);
+    const label = labels.join(", ") + (labels.length < ext.relationships.length ? "..." : "");
+    const safeId = sanitizeLikeC4Id(ext.id);
+    lines.push(`  system -> ${safeId} '${escapeString(label)}'`);
+  }
+
+  // Add relationships from containers
+  for (const container of containers.containers) {
+    const safeContainerId = sanitizeLikeC4Id(container.id);
+    for (const rel of container.relationships) {
+      const safeToId = sanitizeLikeC4Id(rel.to);
+      lines.push(`  system.${safeContainerId} -> ${safeToId} '${escapeString(rel.label)}'`);
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+
+  // Views section with both context and container views
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push("    title 'System Context'");
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+  lines.push("");
+  lines.push("  view containers {");
+  lines.push("    title 'Container Diagram'");
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate a placeholder unified LikeC4 file when no effects are available
+ */
+export function generateEmptyUnifiedLikeC4Doc(
+  systemName: string,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, packagePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "}",
+    "",
+    "model {",
+    `  system = system '${escapeString(systemName)}' {`,
+    "    description 'No effects extracted yet'",
+    "",
+    "    placeholder = container 'Placeholder' {",
+    "      description 'Run devac analyze first'",
+    "    }",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view context {",
+    "    title 'System Context'",
+    "    include *",
+    "    autoLayout TopBottom",
+    "  }",
+    "",
+    "  view containers {",
+    "    title 'Container Diagram'",
+    "    include *",
+    "    autoLayout TopBottom",
+    "  }",
+    "}",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Escape single quotes in strings for LikeC4
+ */
+function escapeString(str: string): string {
+  return str.replace(/'/g, "\\'");
+}
+
+/**
+ * Get the file path for unified LikeC4 diagram
+ */
+export function getUnifiedLikeC4FilePath(docsDir: string): string {
+  return `${docsDir}/c4/architecture.c4`;
 }

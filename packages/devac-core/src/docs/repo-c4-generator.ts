@@ -665,3 +665,176 @@ export function getRepoC4FilePaths(repoPath: string): {
     containers: path.join(c4Dir, "containers.puml"),
   };
 }
+
+// ============================================================================
+// Unified LikeC4 Generation (Single File)
+// ============================================================================
+
+/**
+ * Generate a unified repo-level LikeC4 file with both context and container views.
+ *
+ * IMPORTANT: LikeC4 merges all .c4 files in a directory into a single model.
+ * To avoid duplicate definition errors, this function generates a single file
+ * with one specification block, one model, and multiple views.
+ */
+export function generateUnifiedRepoLikeC4Doc(
+  data: RepoEffectsData,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath, maxExternalSystems = 10 } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  const externalSystems = extractExternalSystems(data.aggregatedPatterns.externalPatterns);
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+  ];
+
+  if (externalSystems.length > 0) {
+    lines.push("  element external_system");
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("model {");
+  lines.push(`  system = system '${data.repoName}' {`);
+  lines.push(
+    `    description '${data.packages.length} packages, ${data.totalCounts.store + data.totalCounts.retrieve + data.totalCounts.external + data.totalCounts.other} effects'`
+  );
+  lines.push("");
+
+  // Add packages as containers
+  for (const pkg of data.packages) {
+    const pkgId = sanitizeId(pkg.name);
+    const totalEffects =
+      pkg.effectCounts.store +
+      pkg.effectCounts.retrieve +
+      pkg.effectCounts.external +
+      pkg.effectCounts.other;
+
+    lines.push(`    ${pkgId} = container '${pkg.name}' {`);
+    lines.push("      technology 'TypeScript'");
+    if (totalEffects > 0) {
+      lines.push(`      description '${totalEffects} effects'`);
+    }
+    lines.push(`      link '${pkg.packagePath}'`);
+    lines.push("    }");
+  }
+
+  lines.push("  }"); // End system
+  lines.push("");
+
+  // Add external systems
+  if (externalSystems.length > 0) {
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      lines.push(`  ${sanitizeId(sys.name)} = external_system '${sys.name}' {`);
+      lines.push(`    description '${sys.count} calls from ${sys.packages.length} packages'`);
+      lines.push("  }");
+    }
+    lines.push("");
+
+    // Add relationships from system (context level)
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      lines.push(`  system -> ${sanitizeId(sys.name)} 'Uses'`);
+    }
+
+    // Add relationships from packages (container level)
+    for (const sys of externalSystems.slice(0, maxExternalSystems)) {
+      const sysId = sanitizeId(sys.name);
+      for (const pkgName of sys.packages) {
+        const pkg = data.packages.find((p) => p.name === pkgName);
+        if (pkg && pkg.effectCounts.external > 0) {
+          const pkgId = sanitizeId(pkg.name);
+          lines.push(`  system.${pkgId} -> ${sysId} 'Uses'`);
+        }
+      }
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+
+  // Views section with both context and container views
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push("    title 'System Context'");
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+  lines.push("");
+  lines.push("  view containers {");
+  lines.push("    title 'Container Diagram'");
+  lines.push("    include *");
+  lines.push("    autoLayout TopBottom");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate empty unified repo-level LikeC4 file
+ */
+export function generateEmptyUnifiedRepoLikeC4Doc(
+  repoName: string,
+  options: GenerateRepoC4DocOptions
+): string {
+  const { seedHash, repoPath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: repoPath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "}",
+    "",
+    "model {",
+    `  system = system '${repoName}' {`,
+    "    description 'No effects extracted yet'",
+    "",
+    "    placeholder = container 'Placeholder' {",
+    "      description 'Run devac analyze first'",
+    "    }",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view context {",
+    "    title 'System Context'",
+    "    include *",
+    "    autoLayout TopBottom",
+    "  }",
+    "",
+    "  view containers {",
+    "    title 'Container Diagram'",
+    "    include *",
+    "    autoLayout TopBottom",
+    "  }",
+    "}",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Get the file path for unified repo-level LikeC4 diagram
+ */
+export function getUnifiedRepoLikeC4FilePath(repoPath: string): string {
+  return path.join(repoPath, "docs", "c4", "architecture.c4");
+}

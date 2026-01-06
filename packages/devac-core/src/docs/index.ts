@@ -60,9 +60,12 @@ export {
   generateEmptyC4ContextDoc,
   generateEmptyLikeC4ContainersDoc,
   generateEmptyLikeC4ContextDoc,
+  generateEmptyUnifiedLikeC4Doc,
   generateLikeC4ContainersDoc,
   generateLikeC4ContextDoc,
+  generateUnifiedLikeC4Doc,
   getC4FilePaths,
+  getUnifiedLikeC4FilePath,
 } from "./c4-doc-generator.js";
 export type { C4DocResult, GenerateC4DocOptions } from "./c4-doc-generator.js";
 
@@ -88,11 +91,14 @@ export {
   generateEmptyRepoC4ContextDoc,
   generateEmptyRepoLikeC4ContainersDoc,
   generateEmptyRepoLikeC4ContextDoc,
+  generateEmptyUnifiedRepoLikeC4Doc,
   generateRepoC4ContainersDoc,
   generateRepoC4ContextDoc,
   generateRepoLikeC4ContainersDoc,
   generateRepoLikeC4ContextDoc,
+  generateUnifiedRepoLikeC4Doc,
   getRepoC4FilePaths,
+  getUnifiedRepoLikeC4FilePath,
 } from "./repo-c4-generator.js";
 export type {
   GenerateRepoC4DocOptions,
