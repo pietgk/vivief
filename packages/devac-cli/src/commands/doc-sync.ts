@@ -35,18 +35,22 @@ import {
   generateEmptyC4ContainersDoc,
   generateEmptyC4ContextDoc,
   generateEmptyEffectsDoc,
-  generateEmptyLikeC4ContainersDoc,
-  generateEmptyLikeC4ContextDoc,
   generateEmptyRepoEffectsDoc,
+  generateEmptyUnifiedLikeC4Doc,
+  generateEmptyUnifiedRepoLikeC4Doc,
+  generateEmptyUnifiedWorkspaceLikeC4,
   generateEmptyWorkspaceEffectsDoc,
   generateRepoEffectsDoc,
+  generateUnifiedLikeC4Doc,
+  generateUnifiedRepoLikeC4Doc,
+  generateUnifiedWorkspaceLikeC4,
   generateWorkspaceC4ContainersDoc,
   generateWorkspaceC4ContextDoc,
   generateWorkspaceEffectsDoc,
-  generateWorkspaceLikeC4ContainersDoc,
-  generateWorkspaceLikeC4ContextDoc,
   getC4FilePaths,
   getRepoC4FilePaths,
+  getUnifiedLikeC4FilePath,
+  getUnifiedRepoLikeC4FilePath,
   hasSeed,
   queryWorkspaceEffects,
 } from "@pietgk/devac-core";
@@ -213,6 +217,44 @@ async function ensureDir(dirPath: string): Promise<void> {
     await fs.mkdir(dirPath, { recursive: true });
   } catch {
     // Directory may already exist
+  }
+}
+
+/**
+ * Remove legacy separate LikeC4 files (context.c4, containers.c4) to avoid
+ * duplicate definition errors when using the unified architecture.c4 file
+ */
+async function removeLegacyLikeC4Files(docsDir: string): Promise<void> {
+  const legacyFiles = [
+    path.join(docsDir, "c4", "context.c4"),
+    path.join(docsDir, "c4", "containers.c4"),
+  ];
+
+  for (const filePath of legacyFiles) {
+    try {
+      await fs.unlink(filePath);
+    } catch {
+      // File may not exist, ignore
+    }
+  }
+}
+
+/**
+ * Generate likec4.config.json for a C4 directory to create an isolated LikeC4 project.
+ * This prevents LikeC4 from merging all .c4 files across the workspace into one model.
+ */
+async function generateLikeC4Config(c4Dir: string, projectName: string): Promise<void> {
+  const configPath = path.join(c4Dir, "likec4.config.json");
+  const config = {
+    $schema: "https://likec4.dev/schemas/config.json",
+    name: projectName,
+    title: `${projectName} Architecture`,
+  };
+
+  try {
+    await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
+  } catch {
+    // Ignore errors - config is optional for functionality
   }
 }
 
@@ -491,14 +533,21 @@ async function syncPackage(
           result.filesWritten.push(c4Paths.containers);
         }
 
-        // Write LikeC4 files if requested
+        // Write unified LikeC4 file if requested (single file avoids duplicate definitions)
         if (writeLikeC4) {
-          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          const unifiedC4Path = getUnifiedLikeC4FilePath(docsDir);
+          const unifiedContent = generateUnifiedLikeC4Doc(c4Data.context, c4Data.containers, {
+            seedHash: seedHashResult.hash,
+            packagePath,
+          });
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(docsDir);
+
+          // Generate likec4.config.json to create isolated project (prevents cross-package merging)
+          await generateLikeC4Config(c4Paths.directory, packageName);
         }
       } else {
         // Generate empty C4 diagrams
@@ -517,21 +566,21 @@ async function syncPackage(
           result.filesWritten.push(c4Paths.containers);
         }
 
+        // Write empty unified LikeC4 file if requested
         if (writeLikeC4) {
-          const contextLikeC4 = generateEmptyLikeC4ContextDoc(packageName, {
+          const unifiedC4Path = getUnifiedLikeC4FilePath(docsDir);
+          const unifiedContent = generateEmptyUnifiedLikeC4Doc(packageName, {
             seedHash: seedHashResult.hash,
             packagePath,
           });
-          const containersLikeC4 = generateEmptyLikeC4ContainersDoc(packageName, {
-            seedHash: seedHashResult.hash,
-            packagePath,
-          });
-          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(docsDir);
+
+          // Generate likec4.config.json to create isolated project (prevents cross-package merging)
+          await generateLikeC4Config(c4Paths.directory, packageName);
         }
       }
     } catch (err) {
@@ -686,23 +735,27 @@ async function syncRepoLevel(
           result.filesWritten.push(c4Paths.containers);
         }
 
-        // Write LikeC4 files if requested
+        // Write unified LikeC4 file if requested (single file avoids duplicate definitions)
         if (writeLikeC4) {
-          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, docs.contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, docs.containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          const unifiedC4Path = getUnifiedRepoLikeC4FilePath(repoPath);
+          const unifiedContent = generateUnifiedRepoLikeC4Doc(repoData, {
+            seedHash: seedHashResult.hash,
+            repoPath,
+          });
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(path.join(repoPath, "docs"));
+
+          // Generate likec4.config.json to create isolated project (prevents cross-package merging)
+          await generateLikeC4Config(c4Paths.directory, repoName);
         }
       } else {
         // Generate empty C4 diagrams
-        const {
-          generateEmptyRepoC4ContainersDoc,
-          generateEmptyRepoC4ContextDoc,
-          generateEmptyRepoLikeC4ContainersDoc,
-          generateEmptyRepoLikeC4ContextDoc,
-        } = (await import("@pietgk/devac-core")) as typeof import("@pietgk/devac-core");
+        const { generateEmptyRepoC4ContainersDoc, generateEmptyRepoC4ContextDoc } = (await import(
+          "@pietgk/devac-core"
+        )) as typeof import("@pietgk/devac-core");
 
         if (writePlantUML) {
           const contextDoc = generateEmptyRepoC4ContextDoc(repoName, {
@@ -719,21 +772,21 @@ async function syncRepoLevel(
           result.filesWritten.push(c4Paths.containers);
         }
 
+        // Write empty unified LikeC4 file if requested
         if (writeLikeC4) {
-          const contextLikeC4 = generateEmptyRepoLikeC4ContextDoc(repoName, {
+          const unifiedC4Path = getUnifiedRepoLikeC4FilePath(repoPath);
+          const unifiedContent = generateEmptyUnifiedRepoLikeC4Doc(repoName, {
             seedHash: seedHashResult.hash,
             repoPath,
           });
-          const containersLikeC4 = generateEmptyRepoLikeC4ContainersDoc(repoName, {
-            seedHash: seedHashResult.hash,
-            repoPath,
-          });
-          const contextC4Path = c4Paths.context.replace(".puml", ".c4");
-          const containersC4Path = c4Paths.containers.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(path.join(repoPath, "docs"));
+
+          // Generate likec4.config.json to create isolated project (prevents cross-package merging)
+          await generateLikeC4Config(c4Paths.directory, repoName);
         }
       }
     } catch (err) {
@@ -878,22 +931,21 @@ async function syncWorkspaceLevel(
           result.filesWritten.push(containersPath);
         }
 
-        // Generate LikeC4 if requested
+        // Generate unified LikeC4 if requested (single file avoids duplicate definitions)
         if (writeLikeC4) {
-          const contextLikeC4 = generateWorkspaceLikeC4ContextDoc(workspaceData, {
+          const unifiedC4Path = path.join(c4Dir, "workspace.c4");
+          const unifiedContent = generateUnifiedWorkspaceLikeC4(workspaceData, {
             seedHash: seedHashResult.hash,
             workspacePath,
           });
-          const containersLikeC4 = generateWorkspaceLikeC4ContainersDoc(workspaceData, {
-            seedHash: seedHashResult.hash,
-            workspacePath,
-          });
-          const contextC4Path = contextPath.replace(".puml", ".c4");
-          const containersC4Path = containersPath.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(docsDir);
+
+          // Generate likec4.config.json to create isolated project
+          await generateLikeC4Config(c4Dir, "workspace");
         }
       } else {
         // Empty diagrams for no repos case
@@ -912,21 +964,21 @@ async function syncWorkspaceLevel(
           result.filesWritten.push(containersPath);
         }
 
+        // Generate empty unified LikeC4 if requested
         if (writeLikeC4) {
-          const contextLikeC4 = generateWorkspaceLikeC4ContextDoc(workspaceData, {
+          const unifiedC4Path = path.join(c4Dir, "workspace.c4");
+          const unifiedContent = generateEmptyUnifiedWorkspaceLikeC4({
             seedHash: seedHashResult.hash,
             workspacePath,
           });
-          const containersLikeC4 = generateWorkspaceLikeC4ContainersDoc(workspaceData, {
-            seedHash: seedHashResult.hash,
-            workspacePath,
-          });
-          const contextC4Path = contextPath.replace(".puml", ".c4");
-          const containersC4Path = containersPath.replace(".puml", ".c4");
-          await fs.writeFile(contextC4Path, contextLikeC4, "utf-8");
-          await fs.writeFile(containersC4Path, containersLikeC4, "utf-8");
-          result.filesWritten.push(contextC4Path);
-          result.filesWritten.push(containersC4Path);
+          await fs.writeFile(unifiedC4Path, unifiedContent, "utf-8");
+          result.filesWritten.push(unifiedC4Path);
+
+          // Remove old separate LikeC4 files to avoid duplicate definition errors
+          await removeLegacyLikeC4Files(docsDir);
+
+          // Generate likec4.config.json to create isolated project
+          await generateLikeC4Config(c4Dir, "workspace");
         }
       }
     } catch (err) {
