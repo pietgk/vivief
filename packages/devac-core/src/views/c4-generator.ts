@@ -488,6 +488,145 @@ function sanitizeId(id: string): string {
 }
 
 // =============================================================================
+// LikeC4 Export
+// =============================================================================
+
+/**
+ * Export C4 Context to LikeC4 format
+ */
+export function exportContextToLikeC4(context: C4Context): string {
+  const lines: string[] = [
+    "specification {",
+    "  element system",
+    "  element external_system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${context.systemName}' {`,
+    `    description '${context.systemDescription ?? "Our system"}'`,
+    "  }",
+    "",
+  ];
+
+  // Add external systems
+  for (const ext of context.externalSystems) {
+    lines.push(`  ${sanitizeLikeC4Id(ext.id)} = external_system '${ext.name}' {`);
+    lines.push(`    description '${ext.type}'`);
+    lines.push("  }");
+  }
+
+  lines.push("");
+
+  // Add relationships
+  for (const ext of context.externalSystems) {
+    const labels = ext.relationships.map((r) => r.label).slice(0, 3);
+    const label = labels.join(", ") + (labels.length < ext.relationships.length ? "..." : "");
+    lines.push(`  system -> ${sanitizeLikeC4Id(ext.id)} '${label}'`);
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push("    title 'System Context'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Export C4 Containers to LikeC4 format
+ */
+export function exportContainersToLikeC4(diagram: C4ContainerDiagram): string {
+  const lines: string[] = [
+    "specification {",
+    "  element system",
+    "  element container",
+    "  element component",
+    "  element external_system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${diagram.systemName}' {`,
+  ];
+
+  // Add containers
+  for (const container of diagram.containers) {
+    lines.push(`    ${sanitizeLikeC4Id(container.id)} = container '${container.name}' {`);
+    if (container.description) {
+      lines.push(`      description '${container.description}'`);
+    }
+    if (container.technology) {
+      lines.push(`      technology '${container.technology}'`);
+    }
+
+    // Add components (Level 3) - LikeC4 allows zooming in!
+    if (container.components.length > 0) {
+      for (const component of container.components) {
+        lines.push(`      ${sanitizeLikeC4Id(component.id)} = component '${component.name}' {`);
+        if (component.technology) {
+          lines.push(`        technology '${component.technology}'`);
+        }
+        // Add link to source code
+        if (component.filePath) {
+          lines.push(`        link '${component.filePath}'`);
+        }
+        lines.push("      }");
+      }
+    }
+
+    lines.push("    }");
+  }
+  lines.push("  }"); // End system
+
+  lines.push("");
+
+  // Add external systems
+  for (const ext of diagram.externalSystems) {
+    lines.push(`  ${sanitizeLikeC4Id(ext.id)} = external_system '${ext.name}' {`);
+    lines.push(`    description '${ext.type}'`);
+    lines.push("  }");
+  }
+
+  lines.push("");
+
+  // Add relationships
+  for (const container of diagram.containers) {
+    for (const rel of container.relationships) {
+      lines.push(
+        `  system.${sanitizeLikeC4Id(container.id)} -> ${sanitizeLikeC4Id(rel.to)} '${rel.label}'`
+      );
+    }
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view containers {");
+  lines.push("    title 'Container Diagram'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Sanitize ID for LikeC4
+ */
+function sanitizeLikeC4Id(id: string): string {
+  const sanitized = id.replace(/[^a-zA-Z0-9_]/g, "_");
+  if (/^[0-9]/.test(sanitized)) {
+    return `_${sanitized}`;
+  }
+  return sanitized;
+}
+
+// =============================================================================
 // Domain Discovery
 // =============================================================================
 

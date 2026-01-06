@@ -398,6 +398,10 @@ export {
   generateC4ContextDoc,
   generateEmptyC4ContainersDoc,
   generateEmptyC4ContextDoc,
+  generateEmptyLikeC4ContainersDoc,
+  generateEmptyLikeC4ContextDoc,
+  generateLikeC4ContainersDoc,
+  generateLikeC4ContextDoc,
   getC4FilePaths,
   // Repo-level generators
   aggregatePackageEffects,
@@ -406,9 +410,13 @@ export {
   generateEmptyRepoC4ContainersDoc,
   generateEmptyRepoC4ContextDoc,
   generateEmptyRepoEffectsDoc,
+  generateEmptyRepoLikeC4ContainersDoc,
+  generateEmptyRepoLikeC4ContextDoc,
   generateRepoC4ContainersDoc,
   generateRepoC4ContextDoc,
   generateRepoEffectsDoc,
+  generateRepoLikeC4ContainersDoc,
+  generateRepoLikeC4ContextDoc,
   getRepoC4FilePaths,
   // Workspace-level generators
   computeWorkspaceSeedHash,
@@ -416,6 +424,8 @@ export {
   generateWorkspaceC4ContainersDoc,
   generateWorkspaceC4ContextDoc,
   generateWorkspaceEffectsDoc,
+  generateWorkspaceLikeC4ContainersDoc,
+  generateWorkspaceLikeC4ContextDoc,
   queryWorkspaceEffects,
 } from "./docs/index.js";
 export type {

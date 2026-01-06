@@ -10,7 +10,11 @@
 
 import type { HubClient } from "../hub/hub-client.js";
 import { combineHashes } from "../utils/hash.js";
-import { generateDocMetadataForMarkdown, generateDocMetadataForPlantUML } from "./doc-metadata.js";
+import {
+  generateDocMetadataForLikeC4,
+  generateDocMetadataForMarkdown,
+  generateDocMetadataForPlantUML,
+} from "./doc-metadata.js";
 
 // ============================================================================
 // Types
@@ -479,6 +483,110 @@ export function generateEmptyWorkspaceEffectsDoc(
   ];
 
   return metadata + lines.join("\n");
+}
+
+/**
+ * Generate workspace-level C4 context diagram in LikeC4 format
+ */
+export function generateWorkspaceLikeC4ContextDoc(
+  data: WorkspaceEffectsData,
+  options: GenerateWorkspaceEffectsDocOptions
+): string {
+  const { seedHash, workspacePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: workspacePath,
+  });
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "}",
+    "",
+    "model {",
+  ];
+
+  // Add repos as systems
+  for (const repo of data.repos) {
+    const id = sanitizeId(repo.repoId);
+    const totalEffects =
+      repo.effectCounts.store +
+      repo.effectCounts.retrieve +
+      repo.effectCounts.external +
+      repo.effectCounts.other;
+
+    lines.push(`  ${id} = system '${repo.repoId}' {`);
+    lines.push(`    description '${repo.packageCount} packages, ${totalEffects} effects'`);
+    lines.push(`    link '${repo.repoPath}'`);
+    lines.push("  }");
+  }
+
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view context {");
+  lines.push("    title 'Workspace Context'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate workspace-level C4 container diagram in LikeC4 format
+ */
+export function generateWorkspaceLikeC4ContainersDoc(
+  data: WorkspaceEffectsData,
+  options: GenerateWorkspaceEffectsDocOptions
+): string {
+  const { seedHash, workspacePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath: workspacePath,
+  });
+
+  const lines: string[] = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "}",
+    "",
+    "model {",
+    "  workspace = system 'Workspace' {",
+  ];
+
+  // Add repos as containers of the workspace system
+  for (const repo of data.repos) {
+    const id = sanitizeId(repo.repoId);
+    lines.push(`    ${id} = container '${repo.repoId}' {`);
+    lines.push(`      description '${repo.packageCount} packages'`);
+    lines.push(`      technology 'TypeScript'`);
+    lines.push(`      link '${repo.repoPath}'`);
+    lines.push("    }");
+  }
+
+  lines.push("  }");
+  lines.push("}");
+  lines.push("");
+  lines.push("views {");
+  lines.push("  view containers {");
+  lines.push("    title 'Workspace Containers'");
+  lines.push("    include *");
+  lines.push("    autoLayout tb");
+  lines.push("  }");
+  lines.push("}");
+
+  return lines.join("\n");
 }
 
 // ============================================================================

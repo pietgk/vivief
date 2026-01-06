@@ -50,3 +50,6 @@ packages/fixtures-typescript/src/invalid.ts
 
 # zed mermaid files
 **/.mermaid/
+
+# Generated C4 diagrams (from doc-sync command)
+**/docs/c4/

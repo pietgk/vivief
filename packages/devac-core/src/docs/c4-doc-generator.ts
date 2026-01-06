@@ -8,8 +8,13 @@
  */
 
 import type { C4ContainerDiagram, C4Context } from "../views/c4-generator.js";
-import { exportContainersToPlantUML, exportContextToPlantUML } from "../views/c4-generator.js";
-import { generateDocMetadataForPlantUML } from "./doc-metadata.js";
+import {
+  exportContainersToLikeC4,
+  exportContainersToPlantUML,
+  exportContextToLikeC4,
+  exportContextToPlantUML,
+} from "../views/c4-generator.js";
+import { generateDocMetadataForLikeC4, generateDocMetadataForPlantUML } from "./doc-metadata.js";
 
 // ============================================================================
 // Types
@@ -37,10 +42,16 @@ export interface C4DocResult {
   context: string;
   /** Container diagram PlantUML */
   containers: string;
+  /** Context diagram LikeC4 */
+  contextLikeC4: string;
+  /** Container diagram LikeC4 */
+  containersLikeC4: string;
   /** File names for the diagrams */
   files: {
     context: string;
     containers: string;
+    contextLikeC4: string;
+    containersLikeC4: string;
   };
 }
 
@@ -84,6 +95,34 @@ export function generateC4ContextDoc(context: C4Context, options: GenerateC4DocO
 }
 
 /**
+ * Generate C4 context diagram in LikeC4 format with metadata
+ *
+ * @param context - C4 context data
+ * @param options - Generation options including seed hash
+ * @returns LikeC4 content with embedded metadata
+ */
+export function generateLikeC4ContextDoc(
+  context: C4Context,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, verified = false, verifiedAt, packagePath } = options;
+
+  // Generate metadata header
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified,
+    verifiedAt,
+    packagePath,
+  });
+
+  // Generate LikeC4 content
+  const likec4 = exportContextToLikeC4(context);
+
+  // Prepend metadata
+  return metadata + likec4;
+}
+
+/**
  * Generate C4 container diagram with metadata
  *
  * @param diagram - C4 container diagram data
@@ -122,6 +161,34 @@ export function generateC4ContainersDoc(
 }
 
 /**
+ * Generate C4 container diagram in LikeC4 format with metadata
+ *
+ * @param diagram - C4 container diagram data
+ * @param options - Generation options including seed hash
+ * @returns LikeC4 content with embedded metadata
+ */
+export function generateLikeC4ContainersDoc(
+  diagram: C4ContainerDiagram,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, verified = false, verifiedAt, packagePath } = options;
+
+  // Generate metadata header
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified,
+    verifiedAt,
+    packagePath,
+  });
+
+  // Generate LikeC4 content
+  const likec4 = exportContainersToLikeC4(diagram);
+
+  // Prepend metadata
+  return metadata + likec4;
+}
+
+/**
  * Generate all C4 documentation files
  *
  * @param context - C4 context data
@@ -137,9 +204,13 @@ export function generateAllC4Docs(
   return {
     context: generateC4ContextDoc(context, options),
     containers: generateC4ContainersDoc(containers, options),
+    contextLikeC4: generateLikeC4ContextDoc(context, options),
+    containersLikeC4: generateLikeC4ContainersDoc(containers, options),
     files: {
       context: "context.puml",
       containers: "containers.puml",
+      contextLikeC4: "context.c4",
+      containersLikeC4: "containers.c4",
     },
   };
 }
@@ -221,6 +292,90 @@ export function generateEmptyC4ContainersDoc(
     "}",
     "",
     "@enduml",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate a placeholder C4 context diagram in LikeC4 format
+ */
+export function generateEmptyLikeC4ContextDoc(
+  systemName: string,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, packagePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "}",
+    "",
+    "model {",
+    `  system = system '${systemName}' {`,
+    "    description 'No effects extracted yet'",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view context {",
+    "    title 'System Context'",
+    "    include *",
+    "    autoLayout tb",
+    "  }",
+    "}",
+  ];
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate a placeholder C4 container diagram in LikeC4 format
+ */
+export function generateEmptyLikeC4ContainersDoc(
+  systemName: string,
+  options: GenerateC4DocOptions
+): string {
+  const { seedHash, packagePath } = options;
+
+  const metadata = generateDocMetadataForLikeC4({
+    seedHash,
+    verified: false,
+    packagePath,
+  });
+
+  const lines = [
+    metadata.trim(),
+    "",
+    "specification {",
+    "  element system",
+    "  element container",
+    "}",
+    "",
+    "model {",
+    `  system = system '${systemName}' {`,
+    "    description 'No effects extracted yet'",
+    "    container placeholder {",
+    "      description 'Run devac analyze first'",
+    "    }",
+    "  }",
+    "}",
+    "",
+    "views {",
+    "  view containers {",
+    "    title 'Container Diagram'",
+    "    include *",
+    "    autoLayout tb",
+    "  }",
+    "}",
   ];
 
   return lines.join("\n");
