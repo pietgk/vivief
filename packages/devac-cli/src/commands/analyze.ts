@@ -322,10 +322,64 @@ async function checkForChanges(packagePath: string, sourceFiles: string[]): Prom
         return true;
       }
 
+      // Resolve packagePath to handle symlinks (important for MacOS temp directories)
+      // On MacOS, /var is symlinked to /private/var, causing path mismatches
+      const realPackagePath = await fs.realpath(path.resolve(packagePath));
+
+      // Normalize stored paths by resolving them relative to the real package path
+      // Seeds may store either absolute paths (when packageRoot didn't match during parse)
+      // or relative paths (when packageRoot did match)
+      const normalizeStoredPath = (storedPath: string): string => {
+        // If it's already a resolved absolute path, return as-is
+        if (storedPath.startsWith(realPackagePath)) {
+          return storedPath;
+        }
+        // If it's an unresolved absolute path (e.g., /var/... vs /private/var/...)
+        // try to resolve it
+        if (path.isAbsolute(storedPath)) {
+          try {
+            // Can't use async here, so we assume it's resolvable
+            // by replacing the packagePath prefix with realPackagePath
+            const resolvedPackagePath = path.resolve(packagePath);
+            if (storedPath.startsWith(resolvedPackagePath)) {
+              return realPackagePath + storedPath.slice(resolvedPackagePath.length);
+            }
+          } catch {
+            // Fall through
+          }
+          return storedPath;
+        }
+        // If it's a relative path, make it absolute relative to real package path
+        return path.join(realPackagePath, storedPath);
+      };
+
+      // Build a normalized map of stored hashes
+      const normalizedHashes = new Map<string, string>();
+      for (const [storedPath, hash] of existingHashes) {
+        normalizedHashes.set(normalizeStoredPath(storedPath), hash);
+      }
+
+      // Build a set of resolved source file paths for quick lookup
+      const resolvedSourceFiles = new Set<string>();
+      for (const file of sourceFiles) {
+        try {
+          resolvedSourceFiles.add(await fs.realpath(file));
+        } catch {
+          resolvedSourceFiles.add(file);
+        }
+      }
+
       // Check each source file
-      for (const filePath of sourceFiles) {
-        const currentHash = await computeFileHash(filePath);
-        const storedHash = existingHashes.get(filePath);
+      for (const absoluteFilePath of sourceFiles) {
+        let resolvedPath: string;
+        try {
+          resolvedPath = await fs.realpath(absoluteFilePath);
+        } catch {
+          resolvedPath = absoluteFilePath;
+        }
+
+        const currentHash = await computeFileHash(absoluteFilePath);
+        const storedHash = normalizedHashes.get(resolvedPath);
 
         if (!storedHash || storedHash !== currentHash) {
           return true; // File changed or new
@@ -333,8 +387,8 @@ async function checkForChanges(packagePath: string, sourceFiles: string[]): Prom
       }
 
       // Check for deleted files
-      for (const existingPath of Array.from(existingHashes.keys())) {
-        if (!sourceFiles.includes(existingPath)) {
+      for (const normalizedPath of normalizedHashes.keys()) {
+        if (!resolvedSourceFiles.has(normalizedPath)) {
           return true; // File was deleted
         }
       }
