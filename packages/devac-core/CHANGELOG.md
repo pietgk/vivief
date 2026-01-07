@@ -1,5 +1,17 @@
 # @pietgk/devac-core
 
+## 0.18.1
+
+### Patch Changes
+
+- f0806b8: feat: add architecture documentation improvement loop
+
+  - Add architecture.md and architecture.reasoning.md for devac-core
+  - Document architecture documentation generation methodology
+  - Add C4 integration test for reference package validation
+  - Improve c4-generator output quality
+  - Add docs/plans/improve-pipeline.md outlining AI-verified rules approach
+
 ## 0.18.0
 
 ### Minor Changes
