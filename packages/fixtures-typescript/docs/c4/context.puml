@@ -1,0 +1,17 @@
+@startuml C4_Context
+
+' DevAC Generated Documentation
+' devac:seed-hash: 3e5c2af0037c4b3b0bd0cf7a14dc56a52fdfb853fc8384650895a9da30003197
+' devac:generated-at: 2026-01-05T09:54:02.652Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/fixtures-typescript
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title fixtures-typescript - System Context Diagram
+
+System(system, "fixtures-typescript", "Package: fixtures-typescript")
+
+
+
+@enduml

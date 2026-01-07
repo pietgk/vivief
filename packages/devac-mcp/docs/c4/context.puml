@@ -1,0 +1,17 @@
+@startuml C4_Context
+
+' DevAC Generated Documentation
+' devac:seed-hash: 6e7b9cab29c41c3f3de0fa95a3de16868d67513f40da8df6ebc38e1116476818
+' devac:generated-at: 2026-01-05T09:54:02.614Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/devac-mcp
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title devac-mcp - System Context Diagram
+
+System(system, "devac-mcp", "Package: devac-mcp")
+
+
+
+@enduml

@@ -1,0 +1,19 @@
+@startuml C4_Container
+
+' DevAC Generated Documentation
+' devac:seed-hash: 8b2eed1ecb0ec731758d5e5724122025097d6f8ac9a7be8529fbea220bc4707f
+' devac:generated-at: 2026-01-05T09:54:02.637Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/devac-worktree
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title devac-worktree - Container Diagram
+
+System_Boundary(system, "devac-worktree") {
+  Container(, "", "", "Observability:Log, Storage:Write, Storage:Read")
+}
+
+
+
+@enduml

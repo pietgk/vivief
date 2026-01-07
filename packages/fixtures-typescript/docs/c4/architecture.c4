@@ -1,0 +1,163 @@
+// DevAC Generated Documentation
+// devac:seed-hash: c57fe6b5285eeb0fdaa71b737338af7c6defed8dba6a3ed67668e03e6b54f198
+// devac:generated-at: 2026-01-06T21:25:45.853Z
+// devac:generator: doc-sync@1.0.0
+// devac:verified: false
+// devac:package-path: /Users/grop/ws/vivief/packages/fixtures-typescript
+
+specification {
+  element system
+  element container
+  element component
+}
+
+model {
+  system = system 'fixtures-typescript' {
+    description 'Package: fixtures-typescript'
+
+    sample_jsx_tsx = container 'Sample Jsx.tsx' {
+      vivief_packages_fixtures_typescript_method_44ec3bc6 = component 'componentWillUnmount' {
+        link ../../../../src/sample-jsx.tsx#L197
+      }
+      vivief_packages_fixtures_typescript_method_6a1f5c13 = component 'componentDidUpdate' {
+        link ../../../../src/sample-jsx.tsx#L192
+      }
+      vivief_packages_fixtures_typescript_method_9e0df229 = component 'componentDidMount' {
+        link ../../../../src/sample-jsx.tsx#L187
+      }
+    }
+
+    sample_class_ts = container 'Sample Class.ts' {
+      vivief_packages_fixtures_typescript_method_b06ddf6c = component 'getUser' {
+        link ../../../../src/sample-class.ts#L55
+      }
+      vivief_packages_fixtures_typescript_method_158e4211 = component 'process' {
+        link ../../../../src/sample-class.ts#L50
+      }
+    }
+
+    sample_decorators_ts = container 'Sample Decorators.ts' {
+      vivief_packages_fixtures_typescript_method_00798790 = component 'heavyOperation' {
+        link ../../../../src/sample-decorators.ts#L304
+      }
+      vivief_packages_fixtures_typescript_property_9a157f45 = component 'average' {
+        link ../../../../src/sample-decorators.ts#L256
+      }
+      vivief_packages_fixtures_typescript_property_bf2b8249 = component 'sum' {
+        link ../../../../src/sample-decorators.ts#L250
+      }
+      vivief_packages_fixtures_typescript_method_c418b1c2 = component 'processData' {
+        link ../../../../src/sample-decorators.ts#L238
+      }
+      vivief_packages_fixtures_typescript_method_b3324e97 = component 'handleClick' {
+        link ../../../../src/sample-decorators.ts#L214
+      }
+      vivief_packages_fixtures_typescript_function_813d8ebc = component 'setter' {
+        link ../../../../src/sample-decorators.ts#L95
+      }
+      vivief_packages_fixtures_typescript_module_77120741 = component 'sample-decorators.ts' {
+        link ../../../../src/sample-decorators.ts#L81
+      }
+      vivief_packages_fixtures_typescript_function_031fa343 = component 'Component' {
+        link ../../../../src/sample-decorators.ts#L15
+      }
+    }
+
+    sample_edge_cases_ts = container 'Sample Edge Cases.ts' {
+      vivief_packages_fixtures_typescript_function_0e207fbe = component 'processOrder' {
+        link ../../../../src/sample-edge-cases.ts#L701
+      }
+      vivief_packages_fixtures_typescript_function_5f505cec = component 'processUser' {
+        link ../../../../src/sample-edge-cases.ts#L697
+      }
+      vivief_packages_fixtures_typescript_method_aa801798 = component 'consume' {
+        link ../../../../src/sample-edge-cases.ts#L664
+      }
+      vivief_packages_fixtures_typescript_method_ee34ba42 = component 'draw' {
+        link ../../../../src/sample-edge-cases.ts#L513
+      }
+      vivief_packages_fixtures_typescript_method_fcadc102 = component 'log' {
+        link ../../../../src/sample-edge-cases.ts#L463
+      }
+      vivief_packages_fixtures_typescript_method_ece49206 = component 'log' {
+        link ../../../../src/sample-edge-cases.ts#L444
+      }
+      vivief_packages_fixtures_typescript_function_fe211fcb = component 'runQuery' {
+        link ../../../../src/sample-edge-cases.ts#L293
+      }
+      vivief_packages_fixtures_typescript_module_1bdd01f1 = component 'sample-edge-cases.ts' {
+        link ../../../../src/sample-edge-cases.ts#L276
+      }
+      vivief_packages_fixtures_typescript_method_92d6bc59 = component 'connect' {
+        link ../../../../src/sample-edge-cases.ts#L265
+      }
+      vivief_packages_fixtures_typescript_method_5dc1b46f = component 'write' {
+        link ../../../../src/sample-edge-cases.ts#L246
+      }
+      vivief_packages_fixtures_typescript_method_d720233d = component 'constructor' {
+        link ../../../../src/sample-edge-cases.ts#L236
+      }
+      vivief_packages_fixtures_typescript_method_6d71a133 = component 'create' {
+        link ../../../../src/sample-edge-cases.ts#L136
+      }
+    }
+
+    sample_generics_ts = container 'Sample Generics.ts' {
+      vivief_packages_fixtures_typescript_method_a551c62c = component 'findById' {
+        link ../../../../src/sample-generics.ts#L132
+      }
+      vivief_packages_fixtures_typescript_function_38257685 = component 'logLength' {
+        link ../../../../src/sample-generics.ts#L110
+      }
+      vivief_packages_fixtures_typescript_method_ab2dfd45 = component 'get' {
+        link ../../../../src/sample-generics.ts#L72
+      }
+    }
+  }
+
+
+}
+
+views {
+  view context {
+    title 'System Context'
+    include *
+    autoLayout TopBottom
+  }
+
+  view containers {
+    title 'Container Diagram'
+    include *
+    autoLayout TopBottom
+  }
+
+  view sample_jsx_tsx_detail of system.sample_jsx_tsx {
+    title 'Sample Jsx.tsx - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view sample_class_ts_detail of system.sample_class_ts {
+    title 'Sample Class.ts - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view sample_decorators_ts_detail of system.sample_decorators_ts {
+    title 'Sample Decorators.ts - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view sample_edge_cases_ts_detail of system.sample_edge_cases_ts {
+    title 'Sample Edge Cases.ts - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view sample_generics_ts_detail of system.sample_generics_ts {
+    title 'Sample Generics.ts - Components'
+    include *
+    autoLayout TopBottom
+  }
+}

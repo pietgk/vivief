@@ -18,6 +18,7 @@ import {
   computeFileHash,
   createLogger,
   discoverAllPackages,
+  findGitRoot,
   getSemanticResolverFactory,
   toUnresolvedRef,
 } from "@pietgk/devac-core";
@@ -28,6 +29,33 @@ import { glob } from "glob";
 import type { AnalyzeOptions, AnalyzeResult } from "./types.js";
 
 const logger = createLogger({ prefix: "[Analyze]" });
+
+/**
+ * Compute relative package path for entity ID generation.
+ *
+ * Entity IDs should use paths relative to repo root, not absolute paths.
+ * This ensures portable, consistent entity IDs across different machines.
+ *
+ * @param absolutePackagePath - Absolute path to the package
+ * @returns Package path relative to repo root, or package name if not in a repo
+ */
+async function computeRelativePackagePath(absolutePackagePath: string): Promise<string> {
+  const resolvedPath = path.resolve(absolutePackagePath);
+
+  // Try to find git root
+  const repoRoot = await findGitRoot(resolvedPath);
+
+  if (repoRoot) {
+    // Make path relative to repo root
+    const relativePath = path.relative(repoRoot, resolvedPath);
+    // If the result is empty (package is at repo root), use "."
+    return relativePath || ".";
+  }
+
+  // Fallback: use just the package directory name
+  // This handles cases where we're not in a git repo
+  return path.basename(resolvedPath);
+}
 
 /**
  * Analyze a package and generate seed files
@@ -96,10 +124,14 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
     const parser = new TypeScriptParser();
     const writer = new SeedWriter(pool, options.packagePath);
 
+    // Compute relative package path for entity ID generation
+    const relativePackagePath = await computeRelativePackagePath(options.packagePath);
+
     const config = {
       ...DEFAULT_PARSER_CONFIG,
       repoName: options.repoName,
-      packagePath: options.packagePath,
+      packagePath: relativePackagePath,
+      packageRoot: path.resolve(options.packagePath),
       branch: options.branch,
     };
 
@@ -239,7 +271,7 @@ async function runSemanticResolution(
  * Find all TypeScript files in a directory
  */
 async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
-  const patterns = [path.join(packagePath, "**/*.ts"), path.join(packagePath, "**/*.tsx")];
+  const patterns = ["**/*.ts", "**/*.tsx"];
 
   const ignorePatterns = [
     "**/node_modules/**",
@@ -255,11 +287,16 @@ async function findTypeScriptFiles(packagePath: string): Promise<string[]> {
 
   const files: string[] = [];
 
+  // Resolve symlinks in package path (important for MacOS temp dirs)
+  const realPackagePath = await fs.realpath(packagePath);
+
   for (const pattern of patterns) {
     const matches = await glob(pattern, {
+      cwd: realPackagePath,
       ignore: ignorePatterns,
       nodir: true,
       absolute: true,
+      follow: true,
     });
     files.push(...matches);
   }
@@ -463,10 +500,13 @@ async function analyzeTypeScriptPackage(
     const parser = new TypeScriptParser();
     const writer = new SeedWriter(pool, pkg.path);
 
+    // Compute relative package path for entity ID generation
+    const relativePackagePath = await computeRelativePackagePath(pkg.path);
+
     const config = {
       ...DEFAULT_PARSER_CONFIG,
       repoName: options.repoName,
-      packagePath: pkg.path,
+      packagePath: relativePackagePath,
       branch: options.branch,
     };
 
@@ -548,10 +588,13 @@ async function analyzePythonPackage(
     const parser = new PythonParser();
     const writer = new SeedWriter(pool, pkg.path);
 
+    // Compute relative package path for entity ID generation
+    const relativePackagePath = await computeRelativePackagePath(pkg.path);
+
     const config = {
       ...DEFAULT_PARSER_CONFIG,
       repoName: options.repoName,
-      packagePath: pkg.path,
+      packagePath: relativePackagePath,
       branch: options.branch,
     };
 
@@ -622,10 +665,13 @@ async function analyzeCSharpPackage(
     const parser = new CSharpParser();
     const writer = new SeedWriter(pool, pkg.path);
 
+    // Compute relative package path for entity ID generation
+    const relativePackagePath = await computeRelativePackagePath(pkg.path);
+
     const config = {
       ...DEFAULT_PARSER_CONFIG,
       repoName: options.repoName,
-      packagePath: pkg.path,
+      packagePath: relativePackagePath,
       branch: options.branch,
     };
 
@@ -671,7 +717,7 @@ async function analyzeCSharpPackage(
  * Find all Python files in a directory
  */
 async function findPythonFiles(packagePath: string): Promise<string[]> {
-  const patterns = [path.join(packagePath, "**/*.py")];
+  const patterns = ["**/*.py"];
 
   const ignorePatterns = [
     "**/node_modules/**",
@@ -691,11 +737,16 @@ async function findPythonFiles(packagePath: string): Promise<string[]> {
 
   const files: string[] = [];
 
+  // Resolve symlinks in package path (important for MacOS temp dirs)
+  const realPackagePath = await fs.realpath(packagePath);
+
   for (const pattern of patterns) {
     const matches = await glob(pattern, {
+      cwd: realPackagePath,
       ignore: ignorePatterns,
       nodir: true,
       absolute: true,
+      follow: true,
     });
     files.push(...matches);
   }
@@ -707,7 +758,7 @@ async function findPythonFiles(packagePath: string): Promise<string[]> {
  * Find all C# files in a directory
  */
 async function findCSharpFiles(packagePath: string): Promise<string[]> {
-  const patterns = [path.join(packagePath, "**/*.cs")];
+  const patterns = ["**/*.cs"];
 
   const ignorePatterns = [
     "**/node_modules/**",
@@ -723,11 +774,16 @@ async function findCSharpFiles(packagePath: string): Promise<string[]> {
 
   const files: string[] = [];
 
+  // Resolve symlinks in package path (important for MacOS temp dirs)
+  const realPackagePath = await fs.realpath(packagePath);
+
   for (const pattern of patterns) {
     const matches = await glob(pattern, {
+      cwd: realPackagePath,
       ignore: ignorePatterns,
       nodir: true,
       absolute: true,
+      follow: true,
     });
     files.push(...matches);
   }

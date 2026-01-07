@@ -52,4 +52,4 @@ packages/fixtures-typescript/src/invalid.ts
 **/.mermaid/
 
 # Generated C4 diagrams (from doc-sync command)
-**/docs/c4/
+# **/docs/c4/

@@ -1,0 +1,20 @@
+@startuml C4_Context
+
+' DevAC Generated Documentation
+' devac:seed-hash: c096f1675d9604e6cda5ea43fe13a54f7a1971774e2d06cff9a604335be8b655
+' devac:generated-at: 2026-01-05T09:54:02.639Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/fixtures-csharp/sample-project
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title sample-project - System Context Diagram
+
+' No effects extracted yet.
+' Run `devac analyze` to extract effects.
+' Then run `devac doc-sync` to regenerate this diagram.
+
+System(system, "sample-project", "No effects extracted")
+
+@enduml
