@@ -1,5 +1,12 @@
 # @pietgk/devac-cli
 
+## 0.19.0
+
+### Patch Changes
+
+- Updated dependencies [eb2364b]
+  - @pietgk/devac-core@0.19.0
+
 ## 0.18.1
 
 ### Patch Changes
