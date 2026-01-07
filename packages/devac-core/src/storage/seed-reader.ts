@@ -14,6 +14,7 @@ import { fileExists } from "../utils/atomic-write.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
 import { getUnifiedQuery } from "./parquet-schemas.js";
 import { type ContextQueryResult, queryWithContext } from "./query-context.js";
+import { query as unifiedQuery } from "./unified-query.js";
 
 /**
  * Query result type
@@ -592,6 +593,12 @@ export function createSeedReader(pool: DuckDBPool, packagePath: string): SeedRea
 
 /**
  * Query across multiple packages
+ *
+ * @deprecated Use query() from unified-query.ts instead.
+ * This function is maintained for backwards compatibility.
+ *
+ * Supports placeholder syntax: {nodes}, {edges}, {external_refs}, {effects}
+ * which are replaced with view names before execution.
  */
 export async function queryMultiplePackages<T = Record<string, unknown>>(
   pool: DuckDBPool,
@@ -599,36 +606,25 @@ export async function queryMultiplePackages<T = Record<string, unknown>>(
   sql: string,
   branch = "base"
 ): Promise<QueryResult<T>> {
-  const startTime = Date.now();
-
-  // Build paths for all packages
-  const nodePaths: string[] = [];
-  const edgePaths: string[] = [];
-  const refPaths: string[] = [];
-  const effectsPaths: string[] = [];
-
-  for (const pkgPath of packagePaths) {
-    const paths = getSeedPaths(pkgPath, branch);
-    nodePaths.push(path.join(paths.basePath, "nodes.parquet"));
-    edgePaths.push(path.join(paths.basePath, "edges.parquet"));
-    refPaths.push(path.join(paths.basePath, "external_refs.parquet"));
-    effectsPaths.push(path.join(paths.basePath, "effects.parquet"));
-  }
-
-  // Replace placeholders in SQL
+  // Convert placeholder syntax to view names
+  // {nodes} -> nodes, {edges} -> edges, etc.
   const processedSql = sql
-    .replace(/{nodes}/g, `read_parquet([${nodePaths.map((p) => `'${p}'`).join(", ")}])`)
-    .replace(/{edges}/g, `read_parquet([${edgePaths.map((p) => `'${p}'`).join(", ")}])`)
-    .replace(/{external_refs}/g, `read_parquet([${refPaths.map((p) => `'${p}'`).join(", ")}])`)
-    .replace(/{effects}/g, `read_parquet([${effectsPaths.map((p) => `'${p}'`).join(", ")}])`);
+    .replace(/{nodes}/g, "nodes")
+    .replace(/{edges}/g, "edges")
+    .replace(/{external_refs}/g, "external_refs")
+    .replace(/{effects}/g, "effects");
 
-  const rows = await executeWithRecovery(pool, async (conn) => {
-    return await conn.all(processedSql);
+  // Use unified query with packages
+  const result = await unifiedQuery<T>(pool, {
+    packages: packagePaths,
+    sql: processedSql,
+    branch,
   });
 
+  // Return in legacy format (without warnings/packagesQueried)
   return {
-    rows: rows as T[],
-    rowCount: rows.length,
-    timeMs: Date.now() - startTime,
+    rows: result.rows,
+    rowCount: result.rowCount,
+    timeMs: result.timeMs,
   };
 }

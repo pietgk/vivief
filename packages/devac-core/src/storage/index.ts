@@ -54,7 +54,14 @@ export {
 } from "./seed-reader.js";
 export type { QueryResult, IntegrityResult } from "./seed-reader.js";
 
-// Query context
+// Unified query (v3.0 - recommended for new code)
+export { query } from "./unified-query.js";
+export type {
+  QueryConfig,
+  QueryResult as UnifiedQueryResult,
+} from "./unified-query.js";
+
+// Query context (legacy - use query() for new code)
 export {
   setupQueryContext,
   preprocessSql,

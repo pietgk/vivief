@@ -32,7 +32,6 @@ async function main(): Promise<void> {
   // Parse command line arguments
   const args = process.argv.slice(2);
   let packagePath: string | undefined;
-  let hubDir: string | undefined;
   let mode: MCPServerMode = "hub"; // Default to hub mode
   let explicitMode = false;
 
@@ -53,9 +52,6 @@ async function main(): Promise<void> {
       }
       mode = "hub";
       explicitMode = true;
-    } else if (args[i] === "--hub-dir") {
-      hubDir = path.resolve(args[i + 1] || "~/.devac");
-      i++;
     } else if (args[i] === "-h" || args[i] === "--help") {
       printHelp();
       process.exit(0);
@@ -79,7 +75,6 @@ async function main(): Promise<void> {
   const server = await createMCPServer({
     mode,
     packagePath,
-    hubDir,
   });
 
   // Handle shutdown signals
@@ -106,9 +101,10 @@ function printHelp(): void {
   console.error("  -p, --package <path>  Package mode - query a single package");
   console.error("");
   console.error("Options:");
-  console.error("  --hub-dir <path>      Hub directory (default: auto-detect from workspace)");
   console.error("  -v, --version         Show version number");
   console.error("  -h, --help            Show this help message");
+  console.error("");
+  console.error("Hub mode auto-detects the workspace hub directory from the current location.");
   console.error("");
   console.error("Examples:");
   console.error("  devac-mcp                     # Start in hub mode (default)");
