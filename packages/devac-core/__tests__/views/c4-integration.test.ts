@@ -86,6 +86,12 @@ const REFERENCE_PACKAGES = [
 const REFERENCE_ROOT = process.env.DEVAC_REFERENCE_ROOT || path.join(process.env.HOME || "~", "ws");
 const GENERATE_REFS = process.env.DEVAC_GENERATE_REFS === "1";
 
+// Check if fixtures seeds exist (they're generated locally, not in CI)
+const SEEDS_EXIST = await fs
+  .access(path.join(SEED_DIR, "nodes.parquet"))
+  .then(() => true)
+  .catch(() => false);
+
 // =============================================================================
 // Quality Assertion Helpers
 // =============================================================================
@@ -159,7 +165,7 @@ function expectAllEffectsEnriched(enrichmentResult: {
   }
 }
 
-describe("C4 Integration - fixtures-typescript", () => {
+describe.skipIf(!SEEDS_EXIST)("C4 Integration - fixtures-typescript", () => {
   let pool: DuckDBPool;
 
   beforeAll(async () => {
