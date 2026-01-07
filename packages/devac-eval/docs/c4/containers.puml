@@ -1,0 +1,19 @@
+@startuml C4_Container
+
+' DevAC Generated Documentation
+' devac:seed-hash: 70732f88a1ef07f89ac104c29d7b7528c344b22c64ad98b0f3da1d2887e3f545
+' devac:generated-at: 2026-01-05T09:54:02.593Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/devac-eval
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title devac-eval - Container Diagram
+
+System_Boundary(system, "devac-eval") {
+  Container(, "", "", "Observability:Log")
+}
+
+
+
+@enduml

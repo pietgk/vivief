@@ -1,0 +1,17 @@
+@startuml C4_Context
+
+' DevAC Generated Documentation
+' devac:seed-hash: 402b850ddaefeb1c94ada5768add54a1f36d0036d5fd55b0a34c94a731ebdf88
+' devac:generated-at: 2026-01-05T09:54:02.339Z
+' devac:generator: doc-sync@1.0.0
+' devac:verified: false
+' devac:package-path: /Users/grop/ws/vivief/packages/devac-cli
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title devac-cli - System Context Diagram
+
+System(system, "devac-cli", "Package: devac-cli")
+
+
+
+@enduml

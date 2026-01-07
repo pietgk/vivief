@@ -1,0 +1,35 @@
+// DevAC Generated Documentation
+// devac:seed-hash: b1f5af01b82fd44ec73ffec3807c62ee6b31f686d9582120e4cc0667866bd0fb
+// devac:generated-at: 2026-01-06T20:22:11.526Z
+// devac:generator: doc-sync@1.0.0
+// devac:verified: false
+// devac:package-path: /Users/grop/ws/vivief
+
+specification {
+  element system
+  element container
+}
+
+model {
+  system = system 'vivief' {
+    description 'No effects extracted yet'
+
+    placeholder = container 'Placeholder' {
+      description 'Run devac analyze first'
+    }
+  }
+}
+
+views {
+  view context {
+    title 'System Context'
+    include *
+    autoLayout TopBottom
+  }
+
+  view containers {
+    title 'Container Diagram'
+    include *
+    autoLayout TopBottom
+  }
+}

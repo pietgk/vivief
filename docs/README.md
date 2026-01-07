@@ -1,6 +1,8 @@
 # DevAC Documentation
 
-**DevAC** (Developer Analysis & Codebase) is a federated code analysis system that parses codebases into queryable knowledge graphs using DuckDB + Parquet.
+**DevAC** (Developer Analysis & Codebase) is 
+- a combination of tools to enable developers to use the combination of humans, systems and llm's to have a powerfull and easy DX to create validated high quality systems that are documented and can be explained. 
+- a federated code analysis system that parses codebases into queryable knowledge graphs using DuckDB + Parquet.
 
 ## Documentation Structure
 

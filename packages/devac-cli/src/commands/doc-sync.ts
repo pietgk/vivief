@@ -398,7 +398,7 @@ async function generateC4FromEffects(
         const nodeRows = await executeWithRecovery(pool, async (conn) => {
           const nodeQuery = `
             SELECT entity_id, name, qualified_name, kind
-            FROM read_parquet('${packagePath}/.devac/seed/nodes.parquet')
+            FROM read_parquet('${packagePath}/.devac/seed/base/nodes.parquet')
             WHERE entity_id IN (${escapedIds.map((id) => `'${id}'`).join(", ")})
           `;
           return await conn.all(nodeQuery);
@@ -416,7 +416,7 @@ async function generateC4FromEffects(
         const edgeRows = await executeWithRecovery(pool, async (conn) => {
           const edgeQuery = `
             SELECT source_entity_id, target_entity_id
-            FROM read_parquet('${packagePath}/.devac/seed/edges.parquet')
+            FROM read_parquet('${packagePath}/.devac/seed/base/edges.parquet')
             WHERE edge_type = 'CALLS'
               AND source_entity_id IN (${escapedIds.map((id) => `'${id}'`).join(", ")})
           `;

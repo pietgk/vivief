@@ -848,6 +848,10 @@ export function exportContainersToLikeC4(diagram: C4ContainerDiagram): string {
 
 /**
  * Sanitize ID for LikeC4
+ *
+ * Converts any string into a valid LikeC4 identifier by replacing
+ * non-alphanumeric characters with underscores and ensuring it
+ * doesn't start with a digit.
  */
 export function sanitizeLikeC4Id(id: string): string {
   const sanitized = id.replace(/[^a-zA-Z0-9_]/g, "_");
