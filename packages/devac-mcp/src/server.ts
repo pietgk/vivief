@@ -764,10 +764,9 @@ export class DevacMCPServer {
    */
   async start(): Promise<void> {
     // Create the appropriate data provider based on mode
-    // In hub mode, hubDir will be auto-detected from workspace if not provided
+    // In hub mode, hubDir is auto-detected from workspace by findWorkspaceHubDir()
     this._provider = await createDataProvider(this.options.mode, {
       packagePath: this.options.packagePath,
-      hubDir: this.options.hubDir,
       memoryLimit: this.options.memoryLimit,
     });
 
@@ -801,7 +800,6 @@ export class DevacMCPServer {
       isRunning: this.running,
       mode: this.options.mode,
       packagePath: this.options.packagePath,
-      hubDir: this.options.hubDir,
       toolCount: MCP_TOOLS.length,
       uptime: this.running ? Date.now() - this.startTime : 0,
     };

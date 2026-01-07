@@ -41,7 +41,9 @@ export {
   SeedReader,
   createSeedReader,
   queryMultiplePackages,
-  // Query context (ergonomic query UX)
+  // Unified query (v3.0 - recommended for new code)
+  query,
+  // Query context (legacy - use query() for new code)
   setupQueryContext,
   queryWithContext,
   preprocessSql,
@@ -62,7 +64,10 @@ export type {
   WriteResult,
   QueryResult,
   IntegrityResult,
-  // Query context types
+  // Unified query types (v3.0 - recommended for new code)
+  QueryConfig,
+  UnifiedQueryResult,
+  // Query context types (legacy - use query() for new code)
   QueryContextConfig,
   QueryContextResult,
   ContextQueryResult,

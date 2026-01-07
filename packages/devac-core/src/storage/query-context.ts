@@ -3,6 +3,9 @@
  *
  * Sets up DuckDB views for ergonomic queries against seed files.
  * Enables `FROM nodes` instead of `FROM read_parquet('/full/path/...')`.
+ *
+ * @deprecated Use query() from unified-query.ts instead for new code.
+ * This module is maintained for backwards compatibility.
  */
 
 import * as fs from "node:fs/promises";
@@ -11,6 +14,7 @@ import type { Connection } from "duckdb-async";
 import { getParquetFilePaths, getSeedPaths } from "../types/config.js";
 import { fileExists } from "../utils/atomic-write.js";
 import { type DuckDBPool, executeWithRecovery } from "./duckdb-pool.js";
+import { query as unifiedQuery } from "./unified-query.js";
 
 /**
  * Query context configuration
@@ -51,61 +55,64 @@ export interface DiscoveredPackage {
 }
 
 /**
- * Set up query context with views for a package
+ * Set up query context with views for a package or repository
+ *
+ * @deprecated Use query() from unified-query.ts instead.
+ * This function is maintained for backwards compatibility.
+ *
+ * Query hierarchy (seeds only exist at package level):
+ * - Package level: Query that package's seeds directly
+ * - Repo level: Aggregate all packages' seeds in the repo
+ * - Workspace level (hub mode): Use query() with all packages
  *
  * Creates views:
- * - nodes: All nodes from the package
- * - edges: All edges from the package
- * - external_refs: All external references from the package
- * - effects: All effects from the package (v3.0 foundation)
+ * - nodes: All nodes (from package or aggregated across packages)
+ * - edges: All edges
+ * - external_refs: All external references
+ * - effects: All effects (v3.0 foundation)
+ * - nodes_{pkgName}: Package-specific views when packages map provided
  */
 export async function setupQueryContext(
   pool: DuckDBPool,
   config: QueryContextConfig
 ): Promise<QueryContextResult> {
   const { packagePath, branch = "base" } = config;
-  const viewsCreated: string[] = [];
-  const warnings: string[] = [];
 
   try {
+    // Collect package paths for unified query
+    const packagePaths: string[] = [];
     const paths = getSeedPaths(packagePath, branch);
     const parquetPaths = getParquetFilePaths(paths.basePath);
 
-    await executeWithRecovery(pool, async (conn) => {
-      // Create view for nodes
-      if (await fileExists(parquetPaths.nodes)) {
-        await createView(conn, "nodes", parquetPaths.nodes);
-        viewsCreated.push("nodes");
-      } else {
-        warnings.push(`nodes.parquet not found at ${parquetPaths.nodes}`);
-      }
+    // Check if packagePath itself has seeds (is a package)
+    const hasDirectSeeds = await fileExists(parquetPaths.nodes);
+    if (hasDirectSeeds) {
+      packagePaths.push(packagePath);
+    }
 
-      // Create view for edges
-      if (await fileExists(parquetPaths.edges)) {
-        await createView(conn, "edges", parquetPaths.edges);
-        viewsCreated.push("edges");
-      } else {
-        warnings.push(`edges.parquet not found at ${parquetPaths.edges}`);
+    // Add packages from map (if provided)
+    if (config.packages) {
+      for (const [, pkgPath] of config.packages) {
+        if (!packagePaths.includes(pkgPath)) {
+          packagePaths.push(pkgPath);
+        }
       }
+    }
 
-      // Create view for external_refs
-      if (await fileExists(parquetPaths.externalRefs)) {
-        await createView(conn, "external_refs", parquetPaths.externalRefs);
-        viewsCreated.push("external_refs");
-      } else {
-        warnings.push(`external_refs.parquet not found at ${parquetPaths.externalRefs}`);
-      }
+    // Use unified query to set up views (run a no-op query)
+    const result = await unifiedQuery(pool, {
+      packages: packagePaths,
+      sql: "SELECT 1", // Just to set up views
+      branch,
+    });
 
-      // Create view for effects (v3.0 foundation)
-      if (await fileExists(parquetPaths.effects)) {
-        await createView(conn, "effects", parquetPaths.effects);
-        viewsCreated.push("effects");
-      }
-      // Note: No warning for missing effects - it's optional until parsers emit effects
-
-      // Set up additional package views if provided
-      if (config.packages) {
-        for (const [pkgName, pkgPath] of config.packages) {
+    // For backwards compatibility, also create package-specific views
+    // (e.g., nodes_core, edges_core) if packages map was provided
+    const viewsCreated = [...result.viewsCreated];
+    const packages = config.packages;
+    if (packages) {
+      await executeWithRecovery(pool, async (conn) => {
+        for (const [pkgName, pkgPath] of packages) {
           const pkgPaths = getSeedPaths(pkgPath, branch);
           const pkgParquetPaths = getParquetFilePaths(pkgPaths.basePath);
 
@@ -125,25 +132,24 @@ export async function setupQueryContext(
             viewsCreated.push(`external_refs_${pkgName}`);
           }
 
-          // Create effects view for package (v3.0 foundation)
           if (await fileExists(pkgParquetPaths.effects)) {
             await createView(conn, `effects_${pkgName}`, pkgParquetPaths.effects);
             viewsCreated.push(`effects_${pkgName}`);
           }
         }
-      }
-    });
+      });
+    }
 
     return {
       success: true,
       viewsCreated,
-      warnings,
+      warnings: result.warnings,
     };
   } catch (error) {
     return {
       success: false,
-      viewsCreated,
-      warnings,
+      viewsCreated: [],
+      warnings: [],
       error: error instanceof Error ? error.message : String(error),
     };
   }
