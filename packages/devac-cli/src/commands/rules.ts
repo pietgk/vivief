@@ -29,10 +29,8 @@ import { formatOutput, formatTable } from "./output-formatter.js";
  * Options for rules run command
  */
 export interface RulesRunOptions {
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Filter output by domain */
   domain?: string;
   /** Maximum effects to process */
@@ -192,8 +190,15 @@ export async function rulesRunCommand(options: RulesRunOptions): Promise<RulesRu
 
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "LIMIT 1000";
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      const sql = `SELECT * FROM effects ${limitClause}`;
+      effectsResult = await seedReader.querySeeds(sql);
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -219,15 +224,6 @@ export async function rulesRunCommand(options: RulesRunOptions): Promise<RulesRu
       } finally {
         await hub.close();
       }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      const sql = `SELECT * FROM effects ${limitClause}`;
-      effectsResult = await seedReader.querySeeds(sql);
     }
 
     // Run rules engine on effects
@@ -294,7 +290,15 @@ export async function rulesStatsCommand(options: RulesRunOptions): Promise<Rules
 
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "";
 
-    if (options.hub) {
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      const sql = `SELECT * FROM effects ${limitClause}`;
+      effectsResult = await seedReader.querySeeds(sql);
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -319,14 +323,6 @@ export async function rulesStatsCommand(options: RulesRunOptions): Promise<Rules
       } finally {
         await hub.close();
       }
-    } else {
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      const sql = `SELECT * FROM effects ${limitClause}`;
-      effectsResult = await seedReader.querySeeds(sql);
     }
 
     // Run rules engine
@@ -400,19 +396,19 @@ export function rulesListCommand(options: RulesListOptions): RulesListResult {
 export function registerRulesCommand(program: Command): void {
   const rulesCmd = program
     .command("rules")
-    .description("Run rules engine on effects to produce domain effects");
+    .description(
+      "Run rules engine on effects to produce domain effects (queries all repos by default)"
+    );
 
   // Default rules run command
   rulesCmd
-    .option("-p, --package <path>", "Package path", process.cwd())
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-d, --domain <domain>", "Filter by domain (e.g., Payment, Auth)")
     .option("-l, --limit <count>", "Maximum effects to process", "1000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await rulesRunCommand({
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         domain: options.domain,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
@@ -445,14 +441,12 @@ export function registerRulesCommand(program: Command): void {
   rulesCmd
     .command("stats")
     .description("Show rule match statistics")
-    .option("-p, --package <path>", "Package path", process.cwd())
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-l, --limit <count>", "Maximum effects to process")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await rulesStatsCommand({
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });

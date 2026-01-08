@@ -646,3 +646,51 @@ export async function findWorkspaceHubDir(startDir?: string): Promise<string | n
   }
   return path.join(workspaceDir, ".devac");
 }
+
+// =============================================================================
+// Hub Location Validation
+// =============================================================================
+
+/**
+ * Result of hub location validation
+ */
+export interface HubValidationResult {
+  valid: boolean;
+  reason?: string;
+  suggestedPath?: string;
+}
+
+/**
+ * Validate that a hub directory is at the correct location
+ *
+ * Hubs should ONLY exist at workspace level (a directory that contains git repos
+ * but is not itself a git repo). Hubs should NEVER be inside a git repository.
+ *
+ * @param hubDir Path to the hub directory (e.g., /ws/.devac)
+ * @returns Validation result with reason and suggested path if invalid
+ */
+export async function validateHubLocation(hubDir: string): Promise<HubValidationResult> {
+  const absoluteHubDir = path.resolve(hubDir);
+  const parentDir = path.dirname(absoluteHubDir);
+
+  // Check if hub is inside a git repo (this is invalid)
+  if (await isGitRepo(parentDir)) {
+    // Try to find the correct workspace location
+    const workspaceDir = await findWorkspaceDir(parentDir);
+    return {
+      valid: false,
+      reason: `Hub is inside git repo "${path.basename(parentDir)}". Hubs should only exist at workspace level.`,
+      suggestedPath: workspaceDir ? path.join(workspaceDir, ".devac") : undefined,
+    };
+  }
+
+  // Check if parent is a valid workspace (must contain at least one git repo)
+  if (!(await isWorkspaceDirectory(parentDir))) {
+    return {
+      valid: false,
+      reason: "Hub location is not a valid workspace (must contain at least one git repo).",
+    };
+  }
+
+  return { valid: true };
+}

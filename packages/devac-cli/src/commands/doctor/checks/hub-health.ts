@@ -6,7 +6,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { createHubClient } from "@pietgk/devac-core";
+import { createHubClient, discoverWorkspaceRepos, validateHubLocation } from "@pietgk/devac-core";
 import type { CheckContext, CheckResult, HealthCheck } from "../types.js";
 
 /**
@@ -107,6 +107,112 @@ const hubQueryableCheck: HealthCheck = {
 };
 
 /**
+ * Check if hub is at the correct location (workspace level, not inside a git repo)
+ */
+const hubLocationCheck: HealthCheck = {
+  id: "hub-location",
+  name: "Hub location",
+  category: "hub-health",
+  requiresWorkspace: false,
+  async run(context: CheckContext): Promise<CheckResult> {
+    const validation = await validateHubLocation(context.hubDir);
+
+    if (!validation.valid) {
+      return {
+        id: "hub-location",
+        name: "Hub location",
+        status: "fail",
+        message: "hub is in wrong location",
+        details:
+          validation.reason +
+          (validation.suggestedPath
+            ? `\n\nCorrect location: ${validation.suggestedPath.replace(process.env.HOME ?? "", "~")}`
+            : ""),
+        fixable: true,
+        fixCommand: validation.suggestedPath
+          ? `rm -rf "${context.hubDir}" && devac hub init`
+          : undefined,
+        category: "hub-health",
+      };
+    }
+
+    return {
+      id: "hub-location",
+      name: "Hub location",
+      status: "pass",
+      message: "at workspace level",
+      category: "hub-health",
+    };
+  },
+};
+
+/**
+ * Check for duplicate hub databases inside git repos
+ */
+const duplicateHubCheck: HealthCheck = {
+  id: "duplicate-hubs",
+  name: "Duplicate hubs",
+  category: "hub-health",
+  requiresWorkspace: true,
+  async run(context: CheckContext): Promise<CheckResult> {
+    const workspaceDir = path.dirname(context.hubDir);
+    const duplicates: string[] = [];
+
+    try {
+      // Discover all repos in workspace
+      const repos = await discoverWorkspaceRepos(workspaceDir, { checkSeeds: false });
+
+      // Check each repo for a hub database
+      for (const repo of repos) {
+        const repoHubPath = path.join(repo.path, ".devac", "central.duckdb");
+        try {
+          await fs.access(repoHubPath);
+          duplicates.push(repoHubPath);
+        } catch {
+          // No hub in this repo - this is expected
+        }
+      }
+    } catch {
+      // Can't read workspace - skip this check
+      return {
+        id: "duplicate-hubs",
+        name: "Duplicate hubs",
+        status: "skip",
+        message: "could not scan workspace",
+        category: "hub-health",
+      };
+    }
+
+    if (duplicates.length > 0) {
+      const displayPaths = duplicates.map((p) => p.replace(process.env.HOME ?? "", "~"));
+      return {
+        id: "duplicate-hubs",
+        name: "Duplicate hubs",
+        status: "warn",
+        message: `found ${duplicates.length} hub(s) inside git repos`,
+        details: `These hubs should be removed:\n${displayPaths.map((p) => `  - ${p}`).join("\n")}\n\nRun the fix command to remove them.`,
+        fixable: true,
+        fixCommand: duplicates.map((p) => `rm -f "${p}"`).join(" && "),
+        category: "hub-health",
+      };
+    }
+
+    return {
+      id: "duplicate-hubs",
+      name: "Duplicate hubs",
+      status: "pass",
+      message: "no duplicates found",
+      category: "hub-health",
+    };
+  },
+};
+
+/**
  * All hub health checks
  */
-export const hubHealthChecks: HealthCheck[] = [hubInitializedCheck, hubQueryableCheck];
+export const hubHealthChecks: HealthCheck[] = [
+  hubInitializedCheck,
+  hubQueryableCheck,
+  hubLocationCheck,
+  duplicateHubCheck,
+];

@@ -62,7 +62,7 @@ describe("hub status command", () => {
   }
 
   it("shows hub path", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubStatus({ hubDir });
 
@@ -71,7 +71,7 @@ describe("hub status command", () => {
   });
 
   it("shows total repo count", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await createAndRegisterRepo("repo2");
 
@@ -82,7 +82,7 @@ describe("hub status command", () => {
   });
 
   it("shows total package count", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
 
     const result = await hubStatus({ hubDir });
@@ -92,7 +92,7 @@ describe("hub status command", () => {
   });
 
   it("shows cross-repo edge count", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubStatus({ hubDir });
 
@@ -109,7 +109,7 @@ describe("hub status command", () => {
   });
 
   it("shows cache size", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubStatus({ hubDir });
 

@@ -63,7 +63,7 @@ describe("hub errors command", () => {
 
   async function pushValidationErrors(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
-    await hub.init();
+    await hub.init({ skipValidation: true });
     try {
       await hub.pushValidationErrors(repoId, "", [
         {
@@ -91,7 +91,7 @@ describe("hub errors command", () => {
   }
 
   it("returns empty array when no errors exist", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
 
     const result = await hubErrorsCommand({ hubDir });
@@ -102,7 +102,7 @@ describe("hub errors command", () => {
   });
 
   it("returns validation errors from hub", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -114,7 +114,7 @@ describe("hub errors command", () => {
   });
 
   it("filters by severity", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -126,7 +126,7 @@ describe("hub errors command", () => {
   });
 
   it("filters by source", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -138,7 +138,7 @@ describe("hub errors command", () => {
   });
 
   it("filters by file path", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -150,7 +150,7 @@ describe("hub errors command", () => {
   });
 
   it("respects limit option", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -161,7 +161,7 @@ describe("hub errors command", () => {
   });
 
   it("outputs pretty format by default", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -172,7 +172,7 @@ describe("hub errors command", () => {
   });
 
   it("outputs JSON when requested", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushValidationErrors("org/repo1");
 
@@ -184,7 +184,7 @@ describe("hub errors command", () => {
 
   it("returns empty results when hub has no data", async () => {
     // Hub must be initialized first (no longer auto-creates in readOnly mode)
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubErrorsCommand({ hubDir });
 

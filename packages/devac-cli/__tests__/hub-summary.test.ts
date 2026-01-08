@@ -63,7 +63,7 @@ describe("hub summary command", () => {
 
   async function pushValidationErrors(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
-    await hub.init();
+    await hub.init({ skipValidation: true });
     try {
       await hub.pushValidationErrors(repoId, "", [
         {
@@ -92,7 +92,7 @@ describe("hub summary command", () => {
 
   async function pushDiagnostics(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
-    await hub.init();
+    await hub.init({ skipValidation: true });
     const now = new Date().toISOString();
     try {
       await hub.pushDiagnostics([
@@ -170,7 +170,7 @@ describe("hub summary command", () => {
 
   describe("counts mode", () => {
     it("returns zero counts when no data exists", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
 
       const result = await hubSummaryCommand({ hubDir, type: "counts" });
@@ -181,7 +181,7 @@ describe("hub summary command", () => {
     });
 
     it("returns validation counts", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushValidationErrors("org/repo1");
 
@@ -194,7 +194,7 @@ describe("hub summary command", () => {
     });
 
     it("returns diagnostics counts", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushDiagnostics("org/repo1");
 
@@ -210,7 +210,7 @@ describe("hub summary command", () => {
 
   describe("validation mode", () => {
     it("returns validation summary grouped by source", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushValidationErrors("org/repo1");
 
@@ -226,7 +226,7 @@ describe("hub summary command", () => {
     });
 
     it("returns empty summary when no validation errors", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
 
       const result = await hubSummaryCommand({
@@ -242,7 +242,7 @@ describe("hub summary command", () => {
 
   describe("diagnostics mode", () => {
     it("returns diagnostics summary grouped by source", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushDiagnostics("org/repo1");
 
@@ -258,7 +258,7 @@ describe("hub summary command", () => {
     });
 
     it("returns diagnostics summary grouped by severity", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushDiagnostics("org/repo1");
 
@@ -273,7 +273,7 @@ describe("hub summary command", () => {
     });
 
     it("returns empty summary when no diagnostics", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
 
       const result = await hubSummaryCommand({
@@ -289,7 +289,7 @@ describe("hub summary command", () => {
 
   describe("output formatting", () => {
     it("outputs pretty format by default", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
       await pushValidationErrors("org/repo1");
 
@@ -300,7 +300,7 @@ describe("hub summary command", () => {
     });
 
     it("outputs JSON when requested", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
       await createAndRegisterRepo("repo1");
 
       const result = await hubSummaryCommand({
@@ -316,7 +316,7 @@ describe("hub summary command", () => {
 
   it("returns zero counts when hub has no data", async () => {
     // Hub must be initialized first (no longer auto-creates in readOnly mode)
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubSummaryCommand({ hubDir, type: "counts" });
 

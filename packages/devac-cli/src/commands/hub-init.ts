@@ -30,6 +30,8 @@ export interface HubInitOptions {
   hubDir: string;
   /** Force reinitialization if hub exists */
   force?: boolean;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -54,7 +56,7 @@ export interface HubInitResult {
  * Initialize the central federation hub
  */
 export async function hubInit(options: HubInitOptions): Promise<HubInitResult> {
-  const { hubDir, force = false } = options;
+  const { hubDir, force = false, skipValidation = false } = options;
   const hubPath = path.join(hubDir, "central.duckdb");
 
   try {
@@ -77,7 +79,7 @@ export async function hubInit(options: HubInitOptions): Promise<HubInitResult> {
     const hub = createCentralHub({ hubDir });
 
     try {
-      await hub.init({ force });
+      await hub.init({ force, skipValidation });
 
       const message =
         force && hubExists ? `Hub reinitialized at ${hubPath}` : `Hub initialized at ${hubPath}`;

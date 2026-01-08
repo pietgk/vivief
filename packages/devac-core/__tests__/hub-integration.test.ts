@@ -23,7 +23,7 @@ describe("Hub Integration", () => {
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-integration-test-"));
     hubDir = path.join(tempDir, ".devac");
     hub = createCentralHub({ hubDir });
-    await hub.init();
+    await hub.init({ skipValidation: true }); // Skip validation for tests
   });
 
   afterEach(async () => {

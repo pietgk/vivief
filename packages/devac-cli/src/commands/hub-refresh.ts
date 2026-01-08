@@ -19,6 +19,8 @@ export interface HubRefreshOptions {
   repoId?: string;
   /** Force regenerate all manifests */
   force?: boolean;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -67,7 +69,7 @@ export async function hubRefresh(options: HubRefreshOptions): Promise<HubRefresh
   }
 
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir, skipValidation: options.skipValidation });
 
   try {
     const result: RefreshResult = await client.refresh(repoId);

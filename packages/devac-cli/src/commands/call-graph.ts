@@ -24,10 +24,8 @@ export interface CallGraphCommandOptions {
   entityId: string;
   /** Direction of the call graph */
   direction: "callers" | "callees" | "both";
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Maximum depth for recursive queries (default: 3) */
   maxDepth?: number;
   /** Maximum results per direction */
@@ -121,8 +119,38 @@ export async function callGraphCommand(
     let callers: unknown[] | undefined;
     let callees: unknown[] | undefined;
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      if (options.direction === "callers" || options.direction === "both") {
+        const sql = `
+          SELECT e.*, n.name, n.kind, n.source_file
+          FROM edges e
+          JOIN nodes n ON e.source_entity_id = n.entity_id
+          WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
+          AND e.edge_type = 'CALLS'
+          LIMIT ${limit}
+        `;
+        const result = await seedReader.querySeeds(sql);
+        callers = result.rows;
+      }
+
+      if (options.direction === "callees" || options.direction === "both") {
+        const sql = `
+          SELECT e.*, n.name, n.kind, n.source_file
+          FROM edges e
+          JOIN nodes n ON e.target_entity_id = n.entity_id
+          WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
+          AND e.edge_type = 'CALLS'
+          LIMIT ${limit}
+        `;
+        const result = await seedReader.querySeeds(sql);
+        callees = result.rows;
+      }
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -172,38 +200,6 @@ export async function callGraphCommand(
       } finally {
         await hub.close();
       }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      if (options.direction === "callers" || options.direction === "both") {
-        const sql = `
-          SELECT e.*, n.name, n.kind, n.source_file
-          FROM edges e
-          JOIN nodes n ON e.source_entity_id = n.entity_id
-          WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
-          AND e.edge_type = 'CALLS'
-          LIMIT ${limit}
-        `;
-        const result = await seedReader.querySeeds(sql);
-        callers = result.rows;
-      }
-
-      if (options.direction === "callees" || options.direction === "both") {
-        const sql = `
-          SELECT e.*, n.name, n.kind, n.source_file
-          FROM edges e
-          JOIN nodes n ON e.target_entity_id = n.entity_id
-          WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
-          AND e.edge_type = 'CALLS'
-          LIMIT ${limit}
-        `;
-        const result = await seedReader.querySeeds(sql);
-        callees = result.rows;
-      }
     }
 
     const count = (callers?.length || 0) + (callees?.length || 0);
@@ -245,10 +241,9 @@ export async function callGraphCommand(
 export function registerCallGraphCommand(program: Command): void {
   program
     .command("call-graph <entityId>")
-    .description("Get call graph for a function")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .description("Get call graph for a function (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-d, --direction <dir>", "Direction (callers, callees, both)", "both")
-    .option("--hub", "Query all registered repos via Hub")
     .option("--max-depth <depth>", "Maximum depth", "3")
     .option("-l, --limit <count>", "Maximum results per direction", "100")
     .option("--json", "Output as JSON")
@@ -257,7 +252,6 @@ export function registerCallGraphCommand(program: Command): void {
         entityId,
         direction: options.direction as "callers" | "callees" | "both",
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         maxDepth: options.maxDepth ? Number.parseInt(options.maxDepth, 10) : undefined,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

@@ -63,7 +63,7 @@ describe("hub diagnostics command", () => {
 
   async function pushDiagnostics(repoId: string): Promise<void> {
     const hub = createCentralHub({ hubDir });
-    await hub.init();
+    await hub.init({ skipValidation: true });
     const now = new Date().toISOString();
     try {
       await hub.pushDiagnostics([
@@ -140,7 +140,7 @@ describe("hub diagnostics command", () => {
   }
 
   it("returns empty array when no diagnostics exists", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
 
     const result = await hubDiagnosticsCommand({ hubDir });
@@ -151,7 +151,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("returns diagnostics from hub", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -163,7 +163,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("filters by source", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -175,7 +175,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("filters by severity", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -187,7 +187,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("filters by category", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -199,7 +199,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("filters by file path", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -211,7 +211,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("filters by actionable status", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -225,7 +225,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("respects limit option", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -236,7 +236,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("outputs pretty format by default", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -248,7 +248,7 @@ describe("hub diagnostics command", () => {
   });
 
   it("outputs JSON when requested", async () => {
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
     await createAndRegisterRepo("repo1");
     await pushDiagnostics("org/repo1");
 
@@ -260,7 +260,7 @@ describe("hub diagnostics command", () => {
 
   it("returns empty results when hub has no data", async () => {
     // Hub must be initialized first (no longer auto-creates in readOnly mode)
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await hubDiagnosticsCommand({ hubDir });
 

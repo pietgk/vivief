@@ -719,7 +719,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
       if (fs.existsSync(hubPath)) {
         result.health.hubPath = hubPath;
         try {
-          const hub = new CentralHub({ hubDir });
+          const hub = new CentralHub({ hubDir, readOnly: true });
           await hub.init();
           result.health.hubConnected = true;
 

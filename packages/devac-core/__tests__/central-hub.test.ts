@@ -91,7 +91,7 @@ describe("CentralHub", () => {
   describe("initialization", () => {
     it("creates hub at default path ~/.devac/central.duckdb", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       const hubPath = path.join(hubDir, "central.duckdb");
       const exists = await fs
@@ -104,7 +104,7 @@ describe("CentralHub", () => {
     it("creates hub at custom path if specified", async () => {
       const customDir = path.join(tempDir, "custom-hub");
       hub = createCentralHub({ hubDir: customDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       const hubPath = path.join(customDir, "central.duckdb");
       const exists = await fs
@@ -116,9 +116,9 @@ describe("CentralHub", () => {
 
     it("is idempotent - can init multiple times", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
-      await hub.init();
-      await hub.init();
+      await hub.init({ skipValidation: true });
+      await hub.init({ skipValidation: true });
+      await hub.init({ skipValidation: true });
 
       const status = await hub.getStatus();
       expect(status.repoCount).toBe(0);
@@ -126,7 +126,7 @@ describe("CentralHub", () => {
 
     it("force option reinitializes hub", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       // Register a repo
       const repoPath = path.join(tempDir, "test-repo");
@@ -139,7 +139,7 @@ describe("CentralHub", () => {
       // Force reinitialize
       await hub.close();
       hub = createCentralHub({ hubDir });
-      await hub.init({ force: true });
+      await hub.init({ force: true, skipValidation: true });
 
       status = await hub.getStatus();
       expect(status.repoCount).toBe(0);
@@ -149,7 +149,7 @@ describe("CentralHub", () => {
   describe("repository management", () => {
     beforeEach(async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
     });
 
     it("registers repo and generates manifest", async () => {
@@ -278,7 +278,7 @@ describe("CentralHub", () => {
   describe("status", () => {
     beforeEach(async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
     });
 
     it("returns hub status", async () => {
@@ -311,7 +311,7 @@ describe("CentralHub", () => {
   describe("cross-repo queries", () => {
     beforeEach(async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
     });
 
     it("queries across all registered repos", async () => {
@@ -362,7 +362,7 @@ describe("CentralHub", () => {
   describe("affected analysis", () => {
     beforeEach(async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
     });
 
     it("returns empty result for no dependencies", async () => {
@@ -387,7 +387,7 @@ describe("CentralHub", () => {
   describe("edge cases", () => {
     it("handles registering same repo twice", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       const repoPath = path.join(tempDir, "test-repo");
       await createMockRepo(repoPath);
@@ -404,7 +404,7 @@ describe("CentralHub", () => {
 
     it("handles unregistering non-existent repo", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       // Should not throw
       await hub.unregisterRepo("github.com/nonexistent/repo");
@@ -412,7 +412,7 @@ describe("CentralHub", () => {
 
     it("marks repos as missing when path doesn't exist", async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
 
       const repoPath = path.join(tempDir, "test-repo");
       await createMockRepo(repoPath);
@@ -433,7 +433,7 @@ describe("CentralHub", () => {
   describe("validation errors", () => {
     beforeEach(async () => {
       hub = createCentralHub({ hubDir });
-      await hub.init();
+      await hub.init({ skipValidation: true });
     });
 
     it("pushes validation errors to hub", async () => {

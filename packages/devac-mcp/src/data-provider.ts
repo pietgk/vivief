@@ -29,6 +29,7 @@ import {
   getRulesByDomain,
   getRulesByProvider,
   queryMultiplePackages,
+  validateHubLocation,
 } from "@pietgk/devac-core";
 
 /**
@@ -595,6 +596,16 @@ export class HubDataProvider implements DataProvider {
     this._pool = new DuckDBPool({ memoryLimit: this.memoryLimit });
     await this._pool.initialize();
 
+    // Validate hub location and warn if misplaced
+    const validation = await validateHubLocation(this.hubDir);
+    if (!validation.valid) {
+      console.error(`WARNING: ${validation.reason}`);
+      if (validation.suggestedPath) {
+        console.error(`Expected hub location: ${validation.suggestedPath}`);
+        console.error("Run 'devac doctor' to diagnose and fix hub issues.");
+      }
+    }
+
     // Check if another MCP server is already running
     const client = createHubClient({ hubDir: this.hubDir });
     if (await client.isMCPRunning()) {
@@ -608,6 +619,24 @@ export class HubDataProvider implements DataProvider {
       // This allows CLI commands to delegate operations via IPC
       this._hubServer = createHubServer({ hubDir: this.hubDir });
       await this._hubServer.start();
+    }
+
+    // Check if hub has any registered repositories
+    try {
+      const repos = await this.listRepos();
+      if (repos.length === 0) {
+        console.error(
+          "WARNING: Hub has no registered repositories.\n" +
+            "Run 'devac sync' to analyze and register repositories."
+        );
+      }
+    } catch {
+      // Hub may not have tables yet - this is expected for fresh hubs
+      console.error(
+        "WARNING: Hub has no code graph data.\n" +
+          "This may indicate you're connected to the wrong hub or it's not initialized.\n" +
+          "Run 'devac sync' to analyze and register repositories."
+      );
     }
   }
 
@@ -1157,7 +1186,9 @@ export async function createDataProvider(
     const discoveredHubDir = await findWorkspaceHubDir();
     if (!discoveredHubDir) {
       throw new Error(
-        "Could not find workspace. Run from a workspace directory or provide --hub-dir."
+        "Could not find workspace hub.\n" +
+          "Make sure you're running from within a workspace (directory containing git repos)\n" +
+          "or from within a git repository that's part of a workspace."
       );
     }
     hubDir = discoveredHubDir;

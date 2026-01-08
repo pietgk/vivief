@@ -167,6 +167,9 @@ export {
   // Workspace hub discovery
   findWorkspaceDir,
   findWorkspaceHubDir,
+  // Hub location validation
+  validateHubLocation,
+  type HubValidationResult,
   // State management
   getStateFilePath,
   loadWorkspaceState,

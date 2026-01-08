@@ -78,6 +78,9 @@ export {
   // Workspace hub discovery
   findWorkspaceDir,
   findWorkspaceHubDir,
+  // Hub location validation
+  validateHubLocation,
+  type HubValidationResult,
 } from "./discover.js";
 
 // State management

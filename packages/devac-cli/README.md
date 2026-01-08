@@ -105,8 +105,7 @@ devac hub status
 # Unregister a package
 devac hub unregister --package /path/to/package
 
-# Override auto-detection with explicit path
-devac hub status --hub-dir /custom/path/.devac
+# Hub location is auto-detected from workspace
 ```
 
 ## Configuration

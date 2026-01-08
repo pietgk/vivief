@@ -18,7 +18,7 @@ describe("hub refresh command", () => {
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-refresh-test-"));
     hubDir = path.join(tempDir, ".devac");
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
   });
 
   afterEach(async () => {
@@ -68,7 +68,7 @@ describe("hub refresh command", () => {
     await createAndRegisterRepo("repo1");
     await createAndRegisterRepo("repo2");
 
-    const result = await hubRefresh({ hubDir });
+    const result = await hubRefresh({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.reposRefreshed).toBe(2);
@@ -78,7 +78,7 @@ describe("hub refresh command", () => {
     const { repoId } = await createAndRegisterRepo("repo1");
     await createAndRegisterRepo("repo2");
 
-    const result = await hubRefresh({ hubDir, repoId });
+    const result = await hubRefresh({ hubDir, repoId, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.reposRefreshed).toBe(1);
@@ -99,7 +99,7 @@ describe("hub refresh command", () => {
       })
     );
 
-    const result = await hubRefresh({ hubDir, repoId });
+    const result = await hubRefresh({ hubDir, repoId, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.packagesUpdated).toBeGreaterThanOrEqual(1);
@@ -108,7 +108,7 @@ describe("hub refresh command", () => {
   it("reports packages and edges updated", async () => {
     await createAndRegisterRepo("test-repo");
 
-    const result = await hubRefresh({ hubDir });
+    const result = await hubRefresh({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.packagesUpdated).toBeDefined();
@@ -124,7 +124,7 @@ describe("hub refresh command", () => {
     const seedDir = path.join(repo1Path, ".devac", "seed");
     await fs.rm(seedDir, { recursive: true, force: true });
 
-    const result = await hubRefresh({ hubDir });
+    const result = await hubRefresh({ hubDir, skipValidation: true });
 
     // The refresh should succeed overall
     expect(result.success).toBe(true);
@@ -138,6 +138,7 @@ describe("hub refresh command", () => {
   it("fails if hub not initialized", async () => {
     const result = await hubRefresh({
       hubDir: path.join(tempDir, "nonexistent"),
+      skipValidation: true,
     });
 
     expect(result.success).toBe(false);
@@ -145,7 +146,7 @@ describe("hub refresh command", () => {
   });
 
   it("returns empty result when no repos registered", async () => {
-    const result = await hubRefresh({ hubDir });
+    const result = await hubRefresh({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.reposRefreshed).toBe(0);

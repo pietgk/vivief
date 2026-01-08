@@ -106,7 +106,7 @@ describe("status command", () => {
 
     it("detects hub as connected when initialized", async () => {
       // Initialize hub in workspace's .devac directory
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       const result = await statusCommand({
         path: repoDir,
@@ -119,7 +119,7 @@ describe("status command", () => {
     });
 
     it("counts registered repos", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       // Create and register a repo within the workspace
       const testRepoPath = path.join(workspaceDir, "test-repo");
@@ -216,7 +216,7 @@ describe("status command", () => {
     });
 
     it("suggests starting watch when hub connected but watch inactive", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       const result = await statusCommand({
         path: repoDir,

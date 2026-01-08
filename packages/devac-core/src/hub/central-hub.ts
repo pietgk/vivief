@@ -9,6 +9,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Database } from "duckdb-async";
 import { computeStringHash } from "../utils/hash.js";
+import { validateHubLocation } from "../workspace/discover.js";
 import {
   type CrossRepoEdge,
   type DiagnosticsCategory,
@@ -35,6 +36,8 @@ import {
  */
 export interface HubInitOptions {
   force?: boolean;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -184,8 +187,21 @@ export class CentralHub {
    * Initialize the hub
    */
   async init(options: HubInitOptions = {}): Promise<void> {
-    const { force = false } = options;
+    const { force = false, skipValidation = false } = options;
     const readOnly = this.options.readOnly ?? false;
+
+    // Validate hub location before creating/opening
+    // Only validate when NOT in read-only mode (we allow reading from any hub)
+    // and when not explicitly skipped (for tests)
+    if (!readOnly && !skipValidation) {
+      const validation = await validateHubLocation(this.options.hubDir);
+      if (!validation.valid) {
+        const suggestion = validation.suggestedPath
+          ? `\n\nCorrect hub location: ${validation.suggestedPath}`
+          : "";
+        throw new Error(`Invalid hub location: ${validation.reason}${suggestion}`);
+      }
+    }
 
     if (force && !readOnly) {
       // Remove existing hub

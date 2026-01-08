@@ -118,7 +118,7 @@ describe("sync command", () => {
       gitRemote: "git@github.com:test/repo1.git",
       hasSeeds: false, // Needs analysis
     });
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const progress: string[] = [];
     const result = await syncCommand({
@@ -140,7 +140,7 @@ describe("sync command", () => {
       gitRemote: "git@github.com:test/repo1.git",
       hasSeeds: true,
     });
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await syncCommand({
       path: workspaceDir,
@@ -158,7 +158,7 @@ describe("sync command", () => {
       gitRemote: "git@github.com:test/repo1.git",
       hasSeeds: true,
     });
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     const result = await syncCommand({
       path: workspaceDir,
@@ -177,7 +177,7 @@ describe("sync command", () => {
       gitRemote: "git@github.com:test/repo1.git",
       hasSeeds: true,
     });
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
 
     // First sync to register
     await syncCommand({

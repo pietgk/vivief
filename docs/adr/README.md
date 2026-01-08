@@ -41,6 +41,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0029](0029-likec4-directory-restructure.md) | LikeC4 Directory Restructure for Conflict Avoidance | Accepted | 2026-01 |
 | [0030](0030-unified-query-system.md) | Unified Query System Architecture | Accepted | 2026-01 |
 | [0031](0031-architecture-quality-improvement-loop.md) | Architecture Documentation Quality Improvement Loop | Accepted | 2026-01 |
+| [0032](0032-hub-location-validation.md) | Hub Location Validation | Accepted | 2026-01 |
 
 ## Creating a New ADR
 

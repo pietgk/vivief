@@ -33,25 +33,12 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   let packagePath: string | undefined;
   let mode: MCPServerMode = "hub"; // Default to hub mode
-  let explicitMode = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "-p" || args[i] === "--package") {
-      if (explicitMode && mode === "hub") {
-        console.error("Error: --package and --hub are mutually exclusive");
-        process.exit(1);
-      }
       packagePath = path.resolve(args[i + 1] || ".");
       mode = "package";
-      explicitMode = true;
       i++;
-    } else if (args[i] === "--hub") {
-      if (explicitMode && mode === "package") {
-        console.error("Error: --package and --hub are mutually exclusive");
-        process.exit(1);
-      }
-      mode = "hub";
-      explicitMode = true;
     } else if (args[i] === "-h" || args[i] === "--help") {
       printHelp();
       process.exit(0);
@@ -96,19 +83,16 @@ async function main(): Promise<void> {
 function printHelp(): void {
   console.error("Usage: devac-mcp [options]");
   console.error("");
-  console.error("Modes (mutually exclusive):");
-  console.error("  --hub                 Hub mode - query across all registered repos (default)");
-  console.error("  -p, --package <path>  Package mode - query a single package");
-  console.error("");
   console.error("Options:");
+  console.error("  -p, --package <path>  Package mode - query a single package");
   console.error("  -v, --version         Show version number");
   console.error("  -h, --help            Show this help message");
   console.error("");
+  console.error("By default, runs in hub mode which queries across all registered repos.");
   console.error("Hub mode auto-detects the workspace hub directory from the current location.");
   console.error("");
   console.error("Examples:");
   console.error("  devac-mcp                     # Start in hub mode (default)");
-  console.error("  devac-mcp --hub               # Explicitly start in hub mode");
   console.error("  devac-mcp -p ./my-project     # Start in package mode");
   console.error("  devac-mcp --package ~/code    # Start in package mode");
   console.error("");

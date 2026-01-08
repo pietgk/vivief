@@ -52,10 +52,10 @@ devac find-symbol authenticate --kind function
 ```
 
 ### `devac query`
-Cross-repo queries using the unified Seeds database.
+Cross-repo queries using the unified Seeds database. Queries all repos by default.
 ```bash
 devac query "SELECT repo, file_path, name FROM symbols WHERE name = 'authenticate' ORDER BY repo"
-devac query "SELECT DISTINCT repo FROM symbols" --hub
+devac query "SELECT DISTINCT repo FROM symbols"
 ```
 
 ### `devac context`

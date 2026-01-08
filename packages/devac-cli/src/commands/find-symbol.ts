@@ -25,10 +25,8 @@ export interface FindSymbolOptions {
   name: string;
   /** Optional kind filter (function, class, variable, etc.) */
   kind?: string;
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Maximum results to return */
   limit?: number;
   /** Output as JSON */
@@ -66,8 +64,22 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
 
     let result: QueryResult<unknown>;
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      let sql = `SELECT * FROM nodes WHERE name = '${options.name.replace(/'/g, "''")}'`;
+      if (options.kind) {
+        sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
+      }
+      if (options.limit) {
+        sql += ` LIMIT ${options.limit}`;
+      }
+
+      result = await seedReader.querySeeds(sql);
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -100,22 +112,6 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
       } finally {
         await hub.close();
       }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      let sql = `SELECT * FROM nodes WHERE name = '${options.name.replace(/'/g, "''")}'`;
-      if (options.kind) {
-        sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
-      }
-      if (options.limit) {
-        sql += ` LIMIT ${options.limit}`;
-      }
-
-      result = await seedReader.querySeeds(sql);
     }
 
     const symbols = result.rows;
@@ -156,10 +152,9 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
 export function registerFindSymbolCommand(program: Command): void {
   program
     .command("find-symbol <name>")
-    .description("Find symbol by name")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .description("Find symbol by name (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-k, --kind <kind>", "Symbol kind filter")
-    .option("--hub", "Query all registered repos via Hub")
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
@@ -167,7 +162,6 @@ export function registerFindSymbolCommand(program: Command): void {
         name,
         kind: options.kind,
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });

@@ -17,6 +17,8 @@ export interface HubUnregisterOptions {
   hubDir: string;
   /** Repository ID to unregister */
   repoId: string;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -53,7 +55,7 @@ export async function hubUnregister(options: HubUnregisterOptions): Promise<HubU
   }
 
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir, skipValidation: options.skipValidation });
 
   try {
     await client.unregisterRepo(repoId);

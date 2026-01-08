@@ -49,10 +49,8 @@ async function hasEffectsParquet(packagePath: string): Promise<boolean> {
  * Options for C4 diagram commands
  */
 export interface C4CommandOptions {
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** System name for diagrams */
   systemName?: string;
   /** System description */
@@ -259,7 +257,25 @@ async function getDomainEffects(options: C4CommandOptions) {
     let effectsResult: QueryResult<unknown>;
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "LIMIT 5000";
 
-    if (options.hub) {
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
+
+      const sql = `SELECT * FROM effects ${limitClause}`;
+      const startTime = Date.now();
+      effectsResult = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - startTime,
+        };
+      });
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -291,24 +307,6 @@ async function getDomainEffects(options: C4CommandOptions) {
       } finally {
         await hub.close();
       }
-    } else {
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-
-      // Set up query context to create views for effects table
-      await setupQueryContext(pool, { packagePath: pkgPath });
-
-      const sql = `SELECT * FROM effects ${limitClause}`;
-      const startTime = Date.now();
-      effectsResult = await executeWithRecovery(pool, async (conn) => {
-        const rows = await conn.all(sql);
-        return {
-          rows,
-          rowCount: rows.length,
-          timeMs: Date.now() - startTime,
-        };
-      });
     }
 
     // Run rules engine on effects
@@ -562,24 +560,23 @@ export async function c4ExternalsCommand(options: C4CommandOptions): Promise<C4E
  * Register the C4 command with the CLI program
  */
 export function registerC4Command(program: Command): void {
-  const c4Cmd = program.command("c4").description("Generate C4 architecture diagrams from effects");
+  const c4Cmd = program
+    .command("c4")
+    .description("Generate C4 architecture diagrams from effects (queries all repos by default)");
 
   // c4 context subcommand (also the default when no subcommand given)
   c4Cmd
     .command("context", { isDefault: true })
     .description("Generate C4 Context diagram (default command)")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-n, --name <name>", "System name", "System")
     .option("-d, --description <desc>", "System description")
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("-o, --output <path>", "Output file for PlantUML")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ContextCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         systemName: options.name,
         systemDescription: options.description,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
@@ -597,8 +594,7 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("containers")
     .description("Generate C4 Container diagram")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-n, --name <name>", "System name", "System")
     .option(
       "-g, --grouping <strategy>",
@@ -609,10 +605,8 @@ export function registerC4Command(program: Command): void {
     .option("-o, --output <path>", "Output file for PlantUML")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ContainersCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         systemName: options.name,
         grouping: options.grouping as "directory" | "package" | "flat",
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
@@ -630,15 +624,12 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("domains")
     .description("Discover domain boundaries from effects")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4DomainsCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });
@@ -653,15 +644,12 @@ export function registerC4Command(program: Command): void {
   c4Cmd
     .command("externals")
     .description("List external systems detected from effects")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .option("-p, --package <path>", "Query single package only")
     .option("-l, --limit <count>", "Maximum effects to process", "5000")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await c4ExternalsCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,
       });
