@@ -38,10 +38,8 @@ async function hasEffectsParquet(packagePath: string): Promise<boolean> {
  * Options for effects command
  */
 export interface EffectsCommandOptions {
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Filter by effect type */
   type?: string;
   /** Filter by file path */
@@ -140,8 +138,25 @@ export async function effectsCommand(
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limitClause = options.limit ? `LIMIT ${options.limit}` : "LIMIT 100";
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
+
+      const sql = `SELECT * FROM effects ${whereClause} ${limitClause}`;
+      const queryStartTime = Date.now();
+      result = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - queryStartTime,
+        };
+      });
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -189,25 +204,6 @@ export async function effectsCommand(
       } finally {
         await hub.close();
       }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-
-      // Set up query context to create views for effects table
-      await setupQueryContext(pool, { packagePath: pkgPath });
-
-      const sql = `SELECT * FROM effects ${whereClause} ${limitClause}`;
-      const queryStartTime = Date.now();
-      result = await executeWithRecovery(pool, async (conn) => {
-        const rows = await conn.all(sql);
-        return {
-          rows,
-          rowCount: rows.length,
-          timeMs: Date.now() - queryStartTime,
-        };
-      });
     }
 
     const effects = result.rows;
@@ -244,10 +240,8 @@ export async function effectsCommand(
  * Options for effects summary command
  */
 export interface EffectsSummaryOptions {
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Group by field: type, file, entity */
   groupBy?: "type" | "file" | "entity";
   /** Output as JSON */
@@ -293,7 +287,23 @@ export async function effectsSummaryCommand(
 
     let result: QueryResult<unknown>;
 
-    if (options.hub) {
+    if (options.packagePath) {
+      const pkgPath = path.resolve(options.packagePath);
+
+      // Set up query context to create views for effects table
+      await setupQueryContext(pool, { packagePath: pkgPath });
+
+      const sql = `SELECT ${groupField} as group_key, COUNT(*) as count FROM effects GROUP BY ${groupField} ORDER BY count DESC`;
+      const queryStartTime = Date.now();
+      result = await executeWithRecovery(pool, async (conn) => {
+        const rows = await conn.all(sql);
+        return {
+          rows,
+          rowCount: rows.length,
+          timeMs: Date.now() - queryStartTime,
+        };
+      });
+    } else {
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -339,24 +349,6 @@ export async function effectsSummaryCommand(
       } finally {
         await hub.close();
       }
-    } else {
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-
-      // Set up query context to create views for effects table
-      await setupQueryContext(pool, { packagePath: pkgPath });
-
-      const sql = `SELECT ${groupField} as group_key, COUNT(*) as count FROM effects GROUP BY ${groupField} ORDER BY count DESC`;
-      const queryStartTime = Date.now();
-      result = await executeWithRecovery(pool, async (conn) => {
-        const rows = await conn.all(sql);
-        return {
-          rows,
-          rowCount: rows.length,
-          timeMs: Date.now() - queryStartTime,
-        };
-      });
     }
 
     const summary = result.rows as Array<{ group_key: string; count: number }>;
@@ -415,9 +407,8 @@ export function registerEffectsCommand(program: Command): void {
   // effects list subcommand (also the default when no subcommand given)
   effectsCmd
     .command("list", { isDefault: true })
-    .description("List effects (default command)")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .description("List effects (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-t, --type <type>", "Filter by effect type (FunctionCall, Store, etc.)")
     .option("-f, --file <path>", "Filter by file path")
     .option("-e, --entity <id>", "Filter by source entity ID")
@@ -426,10 +417,8 @@ export function registerEffectsCommand(program: Command): void {
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await effectsCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         type: options.type,
         file: options.file,
         entity: options.entity,
@@ -448,16 +437,13 @@ export function registerEffectsCommand(program: Command): void {
   // effects summary subcommand
   effectsCmd
     .command("summary")
-    .description("Get summary statistics for effects")
-    .option("-p, --package <path>", "Package path")
-    .option("--hub", "Query all registered repos via Hub")
+    .description("Get summary statistics for effects (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-g, --group-by <field>", "Group by: type, file, entity", "type")
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const packagePath = options.package ? path.resolve(options.package) : process.cwd();
       const result = await effectsSummaryCommand({
-        packagePath,
-        hub: options.hub,
+        packagePath: options.package ? path.resolve(options.package) : undefined,
         groupBy: options.groupBy as "type" | "file" | "entity",
         json: options.json,
       });

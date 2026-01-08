@@ -22,6 +22,8 @@ export interface HubRegisterOptions {
   all?: boolean;
   /** Callback for progress updates */
   onProgress?: (message: string) => void;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -54,10 +56,11 @@ export interface HubRegisterResult {
 async function registerSingleRepo(
   hubDir: string,
   repoPath: string,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  skipValidation?: boolean
 ): Promise<HubRegisterResult> {
   // Register with hub (delegates to MCP if running, otherwise direct)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir, skipValidation });
 
   try {
     const result = await client.registerRepo(repoPath);
@@ -88,7 +91,8 @@ async function registerSingleRepo(
 async function registerAllRepos(
   hubDir: string,
   workspacePath: string,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  skipValidation?: boolean
 ): Promise<HubRegisterResult> {
   // Discover all repos in workspace
   const workspace = await discoverWorkspace(workspacePath, { checkSeeds: false });
@@ -111,7 +115,7 @@ async function registerAllRepos(
   for (const repo of workspace.repos) {
     onProgress?.(`\nProcessing ${repo.name}...`);
 
-    const result = await registerSingleRepo(hubDir, repo.path, onProgress);
+    const result = await registerSingleRepo(hubDir, repo.path, onProgress, skipValidation);
 
     if (result.success) {
       successCount++;
@@ -192,9 +196,9 @@ export async function hubRegister(options: HubRegisterOptions): Promise<HubRegis
       };
     }
 
-    return registerAllRepos(hubDir, workspaceDir, onProgress);
+    return registerAllRepos(hubDir, workspaceDir, onProgress, options.skipValidation);
   }
 
   // Single repo registration
-  return registerSingleRepo(hubDir, repoPath, onProgress);
+  return registerSingleRepo(hubDir, repoPath, onProgress, options.skipValidation);
 }

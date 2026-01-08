@@ -122,6 +122,7 @@ class WorkspaceManagerImpl implements WorkspaceManager {
       autoRegister: options.autoRegister ?? true,
       autoRefresh: options.autoRefresh ?? true,
       refreshDebounceMs: options.refreshDebounceMs ?? 500,
+      skipValidation: options.skipValidation ?? false,
     };
 
     this.hub = createCentralHub({ hubDir: this.options.hubDir });
@@ -129,7 +130,7 @@ class WorkspaceManagerImpl implements WorkspaceManager {
 
   async initialize(): Promise<WorkspaceInfo> {
     // Initialize hub
-    await this.hub.init();
+    await this.hub.init({ skipValidation: this.options.skipValidation });
     this.initialized = true;
 
     // Discover workspace

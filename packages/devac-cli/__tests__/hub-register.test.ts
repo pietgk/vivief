@@ -24,7 +24,7 @@ describe("hub register command", () => {
     repoDir = path.join(tempDir, "test-repo");
 
     // Initialize hub first
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
   });
 
   afterEach(async () => {
@@ -83,6 +83,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: "/nonexistent/path",
+      skipValidation: true,
     });
 
     expect(result.success).toBe(false);
@@ -96,6 +97,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(false);
@@ -108,6 +110,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(true);
@@ -127,6 +130,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(true);
@@ -145,6 +149,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(true);
@@ -161,6 +166,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir,
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(true);
@@ -171,11 +177,11 @@ describe("hub register command", () => {
     await createMockRepo(repoDir);
 
     // Register first time
-    const result1 = await hubRegister({ hubDir, repoPath: repoDir });
+    const result1 = await hubRegister({ hubDir, repoPath: repoDir, skipValidation: true });
     expect(result1.success).toBe(true);
 
     // Register second time (should update)
-    const result2 = await hubRegister({ hubDir, repoPath: repoDir });
+    const result2 = await hubRegister({ hubDir, repoPath: repoDir, skipValidation: true });
     expect(result2.success).toBe(true);
     expect(result2.repoId).toBe(result1.repoId);
   });
@@ -187,6 +193,7 @@ describe("hub register command", () => {
     const result = await hubRegister({
       hubDir: path.join(tempDir, "nonexistent-hub"),
       repoPath: repoDir,
+      skipValidation: true,
     });
 
     expect(result.success).toBe(false);

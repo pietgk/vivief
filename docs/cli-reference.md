@@ -394,73 +394,65 @@ Find symbols by name.
 devac find-symbol <name> [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
-  --hub-dir <path>        Hub directory
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --kind <type>           Filter by kind (function, class, variable, etc.)
   --limit <n>             Maximum results (default: 100)
   --pretty                Human-readable output
 
 Examples:
-  devac find-symbol handleLogin                # Find in current package
+  devac find-symbol handleLogin                # Search all repos
   devac find-symbol User --kind class          # Filter by kind
-  devac find-symbol auth --hub                 # Search all repos
+  devac find-symbol login -p ./my-pkg          # Search single package
   devac find-symbol login --pretty             # Human-readable output
 ```
 
 ### devac deps
 
-Get dependencies (outgoing edges) for an entity.
+Get dependencies (outgoing edges) for an entity. Queries all repos by default.
 
 ```bash
 devac deps <entity-id> [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
-  --hub-dir <path>        Hub directory
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --edge-type <type>      Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)
   --limit <n>             Maximum results (default: 100)
   --pretty                Human-readable output
 
 Examples:
-  devac deps myrepo:pkg:function:abc123        # Get dependencies
+  devac deps myrepo:pkg:function:abc123        # Get dependencies (all repos)
   devac deps entity-id --edge-type CALLS       # Filter by edge type
-  devac deps entity-id --hub                   # Cross-repo query
+  devac deps entity-id -p ./my-pkg             # Single package query
 ```
 
 ### devac dependents
 
-Get dependents (incoming edges) for an entity.
+Get dependents (incoming edges) for an entity. Queries all repos by default.
 
 ```bash
 devac dependents <entity-id> [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
-  --hub-dir <path>        Hub directory
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --edge-type <type>      Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.)
   --limit <n>             Maximum results (default: 100)
   --pretty                Human-readable output
 
 Examples:
-  devac dependents entity-id                   # Who uses this?
+  devac dependents entity-id                   # Who uses this? (all repos)
   devac dependents entity-id --edge-type IMPORTS
-  devac dependents entity-id --hub             # Cross-repo query
+  devac dependents entity-id -p ./my-pkg       # Single package query
 ```
 
 ### devac file-symbols
 
-Get symbols defined in a file.
+Get symbols defined in a file. Queries all repos by default.
 
 ```bash
 devac file-symbols <file-path> [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
-  --hub-dir <path>        Hub directory
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --kind <type>           Filter by kind (function, class, variable, etc.)
   --limit <n>             Maximum results (default: 100)
   --pretty                Human-readable output
@@ -473,15 +465,13 @@ Examples:
 
 ### devac call-graph
 
-Get call graph for a function.
+Get call graph for a function. Queries all repos by default.
 
 ```bash
 devac call-graph <entity-id> [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
-  --hub-dir <path>        Hub directory
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --direction <dir>       Direction: callers, callees, or both (default: both)
   --max-depth <n>         Maximum depth (default: 3)
   --limit <n>             Maximum results per direction (default: 100)
@@ -1230,14 +1220,13 @@ Commands for querying and analyzing code effects.
 
 ### devac effects
 
-Query effects extracted during analysis.
+Query effects extracted during analysis. Queries all repos by default.
 
 ```bash
 devac effects [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --type <type>           Filter by effect type (FunctionCall, Store, Retrieve, Send)
   --file <path>           Filter by file path
   --entity <id>           Filter by source entity ID
@@ -1248,10 +1237,10 @@ Options:
   --pretty                Human-readable output
 
 Examples:
-  devac effects                              # All effects in current package
+  devac effects                              # All effects (all repos)
   devac effects --type FunctionCall          # Only function calls
   devac effects --external-only              # External API calls
-  devac effects --hub                        # Query all repos
+  devac effects -p ./my-pkg                  # Query single package
   devac effects --pretty                     # Human-readable output
 ```
 
@@ -1267,14 +1256,13 @@ Examples:
 
 ### devac effects summary
 
-Get summary statistics for effects.
+Get summary statistics for effects. Queries all repos by default.
 
 ```bash
 devac effects summary [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --group-by <field>      Group by: type, file, entity (default: type)
   --format <format>       Output format: table (default), json
 
@@ -1469,14 +1457,13 @@ Commands for running the Rules Engine on effects.
 
 ### devac rules
 
-Run the Rules Engine to transform effects into domain effects.
+Run the Rules Engine to transform effects into domain effects. Queries all repos by default.
 
 ```bash
 devac rules [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --config <path>         Custom rules configuration file
   --builtin               Include builtin rules (default: true)
   --domain <name>         Filter output by domain (e.g., Payment, Auth)
@@ -1485,7 +1472,7 @@ Options:
   --pretty                Human-readable output
 
 Examples:
-  devac rules                                # Run builtin rules
+  devac rules                                # Run builtin rules (all repos)
   devac rules --domain Payment               # Show Payment domain only
   devac rules --show-unmatched               # Show unmatched effects
   devac rules --config rules.json            # Use custom rules
@@ -1556,21 +1543,20 @@ Commands for generating C4 architecture diagrams.
 
 ### devac c4
 
-Generate C4 diagrams from domain effects.
+Generate C4 diagrams from domain effects. Queries all repos by default.
 
 ```bash
 devac c4 [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --level <level>         C4 level: context, container, component (default: context)
   --name <name>           System name for the diagram
   --output <file>         Output file path (default: stdout)
   --format <format>       Output format: plantuml (default), json
 
 Examples:
-  devac c4                                   # Generate context diagram
+  devac c4                                   # Generate context diagram (all repos)
   devac c4 --level container                 # Container diagram
   devac c4 --name "Payment Service"          # Custom system name
   devac c4 --output c4-context.puml          # Save to file
@@ -1596,19 +1582,18 @@ Rel(system, external_Database_dynamodb, "Read, Write...")
 
 ### devac c4 domains
 
-Discover domain boundaries from effects.
+Discover domain boundaries from effects. Queries all repos by default.
 
 ```bash
 devac c4 domains [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --format <format>       Output format: table (default), json
 
 Examples:
-  devac c4 domains                           # Show domain boundaries
-  devac c4 domains --hub                     # Cross-repo domains
+  devac c4 domains                           # Show domain boundaries (all repos)
+  devac c4 domains -p ./my-pkg               # Single package boundaries
 ```
 
 **Output:**
@@ -1636,18 +1621,17 @@ Domain Boundaries
 
 ### devac c4 externals
 
-List external systems detected from effects.
+List external systems detected from effects. Queries all repos by default.
 
 ```bash
 devac c4 externals [options]
 
 Options:
-  -p, --package <path>    Package path (default: current directory)
-  --hub                   Query all registered repos (hub mode)
+  -p, --package <path>    Query single package only (otherwise queries all repos)
   --format <format>       Output format: table (default), json
 
 Examples:
-  devac c4 externals                         # List external systems
+  devac c4 externals                         # List external systems (all repos)
 ```
 
 **Output:**
@@ -1684,7 +1668,6 @@ Check system health and optionally fix issues.
 devac doctor [options]
 
 Options:
-  --hub-dir <path>    Hub directory (default: ~/.devac)
   --fix               Execute fixes (default: dry-run only)
   --json              Output as JSON
   --verbose           Show additional details
@@ -1766,12 +1749,10 @@ Start the MCP server for AI assistant integration.
 devac mcp start [options]
 
 Options:
-  --hub               Hub mode: federated queries across all registered repos (default)
-  --package <path>    Package mode: query a single package
+  --package <path>    Package mode: query a single package (default: hub mode)
 
 Examples:
   devac mcp start                      # Start in hub mode (default)
-  devac mcp start --hub                # Explicit hub mode
   devac mcp start --package ./pkg      # Start in package mode
 ```
 
@@ -1779,10 +1760,8 @@ Examples:
 
 | Mode | Description |
 |------|-------------|
-| Hub | Queries across all registered repos via central hub. Use `get_context`, `query_sql`, `list_repos`, validation tools, and unified feedback tools. |
-| Package | Queries a single package. Useful for isolated analysis. |
-
-The `--hub` and `--package` flags are mutually exclusive. Hub mode is the default if neither is specified.
+| Hub (default) | Queries across all registered repos via central hub. Use `get_context`, `query_sql`, `list_repos`, validation tools, and unified feedback tools. |
+| Package | Queries a single package. Useful for isolated analysis. Use `--package` to enable. |
 
 **MCP Tools Available:**
 - Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`

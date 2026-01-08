@@ -19,7 +19,7 @@ describe("hub unregister command", () => {
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-unreg-test-"));
     hubDir = path.join(tempDir, ".devac");
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
   });
 
   afterEach(async () => {
@@ -55,7 +55,7 @@ describe("hub unregister command", () => {
       JSON.stringify({ schemaVersion: "2.1" })
     );
 
-    const result = await hubRegister({ hubDir, repoPath });
+    const result = await hubRegister({ hubDir, repoPath, skipValidation: true });
     if (!result.repoId) throw new Error("Failed to register repo");
     return { repoPath, repoId: result.repoId };
   }
@@ -63,18 +63,18 @@ describe("hub unregister command", () => {
   it("removes repo from registry", async () => {
     const { repoId } = await createAndRegisterRepo("test-repo");
 
-    const result = await hubUnregister({ hubDir, repoId });
+    const result = await hubUnregister({ hubDir, repoId, skipValidation: true });
 
     expect(result.success).toBe(true);
 
-    const listResult = await hubList({ hubDir });
+    const listResult = await hubList({ hubDir, skipValidation: true });
     expect(listResult.repos).toHaveLength(0);
   });
 
   it("removes cross-repo edges", async () => {
     const { repoId } = await createAndRegisterRepo("test-repo");
 
-    const result = await hubUnregister({ hubDir, repoId });
+    const result = await hubUnregister({ hubDir, repoId, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.message).toContain("unregistered");
@@ -83,7 +83,7 @@ describe("hub unregister command", () => {
   it("keeps manifest.json by default", async () => {
     const { repoPath, repoId } = await createAndRegisterRepo("test-repo");
 
-    await hubUnregister({ hubDir, repoId });
+    await hubUnregister({ hubDir, repoId, skipValidation: true });
 
     const manifestPath = path.join(repoPath, ".devac", "manifest.json");
     const manifestExists = await fs
@@ -97,6 +97,7 @@ describe("hub unregister command", () => {
     const result = await hubUnregister({
       hubDir,
       repoId: "github.com/nonexistent/repo",
+      skipValidation: true,
     });
 
     expect(result.success).toBe(true);
@@ -106,6 +107,7 @@ describe("hub unregister command", () => {
     const result = await hubUnregister({
       hubDir: path.join(tempDir, "nonexistent"),
       repoId: "some-repo",
+      skipValidation: true,
     });
 
     expect(result.success).toBe(false);

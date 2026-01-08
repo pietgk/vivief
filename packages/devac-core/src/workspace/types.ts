@@ -376,6 +376,9 @@ export interface WorkspaceManagerOptions {
 
   /** Debounce time in ms for hub refresh (default: 500) */
   refreshDebounceMs?: number;
+
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**

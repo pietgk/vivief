@@ -23,6 +23,8 @@ export interface HubListOptions {
   json?: boolean;
   /** Verbose output */
   verbose?: boolean;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 /**
@@ -62,7 +64,7 @@ export async function hubList(options: HubListOptions): Promise<HubListResult> {
   }
 
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir, skipValidation: options.skipValidation });
 
   try {
     const repos = await client.listRepos();

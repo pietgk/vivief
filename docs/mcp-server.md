@@ -32,12 +32,12 @@ The MCP server supports two modes:
 devac mcp start --package /path/to/your/package
 ```
 
-**Hub Mode** - Query across all registered repositories:
+**Hub Mode (default)** - Query across all registered repositories:
 ```bash
-devac mcp start --hub
+devac mcp start
 ```
 
-The `--hub` and `--package` flags are mutually exclusive. Hub mode is the default if neither is specified.
+Hub mode is the default. Use `--package` to query a single package instead.
 
 ### Programmatically
 
@@ -404,7 +404,7 @@ Add the following to your Claude Desktop configuration:
   "mcpServers": {
     "devac": {
       "command": "npx",
-      "args": ["devac", "mcp", "start", "--hub"]
+      "args": ["devac", "mcp", "start"]
     }
   }
 }

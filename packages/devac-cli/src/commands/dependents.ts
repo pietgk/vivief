@@ -23,10 +23,8 @@ import { formatDependencies, formatOutput } from "./output-formatter.js";
 export interface DependentsCommandOptions {
   /** Entity ID to get dependents for */
   entityId: string;
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Filter by edge type (CALLS, IMPORTS, EXTENDS, etc.) */
   edgeType?: string;
   /** Maximum results to return */
@@ -68,8 +66,35 @@ export async function dependentsCommand(
 
     let result: QueryResult<unknown>;
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      if (options.edgeType || options.limit) {
+        // Use SQL query for filtering
+        let sql = `SELECT * FROM edges WHERE target_entity_id = '${options.entityId.replace(
+          /'/g,
+          "''"
+        )}'`;
+        if (options.edgeType) {
+          sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
+        }
+        if (options.limit) {
+          sql += ` LIMIT ${options.limit}`;
+        }
+        result = await seedReader.querySeeds(sql);
+      } else {
+        // Use optimized getEdgesByTarget
+        const edges = await seedReader.getEdgesByTarget(options.entityId);
+        result = {
+          rows: edges as unknown[],
+          rowCount: edges.length,
+          timeMs: 0,
+        };
+      }
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -104,35 +129,6 @@ export async function dependentsCommand(
         result = await queryMultiplePackages(pool, packagePaths, sql);
       } finally {
         await hub.close();
-      }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      if (options.edgeType || options.limit) {
-        // Use SQL query for filtering
-        let sql = `SELECT * FROM edges WHERE target_entity_id = '${options.entityId.replace(
-          /'/g,
-          "''"
-        )}'`;
-        if (options.edgeType) {
-          sql += ` AND edge_type = '${options.edgeType.replace(/'/g, "''")}'`;
-        }
-        if (options.limit) {
-          sql += ` LIMIT ${options.limit}`;
-        }
-        result = await seedReader.querySeeds(sql);
-      } else {
-        // Use optimized getEdgesByTarget
-        const edges = await seedReader.getEdgesByTarget(options.entityId);
-        result = {
-          rows: edges as unknown[],
-          rowCount: edges.length,
-          timeMs: 0,
-        };
       }
     }
 
@@ -174,17 +170,15 @@ export async function dependentsCommand(
 export function registerDependentsCommand(program: Command): void {
   program
     .command("dependents <entityId>")
-    .description("Get dependents of an entity (reverse dependencies)")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .description("Get dependents of an entity (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-t, --type <type>", "Filter by edge type (CALLS, IMPORTS, etc.)")
-    .option("--hub", "Query all registered repos via Hub")
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (entityId, options) => {
       const result = await dependentsCommand({
         entityId,
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         edgeType: options.type,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

@@ -43,6 +43,8 @@ export interface HubClientOptions {
   hubDir: string;
   /** Timeout for IPC operations (ms) */
   timeout?: number;
+  /** Skip hub location validation (for tests only) */
+  skipValidation?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -53,11 +55,13 @@ export class HubClient {
   private hubDir: string;
   private socketPath: string;
   private timeout: number;
+  private skipValidation: boolean;
 
   constructor(options: HubClientOptions) {
     this.hubDir = options.hubDir;
     this.socketPath = getSocketPath(this.hubDir);
     this.timeout = options.timeout ?? IPC_TIMEOUT_MS;
+    this.skipValidation = options.skipValidation ?? false;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -176,7 +180,7 @@ export class HubClient {
       hubDir: this.hubDir,
       readOnly: options.readOnly,
     });
-    await hub.init();
+    await hub.init({ skipValidation: this.skipValidation });
     try {
       return await operation(hub);
     } finally {

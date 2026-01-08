@@ -29,7 +29,7 @@ describe("hub query command", () => {
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-query-test-"));
     hubDir = path.join(tempDir, ".devac");
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
   });
 
   afterEach(async () => {

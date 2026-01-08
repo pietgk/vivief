@@ -204,7 +204,7 @@ devac-mcp
 devac-mcp --package ./my-project
 ```
 
-The `--hub` and `--package` flags are mutually exclusive.
+Use `--package` to query a single package instead of all registered repos.
 
 ### MCP Tools
 

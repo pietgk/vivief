@@ -18,7 +18,7 @@ describe("hub list command", () => {
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-hub-list-test-"));
     hubDir = path.join(tempDir, ".devac");
-    await hubInit({ hubDir });
+    await hubInit({ hubDir, skipValidation: true });
   });
 
   afterEach(async () => {
@@ -61,20 +61,20 @@ describe("hub list command", () => {
     const repo1 = await createMockRepo("repo1", "git@github.com:org/repo1.git");
     const repo2 = await createMockRepo("repo2", "git@github.com:org/repo2.git");
 
-    const reg1 = await hubRegister({ hubDir, repoPath: repo1 });
+    const reg1 = await hubRegister({ hubDir, repoPath: repo1, skipValidation: true });
     expect(reg1.success).toBe(true);
     expect(reg1.repoId).toBe("github.com/org/repo1");
 
     // Verify first repo was registered before adding second
-    const afterFirst = await hubList({ hubDir });
+    const afterFirst = await hubList({ hubDir, skipValidation: true });
     expect(afterFirst.success).toBe(true);
     expect(afterFirst.repos).toHaveLength(1);
 
-    const reg2 = await hubRegister({ hubDir, repoPath: repo2 });
+    const reg2 = await hubRegister({ hubDir, repoPath: repo2, skipValidation: true });
     expect(reg2.success).toBe(true);
     expect(reg2.repoId).toBe("github.com/org/repo2");
 
-    const result = await hubList({ hubDir });
+    const result = await hubList({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.repos).toHaveLength(2);
@@ -82,9 +82,9 @@ describe("hub list command", () => {
 
   it("shows repo_id, path, package count, status", async () => {
     const repo = await createMockRepo("test-repo", "git@github.com:org/test.git");
-    await hubRegister({ hubDir, repoPath: repo });
+    await hubRegister({ hubDir, repoPath: repo, skipValidation: true });
 
-    const result = await hubList({ hubDir });
+    const result = await hubList({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.repos).toHaveLength(1);
@@ -96,23 +96,26 @@ describe("hub list command", () => {
 
   it("shows last_synced timestamp", async () => {
     const repo = await createMockRepo("test-repo");
-    await hubRegister({ hubDir, repoPath: repo });
+    await hubRegister({ hubDir, repoPath: repo, skipValidation: true });
 
-    const result = await hubList({ hubDir });
+    const result = await hubList({ hubDir, skipValidation: true });
 
     expect(result.repos).toHaveLength(1);
     expect(result.repos[0]?.lastSynced).toBeDefined();
   });
 
   it("returns empty list if no repos registered", async () => {
-    const result = await hubList({ hubDir });
+    const result = await hubList({ hubDir, skipValidation: true });
 
     expect(result.success).toBe(true);
     expect(result.repos).toHaveLength(0);
   });
 
   it("fails if hub not initialized", async () => {
-    const result = await hubList({ hubDir: path.join(tempDir, "nonexistent") });
+    const result = await hubList({
+      hubDir: path.join(tempDir, "nonexistent"),
+      skipValidation: true,
+    });
 
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();

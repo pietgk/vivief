@@ -23,10 +23,8 @@ import { formatOutput, formatSymbols } from "./output-formatter.js";
 export interface FileSymbolsCommandOptions {
   /** File path to get symbols from */
   filePath: string;
-  /** Package path (for package mode) */
+  /** Package path (for package-only queries, overrides hub mode) */
   packagePath?: string;
-  /** Use hub mode for federated queries */
-  hub?: boolean;
   /** Filter by kind (function, class, variable, etc.) */
   kind?: string;
   /** Maximum results to return */
@@ -68,8 +66,35 @@ export async function fileSymbolsCommand(
 
     let result: QueryResult<unknown>;
 
-    if (options.hub) {
-      // Hub mode: query all registered repos
+    if (options.packagePath) {
+      // Package mode: query single package (only when explicitly requested)
+      const pkgPath = path.resolve(options.packagePath);
+      const seedReader = createSeedReader(pool, pkgPath);
+
+      if (options.kind || options.limit) {
+        // Use SQL query for filtering
+        let sql = `SELECT * FROM nodes WHERE source_file = '${options.filePath.replace(
+          /'/g,
+          "''"
+        )}'`;
+        if (options.kind) {
+          sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
+        }
+        if (options.limit) {
+          sql += ` LIMIT ${options.limit}`;
+        }
+        result = await seedReader.querySeeds(sql);
+      } else {
+        // Use optimized getNodesByFile
+        const nodes = await seedReader.getNodesByFile(options.filePath);
+        result = {
+          rows: nodes as unknown[],
+          rowCount: nodes.length,
+          timeMs: 0,
+        };
+      }
+    } else {
+      // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
       const hub = createCentralHub({ hubDir, readOnly: true });
 
@@ -104,35 +129,6 @@ export async function fileSymbolsCommand(
         result = await queryMultiplePackages(pool, packagePaths, sql);
       } finally {
         await hub.close();
-      }
-    } else {
-      // Package mode: query single package
-      const pkgPath = options.packagePath
-        ? path.resolve(options.packagePath)
-        : path.resolve(process.cwd());
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      if (options.kind || options.limit) {
-        // Use SQL query for filtering
-        let sql = `SELECT * FROM nodes WHERE source_file = '${options.filePath.replace(
-          /'/g,
-          "''"
-        )}'`;
-        if (options.kind) {
-          sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
-        }
-        if (options.limit) {
-          sql += ` LIMIT ${options.limit}`;
-        }
-        result = await seedReader.querySeeds(sql);
-      } else {
-        // Use optimized getNodesByFile
-        const nodes = await seedReader.getNodesByFile(options.filePath);
-        result = {
-          rows: nodes as unknown[],
-          rowCount: nodes.length,
-          timeMs: 0,
-        };
       }
     }
 
@@ -174,17 +170,15 @@ export async function fileSymbolsCommand(
 export function registerFileSymbolsCommand(program: Command): void {
   program
     .command("file-symbols <filePath>")
-    .description("Get all symbols defined in a file")
-    .option("-p, --package <path>", "Package path", process.cwd())
+    .description("Get all symbols defined in a file (queries all repos by default)")
+    .option("-p, --package <path>", "Query single package only")
     .option("-k, --kind <kind>", "Filter by symbol kind")
-    .option("--hub", "Query all registered repos via Hub")
     .option("-l, --limit <count>", "Maximum results", "100")
     .option("--json", "Output as JSON")
     .action(async (filePath, options) => {
       const result = await fileSymbolsCommand({
         filePath,
         packagePath: options.package ? path.resolve(options.package) : undefined,
-        hub: options.hub,
         kind: options.kind,
         limit: options.limit ? Number.parseInt(options.limit, 10) : undefined,
         json: options.json,

@@ -33,7 +33,7 @@ describe("WorkspaceManager", () => {
   describe("initialize", () => {
     it("should discover repos in workspace", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       const info = await manager.initialize();
 
@@ -49,7 +49,7 @@ describe("WorkspaceManager", () => {
       const repo = path.join(tempDir, "single-repo");
       await fs.mkdir(path.join(repo, ".git"), { recursive: true });
 
-      const manager = createWorkspaceManager({ workspacePath: repo });
+      const manager = createWorkspaceManager({ workspacePath: repo, skipValidation: true });
       const info = await manager.initialize();
 
       expect(info.isWorkspace).toBe(false);
@@ -78,7 +78,7 @@ describe("WorkspaceManager", () => {
         })
       );
 
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
       const info = await manager.initialize();
 
       // Should have merged hub status from state
@@ -92,7 +92,7 @@ describe("WorkspaceManager", () => {
   describe("getInfo", () => {
     it("should return workspace info after initialization", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       const info = manager.getInfo();
@@ -104,7 +104,7 @@ describe("WorkspaceManager", () => {
     });
 
     it("should throw if not initialized", () => {
-      const manager = createWorkspaceManager({ workspacePath: tempDir });
+      const manager = createWorkspaceManager({ workspacePath: tempDir, skipValidation: true });
 
       expect(() => manager.getInfo()).toThrow("not initialized");
     });
@@ -113,7 +113,7 @@ describe("WorkspaceManager", () => {
   describe("getStats", () => {
     it("should return workspace stats", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       const stats = manager.getStats();
@@ -130,7 +130,7 @@ describe("WorkspaceManager", () => {
   describe("on/off event handling", () => {
     it("should emit watcher-state events", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       const events: WorkspaceEvent[] = [];
       const unsubscribe = manager.on((event) => {
@@ -154,7 +154,7 @@ describe("WorkspaceManager", () => {
 
     it("should allow unsubscribing from events", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       const events: WorkspaceEvent[] = [];
       const unsubscribe = manager.on((event) => {
@@ -179,7 +179,7 @@ describe("WorkspaceManager", () => {
   describe("startWatch/stopWatch", () => {
     it("should start and stop watching", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       await manager.startWatch();
@@ -196,14 +196,14 @@ describe("WorkspaceManager", () => {
     });
 
     it("should throw if starting watch before initialize", async () => {
-      const manager = createWorkspaceManager({ workspacePath: tempDir });
+      const manager = createWorkspaceManager({ workspacePath: tempDir, skipValidation: true });
 
       await expect(manager.startWatch()).rejects.toThrow("not initialized");
     });
 
     it("should be idempotent for multiple starts", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       await manager.startWatch();
@@ -217,7 +217,7 @@ describe("WorkspaceManager", () => {
 
     it("should be idempotent for multiple stops", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       await manager.startWatch();
@@ -234,7 +234,7 @@ describe("WorkspaceManager", () => {
   describe("dispose", () => {
     it("should stop watching and clean up", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       await manager.startWatch();
@@ -246,7 +246,7 @@ describe("WorkspaceManager", () => {
 
     it("should be safe to call multiple times", async () => {
       const workspace = await createTestWorkspace();
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
 
       await manager.initialize();
       await manager.dispose();
@@ -264,6 +264,7 @@ describe("WorkspaceManager", () => {
       const manager = createWorkspaceManager({
         workspacePath: workspace,
         hubDir: customHubDir,
+        skipValidation: true,
       });
 
       await manager.initialize();
@@ -283,6 +284,7 @@ describe("WorkspaceManager", () => {
       const manager = createWorkspaceManager({
         workspacePath: workspace,
         autoRefresh: false,
+        skipValidation: true,
       });
 
       await manager.initialize();
@@ -310,7 +312,7 @@ describe("WorkspaceManager", () => {
         "gitdir: ../api/.git/worktrees/api-ghapi-123-auth"
       );
 
-      const manager = createWorkspaceManager({ workspacePath: workspace });
+      const manager = createWorkspaceManager({ workspacePath: workspace, skipValidation: true });
       const info = await manager.initialize();
 
       expect(info.mainRepos).toHaveLength(2);

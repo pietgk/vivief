@@ -33,7 +33,7 @@ describe("diagnostics command", () => {
 
   describe("basic functionality", () => {
     it("returns success when hub is initialized", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       const result = await diagnosticsCommand({
         hubDir,
@@ -54,7 +54,7 @@ describe("diagnostics command", () => {
     });
 
     it("returns empty diagnostics when no diagnostics exist", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       const result = await diagnosticsCommand({
         hubDir,
@@ -68,7 +68,7 @@ describe("diagnostics command", () => {
 
   describe("filtering options", () => {
     beforeEach(async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
     });
 
     it("accepts source filter", async () => {
@@ -128,7 +128,7 @@ describe("diagnostics command", () => {
 
   describe("output formats", () => {
     beforeEach(async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
     });
 
     it("returns pretty output by default", async () => {
@@ -164,7 +164,7 @@ describe("diagnostics command", () => {
     });
 
     it("exports DiagnosticsCommandResult type", async () => {
-      await hubInit({ hubDir });
+      await hubInit({ hubDir, skipValidation: true });
 
       const result: import("../src/commands/diagnostics.js").DiagnosticsCommandResult =
         await diagnosticsCommand({ hubDir });
