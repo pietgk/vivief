@@ -1,45 +1,76 @@
-// DevAC LikeC4 Specification
-// Shared specification for generated and validated models
-// This file defines element kinds and relationship types
+// validated/spec.c4
+// Shared specification for element kinds and relationship types
 
 specification {
   // Element kinds
   element person {
+    notation "Person"
     style {
       shape person
+      color blue
     }
   }
 
   element system {
+    notation "Software System"
     style {
       shape rectangle
+      color indigo
     }
   }
 
   element container {
+    notation "Container"
     style {
       shape rectangle
+      color sky
     }
   }
 
   element component {
+    notation "Component"
     style {
       shape rectangle
+      color slate
     }
   }
 
   element external_system {
+    notation "External System"
     style {
-      shape storage
+      shape rectangle
+      color gray
     }
   }
 
   // Relationship kinds
-  relationship uses
-  relationship writes
-  relationship reads
-  relationship contains
-  relationship queries
-  relationship calls
-  relationship imports
+  relationship reads {
+    color green
+    line solid
+  }
+
+  relationship writes {
+    color amber
+    line solid
+  }
+
+  relationship calls {
+    color sky
+    line dashed
+  }
+
+  relationship queries {
+    color indigo
+    line dashed
+  }
+
+  relationship uses {
+    color slate
+    line dashed
+  }
+
+  relationship ipc {
+    color secondary
+    line dotted
+  }
 }

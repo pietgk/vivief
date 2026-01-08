@@ -2,429 +2,343 @@
 
 > **Package:** @pietgk/devac-core
 > **Validated:** 2026-01-08
-> **Status:** Human-Validated Architecture Documentation
+> **Status:** Verified
 
 ## Overview
 
-DevAC Core is a **federated code analysis engine** that extracts, stores, and queries code structure using DuckDB and Parquet for fast, local analysis. It replaces Neo4j with file-based columnar storage and supports TypeScript, Python, and C# with incremental updates and cross-repository federation.
-
-### Core Principles
-
-1. **Two-Pass Analysis** - Structural parsing (fast, <50ms/file) followed by semantic resolution (accurate, 50-200ms/file)
-2. **Effects-Driven** - Code behavior modeled as immutable effects that can be classified and queried
-3. **Federated Architecture** - Multi-repo queries via a Central Hub with Single Writer pattern
-4. **Compiler-Grade Resolution** - Uses ts-morph, Pyright, and Roslyn for semantic accuracy
-5. **Incremental Processing** - File watching with differential updates to minimize reanalysis
-
----
+DevAC Core is a federated code analysis engine that uses DuckDB + Parquet for fast, local code graph storage. It supports TypeScript, Python, and C# with incremental updates and cross-repository federation.
 
 ## C4 Context Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CONTEXT                                         │
-│                                                                              │
-│   ┌─────────────┐          ┌──────────────────────────┐                     │
-│   │  Developer  │          │     DevAC Core           │                     │
-│   │   [Person]  │─────────>│     [System]             │                     │
-│   │             │ queries  │                          │                     │
-│   └─────────────┘          │  Federated code analysis │                     │
-│         │                  │  with DuckDB + Parquet   │                     │
-│         │                  └───────────┬──────────────┘                     │
-│         │                              │                                    │
-│         │                    ┌─────────┼─────────┐                          │
-│         │                    │         │         │                          │
-│         │                    v         v         v                          │
-│         │              ┌──────────┐ ┌──────┐ ┌────────┐                     │
-│         │              │ Source   │ │ File │ │Central │                     │
-│         │              │ Code     │ │System│ │Hub     │                     │
-│         │              │[External]│ │[Ext] │ │[Ext]   │                     │
-│         │              └──────────┘ └──────┘ └────────┘                     │
-│         │               TS/Py/C#    Parquet   DuckDB                        │
-│         │                           Seeds     Federation                    │
-│         │                                                                   │
-│   ┌─────v─────┐                                                             │
-│   │  DevAC    │                                                             │
-│   │  CLI/MCP  │─────────> Uses DevAC Core for analysis                      │
-│   │ [System]  │                                                             │
-│   └───────────┘                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+                              CONTEXT
+ +---------------------------------------------------------------------------+
+ |                                                                           |
+ |    +-------------+              +-------------------+                     |
+ |    |  Developer  |------------->|    DevAC Core     |                     |
+ |    |   [Person]  |   queries    |     [System]      |                     |
+ |    +-------------+              +-------------------+                     |
+ |                                         |                                 |
+ |                            +------------+------------+                    |
+ |                            |            |            |                    |
+ |                            v            v            v                    |
+ |                     +-----------+ +-----------+ +-----------+             |
+ |                     |  Source   | |   File    | |  Central  |             |
+ |                     |   Code    | |  System   | |    Hub    |             |
+ |                     | [ExtSys]  | | [ExtSys]  | | [ExtSys]  |             |
+ |                     +-----------+ +-----------+ +-----------+             |
+ |                                                                           |
+ +---------------------------------------------------------------------------+
 ```
 
-### Context Elements
+### Context Relationships
 
-| Element | Type | Description |
-|---------|------|-------------|
-| Developer | Person | Uses DevAC for code analysis and architecture visualization |
-| DevAC Core | System | Core analysis engine (this package) |
-| DevAC CLI/MCP | System | Command-line and MCP interfaces that consume DevAC Core |
-| Source Code | External | TypeScript, Python, C# source files to analyze |
-| File System | External | Parquet seed storage in `.devac/seed/` |
-| Central Hub | External | DuckDB federation database at `~/.devac/central.duckdb` |
+| From | To | Label |
+|------|-----|-------|
+| Developer | DevAC Core | Uses for code analysis |
+| DevAC Core | Source Code | Parses TS/Py/C# files |
+| DevAC Core | File System | Reads/Writes Parquet seeds |
+| DevAC Core | Central Hub | Federates cross-repo queries |
 
----
+```likec4
+// Context relationships
+developer -> devac_core "Uses for code analysis"
+devac_core -> source_code "Parses TS/Py/C# files"
+devac_core -> filesystem "Reads/Writes Parquet seeds"
+devac_core -> central_hub_db "Federates cross-repo queries"
+```
 
 ## C4 Container Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              DEVAC CORE CONTAINERS                               │
-│                                                                                  │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                         ANALYSIS LAYER                                    │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐       │   │
-│  │  │    Parsers      │    │    Semantic     │    │   Analyzer      │       │   │
-│  │  │  [Container]    │───>│   [Container]   │<───│  [Container]    │       │   │
-│  │  │                 │    │                 │    │                 │       │   │
-│  │  │ TS/Py/C# AST    │    │ Cross-file      │    │ Orchestrates    │       │   │
-│  │  │ extraction      │    │ resolution      │    │ analysis flow   │       │   │
-│  │  │ (Babel, TS)     │    │ (ts-morph,      │    │ Entity IDs      │       │   │
-│  │  │                 │    │  Pyright)       │    │ Language route  │       │   │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────────┘       │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                      │                                           │
-│                                      v                                           │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                         STORAGE LAYER                                     │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐       │   │
-│  │  │   DuckDBPool    │    │  Seed Writer/   │    │  Effect Writer/ │       │   │
-│  │  │  [Container]    │<───│  Reader         │    │  Reader         │       │   │
-│  │  │                 │    │  [Container]    │    │  [Container]    │       │   │
-│  │  │ Connection pool │    │                 │    │                 │       │   │
-│  │  │ Error recovery  │    │ Parquet I/O     │    │ Effects I/O     │       │   │
-│  │  │ In-memory DB    │    │ .devac/seed/    │    │ v3.0 foundation │       │   │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────────┘       │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                      │                                           │
-│                                      v                                           │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                         FEDERATION LAYER                                  │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐       │   │
-│  │  │   Central Hub   │    │   Workspace     │    │    Context      │       │   │
-│  │  │  [Container]    │<───│   Manager       │    │   Discovery     │       │   │
-│  │  │                 │    │  [Container]    │    │  [Container]    │       │   │
-│  │  │ Cross-repo      │    │                 │    │                 │       │   │
-│  │  │ queries         │    │ Multi-repo ops  │    │ Sibling repos   │       │   │
-│  │  │ Single Writer   │    │ State mgmt      │    │ Issue worktrees │       │   │
-│  │  │ IPC protocol    │    │ Seed detection  │    │ CI/GitHub sync  │       │   │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────────┘       │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                      │                                           │
-│                                      v                                           │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                         OUTPUT LAYER                                      │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐       │   │
-│  │  │  Rules Engine   │    │     Views       │    │     Docs        │       │   │
-│  │  │  [Container]    │───>│  [Container]    │───>│  [Container]    │       │   │
-│  │  │                 │    │                 │    │                 │       │   │
-│  │  │ Effects ->      │    │ C4/LikeC4       │    │ Markdown        │       │   │
-│  │  │ Domain Effects  │    │ diagrams        │    │ generation      │       │   │
-│  │  │ Pattern match   │    │ Gap metrics     │    │ with metadata   │       │   │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────────┘       │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                  │
-│  ┌──────────────────────────────────────────────────────────────────────────┐   │
-│  │                         CROSS-CUTTING CONCERNS                            │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐       │   │
-│  │  │   Validation    │    │    Watcher      │    │     Utils       │       │   │
-│  │  │  [Container]    │    │  [Container]    │    │  [Container]    │       │   │
-│  │  │                 │    │                 │    │                 │       │   │
-│  │  │ Type/Lint/Test  │    │ File watching   │    │ Atomic writes   │       │   │
-│  │  │ validation      │    │ Rename detect   │    │ Hashing         │       │   │
-│  │  │ Symbol impact   │    │ Incremental     │    │ Logging         │       │   │
-│  │  │ Hub integration │    │ updates         │    │ File ops        │       │   │
-│  │  └─────────────────┘    └─────────────────┘    └─────────────────┘       │   │
-│  │                                                                           │   │
-│  │  ┌─────────────────┐    ┌─────────────────┐                              │   │
-│  │  │   Types         │    │   Effects       │                              │   │
-│  │  │  [Container]    │    │  [Container]    │                              │   │
-│  │  │                 │    │                 │                              │   │
-│  │  │ Node/Edge/Ref   │    │ Effect mapping  │                              │   │
-│  │  │ Effect types    │    │ Hierarchical    │                              │   │
-│  │  │ Config types    │    │ resolution      │                              │   │
-│  │  └─────────────────┘    └─────────────────┘                              │   │
-│  └──────────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────────┘
+ +---------------------------------------------------------------------------+
+ |                           DevAC Core System                               |
+ +---------------------------------------------------------------------------+
+ |                                                                           |
+ |  +---------------------------------------------------------------------+  |
+ |  |                       ANALYSIS LAYER                                |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |  |   Analyzer    |->|    Parsers    |  |     Semantic      |        |  |
+ |  |  | [Container]   |  |  [Container]  |  |   [Container]     |        |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |         |                  |                    |                   |  |
+ |  |         v                  v                    v                   |  |
+ |  |    orchestrates       tree-sitter          resolves                 |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                    |                                      |
+ |                                    v                                      |
+ |  +---------------------------------------------------------------------+  |
+ |  |                       STORAGE LAYER                                 |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |  |  DuckDBPool   |<-|     Seeds     |  |     Effects       |        |  |
+ |  |  | [Container]   |  |  [Container]  |  |   [Container]     |        |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |         |                  |                    |                   |  |
+ |  |         v                  v                    v                   |  |
+ |  |      queries           Parquet             Parquet                  |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                    |                                      |
+ |                                    v                                      |
+ |  +---------------------------------------------------------------------+  |
+ |  |                      FEDERATION LAYER                               |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |  |  CentralHub   |  |   HubClient   |  |  CrossRepoDetector|        |  |
+ |  |  | [Container]   |  |  [Container]  |  |   [Container]     |        |  |
+ |  |  +---------------+  +---------------+  +-------------------+        |  |
+ |  |         |                  |                    |                   |  |
+ |  |         v                  v                    v                   |  |
+ |  |    single-writer       IPC/direct         discovery                 |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                    |                                      |
+ |                                    v                                      |
+ |  +---------------------------------------------------------------------+  |
+ |  |                      VALIDATION LAYER                               |  |
+ |  |  +-------------------+  +---------------+  +-----------------+      |  |
+ |  |  |ValidationCoord    |->|  Validators   |  | IssueEnricher   |      |  |
+ |  |  |   [Container]     |  |  [Container]  |  |  [Container]    |      |  |
+ |  |  +-------------------+  +---------------+  +-----------------+      |  |
+ |  |         |                      |                  |                 |  |
+ |  |         v                      v                  v                 |  |
+ |  |    orchestrates           tsc/eslint         enriches               |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                    |                                      |
+ |                                    v                                      |
+ |  +---------------------------------------------------------------------+  |
+ |  |                        QUERY LAYER                                  |  |
+ |  |  +-------------------+  +---------------+                           |  |
+ |  |  | DataProvider      |  |    Views      |                           |  |
+ |  |  |   [Container]     |  |  [Container]  |                           |  |
+ |  |  +-------------------+  +---------------+                           |  |
+ |  |         |                      |                                    |  |
+ |  |         v                      v                                    |  |
+ |  |     unified SQL           C4 diagrams                               |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                    |                                      |
+ |                                    v                                      |
+ |  +---------------------------------------------------------------------+  |
+ |  |                        SERVER LAYER                                 |  |
+ |  |  +-------------------+  +---------------+                           |  |
+ |  |  | DevacMCPServer    |  |   Commands    |                           |  |
+ |  |  |   [Container]     |  |  [Container]  |                           |  |
+ |  |  +-------------------+  +---------------+                           |  |
+ |  |         |                      |                                    |  |
+ |  |         v                      v                                    |  |
+ |  |       MCP tools            CLI entry                                |  |
+ |  +---------------------------------------------------------------------+  |
+ |                                                                           |
+ +---------------------------------------------------------------------------+
 ```
 
----
+### Analysis Layer Relationships
 
-## Container Details
+| From | To | Label |
+|------|-----|-------|
+| Analyzer | Parsers | Delegates parsing by language |
+| Analyzer | Semantic | Delegates resolution |
+| Parsers | Source Code | Reads files via tree-sitter |
+| Semantic | Source Code | Reads files for cross-file resolution |
+| Analyzer | Storage | Writes analysis results |
+
+```likec4
+// Analysis layer relationships
+devac_core.analyzer -> devac_core.parsers "Delegates parsing by language"
+devac_core.analyzer -> devac_core.semantic "Delegates resolution"
+devac_core.parsers -> source_code "Reads files via tree-sitter"
+devac_core.semantic -> source_code "Reads files for cross-file resolution"
+devac_core.analyzer -> devac_core.storage "Writes analysis results"
+```
+
+### Storage Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| Seeds | DuckDBPool | Queries via |
+| Seeds | File System | Reads/Writes Parquet |
+| Effects | DuckDBPool | Queries via |
+| Effects | File System | Reads/Writes Parquet |
+
+```likec4
+// Storage layer relationships
+devac_core.seeds -> devac_core.duckdb_pool "Queries via"
+devac_core.seeds -> filesystem "Reads/Writes Parquet"
+devac_core.effects -> devac_core.duckdb_pool "Queries via"
+devac_core.effects -> filesystem "Reads/Writes Parquet"
+```
+
+### Federation Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| CentralHub | Storage | Reads package seeds |
+| CentralHub | Central Hub DB | Writes to central.duckdb |
+| HubClient | CentralHub | IPC or direct access |
+| CrossRepoDetector | File System | Scans for sibling repos |
+
+```likec4
+// Federation layer relationships
+devac_core.central_hub -> devac_core.storage "Reads package seeds"
+devac_core.central_hub -> central_hub_db "Writes to central.duckdb"
+devac_core.hub_client -> devac_core.central_hub "IPC via Unix socket"
+devac_core.cross_repo_detector -> filesystem "Scans for sibling repos"
+```
+
+### Validation Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| ValidationCoordinator | Validators | Orchestrates validation |
+| Validators | Source Code | Runs tsc/eslint/vitest |
+| IssueEnricher | Storage | Reads code graph for context |
+| ValidationCoordinator | CentralHub | Reports validation errors |
+
+```likec4
+// Validation layer relationships
+devac_core.validation_coordinator -> devac_core.validators "Orchestrates validation"
+devac_core.validators -> source_code "Runs tsc/eslint/vitest"
+devac_core.issue_enricher -> devac_core.storage "Reads code graph for context"
+devac_core.validation_coordinator -> devac_core.central_hub "Reports validation errors"
+```
+
+### Query Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| DataProvider | Storage | Queries local package seeds |
+| DataProvider | CentralHub | Queries federated hub |
+| Views | DataProvider | Gets code graph data |
+
+```likec4
+// Query layer relationships
+devac_core.data_provider -> devac_core.storage "Queries local package seeds"
+devac_core.data_provider -> devac_core.central_hub "Queries federated hub"
+devac_core.diagram_views -> devac_core.data_provider "Gets code graph data"
+```
+
+### Server Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| DevacMCPServer | DataProvider | Exposes as MCP tools |
+| DevacMCPServer | CentralHub | Owns hub in single-writer mode |
+| Commands | DataProvider | CLI entry point |
+| Commands | ValidationCoordinator | Triggers validation |
+
+```likec4
+// Server layer relationships
+devac_core.mcp_server -> devac_core.data_provider "Exposes as MCP tools"
+devac_core.mcp_server -> devac_core.central_hub "Owns hub in single-writer mode"
+devac_core.commands -> devac_core.data_provider "CLI entry point"
+devac_core.commands -> devac_core.validation_coordinator "Triggers validation"
+```
+
+## Key Components
 
 ### Analysis Layer
-
-| Container | Purpose | Key Components | Dependencies |
-|-----------|---------|----------------|--------------|
-| **Parsers** | AST extraction from source files | TypeScriptParser, PythonParser, CSharpParser, ScopedNameGenerator | Babel, tree-sitter |
-| **Semantic** | Cross-file symbol resolution | TypeScriptSemanticResolver, PythonSemanticResolver, CSharpSemanticResolver | ts-morph, Pyright, Roslyn |
-| **Analyzer** | Orchestrates analysis flow | AnalysisOrchestrator, EntityIdGenerator, LanguageRouter | Parsers, Semantic |
+- **LanguageRouter**: Routes files to appropriate parser
+- **TypeScriptParser**: TS/TSX AST extraction via tree-sitter
+- **PythonParser**: Python AST extraction via tree-sitter
+- **CSharpParser**: C# AST extraction via tree-sitter
+- **TypeScriptSemanticResolver**: Cross-file resolution for TS
+- **PythonSemanticResolver**: Cross-file resolution for Python
+- **CSharpSemanticResolver**: Cross-file resolution for C#
 
 ### Storage Layer
-
-| Container | Purpose | Key Components | External I/O |
-|-----------|---------|----------------|--------------|
-| **DuckDBPool** | Connection pooling and recovery | DuckDBPool, executeWithRecovery | In-memory DuckDB |
-| **Seed I/O** | Parquet file operations | SeedWriter, SeedReader, queryMultiplePackages | `.devac/seed/*.parquet` |
-| **Effect I/O** | Effect storage (v3.0) | EffectWriter, EffectReader | `.devac/seed/effects.parquet` |
+- **DuckDBPool**: Connection pooling with error recovery
+- **SeedWriter/SeedReader**: Parquet I/O for code graph nodes/edges
+- **EffectWriter/EffectReader**: Parquet I/O for extracted effects
 
 ### Federation Layer
+- **CentralHub**: Single-writer cross-repo DuckDB database
+- **HubClient**: IPC client for CLI when MCP owns hub
+- **HubServer**: Unix socket server for IPC
+- **HubStorage**: Low-level hub database operations
+- **ManifestGenerator**: Generates .devac/manifest.json
+- **CrossRepoDetector**: Discovers sibling repositories
 
-| Container | Purpose | Key Components | External I/O |
-|-----------|---------|----------------|--------------|
-| **Hub** | Cross-repo federation | CentralHub, HubStorage, HubServer, HubClient, ManifestGenerator | `~/.devac/central.duckdb` |
-| **Workspace** | Multi-repo management | WorkspaceManager, SeedDetector, AutoRefresher, StateManager | File system |
-| **Context** | Repository discovery | CrossRepoDetector, CIStatus, Issues, Reviews, Discovery | GitHub API |
+### Validation Layer
+- **ValidationCoordinator**: Orchestrates validation pipeline
+- **TypecheckValidator**: TypeScript type checking
+- **LintValidator**: ESLint validation
+- **TestValidator**: Vitest test execution
+- **CoverageValidator**: Code coverage analysis
+- **IssueEnricher**: Adds code graph context to issues
 
-### Output Layer
+### Query Layer
+- **PackageDataProvider**: Queries single package seed
+- **HubDataProvider**: Queries federated hub
+- **Views**: C4 diagram generation
 
-| Container | Purpose | Key Components |
-|-----------|---------|----------------|
-| **Rules** | Effect pattern matching | RuleEngine, builtinRules (database, payment, auth, http, messaging) |
-| **Views** | Architecture visualization | C4Generator, LikeC4SpecGenerator, LikeC4DynamicGenerator, GapMetrics |
-| **Docs** | Documentation generation | EffectsGenerator, C4DocGenerator, RepoEffectsGenerator, WorkspaceEffectsGenerator |
+### Server Layer
+- **DevacMCPServer**: MCP server with 18 tools
+- **Commands**: CLI commands (analyze, query, validate, etc.)
 
-### Cross-Cutting Concerns
+## External Systems
 
-| Container | Purpose | Key Components |
-|-----------|---------|----------------|
-| **Validation** | Code quality validation | ValidationCoordinator, TypecheckValidator, LintValidator, TestValidator, CoverageValidator |
-| **Watcher** | Incremental updates | FileWatcher, RenameDetector, UpdateManager |
-| **Utils** | Shared utilities | atomicWrite, hash, logger, cleanup, git |
-| **Types** | Core type definitions | ParsedNode, ParsedEdge, ParsedExternalRef, Effect types |
-| **Effects** | Effect mapping | MappingLoader (hierarchical resolution) |
+| System | Type | Technology |
+|--------|------|------------|
+| Source Code | Input | TS/Py/C# files |
+| File System | Storage | Parquet seeds in .devac/seed/ |
+| Central Hub DB | Federation | DuckDB at ~/ws/.devac/central.duckdb |
+| Tree-sitter | Parser | Language-specific grammars |
+| DuckDB | Query Engine | In-memory analytical queries |
 
----
+## All Relationships Summary
 
-## Data Flow: Analysis Pipeline
+This section consolidates all relationships for easy model.c4 generation:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          SOURCE CODE                                │
-│                   TypeScript │ Python │ C#                          │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               v
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PASS 1: STRUCTURAL PARSING                       │
-│                         (<50ms per file)                            │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             │
-│  │ TypeScript  │    │   Python    │    │    C#       │             │
-│  │   Parser    │    │   Parser    │    │   Parser    │             │
-│  │  (Babel)    │    │(tree-sitter)│    │(tree-sitter)│             │
-│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘             │
-│         │                  │                  │                     │
-│         └──────────────────┼──────────────────┘                     │
-│                            v                                        │
-│              ┌─────────────────────────┐                           │
-│              │  StructuralParseResult  │                           │
-│              │  - ParsedNode[]         │                           │
-│              │  - ParsedEdge[]         │                           │
-│              │  - ParsedExternalRef[]  │                           │
-│              └─────────────┬───────────┘                           │
-└────────────────────────────┼────────────────────────────────────────┘
-                             │
-                             v
-┌─────────────────────────────────────────────────────────────────────┐
-│                   PASS 2: SEMANTIC RESOLUTION                       │
-│                      (50-200ms per file, batched)                   │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             │
-│  │ TypeScript  │    │   Python    │    │    C#       │             │
-│  │  Resolver   │    │  Resolver   │    │  Resolver   │             │
-│  │ (ts-morph)  │    │ (Pyright)   │    │ (Roslyn)    │             │
-│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘             │
-│         │                  │                  │                     │
-│         └──────────────────┼──────────────────┘                     │
-│                            v                                        │
-│              ┌─────────────────────────┐                           │
-│              │   Resolved Graph        │                           │
-│              │  - External refs ->     │                           │
-│              │    entity_ids           │                           │
-│              │  - Cross-file links     │                           │
-│              └─────────────┬───────────┘                           │
-└────────────────────────────┼────────────────────────────────────────┘
-                             │
-                             v
-┌─────────────────────────────────────────────────────────────────────┐
-│                     PARQUET STORAGE                                 │
-│                   .devac/seed/{package}/                            │
-│                                                                     │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌────────────┐ │
-│  │nodes.parquet │ │edges.parquet │ │external_refs │ │effects     │ │
-│  │              │ │              │ │.parquet      │ │.parquet    │ │
-│  └──────────────┘ └──────────────┘ └──────────────┘ └────────────┘ │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-              v              v              v
-       ┌───────────┐  ┌───────────┐  ┌───────────┐
-       │  DuckDB   │  │   Rules   │  │   Views   │
-       │  Queries  │  │  Engine   │  │  (C4)     │
-       └───────────┘  └─────┬─────┘  └─────┬─────┘
-                            │              │
-                            v              v
-                     ┌───────────┐  ┌───────────┐
-                     │  Domain   │  │Architecture│
-                     │  Effects  │  │  Diagrams  │
-                     └───────────┘  └───────────┘
+```likec4
+// =====================================================
+// ALL RELATIONSHIPS (copy to model.c4)
+// =====================================================
+
+// Context level
+developer -> devac_core "Uses for code analysis"
+devac_core -> source_code "Parses TS/Py/C# files"
+devac_core -> filesystem "Reads/Writes Parquet seeds"
+devac_core -> central_hub_db "Federates cross-repo queries"
+
+// Analysis layer
+devac_core.analyzer -> devac_core.parsers "Delegates parsing by language"
+devac_core.analyzer -> devac_core.semantic "Delegates resolution"
+devac_core.parsers -> source_code "Reads files via tree-sitter"
+devac_core.semantic -> source_code "Reads files for cross-file resolution"
+devac_core.analyzer -> devac_core.storage "Writes analysis results"
+
+// Storage layer
+devac_core.seeds -> devac_core.duckdb_pool "Queries via"
+devac_core.seeds -> filesystem "Reads/Writes Parquet"
+devac_core.effects -> devac_core.duckdb_pool "Queries via"
+devac_core.effects -> filesystem "Reads/Writes Parquet"
+
+// Federation layer
+devac_core.central_hub -> devac_core.storage "Reads package seeds"
+devac_core.central_hub -> central_hub_db "Writes to central.duckdb"
+devac_core.hub_client -> devac_core.central_hub "IPC via Unix socket"
+devac_core.cross_repo_detector -> filesystem "Scans for sibling repos"
+
+// Validation layer
+devac_core.validation_coordinator -> devac_core.validators "Orchestrates validation"
+devac_core.validators -> source_code "Runs tsc/eslint/vitest"
+devac_core.issue_enricher -> devac_core.storage "Reads code graph for context"
+devac_core.validation_coordinator -> devac_core.central_hub "Reports validation errors"
+
+// Query layer
+devac_core.data_provider -> devac_core.storage "Queries local package seeds"
+devac_core.data_provider -> devac_core.central_hub "Queries federated hub"
+devac_core.diagram_views -> devac_core.data_provider "Gets code graph data"
+
+// Server layer
+devac_core.mcp_server -> devac_core.data_provider "Exposes as MCP tools"
+devac_core.mcp_server -> devac_core.central_hub "Owns hub in single-writer mode"
+devac_core.commands -> devac_core.data_provider "CLI entry point"
+devac_core.commands -> devac_core.validation_coordinator "Triggers validation"
 ```
 
----
+## Verification Checklist
 
-## Hub Single Writer Architecture
-
-The Central Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MCP SERVER RUNNING                            │
-│                                                                  │
-│  ┌──────────┐      IPC       ┌──────────────────┐               │
-│  │   CLI    │───────────────>│   MCP Server      │               │
-│  │ Commands │   Unix Socket  │  (Hub Owner)      │               │
-│  └──────────┘   ~/.devac/    │                   │               │
-│                  mcp.sock    │  ┌────────────┐   │               │
-│                              │  │ CentralHub │   │               │
-│                              │  │ (exclusive)│   │               │
-│                              │  └────────────┘   │               │
-│                              └──────────────────┘               │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                   MCP SERVER NOT RUNNING                         │
-│                                                                  │
-│  ┌──────────┐    Direct     ┌────────────┐                      │
-│  │   CLI    │──────────────>│ CentralHub │                      │
-│  │ Commands │               │  (direct)  │                      │
-│  └──────────┘               └────────────┘                      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-The `HubClient` class handles routing automatically - commands work the same regardless of whether MCP is running.
-
----
-
-## Entity ID System
-
-Entity IDs uniquely identify code symbols across the entire federated system:
-
-**Format:** `{repo}:{packagePath}:{kind}:{scopeHash}`
-
-**Example:** `vivief:packages/devac-core:function:a1b2c3d4`
-
-| Component | Purpose |
-|-----------|---------|
-| `repo` | Repository identifier (e.g., `vivief`) |
-| `packagePath` | Relative path to package within repo |
-| `kind` | Node type (function, class, method, etc.) |
-| `scopeHash` | 8-char hash of qualified name for uniqueness |
-
----
-
-## Code Graph Statistics
-
-*Queried via `devac query` (2026-01-08)*
-
-### Node Distribution
-
-| Kind | Count |
-|------|-------|
-| function | 1,038 |
-| method | 757 |
-| interface | 625 |
-| type | 274 |
-| module | 263 |
-| property | 241 |
-| class | 139 |
-| enum_member | 12 |
-| enum | 4 |
-| parameter | 3 |
-| variable | 2 |
-| namespace | 1 |
-| **Total** | **3,359** |
-
-### Edge Distribution
-
-| Edge Type | Count |
-|-----------|-------|
-| CALLS | 12,167 |
-| CONTAINS | 3,072 |
-| EXTENDS | 30 |
-| PARAMETER_OF | 3 |
-| IMPLEMENTS | 1 |
-| **Total** | **15,273** |
-
-### External References
-
-| Metric | Count |
-|--------|-------|
-| Total external refs | 2,898 |
-
-### Top External Dependencies
-
-| Module | Imports |
-|--------|---------|
-| @pietgk/devac-core (self) | 329 |
-| node:path | 113 |
-| node:fs/promises | 81 |
-
----
-
-## Storage Locations
-
-### Per-Package Seeds
-```
-.devac/
-└── seed/
-    └── {packagePath}/
-        ├── base/
-        │   ├── nodes.parquet
-        │   ├── edges.parquet
-        │   ├── external_refs.parquet
-        │   └── effects.parquet
-        └── delta/
-            └── {timestamp}/
-                └── ... (incremental changes)
-```
-
-### Central Hub
-```
-~/.devac/
-├── central.duckdb        # Cross-repo federation database
-├── mcp.sock              # Unix socket for Single Writer IPC
-└── workspace-state.json  # Workspace state cache
-```
-
----
-
-## Technology Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Parsing** | Babel, tree-sitter |
-| **Semantic** | ts-morph (TS), Pyright (Python), Roslyn (C#) |
-| **Storage** | DuckDB, Apache Parquet |
-| **File Watch** | chokidar |
-| **Schema Validation** | Zod |
-| **Testing** | Vitest |
-| **TypeScript** | 5.7+ with strict mode, ESM |
-
----
-
-## Related Documentation
-
-- **ADR-0024**: Hub Single Writer IPC Architecture
-- **README.md**: Project overview and CLI usage
-- **README-CodeGraph.md**: Legacy tree-sitter patterns from v1
-
----
-
-*This is human-validated architecture documentation. It serves as the ground truth for C4 diagram generation and gap analysis.*
+- [x] All ASCII arrows have corresponding rows in relationships tables
+- [x] All table rows have corresponding LikeC4 code in code blocks
+- [x] All code blocks are consolidated in "All Relationships Summary" section
+- [x] model.c4 relationships section matches the summary code block exactly
+- [x] Count: 28 relationships (tables match code blocks match model.c4)
+- [x] LikeC4 validation passes: `npx likec4 validate .` returns no errors
