@@ -26,6 +26,7 @@ From the Architecture Documentation Improvement Loop:
 **DO:**
 - Use devac MCP tools to analyze package structure
 - Generate BOTH `.md` (comprehensive docs with diagrams) AND `.c4` (LikeC4 DSL for comparison)
+- **Capture relationships explicitly** with tables AND LikeC4 code blocks in the markdown
 - Mark uncertain sections with ⚠️ and verified sections with ✓
 - Create reasoning file documenting queries and assumptions
 - Keep files in sync when making refinements
@@ -34,6 +35,7 @@ From the Architecture Documentation Improvement Loop:
 - Skip the reasoning file (it's the audit trail for improvement)
 - Generate only one format (both are needed for the loop)
 - Ignore external systems (they're key architectural elements)
+- **Encode relationships only in ASCII art** - always add explicit tables and code blocks
 
 ## Triggers
 
@@ -87,10 +89,21 @@ devac effects list -p packages/devac-core --type Send
 ### Step 2: Generate Initial Files
 Create documentation files in a separate directory to avoid LikeC4 merge conflicts:
 
+> **CRITICAL: Relationship Parity by Construction**
+>
+> As you reason about each relationship for the ASCII diagram, immediately add it to:
+> 1. A **relationships table** (human-readable)
+> 2. A **LikeC4 code block** (machine-usable)
+>
+> This ensures parity by construction rather than by validation.
+> The `model.c4` file is derived from concatenating the LikeC4 code blocks in the markdown.
+
 - **architecture-validated.md** (at `docs/c4/` root)
   - Overview section (✓ verified from package.json/README)
   - C4 Context diagram (ASCII art)
+  - **Context Relationships section** (table + LikeC4 code block)
   - C4 Container diagram (ASCII art, grouped by layer)
+  - **Container Relationships section** (table + LikeC4 code block per layer)
   - Key Components per container
   - Sequence diagrams for important flows
   - External System integrations
@@ -98,7 +111,7 @@ Create documentation files in a separate directory to avoid LikeC4 merge conflic
 - **validated/model.c4** (LikeC4 model file)
   - NO specification block (use spec.c4 instead)
   - Model block with containers/components
-  - Relationships between elements
+  - Relationships **copied from markdown LikeC4 code blocks**
   - Views for different levels
 
 - **validated/spec.c4** (copy from generated/spec.c4)
@@ -206,6 +219,10 @@ query_effects(package: "devac-core", type: "Store")
 
 ## File Format: `docs/c4/architecture-validated.md`
 
+The markdown serves as the **single source of truth**. After each ASCII diagram, include:
+1. A **relationships table** for human readability
+2. A **LikeC4 code block** for machine extraction
+
 ```markdown
 # DevAC Core Architecture
 
@@ -226,7 +243,31 @@ DevAC Core is a federated code analysis engine...
 │   │  Developer  │─────────►│   DevAC Core     │                 │
 │   │   [Person]  │ queries  │    [System]      │                 │
 │   └─────────────┘          └──────────────────┘                 │
+│                                    │                             │
+│                          ┌─────────┼─────────┐                   │
+│                          ▼         ▼         ▼                   │
+│                    ┌──────────┐ ┌──────┐ ┌────────┐              │
+│                    │ Source   │ │ File │ │Central │              │
+│                    │ Code     │ │System│ │Hub     │              │
+│                    └──────────┘ └──────┘ └────────┘              │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Context Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| Developer | DevAC Core | Uses for analysis |
+| DevAC Core | Source Code | Reads |
+| DevAC Core | File System | Reads/Writes Parquet |
+| DevAC Core | Central Hub | Reads/Writes |
+
+```likec4
+// Context relationships
+developer -> devac_core "Uses"
+devac_core -> source_code "Reads"
+devac_core -> filesystem "Reads/Writes Parquet"
+devac_core -> central_hub_db "Reads/Writes"
 ```
 
 ## C4 Container Diagram
@@ -235,19 +276,52 @@ DevAC Core is a federated code analysis engine...
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ANALYSIS LAYER ✓                             │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
-│  │ Parsers  │──│ Semantic │──│ Analyzer │                      │
-│  └──────────┘  └──────────┘  └──────────┘                      │
+│  │ Parsers  │◄─│ Analyzer │──►│ Semantic │                      │
+│  └────┬─────┘  └──────────┘  └────┬─────┘                      │
+│       │                           │                              │
+│       ▼                           ▼                              │
+│  Source Code                 Source Code                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                    STORAGE LAYER ✓                              │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
-│  │ DuckDB   │──│  Seeds   │──│ Effects  │                      │
-│  └──────────┘  └──────────┘  └──────────┘                      │
-├─────────────────────────────────────────────────────────────────┤
-│                    FEDERATION LAYER ⚠️                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
-│  │   Hub    │──│Workspace │──│ Context  │                      │
-│  └──────────┘  └──────────┘  └──────────┘                      │
+│  │ DuckDB   │◄─│  Seeds   │  │ Effects  │                      │
+│  └──────────┘  └────┬─────┘  └──────────┘                      │
+│                     │                                            │
+│                     ▼                                            │
+│                File System                                       │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Analysis Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| Analyzer | Parsers | Calls for structural parsing |
+| Analyzer | Semantic | Calls for resolution |
+| Parsers | Source Code | Reads |
+| Semantic | Source Code | Reads |
+
+```likec4
+// Analysis layer relationships
+devac_core.analyzer -> devac_core.parsers "Calls for structural parsing"
+devac_core.analyzer -> devac_core.semantic "Calls for resolution"
+devac_core.parsers -> source_code "Reads"
+devac_core.semantic -> source_code "Reads"
+```
+
+### Storage Layer Relationships
+
+| From | To | Label |
+|------|-----|-------|
+| Analyzer | Storage | Writes results |
+| Storage | File System | Reads/Writes Parquet |
+| Seeds | DuckDB | Queries via |
+
+```likec4
+// Storage layer relationships
+devac_core.analyzer -> devac_core.storage "Writes results"
+devac_core.storage -> filesystem "Reads/Writes Parquet"
+devac_core.storage.seeds -> devac_core.storage.duckdb_pool "Queries via"
 ```
 
 ## Key Components
@@ -275,20 +349,38 @@ DevAC Core is a federated code analysis engine...
 | File System | Storage | Parquet seeds |
 | Central Hub | Federation | DuckDB |
 
-## Sequence: Analysis Flow
+## All Relationships Summary
 
-```
-Developer ──► Analyzer ──► Parsers ──► Source Code
-                │              │
-                ▼              │
-            Semantic ◄─────────┘
-                │
-                ▼
-            Storage ──► File System
+This section consolidates all relationships for easy model.c4 generation:
+
+```likec4
+// =====================================================
+// ALL RELATIONSHIPS (copy to model.c4)
+// =====================================================
+
+// Context level
+developer -> devac_core "Uses"
+devac_core -> source_code "Reads"
+devac_core -> filesystem "Reads/Writes Parquet"
+devac_core -> central_hub_db "Reads/Writes"
+
+// Analysis layer
+devac_core.analyzer -> devac_core.parsers "Calls for structural parsing"
+devac_core.analyzer -> devac_core.semantic "Calls for resolution"
+devac_core.parsers -> source_code "Reads"
+devac_core.semantic -> source_code "Reads"
+
+// Storage layer
+devac_core.analyzer -> devac_core.storage "Writes results"
+devac_core.storage -> filesystem "Reads/Writes Parquet"
 ```
 ```
 
 ## File Format: `docs/c4/validated/model.c4`
+
+The `model.c4` file is **derived from the markdown** by:
+1. Defining elements (containers, components, external systems)
+2. **Copying relationships from the "All Relationships Summary" code block** in the markdown
 
 ```likec4
 // validated/model.c4
@@ -301,36 +393,25 @@ model {
   devac_core = system 'DevAC Core' {
     description 'Federated code analysis engine'
 
-    analysis = container 'Analysis Layer' {
-      parsers = component 'Parsers' {
-        description 'TS/Py/C# AST extraction'
-      }
-      semantic = component 'Semantic' {
-        description 'Cross-file resolution'
-      }
-      analyzer = component 'Analyzer' {
-        description 'Orchestrates analysis flow'
-      }
+    analyzer = container 'Analyzer' {
+      description 'Orchestrates analysis flow'
+    }
+
+    parsers = container 'Parsers' {
+      description 'TS/Py/C# AST extraction'
+    }
+
+    semantic = container 'Semantic' {
+      description 'Cross-file resolution'
     }
 
     storage = container 'Storage Layer' {
-      duckdb = component 'DuckDBPool' {
+      duckdb_pool = component 'DuckDBPool' {
         description 'Connection pooling'
       }
       seeds = component 'Seeds' {
         description 'Parquet I/O'
       }
-      effects = component 'Effects' {
-        description 'Effect storage'
-      }
-    }
-
-    federation = container 'Federation Layer' {
-      hub = component 'Central Hub' {
-        description 'Cross-repo queries'
-      }
-      workspace = component 'Workspace Manager'
-      context = component 'Context Discovery'
     }
   }
 
@@ -338,14 +419,29 @@ model {
   source_code = external_system 'Source Code' {
     description 'TS/Py/C# files'
   }
-  file_system = external_system 'File System' {
+  filesystem = external_system 'File System' {
     description 'Parquet storage'
   }
 
-  // Relationships
-  devac_core.analysis.parsers -> source_code 'reads'
-  devac_core.storage.seeds -> file_system 'writes'
-  devac_core.federation.hub -> devac_core.storage.duckdb 'queries'
+  // =====================================================
+  // RELATIONSHIPS (copied from architecture-validated.md)
+  // =====================================================
+
+  // Context level
+  developer -> devac_core "Uses"
+  devac_core -> source_code "Reads"
+  devac_core -> filesystem "Reads/Writes Parquet"
+
+  // Analysis layer
+  devac_core.analyzer -> devac_core.parsers "Calls for structural parsing"
+  devac_core.analyzer -> devac_core.semantic "Calls for resolution"
+  devac_core.parsers -> source_code "Reads"
+  devac_core.semantic -> source_code "Reads"
+
+  // Storage layer
+  devac_core.analyzer -> devac_core.storage "Writes results"
+  devac_core.storage -> filesystem "Reads/Writes Parquet"
+  devac_core.storage.seeds -> devac_core.storage.duckdb_pool "Queries via"
 }
 
 views {
@@ -357,25 +453,84 @@ views {
 }
 ```
 
-Note: The `spec.c4` file should be copied from `generated/spec.c4` and defines element kinds:
+Note: The `spec.c4` file defines element kinds with **notations** (for the diagram legend) and **relationship types** (for visual distinction):
 ```likec4
 specification {
-  element person
-  element system
-  element container
-  element component
-  element external_system
+  // Element kinds
+  element person {
+    notation "Person"
+    style {
+      shape person
+      color blue
+    }
+  }
 
-  relationship uses
-  relationship writes
-  relationship reads
-  relationship contains
-  relationship queries
-  relationship calls
-  relationship imports
-  relationship extends
+  element system {
+    notation "Software System"
+    style {
+      shape rectangle
+      color indigo
+    }
+  }
+
+  element container {
+    notation "Container"
+    style {
+      shape rectangle
+      color sky
+    }
+  }
+
+  element component {
+    notation "Component"
+    style {
+      shape rectangle
+      color slate
+    }
+  }
+
+  element external_system {
+    notation "External System"
+    style {
+      shape rectangle
+      color gray
+    }
+  }
+
+  // Relationship kinds (notations not yet supported)
+  relationship reads {
+    color green
+    line solid
+  }
+
+  relationship writes {
+    color amber
+    line solid
+  }
+
+  relationship calls {
+    color sky
+    line dashed
+  }
+
+  relationship queries {
+    color indigo
+    line dashed
+  }
+
+  relationship uses {
+    color slate
+    line dashed
+  }
+
+  relationship ipc {
+    color secondary
+    line dotted
+  }
 }
 ```
+
+Use typed relationships in model.c4: `source -[reads]-> target "label"`
 
 ## Example Interaction
 
@@ -427,12 +582,49 @@ devac architecture score -p packages/devac-core
 
 The gap score drives improvement of `effect-domain-rules` so that generated `.c4` gets closer to validated `.c4` over time.
 
+## LikeC4 Syntax Validation
+
+**CRITICAL: Always validate model.c4 before marking as complete.**
+
+```bash
+# Validate the generated files
+cd docs/c4/validated && npx likec4 validate .
+```
+
+If validation fails, fix the errors before proceeding. Common issues:
+
+### Reserved Keywords
+
+These identifiers are **reserved in LikeC4** and cannot be used as element names:
+- `views` - Use `diagram_views` or `view_layer` instead
+- `model` - Use `data_model` or `model_layer` instead
+- `specification` - Use `spec_layer` instead
+
+### Syntax Errors
+
+- Missing closing braces `}`
+- Incorrect relationship syntax (must be `source -> target "label"`)
+- Invalid characters in identifiers (use snake_case)
+
 ## Notes
 
+- **Markdown is the single source of truth** - relationships in model.c4 are copied from markdown code blocks
 - Always generate BOTH `.md` and `validated/model.c4` together (keep in sync)
+- **Parity by construction**: As you draw ASCII diagrams, immediately add relationships to tables AND code blocks
 - Use confidence markers (✓ verified, ⚠️ uncertain) liberally
 - The reasoning file is essential for the improvement loop
 - Don't skip external systems - they're key architectural elements
 - Works well with `/define-effects` skill (effects inform architecture)
 - Target gap score: >65% (from ~28% baseline)
 - **Important**: The `validated/` directory must have its own `spec.c4` and `likec4.config.json` to avoid LikeC4 merge conflicts with `generated/`
+- **Avoid reserved keywords**: Don't use `views`, `model`, `specification` as element identifiers
+
+## Relationship Parity Checklist
+
+Before marking as validated, verify:
+- [ ] All ASCII arrows have corresponding rows in relationships tables
+- [ ] All table rows have corresponding LikeC4 code in code blocks
+- [ ] All code blocks are consolidated in "All Relationships Summary" section
+- [ ] model.c4 relationships section matches the summary code block exactly
+- [ ] Count of relationships in tables = count in code blocks = count in model.c4
+- [ ] **LikeC4 validation passes**: `npx likec4 validate .` returns no errors

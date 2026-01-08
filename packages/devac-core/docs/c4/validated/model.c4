@@ -1,519 +1,165 @@
-// DevAC Core - Human-Validated Architecture
+// validated/model.c4
+// Human-validated architecture for gap comparison
 // devac:validated: true
 // devac:validated-at: 2026-01-08
 // devac:package-path: packages/devac-core
 
 model {
-  // =====================================================
-  // CONTEXT LEVEL
-  // =====================================================
-
+  // Person
   developer = person "Developer" {
-    description "Uses DevAC for code analysis and architecture visualization"
+    description "Uses DevAC for code analysis"
   }
 
-  devac_cli = system "DevAC CLI/MCP" {
-    description "Command-line and MCP interfaces"
-  }
-
+  // Main System
   devac_core = system "DevAC Core" {
-    description "Federated code analysis engine with DuckDB + Parquet storage"
+    description "Federated code analysis engine using DuckDB + Parquet"
 
-    // =====================================================
-    // ANALYSIS LAYER
-    // =====================================================
+    // Analysis Layer
+    analyzer = container "Analyzer" {
+      description "Orchestrates analysis flow via LanguageRouter"
+    }
 
     parsers = container "Parsers" {
-      description "Language-specific AST extraction (<50ms/file)"
-
-      typescript_parser = component "TypeScriptParser" {
-        description "Babel-based TS/JS parser"
-        link ../../../../../src/parsers/typescript-parser.ts
-      }
-      python_parser = component "PythonParser" {
-        description "Tree-sitter Python parser"
-        link ../../../../../src/parsers/python-parser.ts
-      }
-      csharp_parser = component "CSharpParser" {
-        description "Tree-sitter C# parser"
-        link ../../../../../src/parsers/csharp-parser.ts
-      }
-      scoped_name_gen = component "ScopedNameGenerator" {
-        description "Generates qualified names for symbols"
-        link ../../../../../src/parsers/scoped-name-generator.ts
-      }
+      description "TS/Py/C# AST extraction via tree-sitter"
     }
 
     semantic = container "Semantic" {
-      description "Cross-file symbol resolution (50-200ms/file)"
-
-      ts_resolver = component "TypeScriptSemanticResolver" {
-        description "ts-morph based resolver"
-        link ../../../../../src/semantic/typescript-semantic.ts
-      }
-      py_resolver = component "PythonSemanticResolver" {
-        description "Pyright based resolver"
-        link ../../../../../src/semantic/python-semantic.ts
-      }
-      cs_resolver = component "CSharpSemanticResolver" {
-        description "Roslyn based resolver"
-        link ../../../../../src/semantic/csharp-semantic.ts
-      }
-      resolver_factory = component "SemanticResolverFactory" {
-        description "Factory for language-specific resolvers"
-        link ../../../../../src/semantic/index.ts
-      }
+      description "Cross-file resolution for all languages"
     }
 
-    analyzer = container "Analyzer" {
-      description "Analysis orchestration and entity ID management"
-
-      orchestrator = component "AnalysisOrchestrator" {
-        description "Coordinates two-pass analysis"
-        link ../../../../../src/analyzer/analysis-orchestrator.ts
-      }
-      entity_id_gen = component "EntityIdGenerator" {
-        description "Generates unique entity IDs"
-        link ../../../../../src/analyzer/entity-id-generator.ts
-      }
-      language_router = component "LanguageRouter" {
-        description "Routes files to appropriate parsers"
-        link ../../../../../src/analyzer/language-router.ts
-      }
-    }
-
-    // =====================================================
-    // STORAGE LAYER
-    // =====================================================
-
-    storage = container "Storage" {
-      description "DuckDB + Parquet storage layer"
-
+    // Storage Layer
+    storage = container "Storage Layer" {
       duckdb_pool = component "DuckDBPool" {
-        description "Connection pool with error recovery"
-        link ../../../../../src/storage/duckdb-pool.ts
+        description "Connection pooling with error recovery"
       }
-      seed_writer = component "SeedWriter" {
-        description "Writes analysis results to Parquet"
-        link ../../../../../src/storage/seed-writer.ts
-      }
-      seed_reader = component "SeedReader" {
-        description "Reads and queries Parquet seeds"
-        link ../../../../../src/storage/seed-reader.ts
-      }
-      effect_writer = component "EffectWriter" {
-        description "Writes effects to Parquet (v3.0)"
-        link ../../../../../src/storage/effect-writer.ts
-      }
-      effect_reader = component "EffectReader" {
-        description "Reads effects from Parquet"
-        link ../../../../../src/storage/effect-reader.ts
-      }
-      query_context = component "QueryContext" {
-        description "Multi-package query context"
-        link ../../../../../src/storage/query-context.ts
-      }
-      file_lock = component "FileLock" {
-        description "Concurrent access control"
-        link ../../../../../src/storage/file-lock.ts
-      }
-    }
-
-    // =====================================================
-    // FEDERATION LAYER
-    // =====================================================
-
-    hub = container "Hub" {
-      description "Cross-repository federation with Single Writer"
-
-      central_hub = component "CentralHub" {
-        description "Main hub for cross-repo queries"
-        link ../../../../../src/hub/central-hub.ts
-      }
-      hub_storage = component "HubStorage" {
-        description "Hub database operations"
-        link ../../../../../src/hub/hub-storage.ts
-      }
-      hub_server = component "HubServer" {
-        description "IPC server for MCP mode"
-        link ../../../../../src/hub/hub-server.ts
-      }
-      hub_client = component "HubClient" {
-        description "Client that routes to IPC or direct"
-        link ../../../../../src/hub/hub-client.ts
-      }
-      manifest_gen = component "ManifestGenerator" {
-        description "Generates repository manifests"
-        link ../../../../../src/hub/manifest-generator.ts
-      }
-      affected_analyzer = component "AffectedAnalyzer" {
-        description "Cross-repo impact analysis"
-        link ../../../../../src/hub/affected-analyzer.ts
-      }
-    }
-
-    workspace = container "Workspace" {
-      description "Multi-repo workspace management (v3.0)"
-
-      workspace_manager = component "WorkspaceManager" {
-        description "Main workspace coordinator"
-        link ../../../../../src/workspace/manager.ts
-      }
-      workspace_discover = component "WorkspaceDiscovery" {
-        description "Discovers repos in workspace"
-        link ../../../../../src/workspace/discover.ts
-      }
-      seed_detector = component "SeedDetector" {
-        description "Detects seed changes"
-        link ../../../../../src/workspace/seed-detector.ts
-      }
-      auto_refresher = component "AutoRefresher" {
-        description "Auto-refreshes hub on changes"
-        link ../../../../../src/workspace/auto-refresh.ts
-      }
-      workspace_state = component "WorkspaceState" {
-        description "Persists workspace state"
-        link ../../../../../src/workspace/state.ts
-      }
-      package_manager = component "PackageManager" {
-        description "Detects package managers"
-        link ../../../../../src/workspace/package-manager.ts
-      }
-    }
-
-    context = container "Context" {
-      description "Repository context discovery"
-
-      discovery = component "ContextDiscovery" {
-        description "Discovers sibling repos and worktrees"
-        link ../../../../../src/context/discovery.ts
-      }
-      cross_repo = component "CrossRepoDetector" {
-        description "Detects cross-repo dependencies"
-        link ../../../../../src/context/cross-repo-detector.ts
-      }
-      ci_status = component "CIStatus" {
-        description "Fetches CI status from GitHub"
-        link ../../../../../src/context/ci-status.ts
-      }
-      issues = component "Issues" {
-        description "Fetches GitHub issues"
-        link ../../../../../src/context/issues.ts
-      }
-      reviews = component "Reviews" {
-        description "Fetches PR reviews"
-        link ../../../../../src/context/reviews.ts
-      }
-    }
-
-    // =====================================================
-    // OUTPUT LAYER
-    // =====================================================
-
-    rules = container "Rules" {
-      description "Effect pattern matching to domain effects"
-
-      rule_engine = component "RuleEngine" {
-        description "Applies rules to classify effects"
-        link ../../../../../src/rules/rule-engine.ts
-      }
-      builtin_rules = component "BuiltinRules" {
-        description "Database, payment, auth, HTTP rules"
-        link ../../../../../src/rules/builtin-rules.ts
-      }
-    }
-
-    view_generators = container "Views" {
-      description "Architecture visualization generation"
-
-      c4_generator = component "C4Generator" {
-        description "Generates C4 context/container diagrams"
-        link ../../../../../src/views/c4-generator.ts
-      }
-      likec4_spec = component "LikeC4SpecGenerator" {
-        description "Generates LikeC4 DSL specifications"
-        link ../../../../../src/views/likec4-spec-generator.ts
-      }
-      likec4_dynamic = component "LikeC4DynamicGenerator" {
-        description "Generates dynamic views from effects"
-        link ../../../../../src/views/likec4-dynamic-generator.ts
-      }
-      effect_enricher = component "EffectEnricher" {
-        description "Enriches effects with node metadata"
-        link ../../../../../src/views/effect-enricher.ts
-      }
-      gap_metrics = component "GapMetrics" {
-        description "Calculates F1 scores for gap analysis"
-        link ../../../../../src/views/gap-metrics.ts
-      }
-      likec4_parser = component "LikeC4JsonParser" {
-        description "Parses LikeC4 JSON for comparison"
-        link ../../../../../src/views/likec4-json-parser.ts
-      }
-    }
-
-    docs = container "Docs" {
-      description "Documentation generation with metadata"
-
-      effects_gen = component "EffectsGenerator" {
-        description "Generates effects documentation"
-        link ../../../../../src/docs/effects-generator.ts
-      }
-      c4_doc_gen = component "C4DocGenerator" {
-        description "Generates C4 markdown docs"
-        link ../../../../../src/docs/c4-doc-generator.ts
-      }
-      repo_c4_gen = component "RepoC4Generator" {
-        description "Repo-level C4 aggregation"
-        link ../../../../../src/docs/repo-c4-generator.ts
-      }
-      workspace_effects = component "WorkspaceEffectsGenerator" {
-        description "Workspace-level effects docs"
-        link ../../../../../src/docs/workspace-effects-generator.ts
-      }
-      doc_metadata = component "DocMetadata" {
-        description "Tracks generation metadata"
-        link ../../../../../src/docs/doc-metadata.ts
-      }
-      seed_hasher = component "SeedHasher" {
-        description "Computes seed hashes for change detection"
-        link ../../../../../src/docs/seed-hasher.ts
-      }
-    }
-
-    // =====================================================
-    // CROSS-CUTTING CONCERNS
-    // =====================================================
-
-    validation = container "Validation" {
-      description "Code validation and impact analysis"
-
-      coordinator = component "ValidationCoordinator" {
-        description "Coordinates all validators"
-        link ../../../../../src/validation/validation-coordinator.ts
-      }
-      typecheck = component "TypecheckValidator" {
-        description "TypeScript type checking"
-        link ../../../../../src/validation/validators/typecheck-validator.ts
-      }
-      lint = component "LintValidator" {
-        description "ESLint/Biome validation"
-        link ../../../../../src/validation/validators/lint-validator.ts
-      }
-      test = component "TestValidator" {
-        description "Test runner integration"
-        link ../../../../../src/validation/validators/test-validator.ts
-      }
-      coverage = component "CoverageValidator" {
-        description "Coverage analysis"
-        link ../../../../../src/validation/validators/coverage-validator.ts
-      }
-      symbol_affected = component "SymbolAffectedAnalyzer" {
-        description "Symbol-level impact analysis"
-        link ../../../../../src/validation/symbol-affected-analyzer.ts
-      }
-      issue_enricher = component "IssueEnricher" {
-        description "Enriches issues with graph context"
-        link ../../../../../src/validation/issue-enricher.ts
-      }
-    }
-
-    watcher = container "Watcher" {
-      description "File watching and incremental updates"
-
-      file_watcher = component "FileWatcher" {
-        description "Watches for file changes"
-        link ../../../../../src/watcher/file-watcher.ts
-      }
-      rename_detector = component "RenameDetector" {
-        description "Detects file renames"
-        link ../../../../../src/watcher/rename-detector.ts
-      }
-      update_manager = component "UpdateManager" {
-        description "Manages incremental updates"
-        link ../../../../../src/watcher/update-manager.ts
-      }
-    }
-
-    utils = container "Utils" {
-      description "Shared utilities"
-
-      atomic_write = component "AtomicWrite" {
-        description "Atomic file operations"
-        link ../../../../../src/utils/atomic-write.ts
-      }
-      hash = component "Hash" {
-        description "Hashing utilities"
-        link ../../../../../src/utils/hash.ts
-      }
-      logger = component "Logger" {
-        description "Logging infrastructure"
-        link ../../../../../src/utils/logger.ts
-      }
-      cleanup = component "Cleanup" {
-        description "Seed cleanup utilities"
-        link ../../../../../src/utils/cleanup.ts
-      }
-      git = component "Git" {
-        description "Git utilities"
-        link ../../../../../src/utils/git.ts
-      }
-    }
-
-    types = container "Types" {
-      description "Core type definitions"
-
-      nodes = component "Nodes" {
-        description "ParsedNode types"
-        link ../../../../../src/types/nodes.ts
-      }
-      edges = component "Edges" {
-        description "ParsedEdge types"
-        link ../../../../../src/types/edges.ts
-      }
-      external_refs = component "ExternalRefs" {
-        description "ParsedExternalRef types"
-        link ../../../../../src/types/external-refs.ts
+      seeds = component "Seeds" {
+        description "Parquet I/O for code graph nodes/edges"
       }
       effects = component "Effects" {
-        description "Effect types and schemas"
-        link ../../../../../src/types/effects.ts
-      }
-      config = component "Config" {
-        description "Configuration types"
-        link ../../../../../src/types/config.ts
+        description "Parquet I/O for extracted effects"
       }
     }
 
-    effects_module = container "Effects" {
-      description "Effect mapping loader"
+    // Federation Layer
+    central_hub = container "CentralHub" {
+      description "Single-writer cross-repo DuckDB database"
+    }
 
-      mapping_loader = component "MappingLoader" {
-        description "Hierarchical effect mapping resolution"
-        link ../../../../../src/effects/mapping-loader.ts
-      }
+    hub_client = container "HubClient" {
+      description "IPC client for CLI when MCP owns hub"
+    }
+
+    cross_repo_detector = container "CrossRepoDetector" {
+      description "Discovers sibling repositories"
+    }
+
+    // Validation Layer
+    validation_coordinator = container "ValidationCoordinator" {
+      description "Orchestrates validation pipeline"
+    }
+
+    validators = container "Validators" {
+      description "TypecheckValidator, LintValidator, TestValidator, CoverageValidator"
+    }
+
+    issue_enricher = container "IssueEnricher" {
+      description "Adds code graph context to issues"
+    }
+
+    // Query Layer
+    data_provider = container "DataProvider" {
+      description "Unified query interface (PackageDataProvider, HubDataProvider)"
+    }
+
+    diagram_views = container "Views" {
+      description "C4 diagram generation"
+    }
+
+    // Server Layer
+    mcp_server = container "DevacMCPServer" {
+      description "MCP server with 18 tools"
+    }
+
+    commands = container "Commands" {
+      description "CLI commands (analyze, query, validate, etc.)"
     }
   }
 
-  // =====================================================
-  // EXTERNAL SYSTEMS
-  // =====================================================
-
+  // External Systems
   source_code = external_system "Source Code" {
-    description "TypeScript, Python, C# source files"
+    description "TS/Py/C# files to analyze"
   }
 
   filesystem = external_system "File System" {
-    description "Parquet seed storage (.devac/seed/)"
+    description "Parquet seeds in .devac/seed/"
   }
 
   central_hub_db = external_system "Central Hub DB" {
-    description "DuckDB federation database (~/.devac/)"
-  }
-
-  github = external_system "GitHub API" {
-    description "CI status, issues, PR reviews"
+    description "DuckDB at ~/ws/.devac/central.duckdb"
   }
 
   // =====================================================
-  // RELATIONSHIPS
+  // RELATIONSHIPS (copied from architecture-validated.md)
   // =====================================================
 
   // Context level
-  developer -> devac_cli "Uses"
-  devac_cli -> devac_core "Imports"
+  developer -[uses]-> devac_core "Uses for code analysis"
+  devac_core -[reads]-> source_code "Parses TS/Py/C# files"
+  devac_core -[writes]-> filesystem "Reads/Writes Parquet seeds"
+  devac_core -[queries]-> central_hub_db "Federates cross-repo queries"
 
   // Analysis layer
-  devac_core.analyzer -> devac_core.parsers "Calls for structural parsing"
-  devac_core.analyzer -> devac_core.semantic "Calls for resolution"
-  devac_core.parsers -> source_code "Reads"
-  devac_core.semantic -> source_code "Reads"
+  devac_core.analyzer -[calls]-> devac_core.parsers "Delegates parsing by language"
+  devac_core.analyzer -[calls]-> devac_core.semantic "Delegates resolution"
+  devac_core.parsers -[reads]-> source_code "Reads files via tree-sitter"
+  devac_core.semantic -[reads]-> source_code "Reads files for cross-file resolution"
+  devac_core.analyzer -[writes]-> devac_core.storage "Writes analysis results"
 
   // Storage layer
-  devac_core.analyzer -> devac_core.storage "Writes results"
-  devac_core.storage -> filesystem "Reads/Writes Parquet"
+  devac_core.storage.seeds -[queries]-> devac_core.storage.duckdb_pool "Queries via"
+  devac_core.storage.seeds -[writes]-> filesystem "Reads/Writes Parquet"
+  devac_core.storage.effects -[queries]-> devac_core.storage.duckdb_pool "Queries via"
+  devac_core.storage.effects -[writes]-> filesystem "Reads/Writes Parquet"
 
   // Federation layer
-  devac_core.hub -> devac_core.storage "Queries seeds"
-  devac_core.hub -> central_hub_db "Reads/Writes"
-  devac_core.workspace -> devac_core.hub "Registers repos"
-  devac_core.workspace -> filesystem "Watches"
-  devac_core.context -> github "Fetches"
-  devac_core.context -> devac_core.hub "Syncs"
+  devac_core.central_hub -[reads]-> devac_core.storage "Reads package seeds"
+  devac_core.central_hub -[writes]-> central_hub_db "Writes to central.duckdb"
+  devac_core.hub_client -[ipc]-> devac_core.central_hub "IPC via Unix socket"
+  devac_core.cross_repo_detector -[reads]-> filesystem "Scans for sibling repos"
 
-  // Output layer
-  devac_core.rules -> devac_core.storage "Reads effects"
-  devac_core.view_generators -> devac_core.rules "Gets domain effects"
-  devac_core.docs -> devac_core.view_generators "Gets diagrams"
-  devac_core.docs -> filesystem "Writes docs"
+  // Validation layer
+  devac_core.validation_coordinator -[calls]-> devac_core.validators "Orchestrates validation"
+  devac_core.validators -[calls]-> source_code "Runs tsc/eslint/vitest"
+  devac_core.issue_enricher -[reads]-> devac_core.storage "Reads code graph for context"
+  devac_core.validation_coordinator -[writes]-> devac_core.central_hub "Reports validation errors"
 
-  // Cross-cutting
-  devac_core.validation -> devac_core.storage "Queries graph"
-  devac_core.validation -> devac_core.hub "Pushes results"
-  devac_core.watcher -> devac_core.analyzer "Triggers reanalysis"
-  devac_core.watcher -> filesystem "Watches"
+  // Query layer
+  devac_core.data_provider -[queries]-> devac_core.storage "Queries local package seeds"
+  devac_core.data_provider -[queries]-> devac_core.central_hub "Queries federated hub"
+  devac_core.diagram_views -[reads]-> devac_core.data_provider "Gets code graph data"
+
+  // Server layer
+  devac_core.mcp_server -[uses]-> devac_core.data_provider "Exposes as MCP tools"
+  devac_core.mcp_server -[uses]-> devac_core.central_hub "Owns hub in single-writer mode"
+  devac_core.commands -[uses]-> devac_core.data_provider "CLI entry point"
+  devac_core.commands -[calls]-> devac_core.validation_coordinator "Triggers validation"
 }
 
 views {
-  // Context view
   view context of devac_core {
     title "DevAC Core - System Context"
-    include developer, devac_cli, devac_core, source_code, filesystem, central_hub_db, github
+    include *
     autoLayout TopBottom
   }
 
-  // Container view
   view containers of devac_core {
-    title "DevAC Core - Container Diagram"
-    include devac_core.*, source_code, filesystem, central_hub_db, github
-    autoLayout TopBottom
-  }
-
-  // Analysis layer detail
-  view analysis_layer {
-    title "Analysis Layer - Components"
-    include devac_core.parsers.*, devac_core.semantic.*, devac_core.analyzer.*
-    autoLayout LeftRight
-  }
-
-  // Storage layer detail
-  view storage_layer {
-    title "Storage Layer - Components"
-    include devac_core.storage.*
-    autoLayout TopBottom
-  }
-
-  // Federation layer detail
-  view federation_layer {
-    title "Federation Layer - Components"
-    include devac_core.hub.*, devac_core.workspace.*, devac_core.context.*
-    autoLayout TopBottom
-  }
-
-  // Output layer detail
-  view output_layer {
-    title "Output Layer - Components"
-    include devac_core.rules.*, devac_core.view_generators.*, devac_core.docs.*
-    autoLayout LeftRight
-  }
-
-  // Validation detail
-  view validation_detail of devac_core.validation {
-    title "Validation - Components"
+    title "DevAC Core - Containers"
     include *
     autoLayout TopBottom
   }
 
-  // Hub detail
-  view hub_detail of devac_core.hub {
-    title "Hub - Components"
-    include *
-    autoLayout TopBottom
-  }
-
-  // Views detail
-  view views_detail of devac_core.view_generators {
-    title "Views - Components"
+  view storage of devac_core.storage {
+    title "DevAC Core - Storage Layer"
     include *
     autoLayout TopBottom
   }
