@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
+    forceExit: true, // Ensure clean exit even with pending async ops
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
     testTimeout: 30000,
