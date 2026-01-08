@@ -12,6 +12,7 @@ import { Command } from "commander";
 import {
   registerAffectedCommand,
   registerAnalyzeCommand,
+  registerArchitectureCommand,
   registerC4Command,
   registerCallGraphCommand,
   registerCleanCommand,
@@ -87,6 +88,9 @@ registerDiagnosticsCommand(program);
 registerEffectsCommand(program);
 registerRulesCommand(program);
 registerC4Command(program);
+
+// Architecture commands (improvement loop)
+registerArchitectureCommand(program);
 
 // Workflow commands (deterministic development operations)
 registerWorkflowCommand(program);

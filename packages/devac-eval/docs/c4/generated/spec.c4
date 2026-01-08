@@ -1,0 +1,45 @@
+// DevAC LikeC4 Specification
+// Shared specification for generated and validated models
+// This file defines element kinds and relationship types
+
+specification {
+  // Element kinds
+  element person {
+    style {
+      shape person
+    }
+  }
+
+  element system {
+    style {
+      shape rectangle
+    }
+  }
+
+  element container {
+    style {
+      shape rectangle
+    }
+  }
+
+  element component {
+    style {
+      shape rectangle
+    }
+  }
+
+  element external_system {
+    style {
+      shape storage
+    }
+  }
+
+  // Relationship kinds
+  relationship uses
+  relationship writes
+  relationship reads
+  relationship contains
+  relationship queries
+  relationship calls
+  relationship imports
+}

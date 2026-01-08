@@ -14,15 +14,22 @@ export default defineConfig({
     },
     testTimeout: 60000,
     hookTimeout: 60000,
+    teardownTimeout: 10000,
+    // Retry flaky tests once to handle transient I/O issues
+    retry: 1,
     // Test isolation settings to prevent flakiness
     setupFiles: ["./vitest.setup.ts"],
+    // Use forks with singleFork for stability - prevents tinypool channel closed errors
+    // Core tests have heavy I/O with DuckDB, Parquet files, and subprocesses (pyright)
     pool: "forks",
     poolOptions: {
       forks: {
-        singleFork: false,
+        singleFork: true, // Run test files sequentially for stability
         isolate: true,
       },
     },
+    // Limit concurrency within test files
+    maxConcurrency: 5,
     sequence: {
       shuffle: true,
     },

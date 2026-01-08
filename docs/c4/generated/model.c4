@@ -3,32 +3,27 @@
 // devac:generated-at: 2026-01-06T20:22:11.526Z
 // devac:generator: doc-sync@1.0.0
 // devac:verified: false
-// devac:package-path: /Users/grop/ws/vivief
-
-specification {
-  element system
-  element container
-}
+// devac:package-path: vivief
 
 model {
-  system = system 'vivief' {
-    description 'No effects extracted yet'
+  system = system "vivief" {
+    description "No effects extracted yet"
 
-    placeholder = container 'Placeholder' {
-      description 'Run devac analyze first'
+    placeholder = container "Placeholder" {
+      description "Run devac analyze first"
     }
   }
 }
 
 views {
   view context {
-    title 'System Context'
+    title "System Context"
     include *
     autoLayout TopBottom
   }
 
   view containers {
-    title 'Container Diagram'
+    title "Container Diagram"
     include *
     autoLayout TopBottom
   }

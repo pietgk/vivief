@@ -357,6 +357,21 @@ export {
   computeRelativePath,
   buildNodeLookupMap,
   buildInternalEdges,
+  // LikeC4 JSON Parser (for gap analysis)
+  exportLikeC4ToJson,
+  parseModel,
+  parseLikeC4,
+  parsePackageC4Files,
+  getContainerId,
+  getContainerComponents,
+  // Gap Metrics (for architecture improvement loop)
+  calculateF1,
+  calculateContainerF1,
+  calculateSignalToNoise,
+  calculateRelationshipF1,
+  calculateExternalF1,
+  analyzeGap,
+  formatGapAnalysis,
 } from "./views/index.js";
 export type {
   C4ExternalSystem,
@@ -368,6 +383,16 @@ export type {
   DomainSummary,
   C4GeneratorOptions,
   DomainBoundary,
+  // LikeC4 JSON Parser types
+  LikeC4Element,
+  LikeC4Relationship,
+  LikeC4View,
+  LikeC4Model,
+  ParsedC4Model,
+  // Gap Metrics types
+  F1Score,
+  GapMetric,
+  GapAnalysis,
 } from "./views/index.js";
 
 // Enriched Effects Types (for C4 enrichment)

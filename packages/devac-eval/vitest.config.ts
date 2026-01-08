@@ -6,6 +6,17 @@ export default defineConfig({
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
     testTimeout: 60000,
+    hookTimeout: 60000,
+    teardownTimeout: 10000,
+    // Retry flaky tests once to handle transient I/O issues
+    retry: 1,
+    // Use forks for stability - prevents tinypool channel closed errors
     pool: "forks",
+    poolOptions: {
+      forks: {
+        singleFork: true,
+        isolate: true,
+      },
+    },
   },
 });

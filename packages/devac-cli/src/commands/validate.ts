@@ -255,6 +255,7 @@ export function registerValidateCommand(program: Command): void {
     .option("--skip-typecheck", "Skip type checking")
     .option("--skip-lint", "Skip linting")
     .option("--force-tests", "Force tests even in quick mode")
+    .option("--architecture", "Check architecture documentation drift")
     .option("--max-depth <depth>", "Maximum affected depth", "10")
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--push-to-hub", "Push results to central Hub")
@@ -273,6 +274,23 @@ export function registerValidateCommand(program: Command): void {
         pushToHub: options.pushToHub,
         repoId: options.repoId,
       });
+
+      // Check architecture drift if requested
+      if (options.architecture) {
+        const { architectureStatusCommand } = await import("./architecture.js");
+        const archResult = await architectureStatusCommand({
+          packagePath: path.resolve(options.package),
+          json: false,
+        });
+
+        if (archResult.status === "stale") {
+          console.warn("\n⚠️  Architecture documentation drift detected");
+          console.warn("   Run /validate-architecture to update");
+        } else if (archResult.status === "missing") {
+          console.warn("\n⚠️  Architecture documentation missing");
+          console.warn("   Run /validate-architecture to create");
+        }
+      }
 
       if (options.json) {
         console.log(JSON.stringify(result, null, 2));
