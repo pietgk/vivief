@@ -23,6 +23,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "pretest": "ps -eo ppid,pid,command 2>/dev/null | grep vitest | awk '$1 == 1 { print $2 }' | xargs kill 2>/dev/null || true",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",

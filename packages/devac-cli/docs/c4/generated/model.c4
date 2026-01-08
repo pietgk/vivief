@@ -1,0 +1,259 @@
+// DevAC Generated Documentation
+// devac:seed-hash: b2dfe1379313ec821804f9c1d26b737ef018d18544a5dc246cd1e29d5e05b0df
+// devac:generated-at: 2026-01-06T20:22:11.615Z
+// devac:generator: doc-sync@1.0.0
+// devac:verified: false
+// devac:package-path: packages/devac-cli
+
+model {
+  system = system "devac-cli" {
+    description "Package: devac-cli"
+
+    commands = container "Commands" {
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_0336c23f = component "groupResultsByCategory" {
+        link ../../../../../src/commands/doctor/checks/index.ts#L70
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_16988e98 = component "runChecks" {
+        link ../../../../../src/commands/doctor/checks/index.ts#L45
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_10950a22 = component "plugin-config.ts" {
+        link ../../../../../src/commands/doctor/checks/plugin-config.ts#L100
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_a16acb21 = component "getWorkspacePackages" {
+        link ../../../../../src/commands/workflow/check-changeset.ts#L135
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_1af598bd = component "getWorkspacePatterns" {
+        link ../../../../../src/commands/workflow/check-changeset.ts#L83
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_6156927a = component "index.ts" {
+        link ../../../../../src/commands/workflow/index.ts#L259
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_33a89411 = component "findCliPackages" {
+        link ../../../../../src/commands/workflow/install-local.ts#L97
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_767e51ed = component "formatDoctorOutput" {
+        link ../../../../../src/commands/doctor/formatters.ts#L52
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_99ff29ce = component "affected.ts" {
+        link ../../../../../src/commands/affected.ts#L182
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_57f50443 = component "analyze.ts" {
+        link ../../../../../src/commands/analyze.ts#L794
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_75e1094f = component "checkForChanges" {
+        link ../../../../../src/commands/analyze.ts#L296
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_f9dfc6a3 = component "findTypeScriptFiles" {
+        link ../../../../../src/commands/analyze.ts#L268
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_f207c3e5 = component "c4.ts" {
+        link ../../../../../src/commands/c4.ts#L669
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_f1a25ac1 = component "c4ContainersCommand" {
+        link ../../../../../src/commands/c4.ts#L423
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_6a881ae4 = component "c4ContextCommand" {
+        link ../../../../../src/commands/c4.ts#L357
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_f9379126 = component "call-graph.ts" {
+        link ../../../../../src/commands/call-graph.ts#L266
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_cd9e4590 = component "clean.ts" {
+        link ../../../../../src/commands/clean.ts#L166
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_f64a7db7 = component "context.ts" {
+        link ../../../../../src/commands/context.ts#L734
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_c4ec82f7 = component "coverage.ts" {
+        link ../../../../../src/commands/coverage.ts#L230
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_60528b24 = component "dependents.ts" {
+        link ../../../../../src/commands/dependents.ts#L193
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_faca01c7 = component "deps.ts" {
+        link ../../../../../src/commands/deps.ts#L191
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_f101c44e = component "diagnostics.ts" {
+        link ../../../../../src/commands/diagnostics.ts#L63
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_ef9fe995 = component "doc-sync.ts" {
+        link ../../../../../src/commands/doc-sync.ts#L1346
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_86cc3d8e = component "syncWorkspaceLevel" {
+        link ../../../../../src/commands/doc-sync.ts#L1037
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_cd90a9af = component "syncRepoLevel" {
+        link ../../../../../src/commands/doc-sync.ts#L845
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_d4385a27 = component "syncPackage" {
+        link ../../../../../src/commands/doc-sync.ts#L639
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_1a20a984 = component "extractEffectsData" {
+        link ../../../../../src/commands/doc-sync.ts#L330
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_5d7f861d = component "generateLikeC4Config" {
+        link ../../../../../src/commands/doc-sync.ts#L260
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_04ebbc72 = component "doctor.ts" {
+        link ../../../../../src/commands/doctor.ts#L228
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_8ab03311 = component "effectsSyncCommand" {
+        link ../../../../../src/commands/effects.ts#L1398
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_bb591e20 = component "effects.ts" {
+        link ../../../../../src/commands/effects.ts#L1035
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_30d16e70 = component "effectsVerifyCommand" {
+        link ../../../../../src/commands/effects.ts#L999
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_248626bf = component "effectsInitCommand" {
+        link ../../../../../src/commands/effects.ts#L606
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_1dc5de6f = component "file-symbols.ts" {
+        link ../../../../../src/commands/file-symbols.ts#L193
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_44a9dcec = component "find-symbol.ts" {
+        link ../../../../../src/commands/find-symbol.ts#L175
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_7e58710c = component "hub-init.ts" {
+        link ../../../../../src/commands/hub-init.ts#L531
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_993e0bb1 = component "hub-query.ts" {
+        link ../../../../../src/commands/hub-query.ts#L195
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_0624fbbe = component "lint.ts" {
+        link ../../../../../src/commands/lint.ts#L152
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_bed74cb3 = component "mcp.ts" {
+        link ../../../../../src/commands/mcp.ts#L382
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_3d24323a = component "groupBy" {
+        link ../../../../../src/commands/output-formatter.ts#L257
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_438947c6 = component "formatValidationIssues" {
+        link ../../../../../src/commands/output-formatter.ts#L100
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_bad635a8 = component "query.ts" {
+        link ../../../../../src/commands/query.ts#L273
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_6a851d62 = component "getWidth" {
+        link ../../../../../src/commands/query.ts#L210
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_8dbfa5cd = component "formatAsTable" {
+        link ../../../../../src/commands/query.ts#L205
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_35c7eace = component "rules.ts" {
+        link ../../../../../src/commands/rules.ts#L460
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_b958c6c2 = component "status.ts" {
+        link ../../../../../src/commands/status.ts#L929
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_482c7182 = component "getCurrentBranch" {
+        link ../../../../../src/commands/status.ts#L186
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_52ce7d94 = component "sync.ts" {
+        link ../../../../../src/commands/sync.ts#L275
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_0e271454 = component "test-cmd.ts" {
+        link ../../../../../src/commands/test-cmd.ts#L162
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_d22fa2df = component "typecheck.ts" {
+        link ../../../../../src/commands/typecheck.ts#L144
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_070d8cee = component "validate.ts" {
+        link ../../../../../src/commands/validate.ts#L288
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_0889dd32 = component "validateCommand" {
+        link ../../../../../src/commands/validate.ts#L139
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_3a1f387d = component "verify.ts" {
+        link ../../../../../src/commands/verify.ts#L94
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_7588b97b = component "watch.ts" {
+        link ../../../../../src/commands/watch.ts#L549
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_method_7d5c9dc8 = component "writeNotification" {
+        link ../../../../../src/commands/watch.ts#L470
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_4ace3bd7 = component "workspaceInit" {
+        link ../../../../../src/commands/workspace-init.ts#L121
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_f33d3a0c = component "workspace-status.ts" {
+        link ../../../../../src/commands/workspace-status.ts#L483
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_ebce682b = component "workspaceWatch" {
+        link ../../../../../src/commands/workspace-watch.ts#L106
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_57955f6e = component "workspace-watch.ts" {
+        link ../../../../../src/commands/workspace-watch.ts#L96
+      }
+    }
+
+    utils = container "Utils" {
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_5c1031b5 = component "displayCommandResult" {
+        link ../../../../../src/utils/cli-output.ts#L44
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_8dd5377a = component "success" {
+        link ../../../../../src/utils/cli-output.ts#L20
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_70d6da9c = component "error" {
+        link ../../../../../src/utils/cli-output.ts#L33
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_6f368c7f = component "validateAdrFormat" {
+        link ../../../../../src/utils/doc-utils.ts#L123
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_c96832b2 = component "parseAdrIndex" {
+        link ../../../../../src/utils/doc-utils.ts#L62
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_cli_function_554fde63 = component "parseChangesetPackages" {
+        link ../../../../../src/utils/git-utils.ts#L365
+      }
+    }
+
+    index_ts = container "Index.ts" {
+      vivief__Users_grop_ws_vivief_packages_devac_cli_module_da3f47f2 = component "index.ts" {
+        link ../../../../../src/index.ts#L113
+      }
+    }
+  }
+
+  external_Storage_filesystem = external_system "Filesystem (Storage)" {
+    description "storage"
+  }
+
+  system -> external_Storage_filesystem "Read, Read, Read..."
+  system.commands -> external_Storage_filesystem "Read, Write (40 calls)"
+  system.utils -> external_Storage_filesystem "Read (3 calls)"
+}
+
+views {
+  view context {
+    title "System Context"
+    include *
+    autoLayout TopBottom
+  }
+
+  view containers {
+    title "Container Diagram"
+    include *
+    autoLayout TopBottom
+  }
+
+  view commands_detail of system.commands {
+    title "Commands - Components"
+    include *
+    autoLayout TopBottom
+  }
+
+  view utils_detail of system.utils {
+    title "Utils - Components"
+    include *
+    autoLayout TopBottom
+  }
+
+  view index_ts_detail of system.index_ts {
+    title "Index.ts - Components"
+    include *
+    autoLayout TopBottom
+  }
+}

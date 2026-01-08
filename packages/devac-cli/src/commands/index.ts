@@ -36,6 +36,9 @@ export { registerEffectsCommand } from "./effects.js";
 export { registerRulesCommand } from "./rules.js";
 export { registerC4Command } from "./c4.js";
 
+// Architecture commands (improvement loop)
+export { registerArchitectureCommand } from "./architecture.js";
+
 // Workflow commands (deterministic development operations)
 export { registerWorkflowCommand } from "./workflow/index.js";
 
@@ -298,3 +301,16 @@ export type { SyncOptions, SyncResult } from "./sync.js";
 // Doc-sync command (documentation generation)
 export { docSyncCommand } from "./doc-sync.js";
 export type { DocSyncOptions, DocSyncResult, PackageSyncResult } from "./doc-sync.js";
+
+// Architecture commands (improvement loop)
+export {
+  architectureStatusCommand,
+  architectureScoreCommand,
+  architectureDiffCommand,
+} from "./architecture.js";
+export type {
+  ArchitectureOptions,
+  ArchitectureStatusResult,
+  ArchitectureScoreResult,
+  ArchitectureDiffResult,
+} from "./architecture.js";

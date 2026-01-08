@@ -66,19 +66,31 @@ packages/devac-cli/src/commands/
 
 ### Output File Structure
 
+> **Note**: See [ADR-0029](./0029-likec4-directory-restructure.md) for the updated directory structure
+> that separates generated and validated models to avoid LikeC4 plugin conflicts.
+
 ```
 package/docs/c4/
-├── context.c4           # System context (LikeC4 - default)
-├── containers.c4        # Container diagram (LikeC4 - default)
-└── context.puml         # (only with --format plantuml or both)
+├── spec.c4                    # Shared specification
+├── generated/
+│   ├── likec4.config.json     # Points to ../spec.c4
+│   ├── spec.c4                # Copy of shared spec
+│   └── model.c4               # Auto-generated model + views
+└── validated/                 # Optional - only when human validation exists
+    ├── likec4.config.json
+    ├── spec.c4
+    └── model.c4               # Human-validated model + views
 
 repo/docs/c4/
-├── context.c4           # All external systems
-├── containers.c4        # Packages as containers
-└── effects-flow.c4      # Top repo-wide effect chains (future)
+├── spec.c4
+├── generated/
+│   └── model.c4               # Packages as containers
+└── validated/                 # Optional
+    └── model.c4
 
 workspace/docs/c4/
-└── workspace.c4         # Unified model with all repos
+└── generated/
+    └── workspace.c4           # Unified model with all repos
 ```
 
 ## Consequences
@@ -109,4 +121,4 @@ workspace/docs/c4/
 - [LikeC4 Official Site](https://likec4.dev/)
 - [LikeC4 GitHub Repository](https://github.com/likec4/likec4)
 - [ADR-0026: Federated Documentation Generation](./0026-federated-documentation-generation.md)
-- [Implementation Plan](/Users/grop/.claude/plans/federated-herding-sloth.md)
+- [ADR-0029: LikeC4 Directory Restructure](./0029-likec4-directory-restructure.md)

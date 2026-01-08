@@ -48,8 +48,8 @@ function computeRelativeLinkPath(
     return absolutePath;
   }
 
-  // The C4 docs are at packagePath/docs/c4/
-  const c4DocsDir = path.join(packagePath, "docs", "c4");
+  // The C4 docs are at packagePath/docs/c4/generated/
+  const c4DocsDir = path.join(packagePath, "docs", "c4", "generated");
 
   // Compute relative path from c4DocsDir to the source file
   let relativePath = path.relative(c4DocsDir, absolutePath);
@@ -690,5 +690,5 @@ function escapeString(str: string): string {
  * Get the file path for unified LikeC4 diagram
  */
 export function getUnifiedLikeC4FilePath(docsDir: string): string {
-  return `${docsDir}/c4/architecture.c4`;
+  return `${docsDir}/c4/generated/model.c4`;
 }

@@ -1,0 +1,281 @@
+// DevAC Generated Documentation
+// devac:seed-hash: 935496ece615114b0314d74412b86fe37a5743f00731031c27b6c30c232b8f80
+// devac:generated-at: 2026-01-06T20:22:11.758Z
+// devac:generator: doc-sync@1.0.0
+// devac:verified: false
+// devac:package-path: /Users/grop/ws/vivief/packages/devac-core
+
+model {
+  system = system 'devac-core' {
+    description 'Package: devac-core'
+
+    validation = container 'Validation' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_142075ee = component 'detectCoverageTool' {
+        link ../../../../../src/validation/validators/coverage-validator.ts#L402
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_bfe0f5cf = component 'parseCoverageJson' {
+        link ../../../../../src/validation/validators/coverage-validator.ts#L275
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_472cfb69 = component 'detectTestRunner' {
+        link ../../../../../src/validation/validators/test-validator.ts#L249
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_db1220c7 = component 'deduplicateAffectedFiles' {
+        link ../../../../../src/validation/symbol-affected-analyzer.ts#L376
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_module_9a954bcd = component 'symbol-affected-analyzer.ts' {
+        link ../../../../../src/validation/symbol-affected-analyzer.ts#L297
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_9af53aa1 = component 'diffFileSymbols' {
+        link ../../../../../src/validation/symbol-affected-analyzer.ts#L139
+      }
+    }
+
+    analyzer = container 'Analyzer' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_7f03e800 = component 'resolveSemantics' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L707
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_44ed747c = component 'analyzeBatch' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L562
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_c2a958d6 = component 'analyzeFile' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L413
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_8a2a33e0 = component 'processConcurrently' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L321
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_module_cc1f7442 = component 'analysis-orchestrator.ts' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L309
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_54258970 = component 'scan' {
+        link ../../../../../src/analyzer/analysis-orchestrator.ts#L259
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_2801da24 = component 'generateScopeHash' {
+        link ../../../../../src/analyzer/entity-id-generator.ts#L82
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_22f69ba6 = component 'getParserByLanguage' {
+        link ../../../../../src/analyzer/language-router.ts#L131
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_4fcb1cc2 = component 'getLanguage' {
+        link ../../../../../src/analyzer/language-router.ts#L97
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_a7442044 = component 'getParser' {
+        link ../../../../../src/analyzer/language-router.ts#L68
+      }
+    }
+
+    docs = container 'Docs' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_8ce83931 = component 'generateUnifiedRepoLikeC4Doc' {
+        link ../../../../../src/docs/repo-c4-generator.ts#L754
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_dd72d996 = component 'generateRepoLikeC4ContainersDoc' {
+        link ../../../../../src/docs/repo-c4-generator.ts#L448
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_5c939aca = component 'generateRepoC4ContainersDoc' {
+        link ../../../../../src/docs/repo-c4-generator.ts#L304
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_23a75722 = component 'extractExternalSystems' {
+        link ../../../../../src/docs/repo-c4-generator.ts#L74
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_ec0064d0 = component 'aggregatePatterns' {
+        link ../../../../../src/docs/repo-effects-generator.ts#L123
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_cb880a6b = component 'queryWorkspaceEffects' {
+        link ../../../../../src/docs/workspace-effects-generator.ts#L182
+      }
+    }
+
+    context = container 'Context' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_4d769cb8 = component 'getCIStatusForContext' {
+        link ../../../../../src/context/ci-status.ts#L220
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_bd156a0f = component 'analyzeExternalRefs' {
+        link ../../../../../src/context/cross-repo-detector.ts#L61
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_ef58ebc6 = component 'enrichWorktreeInfo' {
+        link ../../../../../src/context/discovery.ts#L345
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_9e8889bd = component 'getGitBranch' {
+        link ../../../../../src/context/discovery.ts#L294
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_4d450d05 = component 'getIssuesForContext' {
+        link ../../../../../src/context/issues.ts#L202
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_10ab6160 = component 'gatherDiffs' {
+        link ../../../../../src/context/review.ts#L169
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_19ce917c = component 'getReviewsForContext' {
+        link ../../../../../src/context/reviews.ts#L270
+      }
+    }
+
+    effects = container 'Effects' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_1575bc0d = component 'loadMappingsFromFile' {
+        link ../../../../../src/effects/mapping-loader.ts#L113
+      }
+    }
+
+    hub = container 'Hub' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_5e0b1b8e = component 'analyzeFile' {
+        link ../../../../../src/hub/affected-analyzer.ts#L167
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_d9503048 = component 'analyze' {
+        link ../../../../../src/hub/affected-analyzer.ts#L143
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_39ee886d = component 'getAffectedRepos' {
+        link ../../../../../src/hub/central-hub.ts#L1147
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_4ea7f2ea = component 'loadManifest' {
+        link ../../../../../src/hub/central-hub.ts#L856
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_ac8ed057 = component 'findM2MConnections' {
+        link ../../../../../src/hub/central-hub.ts#L744
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_b94d782d = component 'query' {
+        link ../../../../../src/hub/central-hub.ts#L587
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_051ac181 = component 'listRepos' {
+        link ../../../../../src/hub/central-hub.ts#L307
+      }
+    }
+
+    parsers = container 'Parsers' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_96b6bc64 = component 'visitParameters' {
+        link ../../../../../src/parsers/csharp-parser.ts#L818
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_f74a11df = component 'generateCallbackScopedName' {
+        link ../../../../../src/parsers/scoped-name-generator.ts#L241
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_c9151b4f = component 'getExternalModuleForSymbol' {
+        link ../../../../../src/parsers/typescript-parser.ts#L1612
+      }
+    }
+
+    rules = container 'Rules' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_350fe6de = component 'process' {
+        link ../../../../../src/rules/rule-engine.ts#L313
+      }
+    }
+
+    semantic = container 'Semantic' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_a02a9857 = component 'resolveRef' {
+        link ../../../../../src/semantic/csharp-semantic.ts#L411
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_47595e9b = component 'getResolverForFile' {
+        link ../../../../../src/semantic/index.ts#L118
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_3938ac5c = component 'getResolver' {
+        link ../../../../../src/semantic/index.ts#L75
+      }
+    }
+
+    storage = container 'Storage' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_bb093e97 = component 'acquire' {
+        link ../../../../../src/storage/duckdb-pool.ts#L141
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_eda3d5f2 = component 'initialize' {
+        link ../../../../../src/storage/duckdb-pool.ts#L110
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_dfa7d1bb = component 'initializeSchemas' {
+        link ../../../../../src/storage/parquet-schemas.ts#L191
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_5aa26ebf = component 'insertNode' {
+        link ../../../../../src/storage/seed-writer.ts#L435
+      }
+    }
+
+    types = container 'Types' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_72c4c464 = component 'findSendMapping' {
+        link ../../../../../src/types/effects.ts#L944
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_d45cfe1b = component 'findStoreMapping' {
+        link ../../../../../src/types/effects.ts#L930
+      }
+    }
+
+    utils = container 'Utils' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_38622cb0 = component 'writeFileAtomic' {
+        link ../../../../../src/utils/atomic-write.ts#L63
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_2707c076 = component 'computeStringHash' {
+        link ../../../../../src/utils/hash.ts#L24
+      }
+    }
+
+    views_container = container 'Views' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_a1127ea4 = component 'discoverDomainBoundaries' {
+        link ../../../../../src/views/c4-generator.ts#L1221
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_cc15db1b = component 'generateC4Containers' {
+        link ../../../../../src/views/c4-generator.ts#L248
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_32a82f22 = component 'generateC4Context' {
+        link ../../../../../src/views/c4-generator.ts#L183
+      }
+    }
+
+    workspace = container 'Workspace' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_fac21ff3 = component 'discoverWorkspace' {
+        link ../../../../../src/workspace/discover.ts#L533
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_c80c753e = component 'registerAllWithHub' {
+        link ../../../../../src/workspace/manager.ts#L264
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_function_0690b8af = component 'detectPackageManager' {
+        link ../../../../../src/workspace/package-manager.ts#L102
+      }
+    }
+
+    watcher = container 'Watcher' {
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_25fc3e10 = component 'detectRename' {
+        link ../../../../../src/watcher/rename-detector.ts#L102
+      }
+      vivief__Users_grop_ws_vivief_packages_devac_core_method_b7121dee = component 'handleAddOrChange' {
+        link ../../../../../src/watcher/update-manager.ts#L278
+      }
+    }
+  }
+
+  external_Storage_filesystem = external_system 'Filesystem (Storage)' {
+    description 'storage'
+  }
+
+  system -> external_Storage_filesystem 'Read/Write'
+}
+
+views {
+  view context {
+    title 'System Context'
+    include *
+    autoLayout TopBottom
+  }
+
+  view containers {
+    title 'Container Diagram'
+    include *
+    autoLayout TopBottom
+  }
+
+  view validation_detail of system.validation {
+    title 'Validation - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view analyzer_detail of system.analyzer {
+    title 'Analyzer - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view hub_detail of system.hub {
+    title 'Hub - Components'
+    include *
+    autoLayout TopBottom
+  }
+
+  view storage_detail of system.storage {
+    title 'Storage - Components'
+    include *
+    autoLayout TopBottom
+  }
+}

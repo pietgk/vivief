@@ -74,3 +74,34 @@ export {
   buildNodeLookupMap,
   buildInternalEdges,
 } from "./effect-enricher.js";
+
+// LikeC4 JSON Parser (for gap analysis)
+export {
+  exportLikeC4ToJson,
+  parseModel,
+  parseLikeC4,
+  parsePackageC4Files,
+  getContainerId,
+  getContainerComponents,
+  // Types
+  type LikeC4Element,
+  type LikeC4Relationship,
+  type LikeC4View,
+  type LikeC4Model,
+  type ParsedC4Model,
+} from "./likec4-json-parser.js";
+
+// Gap Metrics (for architecture improvement loop)
+export {
+  calculateF1,
+  calculateContainerF1,
+  calculateSignalToNoise,
+  calculateRelationshipF1,
+  calculateExternalF1,
+  analyzeGap,
+  formatGapAnalysis,
+  // Types
+  type F1Score,
+  type GapMetric,
+  type GapAnalysis,
+} from "./gap-metrics.js";

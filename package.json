@@ -16,6 +16,7 @@
     "format": "biome format --write .",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules",
+    "clean:orphaned-vitest": "ps -eo ppid,pid,command | grep vitest | awk '$1 == 1 { print $2 }' | xargs kill 2>/dev/null || true",
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm lint:fix",
     "release": "turbo run build && changeset publish",
