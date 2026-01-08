@@ -723,7 +723,6 @@ Options:
   --force-tests       Force running tests (even in quick mode)
   --push-to-hub       Push validation results to central hub cache
   --repo-id <id>      Repository ID for hub push (required with --push-to-hub)
-  --hub-dir <path>    Hub directory (default: auto-detected from workspace)
 
 Examples:
   devac validate --quick               # Fast validation

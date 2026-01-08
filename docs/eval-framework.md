@@ -26,10 +26,11 @@ devac-eval run --benchmark <benchmark-id> [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--benchmark, -b` | Benchmark ID to run | Required |
-| `--hub` | Path to DevAC hub | Auto-detect |
-| `--modes` | Modes to run: `baseline,enhanced` | `baseline,enhanced` |
-| `--questions` | Comma-separated question IDs to run | All |
-| `--results-dir` | Directory to store results | `./results` |
+| `--modes, -m` | Modes to run: `baseline,enhanced` | `baseline,enhanced` |
+| `--questions, -q` | Comma-separated question IDs to run | All |
+| `--model` | Model to use (sonnet, haiku, opus) | claude-cli |
+| `--output, -o` | Directory to store results | `./results` |
+| `--verbose, -v` | Verbose output | false |
 
 **Examples:**
 
