@@ -4,6 +4,18 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
 
+# notes
+
+lets keep an eye on devac-cli/docs/package-effects.md grouping got lost in pr 122 2026-01-10 versus 2026-01-06
+
+also observability as effect type is no longer mentioned
+
+test with no implementation needs addressing
+
+we need to standardize the commands and their usage
+
+architecture validation .md and .c4 are not the same it seems, can you have a good look at devac-core docs/c4/vali
+
 # recap improve-pipline
 
 Can you turn below ramblings into a prompt to make sure we understand each other get in sync so we end up with a good solid starting point to create a plan.
