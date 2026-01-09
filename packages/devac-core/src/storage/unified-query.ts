@@ -8,7 +8,6 @@
  * - Packages from multiple repos → workspace-level query
  */
 
-import * as path from "node:path";
 import type { Connection } from "duckdb-async";
 import { getParquetFilePaths, getSeedPaths } from "../types/config.js";
 import { fileExists } from "../utils/atomic-write.js";
@@ -85,26 +84,8 @@ export async function query<T = Record<string, unknown>>(
     };
   }
 
-  // Validate packages and check for root-level seeds
-  for (const pkgPath of packages) {
-    const rootWarning = await checkForRootSeeds(pkgPath);
-    if (rootWarning) {
-      warnings.push(rootWarning);
-      continue; // Skip this "package" - it's actually a repo root
-    }
-    packagesQueried.push(pkgPath);
-  }
-
-  if (packagesQueried.length === 0) {
-    return {
-      rows: [],
-      rowCount: 0,
-      timeMs: Date.now() - startTime,
-      viewsCreated: [],
-      packagesQueried: [],
-      warnings: [...warnings, "No valid packages to query after filtering"],
-    };
-  }
+  // All provided packages are trusted (from manifest)
+  packagesQueried.push(...packages);
 
   const rows = await executeWithRecovery(pool, async (conn) => {
     // Collect parquet paths from all valid packages
@@ -153,27 +134,6 @@ export async function query<T = Record<string, unknown>>(
     packagesQueried,
     warnings,
   };
-}
-
-/**
- * Check if path appears to be a repo root with seeds (invalid)
- *
- * Seeds should only exist at package level. If we find seeds at a repo root
- * (directory with .git), we warn and skip it.
- */
-async function checkForRootSeeds(pkgPath: string): Promise<string | null> {
-  // Check if this looks like a repo root (has .git) with seeds
-  const gitPath = path.join(pkgPath, ".git");
-  const seedPath = path.join(pkgPath, ".devac", "seed", "base", "nodes.parquet");
-
-  const hasGit = await fileExists(gitPath);
-  const hasSeeds = await fileExists(seedPath);
-
-  if (hasGit && hasSeeds) {
-    return `Warning: Found seeds at repo root (${pkgPath}). Seeds should only exist at package level. Skipping.`;
-  }
-
-  return null;
 }
 
 /**

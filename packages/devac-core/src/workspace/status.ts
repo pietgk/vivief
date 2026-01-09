@@ -80,6 +80,9 @@ export interface WorkspaceStatus {
   /** Whether the hub is initialized */
   hubInitialized: boolean;
 
+  /** Error message if hub connection failed */
+  hubError?: string;
+
   /** Status for each repository */
   repos: RepoStatus[];
 
@@ -172,6 +175,8 @@ export async function getWorkspaceStatus(options: StatusOptions = {}): Promise<W
 
   // Get registered repos from hub (if available)
   const registeredRepoIds = new Set<string>();
+  let hubError: string | undefined;
+
   if (hubInitialized) {
     try {
       const hub = new CentralHub({ hubDir });
@@ -181,8 +186,9 @@ export async function getWorkspaceStatus(options: StatusOptions = {}): Promise<W
         registeredRepoIds.add(repo.repoId);
       }
       await hub.close();
-    } catch {
-      // Hub exists but couldn't connect
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      hubError = `Hub connection error: ${message}`;
     }
   }
 
@@ -228,6 +234,7 @@ export async function getWorkspaceStatus(options: StatusOptions = {}): Promise<W
     isWorkspace,
     hubPath: hubInitialized ? hubPath : undefined,
     hubInitialized,
+    hubError,
     repos,
     summary,
   };

@@ -244,8 +244,8 @@ describe("Unified Query", () => {
       expect(result.packagesQueried).toContain(pkg2Path);
     });
 
-    it("should skip repo roots with seeds and emit warning", async () => {
-      // Create a "repo root" (has .git) with seeds
+    it("should query repo roots with seeds (single-package repos)", async () => {
+      // Create a "repo root" (has .git) with seeds - valid for single-package repos
       const repoPath = path.join(tempDir, "fake-repo");
       await fs.mkdir(path.join(repoPath, ".git"), { recursive: true });
 
@@ -253,7 +253,7 @@ describe("Unified Query", () => {
         nodes: [
           {
             entity_id: "test:fake-repo:function:xyz",
-            name: "badFunc",
+            name: "rootFunc",
             kind: "function",
             file_path: "index.ts",
           },
@@ -265,34 +265,35 @@ describe("Unified Query", () => {
         sql: "SELECT * FROM nodes",
       });
 
-      expect(result.rows).toEqual([]);
-      expect(result.packagesQueried).toEqual([]);
-      expect(result.warnings.some((w) => w.includes("seeds at repo root"))).toBe(true);
+      // Repo roots with seeds ARE now queried (valid for single-package repos)
+      expect(result.rows.length).toBe(1);
+      expect(result.packagesQueried).toContain(repoPath);
+      expect(result.warnings).toEqual([]);
     });
 
-    it("should filter out repo roots but keep valid packages", async () => {
-      // Create repo root with seeds (should be skipped)
+    it("should query both repo roots and nested packages", async () => {
+      // Create repo root with seeds
       const repoPath = path.join(tempDir, "mixed-repo");
       await fs.mkdir(path.join(repoPath, ".git"), { recursive: true });
 
       await writeSeedData(pool, repoPath, {
         nodes: [
           {
-            entity_id: "test:mixed-repo:function:bad",
-            name: "badFunc",
+            entity_id: "test:mixed-repo:function:root",
+            name: "rootFunc",
             kind: "function",
             file_path: "index.ts",
           },
         ],
       });
 
-      // Create valid package inside (should be queried)
-      const validPkgPath = path.join(repoPath, "packages", "valid");
-      await writeSeedData(pool, validPkgPath, {
+      // Create nested package (also has seeds)
+      const nestedPkgPath = path.join(repoPath, "packages", "nested");
+      await writeSeedData(pool, nestedPkgPath, {
         nodes: [
           {
-            entity_id: "test:valid:function:good",
-            name: "goodFunc",
+            entity_id: "test:nested:function:nested",
+            name: "nestedFunc",
             kind: "function",
             file_path: "src/index.ts",
           },
@@ -300,14 +301,15 @@ describe("Unified Query", () => {
       });
 
       const result = await query(pool, {
-        packages: [repoPath, validPkgPath],
+        packages: [repoPath, nestedPkgPath],
         sql: "SELECT * FROM nodes",
       });
 
-      // Should only have the valid package's node
-      expect(result.rows.length).toBe(1);
-      expect(result.packagesQueried).toEqual([validPkgPath]);
-      expect(result.warnings.some((w) => w.includes("seeds at repo root"))).toBe(true);
+      // Both should be queried
+      expect(result.rows.length).toBe(2);
+      expect(result.packagesQueried).toContain(repoPath);
+      expect(result.packagesQueried).toContain(nestedPkgPath);
+      expect(result.warnings).toEqual([]);
     });
 
     it("should return timing information", async () => {
