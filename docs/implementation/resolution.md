@@ -453,6 +453,98 @@ WHERE er.branch = 'main'
   AND source.file_path NOT LIKE target.file_path;
 ```
 
+## CALLS Edge Resolution
+
+In addition to import resolution, the semantic resolver also resolves CALLS edges. These edges are created during Pass 1 with `unresolved:{calleeName}` targets and resolved to actual entity IDs in Pass 2.
+
+### Resolution Strategy
+
+CALLS edges are resolved in order of confidence:
+
+| Priority | Source | Confidence | Description |
+|----------|--------|------------|-------------|
+| 1 | Local functions | 1.0 | Functions defined in the same file |
+| 2 | Exported functions | 0.9 | Functions exported from other files |
+| 3 | External/built-in | — | Not resolved (remains `unresolved:`) |
+
+### Built-in Filtering
+
+Common built-in methods are skipped to avoid false positives:
+- Console methods (`console.log`, `console.error`, etc.)
+- Array methods (`map`, `filter`, `reduce`, `forEach`, etc.)
+- Object methods (`keys`, `values`, `entries`, etc.)
+- Promise methods (`then`, `catch`, `finally`)
+- JSON methods (`parse`, `stringify`)
+
+### Types
+
+```typescript
+interface UnresolvedCallEdge {
+  sourceEntityId: string;      // Caller function
+  targetEntityId: string;      // 'unresolved:xxx'
+  sourceFilePath: string;
+  sourceLine: number;
+  sourceColumn: number;
+  calleeName: string;          // Extracted from target
+}
+
+interface ResolvedCallEdge {
+  call: UnresolvedCallEdge;
+  targetEntityId: string;      // Resolved entity ID
+  targetFilePath: string;
+  confidence: number;          // 0-1
+  method: "compiler" | "index" | "local";
+}
+
+interface CallResolutionResult {
+  total: number;
+  resolved: number;
+  unresolved: number;
+  resolvedCalls: ResolvedCallEdge[];
+  errors: CallResolutionError[];
+  timeMs: number;
+  packagePath: string;
+}
+```
+
+### Querying Call Graphs
+
+After resolution, call graph queries work with JOINs:
+
+```sql
+-- Call graph: caller → callee
+SELECT
+  s.name AS caller,
+  t.name AS callee,
+  e.properties->>'callee' AS call_expression
+FROM edges e
+JOIN nodes s ON e.source_entity_id = s.entity_id
+JOIN nodes t ON e.target_entity_id = t.entity_id
+WHERE e.edge_type = 'CALLS'
+LIMIT 20;
+
+-- Find all callers of a function
+SELECT DISTINCT s.name AS caller, s.file_path
+FROM edges e
+JOIN nodes s ON e.source_entity_id = s.entity_id
+JOIN nodes t ON e.target_entity_id = t.entity_id
+WHERE e.edge_type = 'CALLS'
+  AND t.name = 'targetFunctionName';
+
+-- Resolution statistics
+SELECT
+  COUNT(*) FILTER (WHERE target_entity_id NOT LIKE 'unresolved:%') AS resolved,
+  COUNT(*) FILTER (WHERE target_entity_id LIKE 'unresolved:%') AS unresolved,
+  COUNT(*) AS total
+FROM edges
+WHERE edge_type = 'CALLS';
+```
+
+### Related ADRs
+
+- [ADR-0020: CALLS Edge Extraction](../adr/0020-calls-edge-extraction.md) - Initial extraction design
+- [ADR-0033: CALLS Edge Resolution](../adr/0033-calls-edge-resolution.md) - Resolution implementation
+
 ## Troubleshooting
 
 ### Common Issues
