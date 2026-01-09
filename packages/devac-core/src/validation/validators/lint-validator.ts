@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { LinterError } from "../errors.js";
 import type { ValidationIssue } from "../issue-enricher.js";
 
 /**
@@ -546,19 +547,6 @@ export class LintValidator {
     }
 
     return issues;
-  }
-}
-
-/**
- * Error class for linter execution failures
- */
-class LinterError extends Error {
-  constructor(
-    public readonly output: string,
-    public readonly exitCode: number
-  ) {
-    super(`Linter exited with code ${exitCode}`);
-    this.name = "LinterError";
   }
 }
 

@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { TestError } from "../errors.js";
 
 /**
  * Options for test validation
@@ -307,19 +308,6 @@ export class TestValidator {
 
     // Fall back to global command
     return name;
-  }
-}
-
-/**
- * Error class for test execution failures
- */
-class TestError extends Error {
-  constructor(
-    public readonly output: string,
-    public readonly exitCode: number
-  ) {
-    super(`Tests exited with code ${exitCode}`);
-    this.name = "TestError";
   }
 }
 

@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { TscError } from "../errors.js";
 import type { ValidationIssue } from "../issue-enricher.js";
 
 /**
@@ -190,19 +191,6 @@ export class TypecheckValidator {
     }
 
     return issues;
-  }
-}
-
-/**
- * Error class for tsc execution failures
- */
-class TscError extends Error {
-  constructor(
-    public readonly output: string,
-    public readonly exitCode: number
-  ) {
-    super(`tsc exited with code ${exitCode}`);
-    this.name = "TscError";
   }
 }
 
