@@ -75,10 +75,11 @@ function formatCallGraph(
     } else {
       for (const caller of callers) {
         const c = caller as Record<string, unknown>;
-        const name = c.name || c.source_entity_id || "unknown";
+        const name = c.name || c.entity_id || c.source_entity_id || "unknown";
         const file = c.source_file || "";
         const kind = c.kind || "";
-        lines.push(`  ${name} (${kind}) - ${file}`);
+        const depth = c.depth !== undefined ? ` [depth: ${c.depth}]` : "";
+        lines.push(`  ${name} (${kind}) - ${file}${depth}`);
       }
     }
   }
@@ -91,10 +92,11 @@ function formatCallGraph(
     } else {
       for (const callee of callees) {
         const c = callee as Record<string, unknown>;
-        const name = c.name || c.target_entity_id || "unknown";
+        const name = c.name || c.entity_id || c.target_entity_id || "unknown";
         const file = c.source_file || "";
         const kind = c.kind || "";
-        lines.push(`  ${name} (${kind}) - ${file}`);
+        const depth = c.depth !== undefined ? ` [depth: ${c.depth}]` : "";
+        lines.push(`  ${name} (${kind}) - ${file}${depth}`);
       }
     }
   }
@@ -119,18 +121,49 @@ export async function callGraphCommand(
     let callers: unknown[] | undefined;
     let callees: unknown[] | undefined;
 
+    const maxDepth = options.maxDepth ?? 3;
+    const escapedEntityId = options.entityId.replace(/'/g, "''");
+
     if (options.packagePath) {
       // Package mode: query single package (only when explicitly requested)
       const pkgPath = path.resolve(options.packagePath);
       const seedReader = createSeedReader(pool, pkgPath);
 
       if (options.direction === "callers" || options.direction === "both") {
+        // Recursive CTE to find transitive callers up to maxDepth
         const sql = `
-          SELECT e.*, n.name, n.kind, n.source_file
-          FROM edges e
-          JOIN nodes n ON e.source_entity_id = n.entity_id
-          WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
-          AND e.edge_type = 'CALLS'
+          WITH RECURSIVE caller_chain AS (
+            -- Base case: direct callers
+            SELECT
+              e.source_entity_id,
+              1 as depth,
+              ARRAY[e.target_entity_id, e.source_entity_id] as path
+            FROM edges e
+            WHERE e.target_entity_id = '${escapedEntityId}'
+            AND e.edge_type = 'CALLS'
+
+            UNION ALL
+
+            -- Recursive case: callers of callers
+            SELECT
+              e.source_entity_id,
+              cc.depth + 1,
+              array_append(cc.path, e.source_entity_id)
+            FROM edges e
+            JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
+            WHERE e.edge_type = 'CALLS'
+            AND cc.depth < ${maxDepth}
+            AND NOT array_contains(cc.path, e.source_entity_id)
+          )
+          SELECT DISTINCT
+            cc.source_entity_id as entity_id,
+            cc.depth,
+            n.name,
+            n.kind,
+            n.source_file
+          FROM caller_chain cc
+          JOIN nodes n ON cc.source_entity_id = n.entity_id
+          ORDER BY cc.depth, n.name
           LIMIT ${limit}
         `;
         const result = await seedReader.querySeeds(sql);
@@ -138,12 +171,40 @@ export async function callGraphCommand(
       }
 
       if (options.direction === "callees" || options.direction === "both") {
+        // Recursive CTE to find transitive callees up to maxDepth
         const sql = `
-          SELECT e.*, n.name, n.kind, n.source_file
-          FROM edges e
-          JOIN nodes n ON e.target_entity_id = n.entity_id
-          WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
-          AND e.edge_type = 'CALLS'
+          WITH RECURSIVE call_chain AS (
+            -- Base case: direct callees
+            SELECT
+              e.target_entity_id,
+              1 as depth,
+              ARRAY[e.source_entity_id, e.target_entity_id] as path
+            FROM edges e
+            WHERE e.source_entity_id = '${escapedEntityId}'
+            AND e.edge_type = 'CALLS'
+
+            UNION ALL
+
+            -- Recursive case: callees of callees
+            SELECT
+              e.target_entity_id,
+              cc.depth + 1,
+              array_append(cc.path, e.target_entity_id)
+            FROM edges e
+            JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
+            WHERE e.edge_type = 'CALLS'
+            AND cc.depth < ${maxDepth}
+            AND NOT array_contains(cc.path, e.target_entity_id)
+          )
+          SELECT DISTINCT
+            cc.target_entity_id as entity_id,
+            cc.depth,
+            n.name,
+            n.kind,
+            n.source_file
+          FROM call_chain cc
+          JOIN nodes n ON cc.target_entity_id = n.entity_id
+          ORDER BY cc.depth, n.name
           LIMIT ${limit}
         `;
         const result = await seedReader.querySeeds(sql);
@@ -173,12 +234,40 @@ export async function callGraphCommand(
         }
 
         if (options.direction === "callers" || options.direction === "both") {
+          // Recursive CTE to find transitive callers up to maxDepth
           const sql = `
-            SELECT e.*, n.name, n.kind, n.source_file
-            FROM {edges} e
-            JOIN {nodes} n ON e.source_entity_id = n.entity_id
-            WHERE e.target_entity_id = '${options.entityId.replace(/'/g, "''")}'
-            AND e.edge_type = 'CALLS'
+            WITH RECURSIVE caller_chain AS (
+              -- Base case: direct callers
+              SELECT
+                e.source_entity_id,
+                1 as depth,
+                ARRAY[e.target_entity_id, e.source_entity_id] as path
+              FROM {edges} e
+              WHERE e.target_entity_id = '${escapedEntityId}'
+              AND e.edge_type = 'CALLS'
+
+              UNION ALL
+
+              -- Recursive case: callers of callers
+              SELECT
+                e.source_entity_id,
+                cc.depth + 1,
+                array_append(cc.path, e.source_entity_id)
+              FROM {edges} e
+              JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
+              WHERE e.edge_type = 'CALLS'
+              AND cc.depth < ${maxDepth}
+              AND NOT array_contains(cc.path, e.source_entity_id)
+            )
+            SELECT DISTINCT
+              cc.source_entity_id as entity_id,
+              cc.depth,
+              n.name,
+              n.kind,
+              n.source_file
+            FROM caller_chain cc
+            JOIN {nodes} n ON cc.source_entity_id = n.entity_id
+            ORDER BY cc.depth, n.name
             LIMIT ${limit}
           `;
           const result = await queryMultiplePackages(pool, packagePaths, sql);
@@ -186,12 +275,40 @@ export async function callGraphCommand(
         }
 
         if (options.direction === "callees" || options.direction === "both") {
+          // Recursive CTE to find transitive callees up to maxDepth
           const sql = `
-            SELECT e.*, n.name, n.kind, n.source_file
-            FROM {edges} e
-            JOIN {nodes} n ON e.target_entity_id = n.entity_id
-            WHERE e.source_entity_id = '${options.entityId.replace(/'/g, "''")}'
-            AND e.edge_type = 'CALLS'
+            WITH RECURSIVE call_chain AS (
+              -- Base case: direct callees
+              SELECT
+                e.target_entity_id,
+                1 as depth,
+                ARRAY[e.source_entity_id, e.target_entity_id] as path
+              FROM {edges} e
+              WHERE e.source_entity_id = '${escapedEntityId}'
+              AND e.edge_type = 'CALLS'
+
+              UNION ALL
+
+              -- Recursive case: callees of callees
+              SELECT
+                e.target_entity_id,
+                cc.depth + 1,
+                array_append(cc.path, e.target_entity_id)
+              FROM {edges} e
+              JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
+              WHERE e.edge_type = 'CALLS'
+              AND cc.depth < ${maxDepth}
+              AND NOT array_contains(cc.path, e.target_entity_id)
+            )
+            SELECT DISTINCT
+              cc.target_entity_id as entity_id,
+              cc.depth,
+              n.name,
+              n.kind,
+              n.source_file
+            FROM call_chain cc
+            JOIN {nodes} n ON cc.target_entity_id = n.entity_id
+            ORDER BY cc.depth, n.name
             LIMIT ${limit}
           `;
           const result = await queryMultiplePackages(pool, packagePaths, sql);
