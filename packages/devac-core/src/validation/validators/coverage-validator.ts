@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { CoverageError } from "../errors.js";
 
 /**
  * Options for coverage validation
@@ -462,19 +463,6 @@ export class CoverageValidator {
 
     // Fall back to global command
     return name;
-  }
-}
-
-/**
- * Error class for coverage execution failures
- */
-class CoverageError extends Error {
-  constructor(
-    public readonly output: string,
-    public readonly exitCode: number
-  ) {
-    super(`Coverage exited with code ${exitCode}`);
-    this.name = "CoverageError";
   }
 }
 
