@@ -274,6 +274,136 @@ export class SeedWriter {
   }
 
   /**
+   * Update resolved CALLS edges in the edges table
+   *
+   * This updates the target_entity_id field for CALLS edges
+   * that have been resolved by the semantic resolution pass.
+   */
+  async updateResolvedCallEdges(
+    resolvedEdges: ResolvedCallEdgeUpdate[],
+    options: WriteOptions = {}
+  ): Promise<UpdateResolvedCallEdgesResult> {
+    const startTime = Date.now();
+    const branch = options.branch ?? "base";
+    const paths = getSeedPaths(this.packagePath, branch);
+
+    if (resolvedEdges.length === 0) {
+      return {
+        success: true,
+        edgesUpdated: 0,
+        timeMs: Date.now() - startTime,
+      };
+    }
+
+    try {
+      const result = await withSeedLock(paths.seedRoot, async () => {
+        return await executeWithRecovery(this.pool, async (conn) => {
+          return await this.performResolvedCallEdgesUpdate(conn, resolvedEdges, paths, branch);
+        });
+      });
+
+      return {
+        success: true,
+        edgesUpdated: result,
+        timeMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        edgesUpdated: 0,
+        timeMs: Date.now() - startTime,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Perform the resolved call edges update
+   */
+  private async performResolvedCallEdgesUpdate(
+    conn: Connection,
+    resolvedEdges: ResolvedCallEdgeUpdate[],
+    paths: SeedPaths,
+    _branch: string
+  ): Promise<number> {
+    const edgesPath = path.join(paths.basePath, "edges.parquet");
+
+    if (!(await fileExists(edgesPath))) {
+      return 0;
+    }
+
+    // Build a lookup map for resolved edges
+    // Key: sourceEntityId|oldTargetEntityId (uniquely identifies a CALLS edge)
+    const resolvedMap = new Map<string, string>();
+    for (const edge of resolvedEdges) {
+      const key = `${edge.sourceEntityId}|${edge.oldTargetEntityId}`;
+      resolvedMap.set(key, edge.newTargetEntityId);
+    }
+
+    // Read all existing edges
+    const existingEdges = await conn.all(`SELECT * FROM read_parquet('${edgesPath}')`);
+
+    // Initialize schema and insert updated edges
+    await initializeSchemas(conn);
+
+    let updatedCount = 0;
+    const timestamp = new Date().toISOString();
+
+    for (const row of existingEdges) {
+      const edge = row as Record<string, unknown>;
+
+      // Only update CALLS edges
+      if (edge.edge_type === "CALLS") {
+        const key = `${edge.source_entity_id}|${edge.target_entity_id}`;
+        const resolvedTargetId = resolvedMap.get(key);
+
+        if (resolvedTargetId) {
+          // This edge was resolved - update target_entity_id
+          await conn.run(
+            `
+            INSERT INTO edges (
+              source_entity_id, target_entity_id, edge_type,
+              source_file_path, source_line, source_column,
+              properties, source_file_hash, branch, is_deleted, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+            edge.source_entity_id,
+            resolvedTargetId, // Updated target
+            edge.edge_type,
+            edge.source_file_path,
+            edge.source_line,
+            edge.source_column,
+            edge.properties,
+            edge.source_file_hash,
+            edge.branch,
+            edge.is_deleted,
+            timestamp
+          );
+          updatedCount++;
+        } else {
+          // Not resolved - keep as is
+          await this.insertEdgeFromRow(conn, edge);
+        }
+      } else {
+        // Non-CALLS edge - keep as is
+        await this.insertEdgeFromRow(conn, edge);
+      }
+    }
+
+    // Write to temp and rename
+    const tempDir = path.join(paths.seedRoot, ".tmp");
+    await fs.mkdir(tempDir, { recursive: true });
+    const tempSuffix = crypto.randomBytes(8).toString("hex");
+    const tempEdges = path.join(tempDir, `edges_${tempSuffix}.parquet`);
+
+    await conn.run(getCopyToParquet("edges", tempEdges));
+    await this.atomicRename(tempEdges, edgesPath);
+    await this.cleanupTempDir(tempDir);
+
+    return updatedCount;
+  }
+
+  /**
    * Update seeds for changed files (delete old + write new atomically)
    */
   async updateFile(
@@ -1207,6 +1337,28 @@ export interface ResolvedRefUpdate {
   moduleSpecifier: string;
   importedSymbol: string;
   targetEntityId: string;
+}
+
+/**
+ * Result of updating resolved call edges
+ */
+export interface UpdateResolvedCallEdgesResult {
+  success: boolean;
+  edgesUpdated: number;
+  timeMs: number;
+  error?: string;
+}
+
+/**
+ * Resolved call edge update data
+ */
+export interface ResolvedCallEdgeUpdate {
+  /** Source entity ID (caller function) */
+  sourceEntityId: string;
+  /** Original unresolved target (e.g., 'unresolved:foo') */
+  oldTargetEntityId: string;
+  /** Resolved target entity ID */
+  newTargetEntityId: string;
 }
 
 /**

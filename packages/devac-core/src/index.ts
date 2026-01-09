@@ -62,6 +62,9 @@ export type {
   LockOptions,
   WriteOptions,
   WriteResult,
+  ResolvedRefUpdate,
+  ResolvedCallEdgeUpdate,
+  UpdateResolvedCallEdgesResult,
   QueryResult,
   IntegrityResult,
   // Unified query types (v3.0 - recommended for new code)

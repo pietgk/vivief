@@ -262,6 +262,16 @@ export interface SemanticResolver {
   resolvePackage(packagePath: string, refs: UnresolvedRef[]): Promise<ResolutionResult>;
 
   /**
+   * Resolve CALLS edges in a package
+   * This resolves unresolved call targets to actual entity IDs
+   *
+   * @param packagePath - Root path of the package
+   * @param calls - Unresolved call edges from structural parsing
+   * @returns Call resolution result with all resolved/unresolved calls
+   */
+  resolveCallEdges(packagePath: string, calls: UnresolvedCallEdge[]): Promise<CallResolutionResult>;
+
+  /**
    * Clear any cached data for a package
    * Called when files change and cache needs invalidation
    *
@@ -302,4 +312,121 @@ export function applyResolution(
     is_resolved: true,
     updated_at: new Date().toISOString(),
   };
+}
+
+// ============================================================================
+// CALLS Edge Resolution Types
+// ============================================================================
+
+/**
+ * An unresolved CALLS edge from structural parsing
+ * These edges have target_entity_id = 'unresolved:xxx'
+ */
+export interface UnresolvedCallEdge {
+  /** Entity ID of the source node (caller function) */
+  sourceEntityId: string;
+
+  /** Current target entity ID (e.g., 'unresolved:foo') */
+  targetEntityId: string;
+
+  /** File path where the call occurs */
+  sourceFilePath: string;
+
+  /** Source line number */
+  sourceLine: number;
+
+  /** Source column */
+  sourceColumn: number;
+
+  /** Name of the function/method being called (from edge properties) */
+  calleeName: string;
+}
+
+/**
+ * A successfully resolved CALLS edge
+ */
+export interface ResolvedCallEdge {
+  /** The original unresolved call edge */
+  call: UnresolvedCallEdge;
+
+  /** Resolved target entity ID */
+  targetEntityId: string;
+
+  /** Resolved target file path */
+  targetFilePath: string;
+
+  /** Confidence score (0-1) */
+  confidence: number;
+
+  /** Resolution method used */
+  method: "compiler" | "index" | "local";
+}
+
+/**
+ * Error encountered during call resolution
+ */
+export interface CallResolutionError {
+  /** The call that failed to resolve */
+  call: UnresolvedCallEdge;
+
+  /** Error message */
+  error: string;
+
+  /** Error code for categorization */
+  code: ResolutionErrorCode;
+}
+
+/**
+ * Result of CALLS edge resolution for a package
+ */
+export interface CallResolutionResult {
+  /** Total number of calls processed */
+  total: number;
+
+  /** Number of successfully resolved calls */
+  resolved: number;
+
+  /** Number of unresolved calls */
+  unresolved: number;
+
+  /** List of resolved calls */
+  resolvedCalls: ResolvedCallEdge[];
+
+  /** Errors encountered during resolution */
+  errors: CallResolutionError[];
+
+  /** Time taken in milliseconds */
+  timeMs: number;
+
+  /** Package path that was resolved */
+  packagePath: string;
+}
+
+/**
+ * Index of local (non-exported) symbols in a file
+ * Maps file path to list of symbols defined in that file
+ */
+export interface LocalSymbolIndex {
+  /** Map of file path to its local symbols */
+  fileSymbols: Map<string, LocalSymbol[]>;
+
+  /** Timestamp when index was built */
+  builtAt: Date;
+}
+
+/**
+ * A local symbol (function, method, etc.) in a file
+ */
+export interface LocalSymbol {
+  /** Name of the symbol */
+  name: string;
+
+  /** Kind of the symbol */
+  kind: NodeKind;
+
+  /** Entity ID of the symbol */
+  entityId: string;
+
+  /** File path where the symbol is defined */
+  filePath: string;
 }

@@ -44,7 +44,13 @@ export type { LockInfo, LockOptions } from "./file-lock.js";
 
 // Seed writer
 export { SeedWriter, createSeedWriter } from "./seed-writer.js";
-export type { WriteOptions, WriteResult } from "./seed-writer.js";
+export type {
+  WriteOptions,
+  WriteResult,
+  ResolvedRefUpdate,
+  ResolvedCallEdgeUpdate,
+  UpdateResolvedCallEdgesResult,
+} from "./seed-writer.js";
 
 // Seed reader
 export {

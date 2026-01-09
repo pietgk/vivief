@@ -10,6 +10,7 @@ import * as path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type TypeScriptSemanticResolver,
+  type UnresolvedCallEdge,
   type UnresolvedRef,
   createTypeScriptResolver,
 } from "../../src/semantic/index.js";
@@ -525,6 +526,215 @@ console.log(formatUser(user.name));
       // Should not throw when rebuilding
       const index = await resolver.buildExportIndex(pkgDir);
       expect(index.packagePath).toBe(pkgDir);
+    });
+  });
+
+  describe("resolveCallEdges", () => {
+    it("should resolve local function calls", async () => {
+      const pkgDir = path.join(tempDir, "resolve-calls-local");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+function helper() {
+  return "help";
+}
+
+export function main() {
+  return helper();
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const calls: UnresolvedCallEdge[] = [
+        {
+          sourceEntityId: "test:pkg:function:main123",
+          targetEntityId: "unresolved:helper",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 7,
+          sourceColumn: 10,
+          calleeName: "helper",
+        },
+      ];
+
+      const result = await resolver.resolveCallEdges(pkgDir, calls);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.unresolved).toBe(0);
+      expect(result.resolvedCalls).toHaveLength(1);
+      expect(result.resolvedCalls[0]?.confidence).toBe(1.0);
+      expect(result.resolvedCalls[0]?.method).toBe("local");
+      expect(result.resolvedCalls[0]?.targetEntityId).not.toBe("unresolved:helper");
+    });
+
+    it("should resolve imported function calls", async () => {
+      const pkgDir = path.join(tempDir, "resolve-calls-imported");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "utils.ts"),
+        `
+export function formatName(name: string) {
+  return name.toUpperCase();
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "main.ts"),
+        `
+import { formatName } from "./utils";
+
+export function greet(name: string) {
+  return "Hello, " + formatName(name);
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const calls: UnresolvedCallEdge[] = [
+        {
+          sourceEntityId: "test:pkg:function:greet123",
+          targetEntityId: "unresolved:formatName",
+          sourceFilePath: path.join(pkgDir, "main.ts"),
+          sourceLine: 5,
+          sourceColumn: 20,
+          calleeName: "formatName",
+        },
+      ];
+
+      const result = await resolver.resolveCallEdges(pkgDir, calls);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.resolvedCalls).toHaveLength(1);
+      expect(result.resolvedCalls[0]?.confidence).toBeGreaterThanOrEqual(0.9);
+    });
+
+    it("should not resolve external/built-in calls", async () => {
+      const pkgDir = path.join(tempDir, "resolve-calls-external");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+export function main() {
+  console.log("test");
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const calls: UnresolvedCallEdge[] = [
+        {
+          sourceEntityId: "test:pkg:function:main123",
+          targetEntityId: "unresolved:console.log",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 3,
+          sourceColumn: 3,
+          calleeName: "console.log",
+        },
+      ];
+
+      const result = await resolver.resolveCallEdges(pkgDir, calls);
+
+      // Built-in calls like console.log should remain unresolved
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(0);
+      expect(result.unresolved).toBe(1);
+    });
+
+    it("should handle method calls by extracting method name", async () => {
+      const pkgDir = path.join(tempDir, "resolve-calls-method");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+class User {
+  getName() {
+    return "test";
+  }
+}
+
+export function main() {
+  const user = new User();
+  return user.getName();
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const calls: UnresolvedCallEdge[] = [
+        {
+          sourceEntityId: "test:pkg:function:main123",
+          targetEntityId: "unresolved:user.getName",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 10,
+          sourceColumn: 10,
+          calleeName: "user.getName",
+        },
+      ];
+
+      const result = await resolver.resolveCallEdges(pkgDir, calls);
+
+      // The method 'getName' exists in the file, so it should be resolved
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.resolvedCalls[0]?.confidence).toBe(1.0);
+    });
+
+    it("should return empty result for empty input", async () => {
+      const pkgDir = path.join(tempDir, "resolve-calls-empty");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(path.join(pkgDir, "index.ts"), "export const x = 1;");
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const result = await resolver.resolveCallEdges(pkgDir, []);
+
+      expect(result.total).toBe(0);
+      expect(result.resolved).toBe(0);
+      expect(result.unresolved).toBe(0);
+      expect(result.resolvedCalls).toHaveLength(0);
     });
   });
 });
