@@ -61,9 +61,13 @@ git rev-parse --show-toplevel 2>/dev/null
 
 **Step 3: Fetch issue with comments and enter plan mode**
 
+Run the `gh` command from within the worktree directory (where git context is available):
+
 ```bash
-gh issue view <issue-number> --json number,title,body,comments,labels
+cd <worktree-path> && gh issue view <issue-number> --json number,title,body,comments,labels
 ```
+
+The worktree path is printed in Step 1 output (e.g., `~/ws/vivief-42-add-feature/`).
 
 Create a plan file at `.claude/plans/<generated-name>.md` with:
 
