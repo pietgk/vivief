@@ -11,6 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type TypeScriptSemanticResolver,
   type UnresolvedCallEdge,
+  type UnresolvedExtendsEdge,
   type UnresolvedRef,
   createTypeScriptResolver,
 } from "../../src/semantic/index.js";
@@ -735,6 +736,340 @@ export function main() {
       expect(result.resolved).toBe(0);
       expect(result.unresolved).toBe(0);
       expect(result.resolvedCalls).toHaveLength(0);
+    });
+  });
+
+  describe("resolveExtendsEdges", () => {
+    it("should resolve local class extends", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-local-class");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+class BaseClass {
+  getName() {
+    return "base";
+  }
+}
+
+export class ChildClass extends BaseClass {
+  getChildName() {
+    return "child";
+  }
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:class:child123",
+          targetEntityId: "unresolved:BaseClass",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 8,
+          sourceColumn: 30,
+          targetName: "BaseClass",
+          sourceKind: "class",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.unresolved).toBe(0);
+      expect(result.resolvedExtends).toHaveLength(1);
+      expect(result.resolvedExtends[0]?.confidence).toBe(1.0);
+      expect(result.resolvedExtends[0]?.method).toBe("local");
+      expect(result.resolvedExtends[0]?.targetEntityId).not.toBe("unresolved:BaseClass");
+    });
+
+    it("should resolve imported class extends", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-imported-class");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "base.ts"),
+        `
+export class BaseService {
+  init() {
+    return "initialized";
+  }
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "child.ts"),
+        `
+import { BaseService } from "./base";
+
+export class ExtendedService extends BaseService {
+  run() {
+    return this.init() + " and running";
+  }
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:class:extended123",
+          targetEntityId: "unresolved:BaseService",
+          sourceFilePath: path.join(pkgDir, "child.ts"),
+          sourceLine: 4,
+          sourceColumn: 37,
+          targetName: "BaseService",
+          sourceKind: "class",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.resolvedExtends).toHaveLength(1);
+      expect(result.resolvedExtends[0]?.confidence).toBeGreaterThanOrEqual(0.9);
+    });
+
+    it("should resolve local interface extends", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-local-interface");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+interface BaseProps {
+  id: string;
+}
+
+export interface ExtendedProps extends BaseProps {
+  name: string;
+  age: number;
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:interface:extended123",
+          targetEntityId: "unresolved:BaseProps",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 6,
+          sourceColumn: 38,
+          targetName: "BaseProps",
+          sourceKind: "interface",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(1);
+      expect(result.resolvedExtends).toHaveLength(1);
+      expect(result.resolvedExtends[0]?.confidence).toBe(1.0);
+      expect(result.resolvedExtends[0]?.method).toBe("local");
+    });
+
+    it("should resolve multiple interface extends", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-multiple");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+interface Readable {
+  read(): string;
+}
+
+interface Writable {
+  write(data: string): void;
+}
+
+interface Closeable {
+  close(): void;
+}
+
+export interface Stream extends Readable, Writable, Closeable {
+  pipe(): void;
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:interface:stream123",
+          targetEntityId: "unresolved:Readable",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 14,
+          sourceColumn: 33,
+          targetName: "Readable",
+          sourceKind: "interface",
+        },
+        {
+          sourceEntityId: "test:pkg:interface:stream123",
+          targetEntityId: "unresolved:Writable",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 14,
+          sourceColumn: 43,
+          targetName: "Writable",
+          sourceKind: "interface",
+        },
+        {
+          sourceEntityId: "test:pkg:interface:stream123",
+          targetEntityId: "unresolved:Closeable",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 14,
+          sourceColumn: 53,
+          targetName: "Closeable",
+          sourceKind: "interface",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      expect(result.total).toBe(3);
+      expect(result.resolved).toBe(3);
+      expect(result.unresolved).toBe(0);
+      expect(result.resolvedExtends).toHaveLength(3);
+    });
+
+    it("should not resolve external extends like React.Component", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-external");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "component.ts"),
+        `
+// Simulating external import that we can't resolve
+export class MyComponent {
+  render() {
+    return "hello";
+  }
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:class:mycomp123",
+          targetEntityId: "unresolved:React.Component",
+          sourceFilePath: path.join(pkgDir, "component.ts"),
+          sourceLine: 3,
+          sourceColumn: 30,
+          targetName: "React.Component", // External - not in our codebase
+          sourceKind: "class",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      // External extends like React.Component should remain unresolved
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(0);
+      expect(result.unresolved).toBe(1);
+    });
+
+    it("should handle missing base class gracefully", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-missing");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(
+        path.join(pkgDir, "index.ts"),
+        `
+export class Orphan {
+  name = "orphan";
+}
+`
+      );
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const extendsEdges: UnresolvedExtendsEdge[] = [
+        {
+          sourceEntityId: "test:pkg:class:orphan123",
+          targetEntityId: "unresolved:NonExistent",
+          sourceFilePath: path.join(pkgDir, "index.ts"),
+          sourceLine: 2,
+          sourceColumn: 30,
+          targetName: "NonExistent",
+          sourceKind: "class",
+        },
+      ];
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, extendsEdges);
+
+      expect(result.total).toBe(1);
+      expect(result.resolved).toBe(0);
+      expect(result.unresolved).toBe(1);
+    });
+
+    it("should return empty result for empty input", async () => {
+      const pkgDir = path.join(tempDir, "resolve-extends-empty");
+      await fs.mkdir(pkgDir, { recursive: true });
+
+      await fs.writeFile(path.join(pkgDir, "index.ts"), "export const x = 1;");
+
+      await fs.writeFile(
+        path.join(pkgDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "ES2020", module: "ESNext" },
+          include: ["**/*.ts"],
+        })
+      );
+
+      const result = await resolver.resolveExtendsEdges(pkgDir, []);
+
+      expect(result.total).toBe(0);
+      expect(result.resolved).toBe(0);
+      expect(result.unresolved).toBe(0);
+      expect(result.resolvedExtends).toHaveLength(0);
     });
   });
 });

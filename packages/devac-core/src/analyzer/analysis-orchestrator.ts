@@ -16,6 +16,7 @@ import type { ParserConfig } from "../parsers/parser-interface.js";
 import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
 import {
   type ResolvedCallEdge,
+  type ResolvedExtendsEdge,
   type ResolvedRef,
   type UnresolvedRef,
   getSemanticResolverFactory,
@@ -25,6 +26,7 @@ import type { DuckDBPool } from "../storage/duckdb-pool.js";
 import { createSeedReader } from "../storage/seed-reader.js";
 import type {
   ResolvedCallEdgeUpdate,
+  ResolvedExtendsEdgeUpdate,
   ResolvedRefUpdate,
   SeedWriter,
 } from "../storage/seed-writer.js";
@@ -93,6 +95,8 @@ export interface ResolutionResult {
   refsFailed: number;
   callsResolved: number;
   callsFailed: number;
+  extendsResolved: number;
+  extendsFailed: number;
   totalTimeMs: number;
 }
 
@@ -633,6 +637,8 @@ export function createAnalysisOrchestrator(
           refsFailed: 0,
           callsResolved: 0,
           callsFailed: 0,
+          extendsResolved: 0,
+          extendsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -655,6 +661,8 @@ export function createAnalysisOrchestrator(
           refsFailed: unresolvedRefs.length,
           callsResolved: 0,
           callsFailed: 0,
+          extendsResolved: 0,
+          extendsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -672,6 +680,8 @@ export function createAnalysisOrchestrator(
           refsFailed: unresolvedRefs.length,
           callsResolved: 0,
           callsFailed: 0,
+          extendsResolved: 0,
+          extendsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -689,6 +699,8 @@ export function createAnalysisOrchestrator(
           refsFailed: unresolvedRefs.length,
           callsResolved: 0,
           callsFailed: 0,
+          extendsResolved: 0,
+          extendsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -762,6 +774,45 @@ export function createAnalysisOrchestrator(
         }
       }
 
+      // 10. Resolve EXTENDS edges
+      let extendsResolved = 0;
+      let extendsFailed = 0;
+
+      const unresolvedExtends = await seedReader.getUnresolvedExtendsEdges(branch);
+      if (unresolvedExtends.length > 0) {
+        const extendsResult = await resolver.resolveExtendsEdges(packagePath, unresolvedExtends);
+        extendsResolved = extendsResult.resolved;
+        extendsFailed = extendsResult.unresolved;
+
+        // 11. Update seeds with resolved extends edges
+        if (extendsResult.resolvedExtends.length > 0) {
+          const extendsUpdates: ResolvedExtendsEdgeUpdate[] = extendsResult.resolvedExtends.map(
+            (resolved: ResolvedExtendsEdge) => ({
+              sourceEntityId: resolved.extends.sourceEntityId,
+              oldTargetEntityId: resolved.extends.targetEntityId,
+              newTargetEntityId: resolved.targetEntityId,
+            })
+          );
+
+          const extendsUpdateResult = await writer.updateResolvedExtendsEdges(extendsUpdates, {
+            branch,
+          });
+
+          if (!extendsUpdateResult.success && verbose) {
+            console.error(`Failed to update resolved extends edges: ${extendsUpdateResult.error}`);
+          }
+        }
+
+        // Log extends resolution errors if verbose
+        if (verbose && extendsResult.errors.length > 0) {
+          for (const error of extendsResult.errors) {
+            console.warn(
+              `Extends resolution error for ${error.extends.targetName}: ${error.error}`
+            );
+          }
+        }
+      }
+
       // Reset status
       status = { mode: "idle" };
 
@@ -771,6 +822,8 @@ export function createAnalysisOrchestrator(
         refsFailed: resolutionResult.unresolved,
         callsResolved,
         callsFailed,
+        extendsResolved,
+        extendsFailed,
         totalTimeMs: performance.now() - startTime,
       };
     } catch (error) {
