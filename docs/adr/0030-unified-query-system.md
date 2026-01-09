@@ -78,7 +78,7 @@ interface QueryResult<T = Record<string, unknown>> {
   timeMs: number;
   viewsCreated: string[];      // e.g., ["nodes", "edges", "effects"]
   packagesQueried: string[];   // Actually queried (after filtering)
-  warnings: string[];          // e.g., root-level seed warnings
+  warnings: string[];          // e.g., "No packages provided to query"
 }
 
 async function query<T>(pool: DuckDBPool, config: QueryConfig): Promise<QueryResult<T>>;
@@ -90,9 +90,10 @@ async function query<T>(pool: DuckDBPool, config: QueryConfig): Promise<QueryRes
    - Single package: `CREATE VIEW nodes AS SELECT * FROM read_parquet('path')`
    - Multiple packages: `CREATE VIEW nodes AS SELECT * FROM read_parquet(['path1', 'path2'])`
 
-2. **Root-Level Seed Detection**:
-   - Warns if seeds exist at repo root (should only be at package level)
-   - Skips invalid paths instead of throwing
+2. **Path Trust Model**:
+   - All provided package paths are trusted (caller responsible for valid paths)
+   - Supports single-package repos where seeds exist at repo root
+   - Skips paths without parquet files instead of throwing
 
 3. **Automatic View Management**:
    - Creates `nodes`, `edges`, `external_refs`, `effects` views as needed

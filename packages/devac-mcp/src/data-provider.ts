@@ -1,3 +1,5 @@
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import {
   type CentralHub,
   type CodeEffect,
@@ -7,6 +9,7 @@ import {
   DuckDBPool,
   type HubClient,
   type HubServer,
+  type RepositoryManifest,
   type Rule,
   type SeedReader,
   type SymbolAffectedAnalyzer,
@@ -776,16 +779,34 @@ export class HubDataProvider implements DataProvider {
   }
 
   /**
-   * Get all package paths from registered repos
+   * Get all package paths from registered repos by reading manifests
    */
   private async getPackagePaths(): Promise<string[]> {
     const repos = await this.hubOperation(
       async (hub) => hub.listRepos(),
       async (client) => client.listRepos()
     );
-    // For now, return the repo paths as package paths
-    // In a full implementation, we'd read manifests to get actual package paths
-    return repos.map((r) => r.localPath);
+
+    const packagePaths: string[] = [];
+
+    for (const repo of repos) {
+      try {
+        const manifestPath = path.join(repo.localPath, ".devac", "manifest.json");
+        const content = await fs.readFile(manifestPath, "utf-8");
+        const manifest = JSON.parse(content) as RepositoryManifest;
+
+        for (const pkg of manifest.packages) {
+          // pkg.path is relative to repo root (e.g., "packages/devac-cli" or ".")
+          // We need the absolute package path where .devac/seed/ exists
+          const pkgPath = pkg.path === "." ? repo.localPath : path.join(repo.localPath, pkg.path);
+          packagePaths.push(pkgPath);
+        }
+      } catch {
+        // Skip repos with unreadable manifests
+      }
+    }
+
+    return packagePaths;
   }
 
   async findSymbol(name: string, kind?: string): Promise<ProviderQueryResult> {

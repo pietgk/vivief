@@ -419,15 +419,18 @@ export class DevacMCPServer {
       },
       hubTables: {
         repo_registry: {
-          description: "Registered repositories and their metadata",
+          description:
+            "Registered repositories and their metadata. NOT SQL-queryable - use list_repos tool instead.",
           columns: ["repo_id", "local_path", "packages", "status", "last_synced"],
         },
         validation_errors: {
-          description: "Type errors, lint issues from validators",
+          description:
+            "Type errors, lint issues from validators. NOT SQL-queryable - use get_validation_errors tool instead.",
           columns: ["error_id", "repo_id", "source", "severity", "file_path", "line", "message"],
         },
         unified_diagnostics: {
-          description: "All diagnostics unified (validation + CI + GitHub issues)",
+          description:
+            "All diagnostics unified (validation + CI + GitHub issues). NOT SQL-queryable - use get_all_diagnostics tool instead.",
           columns: [
             "diagnostic_id",
             "repo_id",
@@ -443,7 +446,8 @@ export class DevacMCPServer {
       tips: [
         "Use COUNT(*)::INT to avoid BigInt serialization errors",
         "Prefer dedicated MCP tools (get_diagnostics_counts, etc.) over raw SQL when available",
-        "In hub mode, seed tables query across all registered repositories",
+        "In hub mode, seed tables (nodes, edges, etc.) query across all registered repositories",
+        "Hub tables (repo_registry, validation_errors, unified_diagnostics) are NOT SQL-queryable - use their dedicated MCP tools",
       ],
     };
 
