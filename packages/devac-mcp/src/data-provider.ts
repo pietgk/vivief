@@ -316,19 +316,48 @@ export class PackageDataProvider implements DataProvider {
   async getCallGraph(
     entityId: string,
     direction: "callers" | "callees" | "both",
-    _maxDepth = 3
+    maxDepth = 3
   ): Promise<ProviderQueryResult> {
     const startTime = Date.now();
+    const escapedEntityId = entityId.replace(/'/g, "''");
 
     const results: { callers?: unknown[]; callees?: unknown[] } = {};
 
     if (direction === "callers" || direction === "both") {
+      // Recursive CTE to find transitive callers up to maxDepth
       const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM edges e
-        JOIN nodes n ON e.source_entity_id = n.entity_id
-        WHERE e.target_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
+        WITH RECURSIVE caller_chain AS (
+          -- Base case: direct callers
+          SELECT
+            e.source_entity_id,
+            1 as depth,
+            ARRAY[e.target_entity_id, e.source_entity_id] as path
+          FROM edges e
+          WHERE e.target_entity_id = '${escapedEntityId}'
+          AND e.edge_type = 'CALLS'
+
+          UNION ALL
+
+          -- Recursive case: callers of callers
+          SELECT
+            e.source_entity_id,
+            cc.depth + 1,
+            array_append(cc.path, e.source_entity_id)
+          FROM edges e
+          JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
+          WHERE e.edge_type = 'CALLS'
+          AND cc.depth < ${maxDepth}
+          AND NOT array_contains(cc.path, e.source_entity_id)
+        )
+        SELECT DISTINCT
+          cc.source_entity_id as entity_id,
+          cc.depth,
+          n.name,
+          n.kind,
+          n.source_file
+        FROM caller_chain cc
+        JOIN nodes n ON cc.source_entity_id = n.entity_id
+        ORDER BY cc.depth, n.name
         LIMIT 100
       `;
       const queryResult = await this.seedReader.querySeeds(sql);
@@ -336,12 +365,40 @@ export class PackageDataProvider implements DataProvider {
     }
 
     if (direction === "callees" || direction === "both") {
+      // Recursive CTE to find transitive callees up to maxDepth
       const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM edges e
-        JOIN nodes n ON e.target_entity_id = n.entity_id
-        WHERE e.source_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
+        WITH RECURSIVE call_chain AS (
+          -- Base case: direct callees
+          SELECT
+            e.target_entity_id,
+            1 as depth,
+            ARRAY[e.source_entity_id, e.target_entity_id] as path
+          FROM edges e
+          WHERE e.source_entity_id = '${escapedEntityId}'
+          AND e.edge_type = 'CALLS'
+
+          UNION ALL
+
+          -- Recursive case: callees of callees
+          SELECT
+            e.target_entity_id,
+            cc.depth + 1,
+            array_append(cc.path, e.target_entity_id)
+          FROM edges e
+          JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
+          WHERE e.edge_type = 'CALLS'
+          AND cc.depth < ${maxDepth}
+          AND NOT array_contains(cc.path, e.target_entity_id)
+        )
+        SELECT DISTINCT
+          cc.target_entity_id as entity_id,
+          cc.depth,
+          n.name,
+          n.kind,
+          n.source_file
+        FROM call_chain cc
+        JOIN nodes n ON cc.target_entity_id = n.entity_id
+        ORDER BY cc.depth, n.name
         LIMIT 100
       `;
       const queryResult = await this.seedReader.querySeeds(sql);
@@ -848,7 +905,7 @@ export class HubDataProvider implements DataProvider {
   async getCallGraph(
     entityId: string,
     direction: "callers" | "callees" | "both",
-    _maxDepth = 3
+    maxDepth = 3
   ): Promise<ProviderQueryResult> {
     const startTime = Date.now();
 
@@ -857,15 +914,44 @@ export class HubDataProvider implements DataProvider {
       return { rows: [], rowCount: 0, timeMs: Date.now() - startTime };
     }
 
+    const escapedEntityId = entityId.replace(/'/g, "''");
     const results: { callers?: unknown[]; callees?: unknown[] } = {};
 
     if (direction === "callers" || direction === "both") {
+      // Recursive CTE to find transitive callers up to maxDepth
       const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM {edges} e
-        JOIN {nodes} n ON e.source_entity_id = n.entity_id
-        WHERE e.target_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
+        WITH RECURSIVE caller_chain AS (
+          -- Base case: direct callers
+          SELECT
+            e.source_entity_id,
+            1 as depth,
+            ARRAY[e.target_entity_id, e.source_entity_id] as path
+          FROM {edges} e
+          WHERE e.target_entity_id = '${escapedEntityId}'
+          AND e.edge_type = 'CALLS'
+
+          UNION ALL
+
+          -- Recursive case: callers of callers
+          SELECT
+            e.source_entity_id,
+            cc.depth + 1,
+            array_append(cc.path, e.source_entity_id)
+          FROM {edges} e
+          JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
+          WHERE e.edge_type = 'CALLS'
+          AND cc.depth < ${maxDepth}
+          AND NOT array_contains(cc.path, e.source_entity_id)
+        )
+        SELECT DISTINCT
+          cc.source_entity_id as entity_id,
+          cc.depth,
+          n.name,
+          n.kind,
+          n.source_file
+        FROM caller_chain cc
+        JOIN {nodes} n ON cc.source_entity_id = n.entity_id
+        ORDER BY cc.depth, n.name
         LIMIT 100
       `;
       const queryResult = await queryMultiplePackages(this.pool, packagePaths, sql);
@@ -873,12 +959,40 @@ export class HubDataProvider implements DataProvider {
     }
 
     if (direction === "callees" || direction === "both") {
+      // Recursive CTE to find transitive callees up to maxDepth
       const sql = `
-        SELECT e.*, n.name, n.kind, n.source_file
-        FROM {edges} e
-        JOIN {nodes} n ON e.target_entity_id = n.entity_id
-        WHERE e.source_entity_id = '${entityId.replace(/'/g, "''")}'
-        AND e.edge_type = 'CALLS'
+        WITH RECURSIVE call_chain AS (
+          -- Base case: direct callees
+          SELECT
+            e.target_entity_id,
+            1 as depth,
+            ARRAY[e.source_entity_id, e.target_entity_id] as path
+          FROM {edges} e
+          WHERE e.source_entity_id = '${escapedEntityId}'
+          AND e.edge_type = 'CALLS'
+
+          UNION ALL
+
+          -- Recursive case: callees of callees
+          SELECT
+            e.target_entity_id,
+            cc.depth + 1,
+            array_append(cc.path, e.target_entity_id)
+          FROM {edges} e
+          JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
+          WHERE e.edge_type = 'CALLS'
+          AND cc.depth < ${maxDepth}
+          AND NOT array_contains(cc.path, e.target_entity_id)
+        )
+        SELECT DISTINCT
+          cc.target_entity_id as entity_id,
+          cc.depth,
+          n.name,
+          n.kind,
+          n.source_file
+        FROM call_chain cc
+        JOIN {nodes} n ON cc.target_entity_id = n.entity_id
+        ORDER BY cc.depth, n.name
         LIMIT 100
       `;
       const queryResult = await queryMultiplePackages(this.pool, packagePaths, sql);
