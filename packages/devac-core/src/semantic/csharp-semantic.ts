@@ -34,6 +34,7 @@ import type {
   CallResolutionResult,
   ExportIndex,
   ExportInfo,
+  ExtendsResolutionResult,
   ResolutionError,
   ResolutionErrorCode,
   ResolutionResult,
@@ -41,6 +42,7 @@ import type {
   SemanticConfig,
   SemanticResolver,
   UnresolvedCallEdge,
+  UnresolvedExtendsEdge,
   UnresolvedRef,
 } from "./types.js";
 
@@ -497,6 +499,28 @@ export class CSharpSemanticResolver implements SemanticResolver {
       resolved: 0,
       unresolved: calls.length,
       resolvedCalls: [],
+      errors: [],
+      timeMs: 0,
+      packagePath,
+    };
+  }
+
+  /**
+   * Resolve EXTENDS edges in a package
+   *
+   * Note: EXTENDS resolution is currently only implemented for TypeScript.
+   * This returns an empty result for C# packages.
+   */
+  async resolveExtendsEdges(
+    packagePath: string,
+    extendsEdges: UnresolvedExtendsEdge[]
+  ): Promise<ExtendsResolutionResult> {
+    // EXTENDS resolution not yet implemented for C#
+    return {
+      total: extendsEdges.length,
+      resolved: 0,
+      unresolved: extendsEdges.length,
+      resolvedExtends: [],
       errors: [],
       timeMs: 0,
       packagePath,

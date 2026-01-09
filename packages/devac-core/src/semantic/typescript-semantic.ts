@@ -39,16 +39,20 @@ import type {
   CallResolutionResult,
   ExportIndex,
   ExportInfo,
+  ExtendsResolutionError,
+  ExtendsResolutionResult,
   LocalSymbol,
   LocalSymbolIndex,
   ResolutionError,
   ResolutionErrorCode,
   ResolutionResult,
   ResolvedCallEdge,
+  ResolvedExtendsEdge,
   ResolvedRef,
   SemanticConfig,
   SemanticResolver,
   UnresolvedCallEdge,
+  UnresolvedExtendsEdge,
   UnresolvedRef,
 } from "./types.js";
 
@@ -607,6 +611,85 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   }
 
   /**
+   * Resolve EXTENDS edges to actual entity IDs
+   *
+   * This method resolves unresolved EXTENDS edges (target_entity_id = 'unresolved:xxx')
+   * to actual entity IDs by matching target names against:
+   * 1. Local symbols (classes/interfaces in the same file)
+   * 2. Exported symbols from the export index
+   */
+  async resolveExtendsEdges(
+    packagePath: string,
+    extendsEdges: UnresolvedExtendsEdge[]
+  ): Promise<ExtendsResolutionResult> {
+    const startTime = Date.now();
+    const resolvedExtends: ResolvedExtendsEdge[] = [];
+    const errors: ExtendsResolutionError[] = [];
+
+    try {
+      // Build indices with timeout (reuses cached indices if available)
+      const [exportIndex, localIndex] = await Promise.all([
+        withTimeout(
+          this.buildExportIndex(packagePath),
+          this.config.timeoutMs,
+          `Building export index for ${packagePath}`
+        ),
+        withTimeout(
+          this.buildLocalSymbolIndex(packagePath),
+          this.config.timeoutMs,
+          `Building local symbol index for ${packagePath}`
+        ),
+      ]);
+
+      // Process extends edges in batches
+      const batches = this.batchArray(extendsEdges, this.config.batchSize);
+
+      for (const batch of batches) {
+        await Promise.all(
+          batch.map(async (ext) => {
+            try {
+              const resolved = this.resolveExtends(ext, exportIndex, localIndex);
+              if (resolved) {
+                resolvedExtends.push(resolved);
+              }
+            } catch (error) {
+              errors.push({
+                extends: ext,
+                error: error instanceof Error ? error.message : String(error),
+                code: this.categorizeError(error),
+              });
+            }
+          })
+        );
+      }
+    } catch (error) {
+      // If building indices fails, all extends are errors
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorCode = this.categorizeError(error);
+
+      for (const ext of extendsEdges) {
+        errors.push({
+          extends: ext,
+          error: errorMsg,
+          code: errorCode,
+        });
+      }
+    }
+
+    const timeMs = Date.now() - startTime;
+
+    return {
+      total: extendsEdges.length,
+      resolved: resolvedExtends.length,
+      unresolved: extendsEdges.length - resolvedExtends.length,
+      resolvedExtends,
+      errors,
+      timeMs,
+      packagePath,
+    };
+  }
+
+  /**
    * Build index of local (non-exported) symbols for each file
    * This includes all functions, methods, and classes defined in each file
    */
@@ -706,6 +789,15 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
           symbols.push({ name, kind, entityId, filePath });
         }
       }
+      // Interfaces (needed for EXTENDS resolution)
+      else if (Node.isInterfaceDeclaration(node)) {
+        const name = node.getName();
+        if (name) {
+          const kind = getNodeKind(node);
+          const entityId = generateId(kind, relativePath, name);
+          symbols.push({ name, kind, entityId, filePath });
+        }
+      }
     });
 
     return symbols;
@@ -785,6 +877,66 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
           call,
           targetEntityId: classMatch.entityId,
           targetFilePath: classMatch.filePath,
+          confidence: 0.9,
+          method: "index",
+        };
+      }
+    }
+
+    // Could not resolve
+    return null;
+  }
+
+  /**
+   * Resolve a single EXTENDS edge
+   */
+  private resolveExtends(
+    ext: UnresolvedExtendsEdge,
+    exportIndex: ExportIndex,
+    localIndex: LocalSymbolIndex
+  ): ResolvedExtendsEdge | null {
+    const { targetName, sourceFilePath, sourceKind } = ext;
+
+    if (!targetName) {
+      return null;
+    }
+
+    // Determine what kinds we're looking for
+    // Classes can extend classes, interfaces can extend interfaces
+    const targetKinds: NodeKind[] = sourceKind === "class" ? ["class"] : ["interface"];
+
+    // 1. Try to find in same file (local class/interface) - highest priority
+    const localSymbols = localIndex.fileSymbols.get(sourceFilePath);
+    if (localSymbols) {
+      const localMatch = localSymbols.find(
+        (s) => s.name === targetName && targetKinds.includes(s.kind)
+      );
+      if (localMatch) {
+        return {
+          extends: ext,
+          targetEntityId: localMatch.entityId,
+          targetFilePath: localMatch.filePath,
+          confidence: 1.0,
+          method: "local",
+        };
+      }
+    }
+
+    // 2. Try to find in exports (imported class/interface from another file)
+    for (const [exportFilePath, exports] of exportIndex.fileExports) {
+      // Skip same file - we already checked local symbols
+      if (exportFilePath === sourceFilePath) {
+        continue;
+      }
+
+      const exportMatch = exports.find(
+        (e) => e.name === targetName && targetKinds.includes(e.kind)
+      );
+      if (exportMatch) {
+        return {
+          extends: ext,
+          targetEntityId: exportMatch.entityId,
+          targetFilePath: exportMatch.filePath,
           confidence: 0.9,
           method: "index",
         };

@@ -272,6 +272,19 @@ export interface SemanticResolver {
   resolveCallEdges(packagePath: string, calls: UnresolvedCallEdge[]): Promise<CallResolutionResult>;
 
   /**
+   * Resolve EXTENDS edges in a package
+   * This resolves unresolved extends targets to actual entity IDs
+   *
+   * @param packagePath - Root path of the package
+   * @param extendsEdges - Unresolved extends edges from structural parsing
+   * @returns Extends resolution result with all resolved/unresolved extends
+   */
+  resolveExtendsEdges(
+    packagePath: string,
+    extendsEdges: UnresolvedExtendsEdge[]
+  ): Promise<ExtendsResolutionResult>;
+
+  /**
    * Clear any cached data for a package
    * Called when files change and cache needs invalidation
    *
@@ -429,4 +442,95 @@ export interface LocalSymbol {
 
   /** File path where the symbol is defined */
   filePath: string;
+}
+
+// ============================================================================
+// EXTENDS Edge Resolution Types
+// ============================================================================
+
+/**
+ * An unresolved EXTENDS edge from structural parsing
+ * These edges have target_entity_id = 'unresolved:xxx'
+ */
+export interface UnresolvedExtendsEdge {
+  /** Entity ID of the source node (extending class/interface) */
+  sourceEntityId: string;
+
+  /** Current target entity ID (e.g., 'unresolved:BaseClass') */
+  targetEntityId: string;
+
+  /** File path where the extends occurs */
+  sourceFilePath: string;
+
+  /** Source line number */
+  sourceLine: number;
+
+  /** Source column */
+  sourceColumn: number;
+
+  /** Name of the class/interface being extended (extracted from target) */
+  targetName: string;
+
+  /** Kind of the source entity ('class' or 'interface') */
+  sourceKind: "class" | "interface";
+}
+
+/**
+ * A successfully resolved EXTENDS edge
+ */
+export interface ResolvedExtendsEdge {
+  /** The original unresolved extends edge */
+  extends: UnresolvedExtendsEdge;
+
+  /** Resolved target entity ID */
+  targetEntityId: string;
+
+  /** Resolved target file path */
+  targetFilePath: string;
+
+  /** Confidence score (0-1) */
+  confidence: number;
+
+  /** Resolution method used */
+  method: "compiler" | "index" | "local";
+}
+
+/**
+ * Error encountered during extends resolution
+ */
+export interface ExtendsResolutionError {
+  /** The extends edge that failed to resolve */
+  extends: UnresolvedExtendsEdge;
+
+  /** Error message */
+  error: string;
+
+  /** Error code for categorization */
+  code: ResolutionErrorCode;
+}
+
+/**
+ * Result of EXTENDS edge resolution for a package
+ */
+export interface ExtendsResolutionResult {
+  /** Total number of extends processed */
+  total: number;
+
+  /** Number of successfully resolved extends */
+  resolved: number;
+
+  /** Number of unresolved extends */
+  unresolved: number;
+
+  /** List of resolved extends */
+  resolvedExtends: ResolvedExtendsEdge[];
+
+  /** Errors encountered during resolution */
+  errors: ExtendsResolutionError[];
+
+  /** Time taken in milliseconds */
+  timeMs: number;
+
+  /** Package path that was resolved */
+  packagePath: string;
 }
