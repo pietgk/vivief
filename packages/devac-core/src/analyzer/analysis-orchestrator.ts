@@ -15,6 +15,7 @@ import { applyMappings, loadEffectMappings } from "../effects/index.js";
 import type { ParserConfig } from "../parsers/parser-interface.js";
 import { DEFAULT_PARSER_CONFIG } from "../parsers/parser-interface.js";
 import {
+  type ResolvedCallEdge,
   type ResolvedRef,
   type UnresolvedRef,
   getSemanticResolverFactory,
@@ -22,7 +23,11 @@ import {
 } from "../semantic/index.js";
 import type { DuckDBPool } from "../storage/duckdb-pool.js";
 import { createSeedReader } from "../storage/seed-reader.js";
-import type { ResolvedRefUpdate, SeedWriter } from "../storage/seed-writer.js";
+import type {
+  ResolvedCallEdgeUpdate,
+  ResolvedRefUpdate,
+  SeedWriter,
+} from "../storage/seed-writer.js";
 import { findGitRoot } from "../workspace/discover.js";
 import type { LanguageRouter } from "./language-router.js";
 
@@ -86,6 +91,8 @@ export interface ResolutionResult {
   packagePath: string;
   refsResolved: number;
   refsFailed: number;
+  callsResolved: number;
+  callsFailed: number;
   totalTimeMs: number;
 }
 
@@ -624,6 +631,8 @@ export function createAnalysisOrchestrator(
           packagePath,
           refsResolved: 0,
           refsFailed: 0,
+          callsResolved: 0,
+          callsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -644,6 +653,8 @@ export function createAnalysisOrchestrator(
           packagePath,
           refsResolved: 0,
           refsFailed: unresolvedRefs.length,
+          callsResolved: 0,
+          callsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -659,6 +670,8 @@ export function createAnalysisOrchestrator(
           packagePath,
           refsResolved: 0,
           refsFailed: unresolvedRefs.length,
+          callsResolved: 0,
+          callsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -674,6 +687,8 @@ export function createAnalysisOrchestrator(
           packagePath,
           refsResolved: 0,
           refsFailed: unresolvedRefs.length,
+          callsResolved: 0,
+          callsFailed: 0,
           totalTimeMs: performance.now() - startTime,
         };
       }
@@ -710,6 +725,43 @@ export function createAnalysisOrchestrator(
         }
       }
 
+      // 8. Resolve CALLS edges
+      let callsResolved = 0;
+      let callsFailed = 0;
+
+      const unresolvedCalls = await seedReader.getUnresolvedCallEdges(branch);
+      if (unresolvedCalls.length > 0) {
+        const callResult = await resolver.resolveCallEdges(packagePath, unresolvedCalls);
+        callsResolved = callResult.resolved;
+        callsFailed = callResult.unresolved;
+
+        // 9. Update seeds with resolved call edges
+        if (callResult.resolvedCalls.length > 0) {
+          const callUpdates: ResolvedCallEdgeUpdate[] = callResult.resolvedCalls.map(
+            (resolved: ResolvedCallEdge) => ({
+              sourceEntityId: resolved.call.sourceEntityId,
+              oldTargetEntityId: resolved.call.targetEntityId,
+              newTargetEntityId: resolved.targetEntityId,
+            })
+          );
+
+          const callUpdateResult = await writer.updateResolvedCallEdges(callUpdates, {
+            branch,
+          });
+
+          if (!callUpdateResult.success && verbose) {
+            console.error(`Failed to update resolved call edges: ${callUpdateResult.error}`);
+          }
+        }
+
+        // Log call resolution errors if verbose
+        if (verbose && callResult.errors.length > 0) {
+          for (const error of callResult.errors) {
+            console.warn(`Call resolution error for ${error.call.calleeName}: ${error.error}`);
+          }
+        }
+      }
+
       // Reset status
       status = { mode: "idle" };
 
@@ -717,6 +769,8 @@ export function createAnalysisOrchestrator(
         packagePath,
         refsResolved: resolutionResult.resolved,
         refsFailed: resolutionResult.unresolved,
+        callsResolved,
+        callsFailed,
         totalTimeMs: performance.now() - startTime,
       };
     } catch (error) {

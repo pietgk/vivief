@@ -35,14 +35,20 @@ import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
 import type { NodeKind } from "../types/nodes.js";
 import { detectRepoId } from "../utils/git.js";
 import type {
+  CallResolutionError,
+  CallResolutionResult,
   ExportIndex,
   ExportInfo,
+  LocalSymbol,
+  LocalSymbolIndex,
   ResolutionError,
   ResolutionErrorCode,
   ResolutionResult,
+  ResolvedCallEdge,
   ResolvedRef,
   SemanticConfig,
   SemanticResolver,
+  UnresolvedCallEdge,
   UnresolvedRef,
 } from "./types.js";
 
@@ -168,6 +174,7 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
 
   private projectCache = new Map<string, Project>();
   private exportIndexCache = new Map<string, ExportIndex>();
+  private localSymbolIndexCache = new Map<string, LocalSymbolIndex>();
   private config: SemanticConfig["typescript"];
 
   constructor(config?: Partial<SemanticConfig["typescript"]>) {
@@ -189,6 +196,7 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
     for (const instance of TypeScriptSemanticResolver.allInstances) {
       instance.projectCache.clear();
       instance.exportIndexCache.clear();
+      instance.localSymbolIndexCache.clear();
     }
   }
 
@@ -520,11 +528,336 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   }
 
   /**
+   * Resolve CALLS edges to actual entity IDs
+   *
+   * This method resolves unresolved CALLS edges (target_entity_id = 'unresolved:xxx')
+   * to actual entity IDs by matching callee names against:
+   * 1. Local symbols (functions in the same file)
+   * 2. Exported symbols from the export index
+   */
+  async resolveCallEdges(
+    packagePath: string,
+    calls: UnresolvedCallEdge[]
+  ): Promise<CallResolutionResult> {
+    const startTime = Date.now();
+    const resolvedCalls: ResolvedCallEdge[] = [];
+    const errors: CallResolutionError[] = [];
+
+    try {
+      // Build indices with timeout
+      const [exportIndex, localIndex] = await Promise.all([
+        withTimeout(
+          this.buildExportIndex(packagePath),
+          this.config.timeoutMs,
+          `Building export index for ${packagePath}`
+        ),
+        withTimeout(
+          this.buildLocalSymbolIndex(packagePath),
+          this.config.timeoutMs,
+          `Building local symbol index for ${packagePath}`
+        ),
+      ]);
+
+      // Process calls in batches
+      const batches = this.batchArray(calls, this.config.batchSize);
+
+      for (const batch of batches) {
+        await Promise.all(
+          batch.map(async (call) => {
+            try {
+              const resolved = this.resolveCall(call, exportIndex, localIndex);
+              if (resolved) {
+                resolvedCalls.push(resolved);
+              }
+            } catch (error) {
+              errors.push({
+                call,
+                error: error instanceof Error ? error.message : String(error),
+                code: this.categorizeError(error),
+              });
+            }
+          })
+        );
+      }
+    } catch (error) {
+      // If building indices fails, all calls are errors
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorCode = this.categorizeError(error);
+
+      for (const call of calls) {
+        errors.push({
+          call,
+          error: errorMsg,
+          code: errorCode,
+        });
+      }
+    }
+
+    const timeMs = Date.now() - startTime;
+
+    return {
+      total: calls.length,
+      resolved: resolvedCalls.length,
+      unresolved: calls.length - resolvedCalls.length,
+      resolvedCalls,
+      errors,
+      timeMs,
+      packagePath,
+    };
+  }
+
+  /**
+   * Build index of local (non-exported) symbols for each file
+   * This includes all functions, methods, and classes defined in each file
+   */
+  private async buildLocalSymbolIndex(packagePath: string): Promise<LocalSymbolIndex> {
+    const cached = this.localSymbolIndexCache.get(packagePath);
+    if (cached) {
+      return cached;
+    }
+
+    // Detect repo ID using git config (handles worktrees)
+    const { repoId } = await detectRepoId(packagePath);
+
+    const project = this.getProject(packagePath);
+    const sourceFiles = project.getSourceFiles();
+
+    const fileSymbols = new Map<string, LocalSymbol[]>();
+
+    for (const sourceFile of sourceFiles) {
+      const filePath = sourceFile.getFilePath();
+
+      // Skip node_modules
+      if (filePath.includes("node_modules")) {
+        continue;
+      }
+
+      try {
+        const symbols = this.extractLocalSymbolsFromFile(sourceFile, packagePath, filePath, repoId);
+
+        if (symbols.length > 0) {
+          fileSymbols.set(filePath, symbols);
+        }
+      } catch (error) {
+        // Log but continue - don't let one file break the whole index
+        console.warn(`Failed to extract local symbols from ${filePath}:`, error);
+      }
+    }
+
+    const index: LocalSymbolIndex = {
+      fileSymbols,
+      builtAt: new Date(),
+    };
+
+    this.localSymbolIndexCache.set(packagePath, index);
+    return index;
+  }
+
+  /**
+   * Extract all local symbols (functions, methods, classes) from a file
+   */
+  private extractLocalSymbolsFromFile(
+    sourceFile: SourceFile,
+    packagePath: string,
+    filePath: string,
+    repoId: string
+  ): LocalSymbol[] {
+    const symbols: LocalSymbol[] = [];
+    const relativePath = path.relative(packagePath, filePath);
+
+    // Use provided repo ID (detected from git) and package path
+    const pkgPath = path.basename(packagePath);
+    const generateId = createEntityIdGenerator(repoId, pkgPath);
+
+    // Traverse all nodes in the file to find function-like declarations
+    sourceFile.forEachDescendant((node) => {
+      // Function declarations
+      if (Node.isFunctionDeclaration(node)) {
+        const name = node.getName();
+        if (name) {
+          const kind = getNodeKind(node);
+          const entityId = generateId(kind, relativePath, name);
+          symbols.push({ name, kind, entityId, filePath });
+        }
+      }
+      // Arrow functions assigned to variables
+      else if (Node.isVariableDeclaration(node)) {
+        const initializer = node.getInitializer();
+        if (initializer && Node.isArrowFunction(initializer)) {
+          const name = node.getName();
+          const kind: NodeKind = "function";
+          const entityId = generateId(kind, relativePath, name);
+          symbols.push({ name, kind, entityId, filePath });
+        }
+      }
+      // Methods in classes
+      else if (Node.isMethodDeclaration(node)) {
+        const name = node.getName();
+        const kind = getNodeKind(node);
+        const entityId = generateId(kind, relativePath, name);
+        symbols.push({ name, kind, entityId, filePath });
+      }
+      // Classes
+      else if (Node.isClassDeclaration(node)) {
+        const name = node.getName();
+        if (name) {
+          const kind = getNodeKind(node);
+          const entityId = generateId(kind, relativePath, name);
+          symbols.push({ name, kind, entityId, filePath });
+        }
+      }
+    });
+
+    return symbols;
+  }
+
+  /**
+   * Resolve a single CALLS edge
+   */
+  private resolveCall(
+    call: UnresolvedCallEdge,
+    exportIndex: ExportIndex,
+    localIndex: LocalSymbolIndex
+  ): ResolvedCallEdge | null {
+    const { calleeName, sourceFilePath } = call;
+
+    // Extract just the function name (ignore method chains like 'obj.method')
+    const simpleCalleeName = this.extractSimpleCalleeName(calleeName);
+    if (!simpleCalleeName) {
+      return null;
+    }
+
+    // 1. Try to find in same file (local function) - highest priority
+    const localSymbols = localIndex.fileSymbols.get(sourceFilePath);
+    if (localSymbols) {
+      const localMatch = localSymbols.find(
+        (s) => s.name === simpleCalleeName && (s.kind === "function" || s.kind === "method")
+      );
+      if (localMatch) {
+        return {
+          call,
+          targetEntityId: localMatch.entityId,
+          targetFilePath: localMatch.filePath,
+          confidence: 1.0,
+          method: "local",
+        };
+      }
+
+      // Also check for class matches (for constructor calls like `new MyClass()`)
+      const classMatch = localSymbols.find(
+        (s) => s.name === simpleCalleeName && s.kind === "class"
+      );
+      if (classMatch) {
+        return {
+          call,
+          targetEntityId: classMatch.entityId,
+          targetFilePath: classMatch.filePath,
+          confidence: 1.0,
+          method: "local",
+        };
+      }
+    }
+
+    // 2. Try to find in exports (imported function from another file)
+    for (const [exportFilePath, exports] of exportIndex.fileExports) {
+      // Skip same file - we already checked local symbols
+      if (exportFilePath === sourceFilePath) {
+        continue;
+      }
+
+      const exportMatch = exports.find(
+        (e) => e.name === simpleCalleeName && (e.kind === "function" || e.kind === "method")
+      );
+      if (exportMatch) {
+        return {
+          call,
+          targetEntityId: exportMatch.entityId,
+          targetFilePath: exportMatch.filePath,
+          confidence: 0.9,
+          method: "index",
+        };
+      }
+
+      // Also check for class matches
+      const classMatch = exports.find((e) => e.name === simpleCalleeName && e.kind === "class");
+      if (classMatch) {
+        return {
+          call,
+          targetEntityId: classMatch.entityId,
+          targetFilePath: classMatch.filePath,
+          confidence: 0.9,
+          method: "index",
+        };
+      }
+    }
+
+    // Could not resolve
+    return null;
+  }
+
+  /**
+   * Extract the simple function/method name from a callee string
+   * Examples:
+   * - "foo" -> "foo"
+   * - "obj.method" -> "method"
+   * - "this.method" -> "method"
+   * - "module.submodule.func" -> "func"
+   */
+  private extractSimpleCalleeName(calleeName: string): string | null {
+    if (!calleeName) {
+      return null;
+    }
+
+    // Handle method chains - take the last part
+    const parts = calleeName.split(".");
+    const simpleName = parts[parts.length - 1];
+
+    // Check if we have a valid name
+    if (!simpleName) {
+      return null;
+    }
+
+    // Filter out some common built-ins we can't resolve
+    const builtIns = new Set([
+      "log",
+      "warn",
+      "error",
+      "info",
+      "debug", // console methods
+      "stringify",
+      "parse", // JSON methods
+      "push",
+      "pop",
+      "shift",
+      "unshift",
+      "slice",
+      "splice",
+      "map",
+      "filter",
+      "reduce",
+      "forEach",
+      "find",
+      "some",
+      "every", // Array methods
+      "toString",
+      "valueOf",
+      "hasOwnProperty", // Object methods
+    ]);
+
+    if (builtIns.has(simpleName)) {
+      return null;
+    }
+
+    return simpleName;
+  }
+
+  /**
    * Clear cached data for a package
    */
   clearCache(packagePath: string): void {
     this.projectCache.delete(packagePath);
     this.exportIndexCache.delete(packagePath);
+    this.localSymbolIndexCache.delete(packagePath);
   }
 
   /**
@@ -533,6 +866,7 @@ export class TypeScriptSemanticResolver implements SemanticResolver {
   clearAllCaches(): void {
     this.projectCache.clear();
     this.exportIndexCache.clear();
+    this.localSymbolIndexCache.clear();
   }
 
   /**

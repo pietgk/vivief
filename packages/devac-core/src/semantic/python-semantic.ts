@@ -28,6 +28,7 @@ import { createEntityIdGenerator } from "../analyzer/entity-id-generator.js";
 import type { NodeKind } from "../types/nodes.js";
 import { detectRepoId } from "../utils/git.js";
 import type {
+  CallResolutionResult,
   ExportIndex,
   ExportInfo,
   ResolutionError,
@@ -36,6 +37,7 @@ import type {
   ResolvedRef,
   SemanticConfig,
   SemanticResolver,
+  UnresolvedCallEdge,
   UnresolvedRef,
 } from "./types.js";
 
@@ -558,6 +560,28 @@ export class PythonSemanticResolver implements SemanticResolver {
       resolvedRefs,
       errors,
       timeMs: Date.now() - startTime,
+      packagePath,
+    };
+  }
+
+  /**
+   * Resolve CALLS edges in a package
+   *
+   * Note: CALLS resolution is currently only implemented for TypeScript.
+   * This returns an empty result for Python packages.
+   */
+  async resolveCallEdges(
+    packagePath: string,
+    calls: UnresolvedCallEdge[]
+  ): Promise<CallResolutionResult> {
+    // CALLS resolution not yet implemented for Python
+    return {
+      total: calls.length,
+      resolved: 0,
+      unresolved: calls.length,
+      resolvedCalls: [],
+      errors: [],
+      timeMs: 0,
       packagePath,
     };
   }

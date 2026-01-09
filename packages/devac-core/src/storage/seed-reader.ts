@@ -8,6 +8,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Connection } from "duckdb-async";
+import type { UnresolvedCallEdge } from "../semantic/types.js";
 import { type SeedPaths, getSeedPaths } from "../types/config.js";
 import type { ParsedEdge, ParsedExternalRef, ParsedNode } from "../types/index.js";
 import { fileExists } from "../utils/atomic-write.js";
@@ -400,6 +401,101 @@ export class SeedReader {
       }
 
       return (await conn.all(query)) as ParsedExternalRef[];
+    });
+  }
+
+  /**
+   * Get unresolved CALLS edges
+   * Returns edges where edge_type = 'CALLS' and target_entity_id starts with 'unresolved:'
+   */
+  async getUnresolvedCallEdges(branch = "base"): Promise<UnresolvedCallEdge[]> {
+    const paths = getSeedPaths(this.packagePath, branch);
+    const basePath = path.join(paths.basePath, "edges.parquet");
+    const branchPath = path.join(paths.branchPath, "edges.parquet");
+
+    return await executeWithRecovery(this.pool, async (conn) => {
+      const baseExists = await fileExists(basePath);
+      const branchExists = await fileExists(branchPath);
+
+      if (!baseExists && !branchExists) return [];
+
+      let query: string;
+      if (branch === "base" || !branchExists) {
+        query = `
+          SELECT
+            source_entity_id,
+            target_entity_id,
+            source_file_path,
+            source_line,
+            source_column,
+            properties
+          FROM read_parquet('${basePath}')
+          WHERE edge_type = 'CALLS'
+            AND target_entity_id LIKE 'unresolved:%'
+            AND is_deleted = false
+        `;
+      } else {
+        query = `
+          SELECT * FROM (
+            SELECT
+              source_entity_id,
+              target_entity_id,
+              source_file_path,
+              source_line,
+              source_column,
+              properties
+            FROM read_parquet('${branchPath}')
+            WHERE edge_type = 'CALLS'
+              AND target_entity_id LIKE 'unresolved:%'
+              AND is_deleted = false
+            UNION ALL
+            SELECT
+              base.source_entity_id,
+              base.target_entity_id,
+              base.source_file_path,
+              base.source_line,
+              base.source_column,
+              base.properties
+            FROM read_parquet('${basePath}') base
+            WHERE base.edge_type = 'CALLS'
+              AND base.target_entity_id LIKE 'unresolved:%'
+              AND base.is_deleted = false
+              AND NOT EXISTS (
+                SELECT 1 FROM read_parquet('${branchPath}') branch
+                WHERE branch.source_entity_id = base.source_entity_id
+                  AND branch.target_entity_id = base.target_entity_id
+                  AND branch.edge_type = base.edge_type
+              )
+          )
+        `;
+      }
+
+      const rows = await conn.all(query);
+
+      // Transform to UnresolvedCallEdge format
+      return rows.map((row) => {
+        const r = row as Record<string, unknown>;
+        // Properties is stored as JSON string in Parquet
+        let props: Record<string, unknown> = {};
+        if (typeof r.properties === "string") {
+          try {
+            props = JSON.parse(r.properties);
+          } catch {
+            // Keep empty props if parse fails
+          }
+        } else if (r.properties && typeof r.properties === "object") {
+          props = r.properties as Record<string, unknown>;
+        }
+
+        return {
+          sourceEntityId: r.source_entity_id as string,
+          targetEntityId: r.target_entity_id as string,
+          sourceFilePath: r.source_file_path as string,
+          sourceLine: Number(r.source_line),
+          sourceColumn: Number(r.source_column),
+          calleeName: (props.callee as string) || "",
+        };
+      });
     });
   }
 
