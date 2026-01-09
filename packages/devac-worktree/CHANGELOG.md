@@ -1,5 +1,12 @@
 # @pietgk/devac-worktree
 
+## 0.23.0
+
+### Patch Changes
+
+- Updated dependencies [5b814fe]
+  - @pietgk/devac-core@0.23.0
+
 ## 0.22.1
 
 ### Patch Changes
