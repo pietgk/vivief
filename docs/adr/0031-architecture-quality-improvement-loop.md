@@ -105,15 +105,19 @@ For human-validated architecture:
 ### Implementation Components
 
 ```
-packages/devac-core/src/views/gap-metrics.ts       # Metric calculation
+packages/devac-core/src/rules/grouping-rules.ts    # Container grouping rules (6 layers)
+packages/devac-core/src/rules/significance-rules.ts # Significance filtering rules (4 levels)
+packages/devac-core/src/views/gap-metrics.ts       # Metric calculation with targets
+packages/devac-core/src/views/c4-generator.ts      # Rule-based C4 generation
 packages/devac-core/src/views/likec4-json-parser.ts # Parse LikeC4 for comparison
-packages/devac-cli/src/commands/architecture.ts    # CLI commands
+packages/devac-cli/src/commands/architecture.ts    # CLI commands (score, status, diff)
 
 docs/plans/gap-metrics.md                          # Metric definitions
 docs/plans/rule-improvement-workflow.md            # Rule development process
 docs/plans/multi-level-coordination.md             # Level coordination
 
 plugins/devac/skills/validate-architecture/        # Human validation skill
+plugins/devac/skills/validate-architecture/knowledge/c4-quality-rules.md # M1-M4 quality rules
 ```
 
 ### CLI Commands
@@ -122,11 +126,16 @@ plugins/devac/skills/validate-architecture/        # Human validation skill
 # Generate architecture documentation
 devac c4 --package <path>
 
-# Score architecture quality (future)
-devac architecture score
+# Score architecture quality with gap metrics
+devac architecture score -p <path>
+devac architecture score -p <path> --with-rules  # Include rule analysis
+devac architecture score -p <path> --with-rules -v  # Verbose with matched rules
 
 # Check architecture staleness
-devac architecture status
+devac architecture status -p <path>
+
+# Show structural differences
+devac architecture diff -p <path>
 
 # Validate architecture constraints
 devac validate --architecture

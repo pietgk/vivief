@@ -340,6 +340,35 @@ export {
   observabilityRules,
   getRulesByDomain,
   getRulesByProvider,
+  // Grouping rules (v3.0 - container assignment)
+  GroupingEngine,
+  createGroupingEngine,
+  defineGroupingRule,
+  builtinGroupingRules,
+  analysisLayerRules,
+  storageLayerRules,
+  federationLayerRules,
+  apiLayerRules,
+  rulesLayerRules,
+  viewsLayerRules,
+  getGroupingRulesByContainer,
+  getGroupingRulesByLayer,
+  getAvailableContainers,
+  getAvailableTags,
+  // Significance rules (v3.0 - architectural importance)
+  SignificanceEngine,
+  createSignificanceEngine,
+  defineSignificanceRule,
+  buildSignificanceContext,
+  builtinSignificanceRules,
+  criticalSignificanceRules,
+  importantSignificanceRules,
+  minorSignificanceRules,
+  hiddenSignificanceRules,
+  getSignificanceRulesByLevel,
+  getSignificanceRulesByDomain,
+  getSignificanceLevelValue,
+  compareSignificanceLevels,
 } from "./rules/index.js";
 export type {
   Rule,
@@ -348,6 +377,22 @@ export type {
   DomainEffect,
   RuleEngineResult,
   RuleEngineConfig,
+  // Grouping rules types
+  GroupingRule,
+  GroupingMatch,
+  GroupingEmit,
+  GroupingResult,
+  GroupingEngineConfig,
+  GroupingEngineStats,
+  // Significance rules types
+  SignificanceRule,
+  SignificanceMatch,
+  SignificanceEmit,
+  SignificanceResult,
+  SignificanceLevel,
+  SignificanceContext,
+  SignificanceEngineConfig,
+  SignificanceEngineStats,
 } from "./rules/index.js";
 
 // Views (v3.0 foundation - Vision→View pipeline)
@@ -357,6 +402,9 @@ export {
   exportContextToPlantUML,
   exportContainersToPlantUML,
   discoverDomainBoundaries,
+  // Rule-based filtering and grouping (v3.0)
+  applySignificanceFiltering,
+  applyGroupingRules,
   // Effect enrichment (for readable C4 diagrams)
   enrichDomainEffects,
   extractFallbackName,
@@ -378,6 +426,8 @@ export {
   calculateExternalF1,
   analyzeGap,
   formatGapAnalysis,
+  // Gap target constants
+  DEFAULT_GAP_TARGETS,
 } from "./views/index.js";
 export type {
   C4ExternalSystem,
@@ -399,6 +449,9 @@ export type {
   F1Score,
   GapMetric,
   GapAnalysis,
+  GapTargets,
+  GapAnalysisOptions,
+  RuleAnalysisResult,
 } from "./views/index.js";
 
 // Enriched Effects Types (for C4 enrichment)
