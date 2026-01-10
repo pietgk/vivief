@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-worktree",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "description": "Git worktree + Claude CLI workflow for GitHub issues",
   "type": "module",
   "publishConfig": {
