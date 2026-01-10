@@ -11,8 +11,12 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
+  DEFAULT_GAP_TARGETS,
   type GapAnalysis,
+  type GapAnalysisOptions,
   analyzeGap,
+  builtinGroupingRules,
+  builtinSignificanceRules,
   formatGapAnalysis,
   parsePackageC4Files,
 } from "@pietgk/devac-core";
@@ -33,6 +37,10 @@ export interface ArchitectureOptions {
   json?: boolean;
   /** Show verbose output */
   verbose?: boolean;
+  /** Include rule analysis in output */
+  withRules?: boolean;
+  /** Show target comparisons */
+  showTargets?: boolean;
 }
 
 /**
@@ -308,14 +316,26 @@ export async function architectureScoreCommand(
       };
     }
 
+    // Build analysis options
+    const analysisOptions: GapAnalysisOptions = {
+      verbose: options.verbose,
+    };
+
+    // Include builtin rules if requested
+    if (options.withRules) {
+      analysisOptions.groupingRules = builtinGroupingRules;
+      analysisOptions.significanceRules = builtinSignificanceRules;
+    }
+
     // Calculate gap metrics
-    const analysis = analyzeGap(validated, generated);
+    const analysis = analyzeGap(validated, generated, analysisOptions);
 
     // Format output
     const output = options.json
       ? formatOutput(
           {
             compositeScore: analysis.compositeScore,
+            targets: DEFAULT_GAP_TARGETS,
             containerF1: analysis.containerF1.score,
             signalToNoise: analysis.signalToNoise.score,
             relationshipF1: analysis.relationshipF1.score,
@@ -325,10 +345,21 @@ export async function architectureScoreCommand(
               relationship: analysis.relationshipF1.details,
               external: analysis.externalF1.details,
             },
+            ruleAnalysis: analysis.ruleAnalysis
+              ? {
+                  grouping: {
+                    containersIdentified: analysis.ruleAnalysis.grouping.containersIdentified,
+                    unmatched: analysis.ruleAnalysis.grouping.unmatched,
+                    matchedRules: analysis.ruleAnalysis.grouping.matchedRules,
+                    layerCoverage: Object.fromEntries(analysis.ruleAnalysis.grouping.layerCoverage),
+                  },
+                  significance: analysis.ruleAnalysis.significance,
+                }
+              : undefined,
           },
           { json: true }
         )
-      : formatGapAnalysis(analysis);
+      : formatGapAnalysis(analysis, { verbose: options.verbose });
 
     return {
       success: true,
@@ -554,11 +585,15 @@ export function registerArchitectureCommand(program: Command): void {
     .option("-p, --package <path>", "Package path", process.cwd())
     .option("--json", "Output as JSON")
     .option("-v, --verbose", "Show detailed breakdown")
+    .option("--with-rules", "Include grouping/significance rule analysis")
+    .option("--show-targets", "Show target comparisons for each metric")
     .action(async (options) => {
       const result = await architectureScoreCommand({
         packagePath: options.package,
         json: options.json,
         verbose: options.verbose,
+        withRules: options.withRules,
+        showTargets: options.showTargets,
       });
 
       console.log(result.output);

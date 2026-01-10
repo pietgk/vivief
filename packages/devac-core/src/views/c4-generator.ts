@@ -11,6 +11,18 @@
  * - Code: Implementation details (not typically generated)
  */
 
+import {
+  type GroupingResult,
+  type GroupingRule,
+  type SignificanceContext,
+  type SignificanceLevel,
+  type SignificanceRule,
+  buildSignificanceContext,
+  builtinGroupingRules,
+  builtinSignificanceRules,
+  createGroupingEngine,
+  createSignificanceEngine,
+} from "../rules/index.js";
 import type { DomainEffect } from "../rules/rule-engine.js";
 import type { EnrichedDomainEffect, InternalEdge } from "../types/enriched-effects.js";
 import {
@@ -154,12 +166,123 @@ export interface C4GeneratorOptions {
   systemName: string;
   /** System description */
   systemDescription?: string;
-  /** Group components by file path prefix */
-  containerGrouping?: "directory" | "package" | "flat";
+  /** Group components by file path prefix or use rule-based grouping */
+  containerGrouping?: "directory" | "package" | "flat" | "rules";
   /** Include effects with no external relationships */
   includeInternalOnly?: boolean;
   /** Internal CALLS edges for adding call graph relationships */
   internalEdges?: InternalEdge[];
+  /** Custom grouping rules (used when containerGrouping is "rules") */
+  groupingRules?: GroupingRule[];
+  /** Significance rules for filtering effects */
+  significanceRules?: SignificanceRule[];
+  /** Minimum significance level to include (effects below this are filtered out) */
+  significanceThreshold?: SignificanceLevel;
+  /** Include hidden effects (overrides significanceThreshold for hidden) */
+  includeHidden?: boolean;
+  /** Context for significance evaluation (dependent counts, exports) */
+  significanceContext?: Partial<SignificanceContext>;
+}
+
+// =============================================================================
+// Rule-Based Grouping and Filtering
+// =============================================================================
+
+/**
+ * Significance level order for filtering
+ */
+const SIGNIFICANCE_LEVEL_ORDER: Record<SignificanceLevel, number> = {
+  critical: 4,
+  important: 3,
+  minor: 2,
+  hidden: 1,
+};
+
+/**
+ * Apply significance filtering to effects
+ *
+ * Filters out effects below the minimum significance threshold.
+ */
+export function applySignificanceFiltering(
+  effects: DomainEffect[],
+  options: C4GeneratorOptions
+): DomainEffect[] {
+  const {
+    significanceRules = builtinSignificanceRules,
+    significanceThreshold,
+    includeHidden = false,
+    significanceContext,
+  } = options;
+
+  // No filtering if no threshold specified
+  if (!significanceThreshold) {
+    return effects;
+  }
+
+  const engine = createSignificanceEngine({
+    rules: significanceRules,
+    context: significanceContext,
+  });
+
+  const minLevelValue = SIGNIFICANCE_LEVEL_ORDER[significanceThreshold];
+  const context = buildSignificanceContext(effects, significanceContext);
+
+  return effects.filter((effect) => {
+    const result = engine.applyToEffect(effect, context);
+    const levelValue = SIGNIFICANCE_LEVEL_ORDER[result.level];
+
+    // Always exclude hidden unless explicitly included
+    if (result.level === "hidden" && !includeHidden) {
+      return false;
+    }
+
+    return levelValue >= minLevelValue;
+  });
+}
+
+/**
+ * Apply rule-based grouping to get container ID
+ *
+ * Returns the container name from the first matching grouping rule.
+ */
+export function applyGroupingRules(
+  effect: DomainEffect,
+  groupingRules: GroupingRule[]
+): GroupingResult | null {
+  const engine = createGroupingEngine({
+    rules: groupingRules,
+    defaultContainer: "Other",
+  });
+
+  const result = engine.applyToEffect(effect);
+
+  // If no rule matched (used default), return null to fall back to path-based grouping
+  if (result.ruleId === null) {
+    return null;
+  }
+
+  return result;
+}
+
+/**
+ * Get container ID using either rules or path-based grouping
+ */
+function getContainerIdWithRules(
+  effect: DomainEffect,
+  grouping: "directory" | "package" | "flat" | "rules",
+  groupingRules: GroupingRule[],
+  getEffectPathFn: (effect: DomainEffect) => string
+): string {
+  if (grouping === "rules") {
+    const result = applyGroupingRules(effect, groupingRules);
+    if (result) {
+      return result.container;
+    }
+    // Fall back to directory-based grouping if no rule matched
+    return getContainerId(getEffectPathFn(effect), "directory");
+  }
+
+  return getContainerId(getEffectPathFn(effect), grouping);
 }
 
 // =============================================================================
@@ -172,9 +295,12 @@ export interface C4GeneratorOptions {
 export function generateC4Context(effects: DomainEffect[], options: C4GeneratorOptions): C4Context {
   const { systemName, systemDescription } = options;
 
+  // Apply significance filtering if configured
+  const filteredEffects = applySignificanceFiltering(effects, options);
+
   // Group effects by domain
   const domainMap = new Map<string, Map<string, number>>();
-  for (const effect of effects) {
+  for (const effect of filteredEffects) {
     if (!domainMap.has(effect.domain)) {
       domainMap.set(effect.domain, new Map());
     }
@@ -196,14 +322,14 @@ export function generateC4Context(effects: DomainEffect[], options: C4GeneratorO
   domains.sort((a, b) => b.count - a.count);
 
   // Extract external systems from effects
-  const externalSystems = extractExternalSystems(effects);
+  const externalSystems = extractExternalSystems(filteredEffects);
 
   return {
     systemName,
     systemDescription,
     externalSystems,
     domains,
-    effectCount: effects.length,
+    effectCount: filteredEffects.length,
   };
 }
 
@@ -214,17 +340,30 @@ export function generateC4Containers(
   effects: DomainEffect[],
   options: C4GeneratorOptions
 ): C4ContainerDiagram {
-  const { systemName, containerGrouping = "directory", internalEdges = [] } = options;
+  const {
+    systemName,
+    containerGrouping = "directory",
+    internalEdges = [],
+    groupingRules = builtinGroupingRules,
+  } = options;
+
+  // Apply significance filtering if configured
+  const filteredEffects = applySignificanceFiltering(effects, options);
 
   // For enriched effects, use relative path for grouping
   const getEffectPath = (effect: DomainEffect): string => {
     return isEnrichedEffect(effect) ? effect.relativeFilePath : effect.filePath;
   };
 
-  // Group effects by container (based on file path)
+  // Group effects by container (using rules or path-based grouping)
   const containerMap = new Map<string, DomainEffect[]>();
-  for (const effect of effects) {
-    const containerId = getContainerId(getEffectPath(effect), containerGrouping);
+  for (const effect of filteredEffects) {
+    const containerId = getContainerIdWithRules(
+      effect,
+      containerGrouping,
+      groupingRules,
+      getEffectPath
+    );
     if (!containerMap.has(containerId)) {
       containerMap.set(containerId, []);
     }
@@ -239,7 +378,7 @@ export function generateC4Containers(
   }
 
   // Extract external systems
-  const externalSystems = extractExternalSystems(effects);
+  const externalSystems = extractExternalSystems(filteredEffects);
 
   // Collect raw relationships for aggregation
   const rawRelationships: Array<{ containerId: string; targetId: string; label: string }> = [];
@@ -275,7 +414,16 @@ export function generateC4Containers(
 
   // Add internal call graph edges if provided
   if (internalEdges.length > 0) {
-    addInternalRelationships(containers, internalEdges, containerGrouping, getEffectPath, effects);
+    // Use the same grouping logic for internal edges
+    const getGroupedContainerId = (entityId: string) => {
+      // Find an effect with this entity to determine its container
+      const effect = filteredEffects.find((e) => e.sourceEntityId === entityId);
+      if (effect) {
+        return getContainerIdWithRules(effect, containerGrouping, groupingRules, getEffectPath);
+      }
+      return null;
+    };
+    addInternalRelationshipsWithRules(containers, internalEdges, getGroupedContainerId);
   }
 
   return {
@@ -367,31 +515,22 @@ function aggregateRelationships(
 }
 
 /**
- * Add internal call graph relationships between containers.
+ * Add internal call graph relationships between containers using rule-based grouping.
  *
- * Takes CALLS edges from the code graph and adds them as relationships
- * between containers that contain the source and target components.
+ * Uses a custom function to determine container IDs for entities,
+ * which supports rule-based grouping.
  */
-function addInternalRelationships(
+function addInternalRelationshipsWithRules(
   containers: C4Container[],
   internalEdges: InternalEdge[],
-  containerGrouping: "directory" | "package" | "flat",
-  getEffectPath: (effect: DomainEffect) => string,
-  effects: DomainEffect[]
+  getContainerIdForEntity: (entityId: string) => string | null
 ): void {
-  // Build entity -> container mapping
-  const entityToContainer = new Map<string, string>();
-  for (const effect of effects) {
-    const containerId = getContainerId(getEffectPath(effect), containerGrouping);
-    entityToContainer.set(effect.sourceEntityId, containerId);
-  }
-
   // Collect internal relationships for aggregation
   const internalRels: Array<{ containerId: string; targetId: string; label: string }> = [];
 
   for (const edge of internalEdges) {
-    const sourceContainer = entityToContainer.get(edge.sourceEntityId);
-    const targetContainer = entityToContainer.get(edge.targetEntityId);
+    const sourceContainer = getContainerIdForEntity(edge.sourceEntityId);
+    const targetContainer = getContainerIdForEntity(edge.targetEntityId);
 
     // Only add if both are known and they're different containers
     if (sourceContainer && targetContainer && sourceContainer !== targetContainer) {

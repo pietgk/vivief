@@ -32,3 +32,52 @@ export {
   getRulesByDomain,
   getRulesByProvider,
 } from "./builtin-rules.js";
+
+// Grouping rules
+export {
+  GroupingEngine,
+  createGroupingEngine,
+  defineGroupingRule,
+  builtinGroupingRules,
+  analysisLayerRules,
+  storageLayerRules,
+  federationLayerRules,
+  apiLayerRules,
+  rulesLayerRules,
+  viewsLayerRules,
+  getGroupingRulesByContainer,
+  getGroupingRulesByLayer,
+  getAvailableContainers,
+  getAvailableTags,
+  type GroupingRule,
+  type GroupingMatch,
+  type GroupingEmit,
+  type GroupingResult,
+  type GroupingEngineConfig,
+  type GroupingEngineStats,
+} from "./grouping-rules.js";
+
+// Significance rules
+export {
+  SignificanceEngine,
+  createSignificanceEngine,
+  defineSignificanceRule,
+  buildSignificanceContext,
+  builtinSignificanceRules,
+  criticalSignificanceRules,
+  importantSignificanceRules,
+  minorSignificanceRules,
+  hiddenSignificanceRules,
+  getSignificanceRulesByLevel,
+  getSignificanceRulesByDomain,
+  getSignificanceLevelValue,
+  compareSignificanceLevels,
+  type SignificanceRule,
+  type SignificanceMatch,
+  type SignificanceEmit,
+  type SignificanceResult,
+  type SignificanceLevel,
+  type SignificanceContext,
+  type SignificanceEngineConfig,
+  type SignificanceEngineStats,
+} from "./significance-rules.js";

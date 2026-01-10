@@ -19,6 +19,9 @@ export {
   exportContainersToEnhancedLikeC4,
   sanitizeLikeC4Id,
   discoverDomainBoundaries,
+  // Rule-based filtering and grouping
+  applySignificanceFiltering,
+  applyGroupingRules,
   // Types
   type C4ExternalSystem,
   type C4Container,
@@ -104,4 +107,9 @@ export {
   type F1Score,
   type GapMetric,
   type GapAnalysis,
+  type GapTargets,
+  type GapAnalysisOptions,
+  type RuleAnalysisResult,
+  // Constants
+  DEFAULT_GAP_TARGETS,
 } from "./gap-metrics.js";

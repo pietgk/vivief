@@ -176,7 +176,15 @@ Calculate gap metrics between validated and generated.
 ```bash
 devac architecture score -p packages/devac-core
 # Output: Gap Score: 42% (Container F1: 35%, Relationship F1: 50%, ...)
+
+# With rule analysis (shows grouping and significance breakdown)
+devac architecture score -p packages/devac-core --with-rules
+
+# Verbose output showing matched rules
+devac architecture score -p packages/devac-core --with-rules -v
 ```
+
+See [C4 Quality Rules](knowledge/c4-quality-rules.md) for metric definitions and targets.
 
 ### `devac architecture diff`
 Show structural differences between validated and generated.
@@ -618,6 +626,68 @@ These identifiers are **reserved in LikeC4** and cannot be used as element names
 - Target gap score: >65% (from ~28% baseline)
 - **Important**: The `validated/` directory must have its own `spec.c4` and `likec4.config.json` to avoid LikeC4 merge conflicts with `generated/`
 - **Avoid reserved keywords**: Don't use `views`, `model`, `specification` as element identifiers
+
+## Gap Analysis Workflow
+
+Use the gap metrics to systematically improve C4 documentation quality.
+
+### Step 1: Baseline Assessment
+
+```bash
+# Get current gap metrics
+devac architecture score -p packages/devac-core --with-rules
+```
+
+Review the output to understand:
+- **Composite Score**: Overall quality (target: >65%)
+- **Container F1**: Are logical layers recognized? (target: >70%)
+- **Signal-to-Noise**: Are implementation details filtered? (target: >50%)
+- **Relationship F1**: Are key data flows captured? (target: >60%)
+- **External F1**: Are external systems categorized? (target: >70%)
+
+### Step 2: Identify Improvement Areas
+
+Based on the gaps, prioritize:
+
+| Gap | Problem | Solution |
+|-----|---------|----------|
+| Low Container F1 | Too granular, no layer recognition | Add grouping rules |
+| Low Signal/Noise | All functions shown, no filtering | Add significance rules |
+| Low Relationship F1 | Missing data flow edges | Enhance effect domain rules |
+| Low External F1 | Externals uncategorized | Add provider patterns |
+
+### Step 3: Apply Rules
+
+```bash
+# Generate C4 with rule-based grouping
+devac c4 -p packages/devac-core --grouping rules
+
+# Or configure rules in package's .devac/config.json
+```
+
+### Step 4: Measure Improvement
+
+```bash
+# Re-run score to measure impact
+devac architecture score -p packages/devac-core --with-rules
+
+# Compare before/after composite scores
+```
+
+### Step 5: Iterate
+
+Continue refining rules until:
+- Composite score >65%
+- All individual metrics meet targets
+- Generated architecture matches validated structure
+
+### Quality Rules Reference
+
+See [C4 Quality Rules](knowledge/c4-quality-rules.md) for:
+- Metric definitions (M1-M4)
+- Built-in grouping rules (6 layers)
+- Built-in significance rules (4 levels)
+- Example improvement sessions
 
 ## Relationship Parity Checklist
 
