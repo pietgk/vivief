@@ -2,6 +2,23 @@
 
 Help developers create and maintain `docs/c4/architecture-validated.md` and `docs/c4/validated/model.c4` - the human-validated goal for C4 generation improvement.
 
+## Related Skills
+
+- **effects-architecture**: Provides M1-M4 documentation quality rules that apply to architecture documentation generation. See @plugins/devac/skills/effects-architecture/SKILL.md
+
+## Documentation Quality Standards
+
+Before generating any architecture documentation, apply the M1-M4 meta-rules from effects-architecture:
+
+| Rule | Description | Application to C4 |
+|------|-------------|-------------------|
+| **M1: Complete Sets** | List ALL items or mark partial | List all containers, all relationships, all externals |
+| **M2: Generic Before Specific** | Define abstractly before examples | Define what a "container" means before listing your containers |
+| **M3: State Recognition** | Identify all state | Include all persistent stores (Parquet, DuckDB, etc.) |
+| **M4: Handler Recognition** | Identify all transformers | Include components that transform data (Parsers, Analyzers) |
+
+See @plugins/devac/skills/effects-architecture/knowledge/quality-rules.md for full rule definitions.
+
 ## Foundational Principle
 
 From the Architecture Documentation Improvement Loop:
@@ -614,6 +631,17 @@ These identifiers are **reserved in LikeC4** and cannot be used as element names
 - Incorrect relationship syntax (must be `source -> target "label"`)
 - Invalid characters in identifiers (use snake_case)
 
+## Knowledge Sources
+
+| Source | Purpose |
+|--------|---------|
+| @knowledge/c4-quality-rules.md | G1-G4 gap metrics for C4 quality |
+| @knowledge/tacit-insights.md | C4-specific insights not in code |
+| @../effects-architecture/knowledge/quality-rules.md | M1-M4 documentation quality rules (apply these!) |
+| @examples/architecture/prompts.md | Prompt evolution for C4 generation |
+| @examples/architecture/common-mistakes.md | Mistakes and fixes |
+| @examples/architecture/gap-analysis-session.md | Annotated improvement session |
+
 ## Notes
 
 - **Markdown is the single source of truth** - relationships in model.c4 are copied from markdown code blocks
@@ -626,6 +654,7 @@ These identifiers are **reserved in LikeC4** and cannot be used as element names
 - Target gap score: >65% (from ~28% baseline)
 - **Important**: The `validated/` directory must have its own `spec.c4` and `likec4.config.json` to avoid LikeC4 merge conflicts with `generated/`
 - **Avoid reserved keywords**: Don't use `views`, `model`, `specification` as element identifiers
+- **Apply M1-M4 before finalizing**: Check quality-rules.md from effects-architecture before marking documentation as complete
 
 ## Gap Analysis Workflow
 
@@ -684,10 +713,13 @@ Continue refining rules until:
 ### Quality Rules Reference
 
 See [C4 Quality Rules](knowledge/c4-quality-rules.md) for:
-- Metric definitions (M1-M4)
+- Gap metric definitions (G1-G4)
 - Built-in grouping rules (6 layers)
 - Built-in significance rules (4 levels)
 - Example improvement sessions
+
+See [Documentation Quality Rules](../effects-architecture/knowledge/quality-rules.md) for:
+- Meta-rules (M1-M4) that apply to all documentation generation
 
 ## Relationship Parity Checklist
 

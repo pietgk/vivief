@@ -2,11 +2,13 @@
 
 Rules for evaluating and improving C4 architecture documentation quality.
 
-## Gap Metrics (M1-M4)
+## Gap Metrics (G1-G4)
 
-The Architecture Documentation Improvement Loop uses these metrics to measure quality:
+The Architecture Documentation Improvement Loop uses these metrics to measure quality.
 
-### M1: Container F1 Score (Weight: 25%)
+> **Note:** G1-G4 are C4-specific gap metrics. For generic documentation quality rules (M1-M4: Complete Sets, Generic Before Specific, State Recognition, Handler Recognition), see @plugins/devac/skills/effects-architecture/knowledge/quality-rules.md
+
+### G1: Container F1 Score (Weight: 25%)
 
 **Target:** >70%
 
@@ -25,7 +27,7 @@ Where:
 - Use naming patterns to identify architectural boundaries
 - Map file path patterns to containers (e.g., `src/parsers/**` -> "Analysis Layer")
 
-### M2: Signal-to-Noise Ratio (Weight: 45%)
+### G2: Signal-to-Noise Ratio (Weight: 45%)
 
 **Target:** >50%
 
@@ -43,7 +45,7 @@ Score decreases as ratio deviates from 1.0
 - Mark internal helpers as "minor"
 - Mark logging/debug as "hidden"
 
-### M3: Relationship F1 Score (Weight: 15%)
+### G3: Relationship F1 Score (Weight: 15%)
 
 **Target:** >60%
 
@@ -60,7 +62,7 @@ Normalized by source/target entity names (last segment)
 - Add relationship significance filtering
 - Use typed relationships (reads, writes, calls, queries)
 
-### M4: External F1 Score (Weight: 15%)
+### G4: External F1 Score (Weight: 15%)
 
 **Target:** >70%
 
@@ -78,7 +80,7 @@ External F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ## Composite Score
 
 ```
-Composite = 0.25 * M1 + 0.45 * M2 + 0.15 * M3 + 0.15 * M4
+Composite = 0.25 * G1 + 0.45 * G2 + 0.15 * G3 + 0.15 * G4
 Target: >65%
 ```
 
