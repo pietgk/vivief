@@ -9,7 +9,7 @@ import * as path from "node:path";
 import {
   DuckDBPool,
   type QueryResult,
-  createCentralHub,
+  createHubClient,
   createSeedReader,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
@@ -81,37 +81,32 @@ export async function findSymbolCommand(options: FindSymbolOptions): Promise<Fin
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+      const repos = await client.listRepos();
+      const packagePaths = repos.map((r) => r.localPath);
 
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ symbols: [], count: 0 }, { json: true })
-              : "No repositories registered in hub",
-            count: 0,
-            timeMs: Date.now() - startTime,
-            symbols: [],
-          };
-        }
-
-        let sql = `SELECT * FROM {nodes} WHERE name = '${options.name.replace(/'/g, "''")}'`;
-        if (options.kind) {
-          sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
-        }
-        if (options.limit) {
-          sql += ` LIMIT ${options.limit}`;
-        }
-
-        result = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ symbols: [], count: 0 }, { json: true })
+            : "No repositories registered in hub",
+          count: 0,
+          timeMs: Date.now() - startTime,
+          symbols: [],
+        };
       }
+
+      let sql = `SELECT * FROM {nodes} WHERE name = '${options.name.replace(/'/g, "''")}'`;
+      if (options.kind) {
+        sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
+      }
+      if (options.limit) {
+        sql += ` LIMIT ${options.limit}`;
+      }
+
+      result = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     const symbols = result.rows;

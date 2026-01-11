@@ -284,6 +284,13 @@ export class HubServer {
       case "resolveDiagnostics":
         return hub.resolveDiagnostics(p.ids as string[]);
 
+      case "pushValidationErrors":
+        return hub.pushValidationErrors(
+          p.repoId as string,
+          p.packagePath as string,
+          p.errors as Parameters<typeof hub.pushValidationErrors>[2]
+        );
+
       // Read operations
       case "query":
         return hub.query(p.sql as string);

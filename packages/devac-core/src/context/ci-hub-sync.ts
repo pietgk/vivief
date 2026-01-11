@@ -5,7 +5,7 @@
  * This allows LLMs to query CI failures alongside validation errors.
  */
 
-import type { CentralHub } from "../hub/central-hub.js";
+import type { HubLike } from "../hub/hub-client.js";
 import type {
   DiagnosticsCategory,
   DiagnosticsSeverity,
@@ -192,12 +192,12 @@ function deriveRepoId(ciStatus: CIStatus): string {
 /**
  * Sync CI status results to the Hub
  *
- * @param hub - The CentralHub instance
+ * @param hub - The hub instance (CentralHub or HubClient)
  * @param ciResult - The CI status result from getCIStatusForContext
  * @param options - Sync options
  */
 export async function syncCIStatusToHub(
-  hub: CentralHub,
+  hub: HubLike,
   ciResult: CIStatusResult,
   options: CISyncOptions = {}
 ): Promise<CISyncResult> {

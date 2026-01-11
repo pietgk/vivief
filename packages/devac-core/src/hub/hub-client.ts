@@ -47,6 +47,28 @@ export interface HubClientOptions {
   skipValidation?: boolean;
 }
 
+/**
+ * Type representing the common interface between CentralHub and HubClient
+ * for sync functions that need to push/clear diagnostics or validation errors.
+ */
+export type HubLike = {
+  pushDiagnostics(diagnostics: UnifiedDiagnostics[]): Promise<void>;
+  clearDiagnostics(repoId?: string, source?: string): Promise<void>;
+  pushValidationErrors(
+    repoId: string,
+    packagePath: string,
+    errors: Array<{
+      file: string;
+      line: number;
+      column: number;
+      message: string;
+      severity: "error" | "warning";
+      source: "tsc" | "eslint" | "biome" | "test" | "coverage";
+      code: string | null;
+    }>
+  ): Promise<void>;
+};
+
 // ─────────────────────────────────────────────────────────────
 // HubClient Class
 // ─────────────────────────────────────────────────────────────
@@ -374,6 +396,30 @@ export class HubClient {
     return this.dispatch("resolveDiagnostics", { ids }, (hub) => hub.resolveDiagnostics(ids), {
       readOnly: false,
     });
+  }
+
+  /**
+   * Push validation errors to the hub
+   */
+  async pushValidationErrors(
+    repoId: string,
+    packagePath: string,
+    errors: Array<{
+      file: string;
+      line: number;
+      column: number;
+      message: string;
+      severity: "error" | "warning";
+      source: "tsc" | "eslint" | "biome" | "test" | "coverage";
+      code: string | null;
+    }>
+  ): Promise<void> {
+    return this.dispatch(
+      "pushValidationErrors",
+      { repoId, packagePath, errors },
+      (hub) => hub.pushValidationErrors(repoId, packagePath, errors),
+      { readOnly: false }
+    );
   }
 }
 

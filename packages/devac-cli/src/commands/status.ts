@@ -14,8 +14,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
-  CentralHub,
   type WorkspaceStatus,
+  createHubClient,
   discoverContext,
   getCIStatusForContext,
   getWorkspaceStatus,
@@ -719,18 +719,17 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
       if (fs.existsSync(hubPath)) {
         result.health.hubPath = hubPath;
         try {
-          const hub = new CentralHub({ hubDir, readOnly: true });
-          await hub.init();
+          const client = createHubClient({ hubDir });
           result.health.hubConnected = true;
 
           // Get registered repos count
-          const repos = await hub.listRepos();
+          const repos = await client.listRepos();
           result.health.reposRegistered = repos.length;
 
           // Get diagnostics from hub (skip if --seeds-only)
           if (!seedsOnly) {
             try {
-              const diagnostics = await hub.getDiagnostics({});
+              const diagnostics = await client.getDiagnostics({});
               for (const item of diagnostics) {
                 const isError = item.severity === "error" || item.severity === "critical";
                 const isWarning = item.severity === "warning";
@@ -762,8 +761,6 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
               // Hub might not have diagnostics table yet
             }
           }
-
-          await hub.close();
         } catch {
           // Hub exists but couldn't connect
         }
@@ -804,13 +801,11 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
           if (options.sync && workspacePath) {
             const hubDir = path.join(workspacePath, ".devac");
             try {
-              const hub = new CentralHub({ hubDir });
-              await hub.init();
-              await syncCIStatusToHub(hub, ciResult, {
+              const client = createHubClient({ hubDir });
+              await syncCIStatusToHub(client, ciResult, {
                 failingOnly: false,
                 clearExisting: true,
               });
-              await hub.close();
             } catch {
               // Sync failed, but don't fail the whole command
             }

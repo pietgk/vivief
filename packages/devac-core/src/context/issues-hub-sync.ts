@@ -5,7 +5,7 @@
  * This allows LLMs to query issues alongside validation errors and CI failures.
  */
 
-import type { CentralHub } from "../hub/central-hub.js";
+import type { HubLike } from "../hub/hub-client.js";
 import type {
   DiagnosticsCategory,
   DiagnosticsSeverity,
@@ -122,12 +122,12 @@ function deriveRepoId(repoIssues: RepoIssues): string {
 /**
  * Sync issues to the Hub
  *
- * @param hub - The CentralHub instance
+ * @param hub - The hub instance (CentralHub or HubClient)
  * @param issuesResult - The issues result from getIssuesForContext
  * @param options - Sync options
  */
 export async function syncIssuesToHub(
-  hub: CentralHub,
+  hub: HubLike,
   issuesResult: IssuesResult,
   options: IssueSyncOptions = {}
 ): Promise<IssueSyncResult> {

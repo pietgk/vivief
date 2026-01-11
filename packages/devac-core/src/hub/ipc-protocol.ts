@@ -34,6 +34,7 @@ export type HubMethod =
   | "pushDiagnostics"
   | "clearDiagnostics"
   | "resolveDiagnostics"
+  | "pushValidationErrors"
   // Read operations
   | "query"
   | "listRepos"

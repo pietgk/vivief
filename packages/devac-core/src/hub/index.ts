@@ -74,4 +74,4 @@ export {
 } from "./hub-server.js";
 
 // Hub Client (for CLI)
-export { HubClient, createHubClient, type HubClientOptions } from "./hub-client.js";
+export { HubClient, createHubClient, type HubClientOptions, type HubLike } from "./hub-client.js";

@@ -11,7 +11,7 @@ import * as path from "node:path";
 import {
   DuckDBPool,
   type QueryResult,
-  createCentralHub,
+  createHubClient,
   discoverPackagesInRepo,
   executeWithRecovery,
   queryMultiplePackages,
@@ -158,52 +158,47 @@ export async function effectsCommand(
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
+      const repos = await client.listRepos();
 
-        if (repos.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ effects: [], count: 0 }, { json: true })
-              : "No repositories registered in hub",
-            count: 0,
-            timeMs: Date.now() - startTime,
-            effects: [],
-          };
-        }
+      if (repos.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ effects: [], count: 0 }, { json: true })
+            : "No repositories registered in hub",
+          count: 0,
+          timeMs: Date.now() - startTime,
+          effects: [],
+        };
+      }
 
-        // Discover packages with effects.parquet in each repo
-        const packagePaths: string[] = [];
-        for (const repo of repos) {
-          const packages = await discoverPackagesInRepo(repo.localPath);
-          for (const pkg of packages) {
-            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
-              packagePaths.push(pkg.path);
-            }
+      // Discover packages with effects.parquet in each repo
+      const packagePaths: string[] = [];
+      for (const repo of repos) {
+        const packages = await discoverPackagesInRepo(repo.localPath);
+        for (const pkg of packages) {
+          if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+            packagePaths.push(pkg.path);
           }
         }
-
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ effects: [], count: 0 }, { json: true })
-              : "No packages with effects found in registered repos (run 'devac analyze' first)",
-            count: 0,
-            timeMs: Date.now() - startTime,
-            effects: [],
-          };
-        }
-
-        const sql = `SELECT * FROM {effects} ${whereClause} ${limitClause}`;
-        result = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
       }
+
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ effects: [], count: 0 }, { json: true })
+            : "No packages with effects found in registered repos (run 'devac analyze' first)",
+          count: 0,
+          timeMs: Date.now() - startTime,
+          effects: [],
+        };
+      }
+
+      const sql = `SELECT * FROM {effects} ${whereClause} ${limitClause}`;
+      result = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     const effects = result.rows;
@@ -305,50 +300,45 @@ export async function effectsSummaryCommand(
       });
     } else {
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
+      const repos = await client.listRepos();
 
-        if (repos.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ summary: [], total: 0 }, { json: true })
-              : "No repositories registered in hub",
-            timeMs: Date.now() - startTime,
-            summary: [],
-          };
-        }
+      if (repos.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ summary: [], total: 0 }, { json: true })
+            : "No repositories registered in hub",
+          timeMs: Date.now() - startTime,
+          summary: [],
+        };
+      }
 
-        // Discover packages with effects.parquet in each repo
-        const packagePaths: string[] = [];
-        for (const repo of repos) {
-          const packages = await discoverPackagesInRepo(repo.localPath);
-          for (const pkg of packages) {
-            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
-              packagePaths.push(pkg.path);
-            }
+      // Discover packages with effects.parquet in each repo
+      const packagePaths: string[] = [];
+      for (const repo of repos) {
+        const packages = await discoverPackagesInRepo(repo.localPath);
+        for (const pkg of packages) {
+          if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+            packagePaths.push(pkg.path);
           }
         }
-
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ summary: [], total: 0 }, { json: true })
-              : "No packages with effects found in registered repos (run 'devac analyze' first)",
-            timeMs: Date.now() - startTime,
-            summary: [],
-          };
-        }
-
-        const sql = `SELECT ${groupField} as group_key, COUNT(*) as count FROM {effects} GROUP BY ${groupField} ORDER BY count DESC`;
-        result = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
       }
+
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ summary: [], total: 0 }, { json: true })
+            : "No packages with effects found in registered repos (run 'devac analyze' first)",
+          timeMs: Date.now() - startTime,
+          summary: [],
+        };
+      }
+
+      const sql = `SELECT ${groupField} as group_key, COUNT(*) as count FROM {effects} GROUP BY ${groupField} ORDER BY count DESC`;
+      result = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     const summary = result.rows as Array<{ group_key: string; count: number }>;

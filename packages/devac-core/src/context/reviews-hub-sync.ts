@@ -5,7 +5,7 @@
  * This allows LLMs to query PR reviews alongside validation errors, CI failures, and issues.
  */
 
-import type { CentralHub } from "../hub/central-hub.js";
+import type { HubLike } from "../hub/hub-client.js";
 import type { DiagnosticsSeverity, UnifiedDiagnostics } from "../hub/hub-storage.js";
 import type { RepoReviews, Review, ReviewComment, ReviewsResult } from "./reviews.js";
 
@@ -136,12 +136,12 @@ function deriveRepoId(repoReviews: RepoReviews): string {
 /**
  * Sync reviews to the Hub
  *
- * @param hub - The CentralHub instance
+ * @param hub - The hub instance (CentralHub or HubClient)
  * @param reviewsResult - The reviews result from getReviewsForContext
  * @param options - Sync options
  */
 export async function syncReviewsToHub(
-  hub: CentralHub,
+  hub: HubLike,
   reviewsResult: ReviewsResult,
   options: ReviewSyncOptions = {}
 ): Promise<ReviewSyncResult> {

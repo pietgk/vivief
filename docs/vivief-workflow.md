@@ -541,8 +541,8 @@ devac affected src/core/auth.ts
 devac deps src/services/user.ts
 
 # Diagnostics
-devac hub diagnostics
-devac hub diagnostics --severity error
+devac diagnostics
+devac diagnostics --severity error
 
 # Multi-repo
 devac hub status

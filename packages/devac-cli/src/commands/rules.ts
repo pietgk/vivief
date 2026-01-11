@@ -14,7 +14,7 @@ import {
   type Rule,
   type RuleEngineResult,
   builtinRules,
-  createCentralHub,
+  createHubClient,
   createRuleEngine,
   createSeedReader,
   getRulesByDomain,
@@ -200,30 +200,25 @@ export async function rulesRunCommand(options: RulesRunOptions): Promise<RulesRu
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+      const repos = await client.listRepos();
+      const packagePaths = repos.map((r) => r.localPath);
 
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ domainEffects: [], count: 0 }, { json: true })
-              : "No repositories registered in hub",
-            count: 0,
-            timeMs: Date.now() - startTime,
-            domainEffects: [],
-          };
-        }
-
-        const sql = `SELECT * FROM {effects} ${limitClause}`;
-        effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ domainEffects: [], count: 0 }, { json: true })
+            : "No repositories registered in hub",
+          count: 0,
+          timeMs: Date.now() - startTime,
+          domainEffects: [],
+        };
       }
+
+      const sql = `SELECT * FROM {effects} ${limitClause}`;
+      effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     // Run rules engine on effects
@@ -300,29 +295,24 @@ export async function rulesStatsCommand(options: RulesRunOptions): Promise<Rules
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+      const repos = await client.listRepos();
+      const packagePaths = repos.map((r) => r.localPath);
 
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ matchedCount: 0, unmatchedCount: 0 }, { json: true })
-              : "No repositories registered in hub",
-            count: 0,
-            timeMs: Date.now() - startTime,
-          };
-        }
-
-        const sql = `SELECT * FROM {effects} ${limitClause}`;
-        effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ matchedCount: 0, unmatchedCount: 0 }, { json: true })
+            : "No repositories registered in hub",
+          count: 0,
+          timeMs: Date.now() - startTime,
+        };
       }
+
+      const sql = `SELECT * FROM {effects} ${limitClause}`;
+      effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     // Run rules engine
