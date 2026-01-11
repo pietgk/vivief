@@ -409,6 +409,22 @@ pnpm typecheck
 - pnpm 9+
 - Python 3.8+ (for Python parsing)
 
+## Upgrading
+
+### Breaking Changes in v0.20.0
+
+**`--hub` flag removed**: Hub mode is now the default for all commands. If you have scripts using `--hub`, simply remove the flag.
+
+```bash
+# Before v0.20.0
+devac query --hub "SELECT * FROM nodes"
+
+# v0.20.0+
+devac query "SELECT * FROM nodes"
+```
+
+For detailed version history, see the [CHANGELOG](./packages/devac-cli/CHANGELOG.md).
+
 ## Documentation
 
 Comprehensive documentation is available in the [docs/](./docs/) directory:

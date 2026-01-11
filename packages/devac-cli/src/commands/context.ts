@@ -6,8 +6,8 @@
  */
 
 import {
-  CentralHub,
   buildReviewPrompt,
+  createHubClient,
   createSubIssues,
   discoverContext,
   formatCIStatus,
@@ -139,16 +139,11 @@ export async function contextCICommand(options: ContextCIOptions): Promise<Conte
     let syncResult: CISyncResult | undefined;
     if (options.syncToHub) {
       const hubDir = await getWorkspaceHubDir();
-      const hub = new CentralHub({ hubDir });
-      try {
-        await hub.init();
-        syncResult = await syncCIStatusToHub(hub, result, {
-          failingOnly: options.failingOnly ?? false,
-          clearExisting: true,
-        });
-      } finally {
-        await hub.close();
-      }
+      const client = createHubClient({ hubDir });
+      syncResult = await syncCIStatusToHub(client, result, {
+        failingOnly: options.failingOnly ?? false,
+        clearExisting: true,
+      });
     }
 
     if (options.format === "json") {
@@ -269,15 +264,10 @@ export async function contextIssuesCommand(
     let syncResult: IssueSyncResult | undefined;
     if (options.syncToHub) {
       const hubDir = await getWorkspaceHubDir();
-      const hub = new CentralHub({ hubDir });
-      try {
-        await hub.init();
-        syncResult = await syncIssuesToHub(hub, result, {
-          clearExisting: true,
-        });
-      } finally {
-        await hub.close();
-      }
+      const client = createHubClient({ hubDir });
+      syncResult = await syncIssuesToHub(client, result, {
+        clearExisting: true,
+      });
     }
 
     if (options.format === "json") {
@@ -367,16 +357,11 @@ export async function contextReviewsCommand(
     let syncResult: ReviewSyncResult | undefined;
     if (options.syncToHub) {
       const hubDir = await getWorkspaceHubDir();
-      const hub = new CentralHub({ hubDir });
-      try {
-        await hub.init();
-        syncResult = await syncReviewsToHub(hub, result, {
-          clearExisting: true,
-          changesRequestedOnly: options.changesRequestedOnly ?? false,
-        });
-      } finally {
-        await hub.close();
-      }
+      const client = createHubClient({ hubDir });
+      syncResult = await syncReviewsToHub(client, result, {
+        clearExisting: true,
+        changesRequestedOnly: options.changesRequestedOnly ?? false,
+      });
     }
 
     if (options.format === "json") {

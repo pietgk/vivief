@@ -9,12 +9,12 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import {
-  CentralHub,
   DuckDBPool,
   SeedReader,
   ValidationCoordinator,
   type ValidationCoordinatorResult,
   type ValidationMode,
+  createHubClient,
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
@@ -123,12 +123,10 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
     // Push to Hub if requested
     if (options.pushToHub && options.repoId) {
       const hubDir = await getWorkspaceHubDir();
-      let hub: CentralHub | null = null;
       try {
-        hub = new CentralHub({ hubDir });
-        await hub.init();
+        const client = createHubClient({ hubDir });
         const pushResult = await pushValidationResultsToHub(
-          hub,
+          client,
           options.repoId,
           options.packagePath,
           finalResult
@@ -141,10 +139,6 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
             hubError instanceof Error ? hubError.message : String(hubError)
           }`
         );
-      } finally {
-        if (hub) {
-          await hub.close();
-        }
       }
     }
 

@@ -16,7 +16,7 @@ import {
   DuckDBPool,
   type QueryResult,
   builtinRules,
-  createCentralHub,
+  createHubClient,
   createRuleEngine,
   discoverDomainBoundaries,
   discoverPackagesInRepo,
@@ -277,36 +277,31 @@ async function getDomainEffects(options: C4CommandOptions) {
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
+      const repos = await client.listRepos();
 
-        if (repos.length === 0) {
-          return { effects: [], pool };
-        }
+      if (repos.length === 0) {
+        return { effects: [], pool };
+      }
 
-        // Discover packages with effects.parquet in each repo
-        const packagePaths: string[] = [];
-        for (const repo of repos) {
-          const packages = await discoverPackagesInRepo(repo.localPath);
-          for (const pkg of packages) {
-            if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
-              packagePaths.push(pkg.path);
-            }
+      // Discover packages with effects.parquet in each repo
+      const packagePaths: string[] = [];
+      for (const repo of repos) {
+        const packages = await discoverPackagesInRepo(repo.localPath);
+        for (const pkg of packages) {
+          if (pkg.hasSeeds && (await hasEffectsParquet(pkg.path))) {
+            packagePaths.push(pkg.path);
           }
         }
-
-        if (packagePaths.length === 0) {
-          return { effects: [], pool };
-        }
-
-        const sql = `SELECT * FROM {effects} ${limitClause}`;
-        effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
-      } finally {
-        await hub.close();
       }
+
+      if (packagePaths.length === 0) {
+        return { effects: [], pool };
+      }
+
+      const sql = `SELECT * FROM {effects} ${limitClause}`;
+      effectsResult = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
     // Run rules engine on effects
