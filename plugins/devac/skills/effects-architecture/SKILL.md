@@ -2,6 +2,10 @@
 
 Generate verified architecture documentation using the effectHandler pattern.
 
+## Related Skills
+
+- **validate-architecture**: Uses M1-M4 rules for C4 architecture validation. Also defines G1-G4 gap metrics specific to C4 quality measurement. See @plugins/devac/skills/validate-architecture/SKILL.md
+
 ## Foundational Principle
 
 ```
