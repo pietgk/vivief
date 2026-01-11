@@ -5,6 +5,7 @@
  */
 
 import type { CentralHub } from "../hub/central-hub.js";
+import type { HubLike } from "../hub/hub-client.js";
 import type { ValidationCoordinatorResult } from "./validation-coordinator.js";
 
 /**
@@ -14,7 +15,7 @@ import type { ValidationCoordinatorResult } from "./validation-coordinator.js";
  * and pushes them to the central hub.
  */
 export async function pushValidationResultsToHub(
-  hub: CentralHub,
+  hub: HubLike,
   repoId: string,
   packagePath: string,
   result: ValidationCoordinatorResult

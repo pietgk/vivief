@@ -5,7 +5,7 @@
  */
 
 import {
-  CentralHub,
+  createHubClient,
   discoverContext,
   getCIStatusForContext,
   getIssuesForContext,
@@ -65,11 +65,9 @@ export interface HubSyncResult {
  */
 export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncResult> {
   const hubDir = await getWorkspaceHubDir();
-  const hub = new CentralHub({ hubDir });
+  const client = createHubClient({ hubDir });
 
   try {
-    await hub.init();
-
     const result: HubSyncResult = { success: true };
     const errors: string[] = [];
 
@@ -88,7 +86,7 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
         errors.push(ciResult.error ?? "Failed to get CI status");
       } else {
         // Sync to Hub
-        const syncResult = await syncCIStatusToHub(hub, ciResult, {
+        const syncResult = await syncCIStatusToHub(client, ciResult, {
           failingOnly: options.failingOnly ?? false,
           clearExisting: options.clearExisting ?? true,
         });
@@ -113,7 +111,7 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
         errors.push(issuesResult.error ?? "Failed to get issues");
       } else {
         // Sync to Hub
-        const syncResult = await syncIssuesToHub(hub, issuesResult, {
+        const syncResult = await syncIssuesToHub(client, issuesResult, {
           clearExisting: options.clearExisting ?? true,
         });
 
@@ -136,7 +134,7 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
         errors.push(reviewsResult.error ?? "Failed to get reviews");
       } else {
         // Sync to Hub
-        const syncResult = await syncReviewsToHub(hub, reviewsResult, {
+        const syncResult = await syncReviewsToHub(client, reviewsResult, {
           clearExisting: options.clearExisting ?? true,
           changesRequestedOnly: options.changesRequestedOnly ?? false,
         });
@@ -167,7 +165,5 @@ export async function hubSyncCommand(options: HubSyncOptions): Promise<HubSyncRe
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
-  } finally {
-    await hub.close();
   }
 }

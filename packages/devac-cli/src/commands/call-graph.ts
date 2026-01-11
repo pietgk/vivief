@@ -8,7 +8,7 @@
 import * as path from "node:path";
 import {
   DuckDBPool,
-  createCentralHub,
+  createHubClient,
   createSeedReader,
   queryMultiplePackages,
 } from "@pietgk/devac-core";
@@ -213,109 +213,104 @@ export async function callGraphCommand(
     } else {
       // Hub mode (default): query all registered repos
       const hubDir = await getWorkspaceHubDir();
-      const hub = createCentralHub({ hubDir, readOnly: true });
+      const client = createHubClient({ hubDir });
 
-      try {
-        await hub.init();
-        const repos = await hub.listRepos();
-        const packagePaths = repos.map((r) => r.localPath);
+      const repos = await client.listRepos();
+      const packagePaths = repos.map((r) => r.localPath);
 
-        if (packagePaths.length === 0) {
-          return {
-            success: true,
-            output: options.json
-              ? formatOutput({ callers: [], callees: [] }, { json: true })
-              : "No repositories registered in hub",
-            count: 0,
-            timeMs: Date.now() - startTime,
-            callers: [],
-            callees: [],
-          };
-        }
+      if (packagePaths.length === 0) {
+        return {
+          success: true,
+          output: options.json
+            ? formatOutput({ callers: [], callees: [] }, { json: true })
+            : "No repositories registered in hub",
+          count: 0,
+          timeMs: Date.now() - startTime,
+          callers: [],
+          callees: [],
+        };
+      }
 
-        if (options.direction === "callers" || options.direction === "both") {
-          // Recursive CTE to find transitive callers up to maxDepth
-          const sql = `
-            WITH RECURSIVE caller_chain AS (
-              -- Base case: direct callers
-              SELECT
-                e.source_entity_id,
-                1 as depth,
-                ARRAY[e.target_entity_id, e.source_entity_id] as path
-              FROM {edges} e
-              WHERE e.target_entity_id = '${escapedEntityId}'
-              AND e.edge_type = 'CALLS'
+      if (options.direction === "callers" || options.direction === "both") {
+        // Recursive CTE to find transitive callers up to maxDepth
+        const sql = `
+          WITH RECURSIVE caller_chain AS (
+            -- Base case: direct callers
+            SELECT
+              e.source_entity_id,
+              1 as depth,
+              ARRAY[e.target_entity_id, e.source_entity_id] as path
+            FROM {edges} e
+            WHERE e.target_entity_id = '${escapedEntityId}'
+            AND e.edge_type = 'CALLS'
 
-              UNION ALL
+            UNION ALL
 
-              -- Recursive case: callers of callers
-              SELECT
-                e.source_entity_id,
-                cc.depth + 1,
-                array_append(cc.path, e.source_entity_id)
-              FROM {edges} e
-              JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
-              WHERE e.edge_type = 'CALLS'
-              AND cc.depth < ${maxDepth}
-              AND NOT array_contains(cc.path, e.source_entity_id)
-            )
-            SELECT DISTINCT
-              cc.source_entity_id as entity_id,
-              cc.depth,
-              n.name,
-              n.kind,
-              n.source_file
-            FROM caller_chain cc
-            JOIN {nodes} n ON cc.source_entity_id = n.entity_id
-            ORDER BY cc.depth, n.name
-            LIMIT ${limit}
-          `;
-          const result = await queryMultiplePackages(pool, packagePaths, sql);
-          callers = result.rows;
-        }
+            -- Recursive case: callers of callers
+            SELECT
+              e.source_entity_id,
+              cc.depth + 1,
+              array_append(cc.path, e.source_entity_id)
+            FROM {edges} e
+            JOIN caller_chain cc ON e.target_entity_id = cc.source_entity_id
+            WHERE e.edge_type = 'CALLS'
+            AND cc.depth < ${maxDepth}
+            AND NOT array_contains(cc.path, e.source_entity_id)
+          )
+          SELECT DISTINCT
+            cc.source_entity_id as entity_id,
+            cc.depth,
+            n.name,
+            n.kind,
+            n.source_file
+          FROM caller_chain cc
+          JOIN {nodes} n ON cc.source_entity_id = n.entity_id
+          ORDER BY cc.depth, n.name
+          LIMIT ${limit}
+        `;
+        const result = await queryMultiplePackages(pool, packagePaths, sql);
+        callers = result.rows;
+      }
 
-        if (options.direction === "callees" || options.direction === "both") {
-          // Recursive CTE to find transitive callees up to maxDepth
-          const sql = `
-            WITH RECURSIVE call_chain AS (
-              -- Base case: direct callees
-              SELECT
-                e.target_entity_id,
-                1 as depth,
-                ARRAY[e.source_entity_id, e.target_entity_id] as path
-              FROM {edges} e
-              WHERE e.source_entity_id = '${escapedEntityId}'
-              AND e.edge_type = 'CALLS'
+      if (options.direction === "callees" || options.direction === "both") {
+        // Recursive CTE to find transitive callees up to maxDepth
+        const sql = `
+          WITH RECURSIVE call_chain AS (
+            -- Base case: direct callees
+            SELECT
+              e.target_entity_id,
+              1 as depth,
+              ARRAY[e.source_entity_id, e.target_entity_id] as path
+            FROM {edges} e
+            WHERE e.source_entity_id = '${escapedEntityId}'
+            AND e.edge_type = 'CALLS'
 
-              UNION ALL
+            UNION ALL
 
-              -- Recursive case: callees of callees
-              SELECT
-                e.target_entity_id,
-                cc.depth + 1,
-                array_append(cc.path, e.target_entity_id)
-              FROM {edges} e
-              JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
-              WHERE e.edge_type = 'CALLS'
-              AND cc.depth < ${maxDepth}
-              AND NOT array_contains(cc.path, e.target_entity_id)
-            )
-            SELECT DISTINCT
-              cc.target_entity_id as entity_id,
-              cc.depth,
-              n.name,
-              n.kind,
-              n.source_file
-            FROM call_chain cc
-            JOIN {nodes} n ON cc.target_entity_id = n.entity_id
-            ORDER BY cc.depth, n.name
-            LIMIT ${limit}
-          `;
-          const result = await queryMultiplePackages(pool, packagePaths, sql);
-          callees = result.rows;
-        }
-      } finally {
-        await hub.close();
+            -- Recursive case: callees of callees
+            SELECT
+              e.target_entity_id,
+              cc.depth + 1,
+              array_append(cc.path, e.target_entity_id)
+            FROM {edges} e
+            JOIN call_chain cc ON e.source_entity_id = cc.target_entity_id
+            WHERE e.edge_type = 'CALLS'
+            AND cc.depth < ${maxDepth}
+            AND NOT array_contains(cc.path, e.target_entity_id)
+          )
+          SELECT DISTINCT
+            cc.target_entity_id as entity_id,
+            cc.depth,
+            n.name,
+            n.kind,
+            n.source_file
+          FROM call_chain cc
+          JOIN {nodes} n ON cc.target_entity_id = n.entity_id
+          ORDER BY cc.depth, n.name
+          LIMIT ${limit}
+        `;
+        const result = await queryMultiplePackages(pool, packagePaths, sql);
+        callees = result.rows;
       }
     }
 
