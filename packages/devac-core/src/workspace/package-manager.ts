@@ -120,47 +120,47 @@ export async function detectPackageManager(rootPath: string): Promise<PackageMan
 
 /**
  * Discover all packages in a JavaScript/TypeScript workspace
+ *
+ * Always includes the root package first if package.json exists,
+ * then adds workspace packages or fallback pattern packages.
  */
 export async function discoverJSPackages(rootPath: string): Promise<PackageInfo[]> {
   const packageManager = await detectPackageManager(rootPath);
-  if (!packageManager) {
-    // Not a JS workspace, try fallback patterns for repos without workspace config
-    const fallbackPackages = await discoverFromFallbackPatterns(rootPath);
-    if (fallbackPackages.length > 0) {
-      return fallbackPackages;
-    }
+  const packages: PackageInfo[] = [];
 
-    // Single package fallback
-    const packageJsonPath = path.join(rootPath, "package.json");
-    if (await fileExists(packageJsonPath)) {
-      const name = await getPackageJsonName(packageJsonPath);
-      return [
-        {
-          path: rootPath,
-          name: name || path.basename(rootPath),
-          language: "typescript",
-          packageManager: undefined,
-        },
-      ];
-    }
-    return [];
+  // Always check for root package first
+  const rootPackageJsonPath = path.join(rootPath, "package.json");
+  if (await fileExists(rootPackageJsonPath)) {
+    const name = await getPackageJsonName(rootPackageJsonPath);
+    packages.push({
+      path: rootPath,
+      name: name || path.basename(rootPath),
+      language: "typescript",
+      packageManager: packageManager ?? undefined,
+    });
   }
 
-  let patterns: string[] = [];
+  if (!packageManager) {
+    // No workspace config - try fallback patterns
+    const fallbackPackages = await discoverFromFallbackPatterns(rootPath);
+    // Add fallback packages, skipping root if already added
+    for (const pkg of fallbackPackages) {
+      if (pkg.path !== rootPath) {
+        packages.push(pkg);
+      }
+    }
+    return packages;
+  }
 
+  // Has workspace config - discover workspace packages
+  let patterns: string[] = [];
   if (packageManager === "pnpm") {
     patterns = await parsePnpmWorkspace(rootPath);
   } else {
     patterns = await parsePackageJsonWorkspaces(rootPath);
   }
 
-  if (patterns.length === 0) {
-    return [];
-  }
-
-  // Expand glob patterns to find package directories
-  const packages: PackageInfo[] = [];
-
+  // Expand glob patterns to find workspace package directories
   for (const pattern of patterns) {
     const resolvedPattern = path.join(rootPath, pattern);
     const matches = await glob(resolvedPattern, {
@@ -168,13 +168,16 @@ export async function discoverJSPackages(rootPath: string): Promise<PackageInfo[
     });
 
     for (const match of matches) {
+      // Skip if this is the root package (already added)
+      if (match === rootPath) continue;
+
       const packageJsonPath = path.join(match, "package.json");
       if (await fileExists(packageJsonPath)) {
         const name = await getPackageJsonName(packageJsonPath);
         packages.push({
           path: match,
           name: name || path.basename(match),
-          language: "typescript", // Default to TS, could detect based on tsconfig
+          language: "typescript",
           packageManager,
         });
       }
