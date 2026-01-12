@@ -82,9 +82,10 @@ describe("JS/TS Package Discovery", () => {
   });
 
   describe("discoverJSPackages", () => {
-    it("should discover pnpm workspace packages", async () => {
+    it("should discover pnpm workspace packages including root", async () => {
       // Create pnpm workspace structure
       await fs.writeFile(path.join(tempDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'");
+      await fs.writeFile(path.join(tempDir, "package.json"), JSON.stringify({ name: "root-pkg" }));
       await fs.mkdir(path.join(tempDir, "packages", "pkg1"), { recursive: true });
       await fs.writeFile(
         path.join(tempDir, "packages", "pkg1", "package.json"),
@@ -98,16 +99,21 @@ describe("JS/TS Package Discovery", () => {
 
       const packages = await discoverJSPackages(tempDir);
 
-      expect(packages).toHaveLength(2);
-      expect(packages.map((p) => p.name).sort()).toEqual(["@test/pkg1", "@test/pkg2"]);
-      expect(packages[0]?.language).toBe("typescript");
+      expect(packages).toHaveLength(3);
+      expect(packages[0]?.name).toBe("root-pkg"); // Root is first
       expect(packages[0]?.packageManager).toBe("pnpm");
+      expect(
+        packages
+          .slice(1)
+          .map((p) => p.name)
+          .sort()
+      ).toEqual(["@test/pkg1", "@test/pkg2"]);
     });
 
-    it("should discover npm workspace packages", async () => {
+    it("should discover npm workspace packages including root", async () => {
       await fs.writeFile(
         path.join(tempDir, "package.json"),
-        JSON.stringify({ workspaces: ["packages/*"] })
+        JSON.stringify({ name: "root-pkg", workspaces: ["packages/*"] })
       );
       await fs.mkdir(path.join(tempDir, "packages", "core"), { recursive: true });
       await fs.writeFile(
@@ -117,9 +123,10 @@ describe("JS/TS Package Discovery", () => {
 
       const packages = await discoverJSPackages(tempDir);
 
-      expect(packages).toHaveLength(1);
-      expect(packages[0]?.name).toBe("core");
+      expect(packages).toHaveLength(2);
+      expect(packages[0]?.name).toBe("root-pkg"); // Root is first
       expect(packages[0]?.packageManager).toBe("npm");
+      expect(packages[1]?.name).toBe("core");
     });
 
     it("should return single package for non-workspace", async () => {
@@ -140,7 +147,7 @@ describe("JS/TS Package Discovery", () => {
       expect(packages).toHaveLength(0);
     });
 
-    it("should discover packages/* without workspace config (fallback patterns)", async () => {
+    it("should discover packages/* without workspace config including root (fallback patterns)", async () => {
       // This tests repos like npm-private-packages that have packages/* but no workspace config
       await fs.writeFile(
         path.join(tempDir, "package.json"),
@@ -159,12 +166,18 @@ describe("JS/TS Package Discovery", () => {
 
       const packages = await discoverJSPackages(tempDir);
 
-      expect(packages).toHaveLength(2);
-      expect(packages.map((p) => p.name).sort()).toEqual(["@test/pkg-a", "@test/pkg-b"]);
+      expect(packages).toHaveLength(3);
+      expect(packages[0]?.name).toBe("root-pkg"); // Root is first
       expect(packages[0]?.packageManager).toBeUndefined();
+      expect(
+        packages
+          .slice(1)
+          .map((p) => p.name)
+          .sort()
+      ).toEqual(["@test/pkg-a", "@test/pkg-b"]);
     });
 
-    it("should discover apps/* and libs/* without workspace config", async () => {
+    it("should discover apps/* and libs/* without workspace config including root", async () => {
       await fs.writeFile(path.join(tempDir, "package.json"), JSON.stringify({ name: "root" }));
       await fs.mkdir(path.join(tempDir, "apps", "web"), { recursive: true });
       await fs.writeFile(
@@ -179,8 +192,14 @@ describe("JS/TS Package Discovery", () => {
 
       const packages = await discoverJSPackages(tempDir);
 
-      expect(packages).toHaveLength(2);
-      expect(packages.map((p) => p.name).sort()).toEqual(["shared-lib", "web-app"]);
+      expect(packages).toHaveLength(3);
+      expect(packages[0]?.name).toBe("root"); // Root is first
+      expect(
+        packages
+          .slice(1)
+          .map((p) => p.name)
+          .sort()
+      ).toEqual(["shared-lib", "web-app"]);
     });
 
     it("should fall back to single package when no fallback patterns match", async () => {
@@ -193,6 +212,34 @@ describe("JS/TS Package Discovery", () => {
 
       expect(packages).toHaveLength(1);
       expect(packages[0]?.name).toBe("just-root");
+    });
+
+    it("should not duplicate root if workspace pattern matches root directory", async () => {
+      // Edge case: workspace pattern "." would match root
+      await fs.writeFile(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({ name: "root-pkg", workspaces: ["."] })
+      );
+
+      const packages = await discoverJSPackages(tempDir);
+
+      expect(packages).toHaveLength(1);
+      expect(packages[0]?.name).toBe("root-pkg");
+    });
+
+    it("should not have root without package.json", async () => {
+      // pnpm workspace without root package.json
+      await fs.writeFile(path.join(tempDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'");
+      await fs.mkdir(path.join(tempDir, "packages", "lib"), { recursive: true });
+      await fs.writeFile(
+        path.join(tempDir, "packages", "lib", "package.json"),
+        JSON.stringify({ name: "@test/lib" })
+      );
+
+      const packages = await discoverJSPackages(tempDir);
+
+      expect(packages).toHaveLength(1);
+      expect(packages[0]?.name).toBe("@test/lib");
     });
   });
 });
