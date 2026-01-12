@@ -1,5 +1,22 @@
 # @pietgk/devac-core
 
+## 0.24.2
+
+### Patch Changes
+
+- 115117c: Fix package discovery to include root package in workspaces
+
+  When analyzing repositories with workspace configurations (pnpm/npm/yarn) or fallback patterns (packages/_, apps/_, etc.), the root package was being excluded from discovery. This caused the main application code in repos like React Native apps to never be analyzed.
+
+  **Before:** Only workspace packages were discovered, missing root `package.json`
+  **After:** Root package is always included first if `package.json` exists
+
+  This fix ensures:
+
+  - Root package is discovered alongside workspace packages
+  - No duplicates when workspace patterns match root directory
+  - Backward compatible - repos without root `package.json` work as before
+
 ## 0.24.1
 
 ### Patch Changes
