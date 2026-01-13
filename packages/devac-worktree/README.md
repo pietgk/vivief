@@ -61,29 +61,27 @@ devac-worktree --help
 
 ## Issue ID Format
 
-The `<issue>` parameter supports two formats:
+The `<issue>` parameter requires the full issue ID format:
 
-### Full Issue ID (Recommended)
-
-Format: `ghrepo-123` - Works from anywhere in the workspace
-
-- `gh` = GitHub source prefix
-- `repo` = repository name (e.g., `vivief`, `api`)
-- `123` = issue number
+```
+gh<repoDirectoryName>-<issueNumber>
+│ │                    │
+│ │                    └─ Issue number (e.g., 42, 123)
+│ │
+│ └─ Repository DIRECTORY name (the folder name, NOT org/repo)
+│    Examples: "vivief", "monorepo-3.0", "app"
+│
+└─ Source prefix: "gh" for GitHub
+```
 
 **Examples:**
 - `ghvivief-39` - Issue #39 in the vivief repo
 - `ghapi-123` - Issue #123 in the api repo
+- `ghmonorepo-3.0-42` - Issue #42 in the monorepo-3.0 repo
 
-### Legacy Numeric Format
-
-Format: `123` - Only works when inside the repository
-
-This is maintained for backward compatibility but requires you to be inside the target repository.
+**Note:** Non-`gh` inputs are assumed to be Jira format (support coming soon).
 
 ## Quick Start
-
-### From Anywhere in Workspace (Recommended)
 
 ```bash
 # Start working on issue #123 in vivief repo
@@ -93,16 +91,7 @@ devac-worktree start ghvivief-123
 devac-worktree status
 
 # After PR is merged
-devac-worktree clean 123
-```
-
-### From Inside a Repository (Legacy)
-
-```bash
-cd /path/to/vivief
-
-# Start working on issue #123
-devac-worktree start 123
+devac-worktree clean ghvivief-123
 ```
 
 ## Workspace Mode
@@ -126,8 +115,8 @@ cd ~/ws/vivief/packages/core && devac-worktree start ghvivief-42
 ## Multi-Repo Support
 
 ```bash
-# Create worktrees in sibling repos (from inside a repo)
-devac-worktree start 123 --also web --also shared
+# Create worktrees in sibling repos
+devac-worktree start ghvivief-123 --also web --also shared
 
 # Create worktrees in multiple repos (from parent directory)
 devac-worktree start ghvivief-123 --repos api,web,shared

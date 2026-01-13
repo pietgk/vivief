@@ -31,22 +31,24 @@ pnpm --filter @pietgk/devac-worktree exec devac-worktree --help
 Create a worktree for an issue and launch Claude CLI.
 
 ```bash
-devac-worktree start <issue-number> [options]
+devac-worktree start <issue-id> [options]
 
 Options:
   --skip-install      Skip dependency installation
-  --skip-claude       Skip launching Claude CLI
+  --new-session       Launch Claude CLI in the worktree
   --create-pr         Create a draft PR immediately
   --also <repo>       Also create worktree in sibling repo (repeatable)
   --repos <repos>     Create worktrees in specified repos (comma-separated, parent dir only)
   -v, --verbose       Verbose output
 
 Examples:
-  devac-worktree start 123
-  devac-worktree start 123 --skip-claude
-  devac-worktree start 123 --also web --also shared
-  devac-worktree start 123 --repos api,web,shared
+  devac-worktree start ghvivief-123
+  devac-worktree start ghvivief-123 --new-session
+  devac-worktree start ghvivief-123 --also web --also shared
+  devac-worktree start ghvivief-123 --repos api,web,shared
 ```
+
+**Issue ID Format:** `gh<repoDirectoryName>-<issueNumber>` (e.g., `ghvivief-123`, `ghapi-42`)
 
 **Workflow:**
 1. Fetches issue #123 from GitHub
@@ -151,15 +153,15 @@ Issue #123 Status: Add user authentication
 Resume work on an existing worktree.
 
 ```bash
-devac-worktree resume <issue-number> [options]
+devac-worktree resume <issue-id> [options]
 
 Options:
-  --skip-claude       Skip launching Claude CLI
+  --new-session       Launch Claude CLI in the worktree
   -v, --verbose       Verbose output
 
 Examples:
-  devac-worktree resume 123
-  devac-worktree resume 123 --skip-claude
+  devac-worktree resume ghvivief-123
+  devac-worktree resume ghvivief-123 --new-session
 ```
 
 **Workflow:**
@@ -175,17 +177,19 @@ Examples:
 Remove worktree after PR is merged.
 
 ```bash
-devac-worktree clean <issue-number> [options]
+devac-worktree clean <issue-id> [options]
 
 Options:
-  -f, --force         Force removal even if PR is not merged
+  -f, --force         Force removal (skip PR check AND remove with modified files)
+  --skip-pr-check     Skip the PR merged check only
   --keep-branch       Keep the git branch
+  -y, --yes           Skip confirmation prompts
   -v, --verbose       Verbose output
 
 Examples:
-  devac-worktree clean 123
-  devac-worktree clean 123 --force
-  devac-worktree clean 123 --keep-branch
+  devac-worktree clean ghvivief-123
+  devac-worktree clean ghvivief-123 --force
+  devac-worktree clean ghvivief-123 --keep-branch
 ```
 
 **Workflow:**
@@ -226,28 +230,26 @@ Examples:
 Standard workflow for working on an issue in one repository:
 
 ```bash
-# Start working on issue #123
-cd ~/projects/api
-devac-worktree start 123
+# Start working on issue #123 in api repo
+devac-worktree start ghapi-123
 
-# Claude CLI launches in ../api-123-feature/
+# Worktree created at ../api-123-feature/
 # ... work with Claude ...
 
 # Check status
 devac-worktree status
 
 # After PR is merged
-devac-worktree clean 123
+devac-worktree clean ghapi-123
 ```
 
 ### Multi-Repo Workflow (--also)
 
-Use when inside a repository and need to add worktrees in sibling repos:
+Use to create worktrees in sibling repos:
 
 ```bash
-# Start in the main repo
-cd ~/projects/api
-devac-worktree start 123 --also web --also shared
+# Start and also create worktrees in sibling repos
+devac-worktree start ghapi-123 --also web --also shared
 
 # Creates:
 #   ../api-123-feature/
@@ -265,7 +267,7 @@ Use when working from a parent directory containing multiple repos:
 ```bash
 # Start from parent directory (not inside any repo)
 cd ~/projects
-devac-worktree start 123 --repos api,web,shared
+devac-worktree start ghapi-123 --repos api,web,shared
 
 # Creates worktrees in all specified repos
 # Claude launches in parent directory (~/projects)
@@ -376,14 +378,14 @@ gh auth login
 
 Use resume instead:
 ```bash
-devac-worktree resume 123
+devac-worktree resume ghvivief-123
 ```
 
 ### "PR not merged" when cleaning
 
 Use `--force` to remove anyway:
 ```bash
-devac-worktree clean 123 --force
+devac-worktree clean ghvivief-123 --force
 ```
 
 ### "Not a git repository" with --repos

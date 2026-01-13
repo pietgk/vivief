@@ -10,8 +10,40 @@ You are helping the user start work on a GitHub issue.
 
 ## Arguments
 
-- `<issue-id>`: Issue number (e.g., `42`) or full ID (e.g., `ghvivief-42`)
+- `<issue-id>`: Full issue ID in format `gh<repoDir>-<number>` (e.g., `ghvivief-42`)
 - `quick` (optional): Work in current directory with a branch instead of creating a worktree
+
+## Issue ID Format
+
+**IMPORTANT:** Always use the full issue ID format:
+
+```
+gh<repoDirectoryName>-<issueNumber>
+│ │                    │
+│ │                    └─ Issue number (e.g., 42, 123)
+│ │
+│ └─ Repository DIRECTORY name (the folder name, NOT org/repo)
+│    Examples: "vivief", "monorepo-3.0", "app"
+│
+└─ Source prefix: "gh" for GitHub
+```
+
+**Examples:**
+- `ghvivief-42` → repo directory "vivief", issue #42
+- `ghmonorepo-3.0-123` → repo directory "monorepo-3.0", issue #123
+- `ghapp-7` → repo directory "app", issue #7
+
+**Handling User Input:**
+
+| User Provides | What to Do |
+|--------------|------------|
+| `ghvivief-42` | Use as-is (GitHub format) |
+| `https://github.com/org/vivief/issues/42` | Extract → `ghvivief-42` |
+| `42` alone | Ask: "Which repo?" then form `gh<repoDir>-42` |
+| `CORE-123` or `core-123` (Jira-style) | CLI will show "Jira support coming soon" |
+| Any non-`gh` input | Assumed to be Jira, shows "coming soon" message |
+
+**Note:** The CLI assumes any input NOT starting with `gh` is a Jira ticket (support coming soon). Mixed case inputs are uppercased in the error message (e.g., `core-123` → `CORE-123`).
 
 ## Execution Logic
 
@@ -205,7 +237,7 @@ Creating plan file...
 ### Quick mode (branch in current dir)
 
 ```
-User: /devac:start-issue 42 quick
+User: /devac:start-issue ghvivief-42 quick
 
 Claude: Fetching issue #42...
 
@@ -220,7 +252,7 @@ Claude: Fetching issue #42...
 ### Already on issue branch
 
 ```
-User: /devac:start-issue 31 quick
+User: /devac:start-issue ghvivief-31 quick
 
 Claude: Fetching issue #31...
 
