@@ -18,10 +18,41 @@ import {
 import {
   addWorktreeToState,
   calculateWorktreePath,
+  checkWorktreeStatus,
   createWorktree,
   findWorktreeForIssue,
   getRepoRoot,
 } from "../worktree.js";
+
+/**
+ * Check if the repository has uncommitted changes that would cause worktree issues
+ */
+async function checkForUncommittedChanges(
+  repoPath: string
+): Promise<{ canProceed: boolean; message?: string }> {
+  const status = await checkWorktreeStatus(repoPath);
+
+  if (status.isClean) {
+    return { canProceed: true };
+  }
+
+  // Build descriptive message
+  const changeCount = status.modifiedFiles.length + status.untrackedFiles.length;
+  let message = `Repository has ${changeCount} uncommitted change(s):\n`;
+  if (status.modifiedFiles.length > 0) {
+    const files = status.modifiedFiles.slice(0, 3).join(", ");
+    message += `  Modified: ${files}${status.modifiedFiles.length > 3 ? "..." : ""}\n`;
+  }
+  if (status.untrackedFiles.length > 0) {
+    const files = status.untrackedFiles.slice(0, 3).join(", ");
+    message += `  Untracked: ${files}${status.untrackedFiles.length > 3 ? "..." : ""}\n`;
+  }
+  message += "\nPlease stash or commit your changes before creating a worktree:\n";
+  message += "  git stash -u    # stash all changes including untracked\n";
+  message += "  git stash pop   # apply stash to new worktree after creation";
+
+  return { canProceed: false, message };
+}
 
 interface AlsoWorktreeResult {
   repo: string;
@@ -147,14 +178,25 @@ async function startFromParentDirectory(
     }
   }
 
+  // Get GitHub info from the first repo to use for fetching issue
+  const firstRepoPath = path.join(parentDir, repos[0]);
+  const githubInfo = await getGitHubRepoFromRemote(firstRepoPath);
+  if (!githubInfo) {
+    return {
+      success: false,
+      error: `Could not determine GitHub repository from ${repos[0]}. Ensure it has a valid git remote.`,
+    };
+  }
+  const githubRepo = `${githubInfo.owner}/${githubInfo.repo}`;
+
   // Fetch issue details
   if (verbose) {
-    console.log(`Fetching issue #${issueNumber}...`);
+    console.log(`Fetching issue #${issueNumber} from ${githubRepo}...`);
   }
 
   let issue: Awaited<ReturnType<typeof fetchIssue>>;
   try {
-    issue = await fetchIssue(issueNumber);
+    issue = await fetchIssue(issueNumber, githubRepo);
   } catch (err) {
     return {
       success: false,
@@ -175,6 +217,15 @@ async function startFromParentDirectory(
 
   for (const repoName of repos) {
     const repoPath = path.join(parentDir, repoName);
+
+    // Check for uncommitted changes before creating worktree
+    const changeCheck = await checkForUncommittedChanges(repoPath);
+    if (!changeCheck.canProceed) {
+      console.warn(`✗ ${repoName}: has uncommitted changes, skipping`);
+      results.push({ repo: repoName, success: false, error: "Uncommitted changes" });
+      continue;
+    }
+
     if (verbose) {
       console.log(`\nCreating worktree in repo: ${repoName}`);
     }
@@ -356,6 +407,15 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
     return {
       success: false,
       error: `Issue #${issueNumber} is ${issue.state.toLowerCase()}, not open`,
+    };
+  }
+
+  // Check for uncommitted changes before creating worktree
+  const changeCheck = await checkForUncommittedChanges(repoPath);
+  if (!changeCheck.canProceed) {
+    return {
+      success: false,
+      error: changeCheck.message,
     };
   }
 
@@ -542,6 +602,16 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
     };
   }
 
+  // Check for uncommitted changes before creating worktree
+  const repoRoot = await getRepoRoot();
+  const changeCheck = await checkForUncommittedChanges(repoRoot);
+  if (!changeCheck.canProceed) {
+    return {
+      success: false,
+      error: changeCheck.message,
+    };
+  }
+
   // Generate branch name and worktree path
   const branch = generateBranchName(issueNumber, issue.title);
   const shortDesc = generateShortDescription(issue.title);
@@ -563,7 +633,6 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
   }
 
   // Save to state
-  const repoRoot = await getRepoRoot();
   const worktreeInfo: WorktreeInfo = {
     path: worktreePath,
     branch,
