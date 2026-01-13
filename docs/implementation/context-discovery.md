@@ -125,8 +125,8 @@ devac context --json
 Creates worktrees in multiple repos simultaneously:
 
 ```bash
-# Start issue 123 in current repo AND sibling-repo
-devac-worktree start 123 --also sibling-repo --also another-repo
+# Start issue 123 in api repo AND sibling repos
+devac-worktree start ghapi-123 --also sibling-repo --also another-repo
 ```
 
 Implementation:

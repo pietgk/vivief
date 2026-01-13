@@ -671,7 +671,7 @@ When working on issues that span multiple repositories, use `devac-worktree` and
 ┌─────────────────────────────────────────────────────────────────┐
 │  1. START ISSUE                                                  │
 │  ─────────────────                                               │
-│  devac-worktree start 123 --repos api,web                        │
+│  devac-worktree start ghapi-123 --repos api,web                  │
 │  → Creates api-123-feature/ and web-123-feature/                 │
 │  → Claude launches in parent directory                           │
 └─────────────────────────────────────────────────────────────────┘
@@ -725,7 +725,7 @@ When working on issues that span multiple repositories, use `devac-worktree` and
 ┌─────────────────────────────────────────────────────────────────┐
 │  7. CLEANUP (after PRs merged)                                   │
 │  ──────────                                                      │
-│  devac-worktree clean 123                                        │
+│  devac-worktree clean ghapi-123                                  │
 │  → Checks all PRs are merged                                     │
 │  → Cleans all worktrees for issue #123                           │
 └─────────────────────────────────────────────────────────────────┘
@@ -743,15 +743,14 @@ When working on issues that span multiple repositories, use `devac-worktree` and
 ### Choosing --also vs --repos
 
 **Use `--also`** when:
-- You're already inside a git repository
-- You want to add worktrees to sibling repos incrementally
-- Example: `devac-worktree start 123 --also web`
+- You want to add worktrees to sibling repos
+- Example: `devac-worktree start ghapi-123 --also web`
 
 **Use `--repos`** when:
 - You're in a parent directory (not inside any repo)
 - You want to create all worktrees at once
 - You want Claude to work across all repos in a single session
-- Example: `devac-worktree start 123 --repos api,web,shared`
+- Example: `devac-worktree start ghapi-123 --repos api,web,shared`
 
 ### Parent Directory Commands
 

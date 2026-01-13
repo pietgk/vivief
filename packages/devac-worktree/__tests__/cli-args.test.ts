@@ -35,57 +35,58 @@ describe("parseIssueArg", () => {
     });
   });
 
-  describe("legacy numeric format", () => {
-    test("parses simple numeric issue number", () => {
-      const result = parseIssueArg("42");
-      expect(result).toEqual({
-        issueNumber: 42,
-      });
+  describe("non-gh input (assumed Jira, coming soon)", () => {
+    test("numeric-only input shows Jira message", () => {
+      expect(() => parseIssueArg("42")).toThrow("Jira issue format detected");
+      expect(() => parseIssueArg("42")).toThrow("coming soon");
     });
 
-    test("parses large issue numbers", () => {
-      const result = parseIssueArg("12345");
-      expect(result).toEqual({
-        issueNumber: 12345,
-      });
+    test("TEAM-123 format shows Jira message", () => {
+      expect(() => parseIssueArg("CORE-123")).toThrow("Jira issue format detected");
+      expect(() => parseIssueArg("CORE-123")).toThrow("coming soon");
     });
 
-    test("parses single digit issue numbers", () => {
-      const result = parseIssueArg("1");
-      expect(result).toEqual({
-        issueNumber: 1,
-      });
+    test("jTEAM-123 format shows Jira message", () => {
+      expect(() => parseIssueArg("jCORE-123")).toThrow("Jira issue format detected");
+      expect(() => parseIssueArg("jCORE-123")).toThrow("JCORE-123"); // uppercased
+    });
+
+    test("mixed case input is uppercased in error", () => {
+      expect(() => parseIssueArg("core-123")).toThrow("CORE-123");
+      expect(() => parseIssueArg("Core-456")).toThrow("CORE-456");
+      expect(() => parseIssueArg("mobile-789")).toThrow("MOBILE-789");
+    });
+
+    test("suggests GitHub format as alternative", () => {
+      expect(() => parseIssueArg("CORE-123")).toThrow("gh<repoDirectoryName>");
+    });
+
+    test("any non-gh input is assumed Jira", () => {
+      expect(() => parseIssueArg("abc")).toThrow("Jira issue format detected");
+      expect(() => parseIssueArg("123")).toThrow("Jira issue format detected");
+      expect(() => parseIssueArg("repo-42")).toThrow("Jira issue format detected");
     });
   });
 
-  describe("error handling", () => {
-    test("throws on zero", () => {
-      expect(() => parseIssueArg("0")).toThrow("Invalid issue");
+  describe("invalid GitHub format", () => {
+    test("gh without proper format throws GitHub error", () => {
+      expect(() => parseIssueArg("gh")).toThrow("Invalid GitHub issue ID");
     });
 
-    test("throws on negative numbers", () => {
-      expect(() => parseIssueArg("-5")).toThrow("Invalid issue");
+    test("gh- without repo throws GitHub error", () => {
+      expect(() => parseIssueArg("gh-123")).toThrow("Invalid GitHub issue ID");
     });
 
-    test("throws on non-numeric strings", () => {
-      expect(() => parseIssueArg("abc")).toThrow("Invalid issue");
-    });
-
-    test("throws on empty string", () => {
-      expect(() => parseIssueArg("")).toThrow("Invalid issue");
-    });
-
-    test("throws on format without gh prefix", () => {
-      // "repo-42" without "gh" prefix is not valid
-      expect(() => parseIssueArg("repo-nope")).toThrow("Invalid issue");
+    test("ghrepo without number throws GitHub error", () => {
+      expect(() => parseIssueArg("ghrepo")).toThrow("Invalid GitHub issue ID");
     });
 
     test("error message includes the invalid input", () => {
-      expect(() => parseIssueArg("invalid")).toThrow('"invalid"');
+      expect(() => parseIssueArg("ghbad")).toThrow('"ghbad"');
     });
 
-    test("error message suggests correct formats", () => {
-      expect(() => parseIssueArg("bad")).toThrow("ghrepo-123");
+    test("error message suggests correct format", () => {
+      expect(() => parseIssueArg("ghbad")).toThrow("ghvivief-123");
     });
   });
 });

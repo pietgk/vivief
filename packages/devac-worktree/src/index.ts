@@ -21,18 +21,41 @@ import {
 import { VERSION } from "./version.js";
 
 /**
- * Parse issue argument - supports both formats:
- * - Legacy: "37" (numeric only, requires being in a repo)
- * - New: "ghvivief-37" (full issue ID with source and repo)
+ * Parse issue argument - requires full issue ID format:
+ *   gh<repoDirectoryName>-<issueNumber>
+ *
+ * The repoDirectoryName is the folder name of the repository,
+ * not the full GitHub identifier (org/repo).
+ *
+ * Examples:
+ *   ghvivief-123      → repo directory "vivief", issue #123
+ *   ghmonorepo-3.0-42 → repo directory "monorepo-3.0", issue #42
+ *
+ * Non-gh inputs are assumed to be Jira format (coming soon).
  */
 export function parseIssueArg(issueArg: string): {
   issueNumber: number;
-  issueId?: string;
-  repoName?: string;
+  issueId: string;
+  repoName: string;
 } {
-  // Try to parse as full issue ID first (e.g., "ghvivief-37")
-  const parsed = parseIssueId(issueArg);
-  if (parsed) {
+  // GitHub format: starts with "gh"
+  if (issueArg.toLowerCase().startsWith("gh")) {
+    const parsed = parseIssueId(issueArg);
+    if (!parsed) {
+      throw new Error(
+        `Invalid GitHub issue ID: "${issueArg}"
+
+Expected format: gh<repoDirectoryName>-<issueNumber>
+
+Examples:
+  ghvivief-123      → repo directory 'vivief', issue #123
+  ghmonorepo-3.0-42 → repo directory 'monorepo-3.0', issue #42
+
+Note: Use the repository's DIRECTORY name (the folder name),
+not the full GitHub identifier (org/repo).`
+      );
+    }
+
     return {
       issueNumber: parsed.number,
       issueId: parsed.full,
@@ -40,15 +63,21 @@ export function parseIssueArg(issueArg: string): {
     };
   }
 
-  // Fall back to legacy numeric format
-  const numericValue = Number.parseInt(issueArg, 10);
-  if (Number.isNaN(numericValue) || numericValue <= 0) {
-    throw new Error(
-      `Invalid issue: "${issueArg}". Use format "ghrepo-123" (e.g., ghvivief-37) or just the number if inside a repo.`
-    );
-  }
+  // Everything else is assumed to be Jira format (coming soon)
+  // Uppercase the ticket ID for display
+  const uppercasedTicket = issueArg.toUpperCase();
+  throw new Error(
+    `Jira issue format detected: "${uppercasedTicket}"
 
-  return { issueNumber: numericValue };
+Jira support is coming soon!
+
+For now, please use GitHub issue format:
+  gh<repoDirectoryName>-<issueNumber>
+
+Examples:
+  ghvivief-123      → repo directory 'vivief', issue #123
+  ghmonorepo-3.0-42 → repo directory 'monorepo-3.0', issue #42`
+  );
 }
 
 const program = new Command();
@@ -83,8 +112,7 @@ program
   .command("start <issue>")
   .description(
     "Create worktree and launch Claude for an issue. " +
-      "Use 'ghrepo-123' format (e.g., ghvivief-37) to work from anywhere, " +
-      "or just '123' when inside a repo."
+      "Format: gh<repoDir>-<number> (e.g., ghvivief-37)"
   )
   .option("--skip-install", "Skip dependency installation")
   .option("--new-session", "Launch Claude CLI in the worktree")
@@ -110,17 +138,23 @@ program
       process.exit(1);
     }
 
-    const result = await startCommand({
-      issueNumber: parsedIssue.issueNumber,
-      issueId: parsedIssue.issueId,
-      repoName: parsedIssue.repoName,
-      skipInstall: options.skipInstall,
-      newSession: options.newSession,
-      createPr: options.createPr,
-      verbose: options.verbose,
-      also: options.also,
-      repos: options.repos,
-    });
+    let result: Awaited<ReturnType<typeof startCommand>>;
+    try {
+      result = await startCommand({
+        issueNumber: parsedIssue.issueNumber,
+        issueId: parsedIssue.issueId,
+        repoName: parsedIssue.repoName,
+        skipInstall: options.skipInstall,
+        newSession: options.newSession,
+        createPr: options.createPr,
+        verbose: options.verbose,
+        also: options.also,
+        repos: options.repos,
+      });
+    } catch (err) {
+      console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
 
     if (!result.success) {
       console.error(`✗ ${result.error}`);
@@ -128,6 +162,11 @@ program
     }
 
     if (!options.newSession && !options.repos) {
+      // Validate result fields before printing success
+      if (!result.worktreePath || !result.branch) {
+        console.error("✗ Internal error: worktree created but path or branch is missing");
+        process.exit(1);
+      }
       console.log(`✓ Worktree created at ${result.worktreePath}`);
       console.log(`✓ Branch: ${result.branch}`);
       console.log("\nTo start working:");

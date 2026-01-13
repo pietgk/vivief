@@ -15,14 +15,7 @@ import {
   findWorkspace,
   getGitHubRepoFromRemote,
 } from "../workspace.js";
-import {
-  addWorktreeToState,
-  calculateWorktreePath,
-  checkWorktreeStatus,
-  createWorktree,
-  findWorktreeForIssue,
-  getRepoRoot,
-} from "../worktree.js";
+import { addWorktreeToState, checkWorktreeStatus, findWorktreeForIssue } from "../worktree.js";
 
 /**
  * Check if the repository has uncommitted changes that would cause worktree issues
@@ -136,10 +129,16 @@ async function createWorktreeInSiblingRepo(
 
 export interface StartOptions {
   issueNumber: number;
-  /** Full issue ID (e.g., "ghvivief-37") - enables workspace mode */
-  issueId?: string;
-  /** Repo name from issue ID (e.g., "vivief") - enables workspace mode */
-  repoName?: string;
+  /**
+   * Full issue ID (e.g., "ghvivief-37")
+   * Format: gh<repoDirectoryName>-<issueNumber>
+   */
+  issueId: string;
+  /**
+   * Repo directory name from issue ID (e.g., "vivief")
+   * This is the folder name, not the full GitHub identifier (org/repo)
+   */
+  repoName: string;
   skipInstall?: boolean;
   newSession?: boolean;
   createPr?: boolean;
@@ -531,7 +530,6 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
 }
 
 export async function startCommand(options: StartOptions): Promise<StartResult> {
-  const { issueNumber, skipInstall, newSession, createPr, verbose } = options;
   const cwd = process.cwd();
 
   // Check if we're in a parent directory with --repos flag
@@ -547,193 +545,7 @@ export async function startCommand(options: StartOptions): Promise<StartResult> 
     return startFromParentDirectory(options, cwd);
   }
 
-  // Workspace mode: when repoName is provided (from full issue ID like ghvivief-39)
+  // Workspace mode: uses repoName from issue ID (e.g., "vivief" from "ghvivief-39")
   // This allows running from anywhere in the workspace
-  if (options.repoName) {
-    return startFromWorkspace(options);
-  }
-
-  // Check if Claude is installed
-  if (newSession) {
-    const claudeInstalled = await isClaudeInstalled();
-    if (!claudeInstalled) {
-      return {
-        success: false,
-        error:
-          "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code",
-      };
-    }
-  }
-
-  // Check if worktree already exists for this issue
-  const existingPath = await findWorktreeForIssue(issueNumber);
-  if (existingPath) {
-    if (verbose) {
-      console.log(`Worktree already exists at ${existingPath}`);
-      console.log("Use 'devac-worktree resume' to continue working on it");
-    }
-    return {
-      success: true,
-      worktreePath: existingPath,
-      issueNumber,
-      error: "Worktree already exists. Use 'devac-worktree resume' to continue.",
-    };
-  }
-
-  // Fetch issue details
-  if (verbose) {
-    console.log(`Fetching issue #${issueNumber}...`);
-  }
-
-  let issue: Awaited<ReturnType<typeof fetchIssue>>;
-  try {
-    issue = await fetchIssue(issueNumber);
-  } catch (err) {
-    return {
-      success: false,
-      error: `Failed to fetch issue #${issueNumber}: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
-
-  if (issue.state !== "OPEN") {
-    return {
-      success: false,
-      error: `Issue #${issueNumber} is ${issue.state.toLowerCase()}, not open`,
-    };
-  }
-
-  // Check for uncommitted changes before creating worktree
-  const repoRoot = await getRepoRoot();
-  const changeCheck = await checkForUncommittedChanges(repoRoot);
-  if (!changeCheck.canProceed) {
-    return {
-      success: false,
-      error: changeCheck.message,
-    };
-  }
-
-  // Generate branch name and worktree path
-  const branch = generateBranchName(issueNumber, issue.title);
-  const shortDesc = generateShortDescription(issue.title);
-  const worktreePath = await calculateWorktreePath(issueNumber, shortDesc);
-
-  if (verbose) {
-    console.log(`Creating worktree at ${worktreePath}`);
-    console.log(`Branch: ${branch}`);
-  }
-
-  // Create the worktree
-  try {
-    await createWorktree({ branch, worktreePath });
-  } catch (error) {
-    return {
-      success: false,
-      error: `Failed to create worktree: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-
-  // Save to state
-  const worktreeInfo: WorktreeInfo = {
-    path: worktreePath,
-    branch,
-    issueNumber,
-    issueTitle: issue.title,
-    createdAt: new Date().toISOString(),
-    repoRoot,
-  };
-  await addWorktreeToState(worktreeInfo);
-
-  // Install dependencies if needed
-  if (!skipInstall) {
-    const needsInstall = !(await hasNodeModules(worktreePath));
-    if (needsInstall) {
-      if (verbose) {
-        console.log("Installing dependencies...");
-      }
-      const installResult = await installDependencies(worktreePath, { verbose });
-      if (!installResult.success) {
-        console.warn(`Warning: Failed to install dependencies: ${installResult.error}`);
-      } else if (verbose) {
-        console.log(`Dependencies installed using ${installResult.manager}`);
-      }
-    }
-  }
-
-  // Create draft PR if requested
-  if (createPr) {
-    if (verbose) {
-      console.log("Creating draft PR...");
-    }
-    try {
-      const prUrl = await createPR({
-        branch,
-        title: `WIP: ${issue.title}`,
-        body: `## Summary\n\nWork in progress for issue #${issueNumber}.\n\n## Status\n\n- [ ] Implementation in progress`,
-        issueNumber,
-      });
-      if (verbose) {
-        console.log(`PR created: ${prUrl}`);
-      }
-    } catch (error) {
-      console.warn(
-        `Warning: Failed to create PR: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
-
-  // Write issue context for Claude
-  await writeIssueContext(issue, worktreePath);
-
-  // Handle --also flag: create worktrees in sibling repos
-  const alsoResults: AlsoWorktreeResult[] = [];
-  if (options.also && options.also.length > 0) {
-    const repoRoot = await getRepoRoot();
-    const parentDir = path.dirname(repoRoot);
-
-    for (const repoName of options.also) {
-      const siblingPath = path.join(parentDir, repoName);
-      if (verbose) {
-        console.log(`\nCreating worktree in sibling repo: ${repoName}`);
-      }
-      const result = await createWorktreeInSiblingRepo(siblingPath, issueNumber, issue.title, {
-        verbose,
-        skipInstall,
-      });
-      alsoResults.push(result);
-
-      if (result.success) {
-        console.log(`✓ ${repoName}: worktree created at ${result.worktreePath}`);
-      } else {
-        console.warn(`✗ ${repoName}: ${result.error}`);
-      }
-    }
-  }
-
-  // Launch Claude CLI
-  if (newSession) {
-    if (verbose) {
-      console.log("Launching Claude CLI...");
-    }
-
-    console.log(`\n✓ Worktree created at ${worktreePath}`);
-    console.log(`✓ Branch: ${branch}`);
-    console.log("✓ Issue context written to ~/.devac/issue-context.md");
-    console.log("\nLaunching Claude CLI in worktree...\n");
-
-    try {
-      await launchClaude(worktreePath);
-    } catch {
-      // Claude exited - this is normal
-      if (verbose) {
-        console.log("Claude CLI session ended");
-      }
-    }
-  }
-
-  return {
-    success: true,
-    worktreePath,
-    branch,
-    issueNumber,
-  };
+  return startFromWorkspace(options);
 }

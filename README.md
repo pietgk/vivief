@@ -183,14 +183,14 @@ devac context review --focus security
 Issue-based git worktree workflow with Claude integration:
 
 ```bash
-# Create worktree and launch Claude for an issue (from inside a repo)
-devac-worktree start 123
+# Create worktree for an issue (use gh<repoDir>-<number> format)
+devac-worktree start ghvivief-123
 
 # Create worktrees in multiple sibling repos
-devac-worktree start 123 --also web --also shared
+devac-worktree start ghvivief-123 --also web --also shared
 
 # From a parent directory: create worktrees in specified repos
-devac-worktree start 123 --repos api,web,shared
+devac-worktree start ghvivief-123 --repos api,web,shared
 
 # List active worktrees
 devac-worktree list
@@ -199,12 +199,14 @@ devac-worktree list
 devac-worktree status
 
 # Resume work on existing worktree
-devac-worktree resume 123
+devac-worktree resume ghvivief-123
 
 # Clean up merged worktrees
-devac-worktree clean 123
+devac-worktree clean ghvivief-123
 devac-worktree clean-merged
 ```
+
+**Issue ID Format**: Use `gh<repoDirectoryName>-<issueNumber>` (e.g., `ghvivief-123`, `ghapi-42`). Non-`gh` inputs are assumed to be Jira format (support coming soon).
 
 **Parent Directory Workflow**: Use `--repos` when running from a parent directory to create worktrees in multiple repositories at once. Claude will launch in the parent directory for unified multi-repo development.
 

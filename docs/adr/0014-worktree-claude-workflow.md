@@ -45,15 +45,20 @@ Create a new `devac-worktree` CLI package that automates the git worktree + Clau
 
 ### Issue ID Format (Extended)
 
-The `<issue>` parameter supports two formats:
+The `<issue>` parameter requires the full issue ID format:
 
-**Full Issue ID (Recommended):**
 ```
-ghrepo-123
+gh<repoDirectoryName>-<issueNumber>
 ```
+
 - `gh` = GitHub source prefix
-- `repo` = repository name (e.g., `vivief`, `api`)
-- `123` = issue number
+- `repoDirectoryName` = repository DIRECTORY name (the folder name, NOT org/repo)
+- `issueNumber` = issue number
+
+**Examples:**
+- `ghvivief-123` → repo directory "vivief", issue #123
+- `ghapi-42` → repo directory "api", issue #42
+- `ghmonorepo-3.0-99` → repo directory "monorepo-3.0", issue #99
 
 This format enables workspace-aware operation - the CLI can be run from anywhere in the workspace and will:
 1. Find the workspace root (directory containing `.devac/` or multiple repos)
@@ -62,11 +67,7 @@ This format enables workspace-aware operation - the CLI can be run from anywhere
 4. Fetch issue details using the resolved owner/repo
 5. Create the worktree in the workspace
 
-**Legacy Numeric Format:**
-```
-123
-```
-Only works when inside the target repository. Maintained for backward compatibility.
+**Note:** Non-`gh` inputs are assumed to be Jira format (support coming soon).
 
 ### State Management
 
@@ -76,7 +77,7 @@ Only works when inside the target repository. Maintained for backward compatibil
 
 ### Workflow
 
-**From anywhere in workspace (recommended):**
+**From anywhere in workspace:**
 ```
 devac-worktree start ghvivief-42
   ├── Find workspace root
@@ -91,20 +92,10 @@ devac-worktree start ghvivief-42
 
 # ... developer works with Claude ...
 
-devac-worktree clean 42
+devac-worktree clean ghvivief-42
   ├── Verify PR is merged
   ├── Remove worktree
   └── Delete branch
-```
-
-**Legacy (from inside repo):**
-```
-cd ~/ws/vivief
-devac-worktree start 42
-  ├── Fetch issue #42 from GitHub (current repo)
-  ├── Create branch: 42-fix-login-bug
-  ├── Create worktree: ../vivief-42-fix-login-bug/
-  └── ... (same as above)
 ```
 
 ### Context Discovery (Extended)
@@ -138,11 +129,9 @@ Two modes for working across repositories:
 
 **`--also` Flag (Sibling Mode):**
 ```bash
-# Inside a repo, add worktrees in sibling repos
-cd ~/projects/api
-devac-worktree start 123 --also web --also shared
+# Add worktrees in sibling repos
+devac-worktree start ghapi-123 --also web --also shared
 ```
-- Use when already inside a repository
 - Creates worktrees in sibling directories
 - Claude launches in current repo's worktree
 
@@ -150,7 +139,7 @@ devac-worktree start 123 --also web --also shared
 ```bash
 # From parent directory, create worktrees in multiple repos
 cd ~/projects
-devac-worktree start 123 --repos api,web,shared
+devac-worktree start ghapi-123 --repos api,web,shared
 ```
 - Use when in a parent directory containing repos
 - Creates worktrees for all specified repos
