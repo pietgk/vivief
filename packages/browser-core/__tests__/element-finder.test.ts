@@ -75,7 +75,7 @@ describe("ElementFinder", () => {
       expect(mockPage.locator).toHaveBeenCalledWith(".my-button");
       expect(result.count).toBe(1);
       expect(result.elements).toHaveLength(1);
-      expect(result.elements[0]!.ref).toBe("click-btn");
+      expect(result.elements[0]?.ref).toBe("click-btn");
     });
 
     it("finds elements by text strategy", async () => {

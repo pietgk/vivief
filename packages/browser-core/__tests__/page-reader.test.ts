@@ -105,10 +105,10 @@ describe("PageReader", () => {
 
       // Verify refs are generated correctly using hybrid strategy
       // testId takes priority
-      expect(result.elements[0]!.ref).toBe("submit-btn");
-      expect(result.elements[1]!.ref).toBe("email-input");
+      expect(result.elements[0]?.ref).toBe("submit-btn");
+      expect(result.elements[1]?.ref).toBe("email-input");
       // No testId, so should use role:name
-      expect(result.elements[2]!.ref).toBe("link:sign_up");
+      expect(result.elements[2]?.ref).toBe("link:sign_up");
     });
 
     it("invalidates existing refs before reading", async () => {
@@ -150,7 +150,7 @@ describe("PageReader", () => {
       expect(mockPage.evaluate).toHaveBeenCalled();
       const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
       // Check that maxElements parameter was passed (third argument in the array)
-      expect(evaluateCall[1]![2]).toBe(50);
+      expect(evaluateCall[1]?.[2]).toBe(50);
     });
 
     it("respects includeHidden option", async () => {
@@ -160,7 +160,7 @@ describe("PageReader", () => {
 
       const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
       // Check that includeHidden parameter was passed (second argument in the array)
-      expect(evaluateCall[1]![1]).toBe(true);
+      expect(evaluateCall[1]?.[1]).toBe(true);
     });
 
     it("respects interactiveOnly option", async () => {
@@ -170,7 +170,7 @@ describe("PageReader", () => {
 
       const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
       // Check that interactiveOnly parameter was passed (fourth argument in the array)
-      expect(evaluateCall[1]![3]).toBe(true);
+      expect(evaluateCall[1]?.[3]).toBe(true);
     });
 
     it("respects selector option", async () => {
@@ -180,7 +180,7 @@ describe("PageReader", () => {
 
       const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
       // Check that selector parameter was passed (first argument in the array)
-      expect(evaluateCall[1]![0]).toBe("#main-content");
+      expect(evaluateCall[1]?.[0]).toBe("#main-content");
     });
 
     it("handles duplicate testIds by appending counter", async () => {
@@ -209,8 +209,8 @@ describe("PageReader", () => {
 
       const result = await pageReader.readPage();
 
-      expect(result.elements[0]!.ref).toBe("action-btn");
-      expect(result.elements[1]!.ref).toBe("action-btn_1");
+      expect(result.elements[0]?.ref).toBe("action-btn");
+      expect(result.elements[1]?.ref).toBe("action-btn_1");
     });
 
     it("uses aria-label when no testId", async () => {
@@ -231,7 +231,7 @@ describe("PageReader", () => {
 
       const result = await pageReader.readPage();
 
-      expect(result.elements[0]!.ref).toBe("close_dialog");
+      expect(result.elements[0]?.ref).toBe("close_dialog");
     });
 
     it("uses role:name when no testId or aria-label", async () => {
@@ -252,7 +252,7 @@ describe("PageReader", () => {
 
       const result = await pageReader.readPage();
 
-      expect(result.elements[0]!.ref).toBe("link:learn_more");
+      expect(result.elements[0]?.ref).toBe("link:learn_more");
     });
 
     it("falls back to role when no name available", async () => {
@@ -274,7 +274,7 @@ describe("PageReader", () => {
 
       const result = await pageReader.readPage();
 
-      expect(result.elements[0]!.ref).toBe("main:region");
+      expect(result.elements[0]?.ref).toBe("main:region");
     });
   });
 

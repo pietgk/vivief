@@ -22,20 +22,6 @@ export interface ReadPageOptions {
   interactiveOnly?: boolean;
 }
 
-// Type for the browser-side element data
-interface BrowserElementData {
-  tag: string;
-  role: string;
-  name: string;
-  testId?: string;
-  ariaLabel?: string;
-  selector: string;
-  isInteractive: boolean;
-  isVisible: boolean;
-  boundingBox?: { x: number; y: number; width: number; height: number };
-  parentContext?: string;
-}
-
 export class PageReader {
   private readonly pageContext: PageContext;
   private readonly page: Page;
@@ -100,245 +86,303 @@ export class PageReader {
     maxElements: number,
     interactiveOnly: boolean
   ): Promise<RawElementData[]> {
-    // This script runs in the browser context
-    const browserScript = `
-      (function(rootSelector, includeHidden, maxElements, interactiveOnly) {
-        const results = [];
+    // This function runs in browser context, cast to any to bypass Node.js type checking
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const browserFn = (([rootSel, inclHidden, maxEls, intOnly]: [
+      string,
+      boolean,
+      number,
+      boolean,
+    ]) => {
+      const results: Array<{
+        tag: string;
+        role: string;
+        name: string;
+        testId?: string;
+        ariaLabel?: string;
+        selector: string;
+        isInteractive: boolean;
+        isVisible: boolean;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+        parentContext?: string;
+      }> = [];
 
-        // Helper to check visibility
-        const isVisible = (el) => {
-          const style = window.getComputedStyle(el);
-          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
-            return false;
-          }
-          const rect = el.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        };
-
-        // Helper to get input role
-        const getInputRole = (el) => {
-          const type = (el.type || 'text').toLowerCase();
-          const inputRoleMap = {
-            button: 'button', checkbox: 'checkbox', email: 'textbox',
-            number: 'spinbutton', password: 'textbox', radio: 'radio',
-            range: 'slider', search: 'searchbox', submit: 'button',
-            tel: 'textbox', text: 'textbox', url: 'textbox'
-          };
-          return inputRoleMap[type] || 'textbox';
-        };
-
-        // Helper to get ARIA role
-        const getRole = (el) => {
-          const explicitRole = el.getAttribute('role');
-          if (explicitRole) return explicitRole;
-
-          const tag = el.tagName.toLowerCase();
-          const roleMap = {
-            a: el.hasAttribute('href') ? 'link' : 'generic',
-            article: 'article', aside: 'complementary', button: 'button',
-            dialog: 'dialog', footer: 'contentinfo', form: 'form',
-            h1: 'heading', h2: 'heading', h3: 'heading', h4: 'heading',
-            h5: 'heading', h6: 'heading', header: 'banner', img: 'img',
-            input: getInputRole(el), li: 'listitem', main: 'main',
-            nav: 'navigation', ol: 'list', option: 'option',
-            progress: 'progressbar', section: 'region', select: 'combobox',
-            table: 'table', tbody: 'rowgroup', td: 'cell',
-            textarea: 'textbox', th: 'columnheader', thead: 'rowgroup',
-            tr: 'row', ul: 'list'
-          };
-          return roleMap[tag] || 'generic';
-        };
-
-        // Helper to get accessible name
-        const getAccessibleName = (el) => {
-          const ariaLabel = el.getAttribute('aria-label');
-          if (ariaLabel) return ariaLabel;
-
-          const labelledBy = el.getAttribute('aria-labelledby');
-          if (labelledBy) {
-            const labelEl = document.getElementById(labelledBy);
-            if (labelEl) return (labelEl.textContent || '').trim();
-          }
-
-          const tag = el.tagName.toLowerCase();
-          if (['input', 'select', 'textarea'].includes(tag)) {
-            const id = el.id;
-            if (id) {
-              const label = document.querySelector('label[for="' + id + '"]');
-              if (label) return (label.textContent || '').trim();
-            }
-          }
-
-          if (['button', 'a', 'option'].includes(tag)) {
-            return (el.textContent || '').trim();
-          }
-
-          if (tag === 'input') {
-            return el.placeholder || el.value || '';
-          }
-
-          if (tag === 'img') {
-            return el.alt || '';
-          }
-
-          return '';
-        };
-
-        // Helper to check if element is interactive
-        const checkInteractive = (el, role) => {
-          const tag = el.tagName.toLowerCase();
-          const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'details', 'summary'];
-          if (interactiveTags.includes(tag)) return true;
-
-          const interactiveRoles = [
-            'button', 'link', 'textbox', 'checkbox', 'radio', 'combobox',
-            'listbox', 'menuitem', 'option', 'slider', 'spinbutton',
-            'switch', 'tab', 'treeitem', 'searchbox'
-          ];
-          if (interactiveRoles.includes(role)) return true;
-
-          if (el.hasAttribute('onclick') || el.getAttribute('tabindex') === '0') return true;
-
+      // Helper to check visibility
+      const isVisible = (el: Element) => {
+        const style = window.getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
           return false;
+        }
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+
+      // Helper to get input role
+      const getInputRole = (el: HTMLInputElement) => {
+        const type = (el.type || "text").toLowerCase();
+        const inputRoleMap: Record<string, string> = {
+          button: "button",
+          checkbox: "checkbox",
+          email: "textbox",
+          number: "spinbutton",
+          password: "textbox",
+          radio: "radio",
+          range: "slider",
+          search: "searchbox",
+          submit: "button",
+          tel: "textbox",
+          text: "textbox",
+          url: "textbox",
         };
+        return inputRoleMap[type] || "textbox";
+      };
 
-        // Helper to build unique selector
-        const buildUniqueSelector = (el) => {
-          const testId = el.getAttribute('data-testid');
-          if (testId) return '[data-testid="' + testId + '"]';
+      // Helper to get ARIA role
+      const getRole = (el: Element) => {
+        const explicitRole = el.getAttribute("role");
+        if (explicitRole) return explicitRole;
 
+        const tag = el.tagName.toLowerCase();
+        const roleMap: Record<string, string | (() => string)> = {
+          a: () => ((el as HTMLAnchorElement).hasAttribute("href") ? "link" : "generic"),
+          article: "article",
+          aside: "complementary",
+          button: "button",
+          dialog: "dialog",
+          footer: "contentinfo",
+          form: "form",
+          h1: "heading",
+          h2: "heading",
+          h3: "heading",
+          h4: "heading",
+          h5: "heading",
+          h6: "heading",
+          header: "banner",
+          img: "img",
+          input: () => getInputRole(el as HTMLInputElement),
+          li: "listitem",
+          main: "main",
+          nav: "navigation",
+          ol: "list",
+          option: "option",
+          progress: "progressbar",
+          section: "region",
+          select: "combobox",
+          table: "table",
+          tbody: "rowgroup",
+          td: "cell",
+          textarea: "textbox",
+          tfoot: "rowgroup",
+          th: "columnheader",
+          thead: "rowgroup",
+          tr: "row",
+          ul: "list",
+        };
+        const role = roleMap[tag];
+        if (typeof role === "function") return role();
+        return role || "generic";
+      };
+
+      // Helper to get accessible name
+      const getAccessibleName = (el: Element) => {
+        const ariaLabel = el.getAttribute("aria-label");
+        if (ariaLabel) return ariaLabel;
+
+        const ariaLabelledBy = el.getAttribute("aria-labelledby");
+        if (ariaLabelledBy) {
+          const labelEl = document.getElementById(ariaLabelledBy);
+          if (labelEl) return labelEl.textContent?.trim() || "";
+        }
+
+        const tag = el.tagName.toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select") {
           const id = el.id;
-          if (id) return '#' + id;
+          if (id) {
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) return label.textContent?.trim() || "";
+          }
+        }
 
-          const ariaLabel = el.getAttribute('aria-label');
-          if (ariaLabel) return '[aria-label="' + ariaLabel.replace(/"/g, '\\\\"') + '"]';
+        if (tag === "img") {
+          return (el as HTMLImageElement).alt || "";
+        }
 
-          // Build path-based selector
-          const path = [];
-          let current = el;
+        if (tag === "a" || tag === "button") {
+          return el.textContent?.trim() || "";
+        }
 
-          while (current && current !== document.body) {
-            const tag = current.tagName.toLowerCase();
-            const parent = current.parentElement;
+        return "";
+      };
 
-            if (parent) {
-              const siblings = Array.from(parent.children).filter(c => c.tagName === current.tagName);
-              if (siblings.length > 1) {
-                const index = siblings.indexOf(current) + 1;
-                path.unshift(tag + ':nth-of-type(' + index + ')');
-              } else {
-                path.unshift(tag);
-              }
+      // Helper to check if element is interactive
+      const checkInteractive = (el: Element, role: string) => {
+        const interactiveRoles = [
+          "button",
+          "link",
+          "textbox",
+          "checkbox",
+          "radio",
+          "combobox",
+          "listbox",
+          "menuitem",
+          "option",
+          "slider",
+          "spinbutton",
+          "switch",
+          "tab",
+        ];
+        if (interactiveRoles.includes(role)) return true;
+
+        const tag = el.tagName.toLowerCase();
+        if (["a", "button", "input", "select", "textarea"].includes(tag)) return true;
+        if (el.hasAttribute("onclick") || el.getAttribute("tabindex") === "0") return true;
+
+        return false;
+      };
+
+      // Helper to build unique selector
+      const buildUniqueSelector = (el: Element) => {
+        const testId = el.getAttribute("data-testid");
+        if (testId) return `[data-testid="${testId}"]`;
+
+        const id = el.id;
+        if (id) return `#${id}`;
+
+        const ariaLabel = el.getAttribute("aria-label");
+        if (ariaLabel) return `[aria-label="${ariaLabel.replace(/"/g, '\\"')}"]`;
+
+        // Build path-based selector
+        const path: string[] = [];
+        let current: Element | null = el;
+
+        while (current && current !== document.body) {
+          const tag = current.tagName.toLowerCase();
+          const parent: Element | null = current.parentElement;
+
+          if (parent) {
+            const siblings = Array.from(parent.children).filter(
+              (c: Element) => c.tagName === current?.tagName
+            );
+            if (siblings.length > 1) {
+              const index = siblings.indexOf(current) + 1;
+              path.unshift(`${tag}:nth-of-type(${index})`);
             } else {
               path.unshift(tag);
             }
-
-            current = parent;
+          } else {
+            path.unshift(tag);
           }
 
-          return path.length > 0 ? path.join(' > ') : el.tagName.toLowerCase();
-        };
-
-        // Get parent context
-        const getParentContext = (el) => {
-          let parent = el.parentElement;
-
-          while (parent && parent !== document.body) {
-            const tag = parent.tagName.toLowerCase();
-            const role = getRole(parent);
-
-            if (tag === 'form' || role === 'form') return 'form';
-            if (tag === 'nav' || role === 'navigation') return 'nav';
-            if (tag === 'dialog' || role === 'dialog') return 'dialog';
-            if (tag === 'main' || role === 'main') return 'main';
-            if (tag === 'header' || role === 'banner') return 'header';
-            if (tag === 'footer' || role === 'contentinfo') return 'footer';
-
-            parent = parent.parentElement;
-          }
-
-          return undefined;
-        };
-
-        // Walk the DOM tree
-        const root = document.querySelector(rootSelector);
-        if (!root) return results;
-
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-          acceptNode: (node) => {
-            const tag = node.tagName.toLowerCase();
-            if (['script', 'style', 'noscript', 'template', 'svg', 'path'].includes(tag)) {
-              return NodeFilter.FILTER_REJECT;
-            }
-            return NodeFilter.FILTER_ACCEPT;
-          }
-        });
-
-        let node = walker.currentNode;
-        while (node && results.length < maxElements) {
-          const el = node;
-          const tag = el.tagName.toLowerCase();
-          const role = getRole(el);
-          const visible = isVisible(el);
-          const interactive = checkInteractive(el, role);
-
-          // Apply filters
-          if (!includeHidden && !visible) {
-            node = walker.nextNode();
-            continue;
-          }
-
-          if (interactiveOnly && !interactive) {
-            node = walker.nextNode();
-            continue;
-          }
-
-          // Skip generic non-interactive elements without meaningful content
-          if (role === 'generic' && !interactive &&
-              !el.hasAttribute('data-testid') && !el.hasAttribute('aria-label')) {
-            node = walker.nextNode();
-            continue;
-          }
-
-          const rect = el.getBoundingClientRect();
-          const name = getAccessibleName(el);
-
-          results.push({
-            tag: tag,
-            role: role,
-            name: name,
-            testId: el.getAttribute('data-testid') || undefined,
-            ariaLabel: el.getAttribute('aria-label') || undefined,
-            selector: buildUniqueSelector(el),
-            isInteractive: interactive,
-            isVisible: visible,
-            boundingBox: (rect.width > 0 && rect.height > 0) ? {
-              x: Math.round(rect.x),
-              y: Math.round(rect.y),
-              width: Math.round(rect.width),
-              height: Math.round(rect.height)
-            } : undefined,
-            parentContext: getParentContext(el)
-          });
-
-          node = walker.nextNode();
+          current = parent;
         }
 
-        return results;
-      })
-    `;
+        return path.length > 0 ? path.join(" > ") : el.tagName.toLowerCase();
+      };
 
-    const elements = await this.page.evaluate<
-      BrowserElementData[],
-      [string, boolean, number, boolean]
-    >(`${browserScript}(...arguments)`, [
+      // Get parent context
+      const getParentContext = (el: Element) => {
+        let parent = el.parentElement;
+
+        while (parent && parent !== document.body) {
+          const tag = parent.tagName.toLowerCase();
+          const role = getRole(parent);
+
+          if (tag === "form" || role === "form") return "form";
+          if (tag === "nav" || role === "navigation") return "nav";
+          if (tag === "dialog" || role === "dialog") return "dialog";
+          if (tag === "main" || role === "main") return "main";
+          if (tag === "header" || role === "banner") return "header";
+          if (tag === "footer" || role === "contentinfo") return "footer";
+
+          parent = parent.parentElement;
+        }
+
+        return undefined;
+      };
+
+      // Walk the DOM tree
+      const root = document.querySelector(rootSel);
+      if (!root) return results;
+
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+        acceptNode: (node) => {
+          const tag = (node as Element).tagName.toLowerCase();
+          if (["script", "style", "noscript", "template", "svg", "path"].includes(tag)) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      });
+
+      let node: Node | null = walker.currentNode;
+      while (node && results.length < maxEls) {
+        const el = node as Element;
+        const tag = el.tagName.toLowerCase();
+        const role = getRole(el);
+        const visible = isVisible(el);
+        const interactive = checkInteractive(el, role);
+
+        // Apply filters
+        if (!inclHidden && !visible) {
+          node = walker.nextNode();
+          continue;
+        }
+
+        if (intOnly && !interactive) {
+          node = walker.nextNode();
+          continue;
+        }
+
+        // Skip generic non-interactive elements without meaningful content
+        if (
+          role === "generic" &&
+          !interactive &&
+          !el.hasAttribute("data-testid") &&
+          !el.hasAttribute("aria-label")
+        ) {
+          node = walker.nextNode();
+          continue;
+        }
+
+        const rect = el.getBoundingClientRect();
+        const name = getAccessibleName(el);
+
+        results.push({
+          tag: tag,
+          role: role,
+          name: name,
+          testId: el.getAttribute("data-testid") || undefined,
+          ariaLabel: el.getAttribute("aria-label") || undefined,
+          selector: buildUniqueSelector(el),
+          isInteractive: interactive,
+          isVisible: visible,
+          boundingBox:
+            rect.width > 0 && rect.height > 0
+              ? {
+                  x: Math.round(rect.x),
+                  y: Math.round(rect.y),
+                  width: Math.round(rect.width),
+                  height: Math.round(rect.height),
+                }
+              : undefined,
+          parentContext: getParentContext(el),
+        });
+
+        node = walker.nextNode();
+      }
+
+      return results;
+      // biome-ignore lint/suspicious/noExplicitAny: Browser function runs in different context, types are validated at runtime
+    }) as any;
+
+    const elements = await this.page.evaluate(browserFn, [
       rootSelector,
       includeHidden,
       maxElements,
       interactiveOnly,
-    ]);
+    ] as [string, boolean, number, boolean]);
 
-    return elements;
+    return elements as RawElementData[];
   }
 
   /**
@@ -364,7 +408,8 @@ export class PageReader {
     const locator = this.pageContext.getLocator(ref);
     return await locator.evaluate((el) => {
       const attrs: Record<string, string> = {};
-      for (const attr of el.attributes) {
+      const attrList = Array.from(el.attributes);
+      for (const attr of attrList) {
         attrs[attr.name] = attr.value;
       }
       return attrs;
