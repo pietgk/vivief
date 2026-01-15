@@ -23,6 +23,8 @@ const TEST_TIMEOUT = 30000;
 const TEST_URL = "https://example.com";
 const FORM_TEST_URL = "https://httpbin.org/forms/post";
 
+const headless = true;
+
 // Helper to get page context with proper null handling
 function getPageContext(browserSession: BrowserSession) {
   const pageContext = browserSession.getCurrentPage();
@@ -50,7 +52,7 @@ describe("Browser Integration Tests", () => {
       "should create a new browser session",
       async () => {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
 
@@ -78,7 +80,7 @@ describe("Browser Integration Tests", () => {
     it(
       "should close a session",
       async () => {
-        const tempSession = await sessionManager.createSession({ headless: true });
+        const tempSession = await sessionManager.createSession({ headless });
         const tempId = tempSession.id;
 
         await sessionManager.closeSession(tempId);
@@ -94,7 +96,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       if (!session || !sessionManager.getSession(session.id)) {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
       }
@@ -154,7 +156,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       if (!session || !sessionManager.getSession(session.id)) {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
       }
@@ -224,7 +226,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       if (!session || !sessionManager.getSession(session.id)) {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
       }
@@ -325,7 +327,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       if (!session || !sessionManager.getSession(session.id)) {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
       }
@@ -339,7 +341,10 @@ describe("Browser Integration Tests", () => {
       async () => {
         const pageContext = getPageContext(session);
 
-        const result = await scroll(pageContext, { direction: "down", amount: 500 });
+        const result = await scroll(pageContext, {
+          direction: "down",
+          amount: 500,
+        });
 
         expect(result.success).toBe(true);
       },
@@ -355,7 +360,10 @@ describe("Browser Integration Tests", () => {
         await scroll(pageContext, { direction: "down", amount: 500 });
 
         // Then scroll up
-        const result = await scroll(pageContext, { direction: "up", amount: 200 });
+        const result = await scroll(pageContext, {
+          direction: "up",
+          amount: 200,
+        });
 
         expect(result.success).toBe(true);
       },
@@ -395,7 +403,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       if (!session || !sessionManager.getSession(session.id)) {
         session = await sessionManager.createSession({
-          headless: true,
+          headless,
           viewport: { width: 1280, height: 720 },
         });
       }
@@ -440,7 +448,7 @@ describe("Browser Integration Tests", () => {
     beforeEach(async () => {
       // Always create a fresh session for error tests
       errorSession = await sessionManager.createSession({
-        headless: true,
+        headless,
         viewport: { width: 1280, height: 720 },
       });
     });
