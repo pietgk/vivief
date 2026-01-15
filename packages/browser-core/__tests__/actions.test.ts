@@ -1,3 +1,7 @@
+/**
+ * Tests for Action Modules
+ */
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { click, doubleClick, rightClick } from "../src/actions/click.js";
 import { clear, fill } from "../src/actions/fill.js";
@@ -16,10 +20,10 @@ import type { PageContext } from "../src/session/page-context.js";
 const createMockLocator = () => ({
   click: vi.fn().mockResolvedValue(undefined),
   dblclick: vi.fn().mockResolvedValue(undefined),
+  fill: vi.fn().mockResolvedValue(undefined),
   clear: vi.fn().mockResolvedValue(undefined),
   pressSequentially: vi.fn().mockResolvedValue(undefined),
-  fill: vi.fn().mockResolvedValue(undefined),
-  selectOption: vi.fn().mockResolvedValue(["option1"]),
+  selectOption: vi.fn().mockResolvedValue(["selected-value"]),
   hover: vi.fn().mockResolvedValue(undefined),
   scrollIntoViewIfNeeded: vi.fn().mockResolvedValue(undefined),
   evaluate: vi.fn().mockResolvedValue(undefined),
@@ -35,53 +39,56 @@ const createMockPage = () => ({
   evaluate: vi.fn().mockResolvedValue(undefined),
 });
 
-const createMockPageContext = () => {
-  const mockLocator = createMockLocator();
-  const mockPage = createMockPage();
-
+const createMockPageContext = (
+  mockLocator: ReturnType<typeof createMockLocator>,
+  mockPage: ReturnType<typeof createMockPage>
+) => {
   return {
     getLocator: vi.fn().mockReturnValue(mockLocator),
     getPlaywrightPage: vi.fn().mockReturnValue(mockPage),
-    mockLocator,
-    mockPage,
-  } as unknown as PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+  } as unknown as PageContext;
 };
 
-describe("click actions", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Click Actions", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
   describe("click", () => {
     it("clicks element by ref", async () => {
-      const result = await click(pageContext, "submit-btn");
+      const result = await click(mockPageContext, "test-btn");
 
+      expect(mockPageContext.getLocator).toHaveBeenCalledWith("test-btn");
+      expect(mockLocator.click).toHaveBeenCalledWith({
+        button: "left",
+        timeout: 10000,
+      });
       expect(result.success).toBe(true);
-      expect(result.ref).toBe("submit-btn");
-      expect(pageContext.getLocator).toHaveBeenCalledWith("submit-btn");
-      expect(pageContext.mockLocator.click).toHaveBeenCalled();
+      expect(result.ref).toBe("test-btn");
     });
 
-    it("uses specified button", async () => {
-      await click(pageContext, "test-ref", { button: "right" });
+    it("passes custom options", async () => {
+      await click(mockPageContext, "test-btn", {
+        button: "middle",
+        timeout: 5000,
+      });
 
-      expect(pageContext.mockLocator.click).toHaveBeenCalledWith(
-        expect.objectContaining({ button: "right" })
-      );
+      expect(mockLocator.click).toHaveBeenCalledWith({
+        button: "middle",
+        timeout: 5000,
+      });
     });
 
     it("returns error on failure", async () => {
-      pageContext.mockLocator.click.mockRejectedValue(new Error("Element not found"));
+      mockLocator.click.mockRejectedValue(new Error("Element not found"));
 
-      const result = await click(pageContext, "missing-ref");
+      const result = await click(mockPageContext, "missing-btn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Element not found");
@@ -90,284 +97,434 @@ describe("click actions", () => {
 
   describe("doubleClick", () => {
     it("double-clicks element by ref", async () => {
-      const result = await doubleClick(pageContext, "test-ref");
+      const result = await doubleClick(mockPageContext, "test-btn");
 
+      expect(mockLocator.dblclick).toHaveBeenCalledWith({
+        button: "left",
+        timeout: 10000,
+      });
       expect(result.success).toBe(true);
-      expect(pageContext.mockLocator.dblclick).toHaveBeenCalled();
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.dblclick.mockRejectedValue(new Error("Timeout"));
+
+      const result = await doubleClick(mockPageContext, "test-btn");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Timeout");
     });
   });
 
   describe("rightClick", () => {
     it("right-clicks element by ref", async () => {
-      const result = await rightClick(pageContext, "context-menu-trigger");
+      const result = await rightClick(mockPageContext, "context-menu-btn");
 
+      expect(mockLocator.click).toHaveBeenCalledWith({
+        button: "right",
+        timeout: 10000,
+      });
       expect(result.success).toBe(true);
-      expect(pageContext.mockLocator.click).toHaveBeenCalledWith(
-        expect.objectContaining({ button: "right" })
-      );
     });
   });
 });
 
-describe("type actions", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Type Actions", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
   describe("type", () => {
     it("types text into element", async () => {
-      const result = await type(pageContext, "input-ref", "Hello World");
+      const result = await type(mockPageContext, "input-field", "Hello World");
 
+      expect(mockPageContext.getLocator).toHaveBeenCalledWith("input-field");
+      expect(mockLocator.pressSequentially).toHaveBeenCalledWith("Hello World", {
+        delay: 0,
+        timeout: 10000,
+      });
       expect(result.success).toBe(true);
       expect(result.text).toBe("Hello World");
-      expect(pageContext.mockLocator.pressSequentially).toHaveBeenCalledWith(
-        "Hello World",
-        expect.any(Object)
-      );
     });
 
-    it("clears before typing when requested", async () => {
-      await type(pageContext, "input-ref", "New text", { clear: true });
+    it("clears field before typing when clear option is set", async () => {
+      await type(mockPageContext, "input-field", "New text", { clear: true });
 
-      expect(pageContext.mockLocator.clear).toHaveBeenCalled();
-      expect(pageContext.mockLocator.pressSequentially).toHaveBeenCalled();
+      expect(mockLocator.clear).toHaveBeenCalled();
+      expect(mockLocator.pressSequentially).toHaveBeenCalledWith("New text", {
+        delay: 0,
+        timeout: 10000,
+      });
     });
 
-    it("uses delay option", async () => {
-      await type(pageContext, "input-ref", "slow", { delay: 50 });
+    it("uses delay between keystrokes", async () => {
+      await type(mockPageContext, "input-field", "Slow typing", { delay: 100 });
 
-      expect(pageContext.mockLocator.pressSequentially).toHaveBeenCalledWith(
-        "slow",
-        expect.objectContaining({ delay: 50 })
-      );
+      expect(mockLocator.pressSequentially).toHaveBeenCalledWith("Slow typing", {
+        delay: 100,
+        timeout: 10000,
+      });
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.pressSequentially.mockRejectedValue(new Error("Element detached"));
+
+      const result = await type(mockPageContext, "input-field", "text");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Element detached");
     });
   });
 
   describe("press", () => {
-    it("presses a keyboard key", async () => {
-      const result = await press(pageContext, "Enter");
+    it("presses keyboard key", async () => {
+      const result = await press(mockPageContext, "Enter");
 
+      expect(mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
       expect(result.success).toBe(true);
       expect(result.key).toBe("Enter");
-      expect(pageContext.mockPage.keyboard.press).toHaveBeenCalledWith("Enter");
+    });
+
+    it("returns error on failure", async () => {
+      mockPage.keyboard.press.mockRejectedValue(new Error("Invalid key"));
+
+      const result = await press(mockPageContext, "InvalidKey");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid key");
     });
   });
 });
 
-describe("fill actions", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Fill Actions", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
   describe("fill", () => {
-    it("fills input field", async () => {
-      const result = await fill(pageContext, "email-input", "test@example.com");
+    it("fills input field with value", async () => {
+      const result = await fill(mockPageContext, "email-input", "test@example.com");
 
+      expect(mockPageContext.getLocator).toHaveBeenCalledWith("email-input");
+      expect(mockLocator.fill).toHaveBeenCalledWith("test@example.com", {
+        force: false,
+        timeout: 10000,
+      });
       expect(result.success).toBe(true);
       expect(result.value).toBe("test@example.com");
-      expect(pageContext.mockLocator.fill).toHaveBeenCalledWith(
-        "test@example.com",
-        expect.any(Object)
-      );
     });
 
-    it("uses force option", async () => {
-      await fill(pageContext, "input-ref", "value", { force: true });
+    it("supports force option", async () => {
+      await fill(mockPageContext, "readonly-input", "forced value", { force: true });
 
-      expect(pageContext.mockLocator.fill).toHaveBeenCalledWith(
-        "value",
-        expect.objectContaining({ force: true })
-      );
+      expect(mockLocator.fill).toHaveBeenCalledWith("forced value", {
+        force: true,
+        timeout: 10000,
+      });
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.fill.mockRejectedValue(new Error("Not an input element"));
+
+      const result = await fill(mockPageContext, "div-element", "value");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Not an input element");
     });
   });
 
   describe("clear", () => {
     it("clears input field", async () => {
-      const result = await clear(pageContext, "input-ref");
+      const result = await clear(mockPageContext, "text-input");
 
+      expect(mockLocator.clear).toHaveBeenCalledWith({ timeout: 10000 });
       expect(result.success).toBe(true);
-      expect(pageContext.mockLocator.clear).toHaveBeenCalled();
+      expect(result.ref).toBe("text-input");
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.clear.mockRejectedValue(new Error("Cannot clear"));
+
+      const result = await clear(mockPageContext, "text-input");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Cannot clear");
     });
   });
 });
 
-describe("select actions", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Select Actions", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
   describe("select", () => {
-    it("selects by value (default)", async () => {
-      const result = await select(pageContext, "dropdown-ref", "option1");
+    it("selects option by value (default)", async () => {
+      const result = await select(mockPageContext, "country-select", "us");
 
+      expect(mockLocator.selectOption).toHaveBeenCalledWith({ value: "us" }, { timeout: 10000 });
       expect(result.success).toBe(true);
-      expect(result.selectedValues).toEqual(["option1"]);
-      expect(pageContext.mockLocator.selectOption).toHaveBeenCalledWith(
-        { value: "option1" },
-        expect.any(Object)
+      expect(result.selectedValues).toEqual(["selected-value"]);
+    });
+
+    it("selects option by label", async () => {
+      await select(mockPageContext, "country-select", "United States", { by: "label" });
+
+      expect(mockLocator.selectOption).toHaveBeenCalledWith(
+        { label: "United States" },
+        { timeout: 10000 }
       );
     });
 
-    it("selects by label", async () => {
-      await select(pageContext, "dropdown-ref", "Option Label", { by: "label" });
+    it("selects option by index", async () => {
+      await select(mockPageContext, "country-select", "2", { by: "index" });
 
-      expect(pageContext.mockLocator.selectOption).toHaveBeenCalledWith(
-        { label: "Option Label" },
-        expect.any(Object)
-      );
-    });
-
-    it("selects by index", async () => {
-      await select(pageContext, "dropdown-ref", "2", { by: "index" });
-
-      expect(pageContext.mockLocator.selectOption).toHaveBeenCalledWith(
-        { index: 2 },
-        expect.any(Object)
-      );
+      expect(mockLocator.selectOption).toHaveBeenCalledWith({ index: 2 }, { timeout: 10000 });
     });
 
     it("returns error for invalid index", async () => {
-      const result = await select(pageContext, "dropdown-ref", "not-a-number", { by: "index" });
+      const result = await select(mockPageContext, "select", "not-a-number", {
+        by: "index",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid index");
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.selectOption.mockRejectedValue(new Error("No such option"));
+
+      const result = await select(mockPageContext, "select", "invalid");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("No such option");
+    });
+  });
+
+  describe("selectMultiple", () => {
+    it("selects multiple options by value", async () => {
+      mockLocator.selectOption.mockResolvedValue(["val1", "val2"]);
+
+      const result = await selectMultiple(mockPageContext, "multi-select", ["val1", "val2"]);
+
+      expect(mockLocator.selectOption).toHaveBeenCalledWith(
+        [{ value: "val1" }, { value: "val2" }],
+        { timeout: 10000 }
+      );
+      expect(result.success).toBe(true);
+      expect(result.selectedValues).toEqual(["val1", "val2"]);
+    });
+
+    it("selects multiple options by label", async () => {
+      await selectMultiple(mockPageContext, "multi-select", ["Option A", "Option B"], {
+        by: "label",
+      });
+
+      expect(mockLocator.selectOption).toHaveBeenCalledWith(
+        [{ label: "Option A" }, { label: "Option B" }],
+        { timeout: 10000 }
+      );
+    });
+
+    it("returns error for invalid index in array", async () => {
+      const result = await selectMultiple(mockPageContext, "multi-select", ["1", "invalid"], {
+        by: "index",
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid index");
     });
   });
-
-  describe("selectMultiple", () => {
-    it("selects multiple options", async () => {
-      const result = await selectMultiple(pageContext, "multi-select", ["opt1", "opt2"]);
-
-      expect(result.success).toBe(true);
-      expect(pageContext.mockLocator.selectOption).toHaveBeenCalled();
-    });
-  });
 });
 
-describe("scroll actions", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Scroll Actions", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
   describe("scroll", () => {
-    it("scrolls down", async () => {
-      const result = await scroll(pageContext, { direction: "down", amount: 300 });
+    it("scrolls page down", async () => {
+      const result = await scroll(mockPageContext, { direction: "down" });
 
+      expect(mockPage.mouse.wheel).toHaveBeenCalledWith(0, 500);
       expect(result.success).toBe(true);
       expect(result.direction).toBe("down");
-      expect(result.amount).toBe(300);
-      expect(pageContext.mockPage.mouse.wheel).toHaveBeenCalledWith(0, 300);
-    });
-
-    it("scrolls up", async () => {
-      await scroll(pageContext, { direction: "up", amount: 200 });
-
-      expect(pageContext.mockPage.mouse.wheel).toHaveBeenCalledWith(0, -200);
-    });
-
-    it("scrolls left", async () => {
-      await scroll(pageContext, { direction: "left", amount: 100 });
-
-      expect(pageContext.mockPage.mouse.wheel).toHaveBeenCalledWith(-100, 0);
-    });
-
-    it("scrolls right", async () => {
-      await scroll(pageContext, { direction: "right" });
-
-      expect(pageContext.mockPage.mouse.wheel).toHaveBeenCalledWith(500, 0);
-    });
-
-    it("uses default amount of 500", async () => {
-      const result = await scroll(pageContext, { direction: "down" });
-
       expect(result.amount).toBe(500);
+    });
+
+    it("scrolls page up", async () => {
+      await scroll(mockPageContext, { direction: "up" });
+
+      expect(mockPage.mouse.wheel).toHaveBeenCalledWith(0, -500);
+    });
+
+    it("scrolls page left", async () => {
+      await scroll(mockPageContext, { direction: "left" });
+
+      expect(mockPage.mouse.wheel).toHaveBeenCalledWith(-500, 0);
+    });
+
+    it("scrolls page right", async () => {
+      await scroll(mockPageContext, { direction: "right" });
+
+      expect(mockPage.mouse.wheel).toHaveBeenCalledWith(500, 0);
+    });
+
+    it("uses custom scroll amount", async () => {
+      await scroll(mockPageContext, { direction: "down", amount: 1000 });
+
+      expect(mockPage.mouse.wheel).toHaveBeenCalledWith(0, 1000);
+    });
+
+    it("returns error on failure", async () => {
+      mockPage.mouse.wheel.mockRejectedValue(new Error("Scroll failed"));
+
+      const result = await scroll(mockPageContext, { direction: "down" });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Scroll failed");
     });
   });
 
   describe("scrollElement", () => {
     it("scrolls element by ref", async () => {
-      const result = await scrollElement(pageContext, "scrollable-container", {
+      const result = await scrollElement(mockPageContext, "scrollable-div", {
         direction: "down",
       });
 
+      expect(mockPageContext.getLocator).toHaveBeenCalledWith("scrollable-div");
+      expect(mockLocator.evaluate).toHaveBeenCalled();
       expect(result.success).toBe(true);
-      expect(pageContext.getLocator).toHaveBeenCalledWith("scrollable-container");
-      expect(pageContext.mockLocator.evaluate).toHaveBeenCalled();
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.evaluate.mockRejectedValue(new Error("Element not scrollable"));
+
+      const result = await scrollElement(mockPageContext, "div", { direction: "down" });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Element not scrollable");
     });
   });
 
   describe("scrollIntoView", () => {
     it("scrolls element into view", async () => {
-      const result = await scrollIntoView(pageContext, "off-screen-element");
+      const result = await scrollIntoView(mockPageContext, "offscreen-element");
 
+      expect(mockLocator.scrollIntoViewIfNeeded).toHaveBeenCalled();
       expect(result.success).toBe(true);
-      expect(pageContext.mockLocator.scrollIntoViewIfNeeded).toHaveBeenCalled();
+      expect(result.ref).toBe("offscreen-element");
+    });
+
+    it("returns error on failure", async () => {
+      mockLocator.scrollIntoViewIfNeeded.mockRejectedValue(new Error("Element detached"));
+
+      const result = await scrollIntoView(mockPageContext, "missing-element");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Element detached");
     });
   });
 
   describe("scrollToTop", () => {
-    it("scrolls to top of page", async () => {
-      const result = await scrollToTop(pageContext);
+    it("scrolls page to top", async () => {
+      const result = await scrollToTop(mockPageContext);
 
+      expect(mockPage.evaluate).toHaveBeenCalledWith(
+        "window.scrollTo({ top: 0, behavior: 'auto' })"
+      );
       expect(result.success).toBe(true);
-      expect(pageContext.mockPage.evaluate).toHaveBeenCalled();
+    });
+
+    it("returns error on failure", async () => {
+      mockPage.evaluate.mockRejectedValue(new Error("Evaluate failed"));
+
+      const result = await scrollToTop(mockPageContext);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Evaluate failed");
     });
   });
 
   describe("scrollToBottom", () => {
-    it("scrolls to bottom of page", async () => {
-      const result = await scrollToBottom(pageContext);
+    it("scrolls page to bottom", async () => {
+      const result = await scrollToBottom(mockPageContext);
 
+      expect(mockPage.evaluate).toHaveBeenCalledWith(
+        "window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' })"
+      );
       expect(result.success).toBe(true);
-      expect(pageContext.mockPage.evaluate).toHaveBeenCalled();
+    });
+
+    it("returns error on failure", async () => {
+      mockPage.evaluate.mockRejectedValue(new Error("Page closed"));
+
+      const result = await scrollToBottom(mockPageContext);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Page closed");
     });
   });
 });
 
-describe("hover action", () => {
-  let pageContext: PageContext & {
-    mockLocator: ReturnType<typeof createMockLocator>;
-    mockPage: ReturnType<typeof createMockPage>;
-  };
+describe("Hover Action", () => {
+  let mockLocator: ReturnType<typeof createMockLocator>;
+  let mockPage: ReturnType<typeof createMockPage>;
+  let mockPageContext: PageContext;
 
   beforeEach(() => {
-    pageContext = createMockPageContext();
+    mockLocator = createMockLocator();
+    mockPage = createMockPage();
+    mockPageContext = createMockPageContext(mockLocator, mockPage);
   });
 
-  it("hovers over element", async () => {
-    const result = await hover(pageContext, "tooltip-trigger");
+  describe("hover", () => {
+    it("hovers over element by ref", async () => {
+      const result = await hover(mockPageContext, "tooltip-trigger");
 
-    expect(result.success).toBe(true);
-    expect(result.ref).toBe("tooltip-trigger");
-    expect(pageContext.mockLocator.hover).toHaveBeenCalled();
-  });
+      expect(mockPageContext.getLocator).toHaveBeenCalledWith("tooltip-trigger");
+      expect(mockLocator.hover).toHaveBeenCalledWith({ timeout: 10000 });
+      expect(result.success).toBe(true);
+      expect(result.ref).toBe("tooltip-trigger");
+    });
 
-  it("returns error on failure", async () => {
-    pageContext.mockLocator.hover.mockRejectedValue(new Error("Hover failed"));
+    it("uses custom timeout", async () => {
+      await hover(mockPageContext, "element", { timeout: 5000 });
 
-    const result = await hover(pageContext, "missing-ref");
+      expect(mockLocator.hover).toHaveBeenCalledWith({ timeout: 5000 });
+    });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("Hover failed");
+    it("returns error on failure", async () => {
+      mockLocator.hover.mockRejectedValue(new Error("Element not visible"));
+
+      const result = await hover(mockPageContext, "hidden-element");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Element not visible");
+    });
   });
 });
