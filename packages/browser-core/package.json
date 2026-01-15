@@ -1,0 +1,46 @@
+{
+  "name": "@pietgk/browser-core",
+  "version": "0.1.0",
+  "description": "Browser automation core engine wrapping Playwright",
+  "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pietgk/vivief.git",
+    "directory": "packages/browser-core"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "prebuild": "node ../../scripts/generate-version.mjs .",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc --watch",
+    "pretest": "ps -eo ppid,pid,command 2>/dev/null | grep vitest | awk '$1 == 1 { print $2 }' | xargs kill 2>/dev/null || true",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.28",
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

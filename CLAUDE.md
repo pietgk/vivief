@@ -14,7 +14,10 @@ devac/
 │   ├── devac-core/     # Core analysis engine (DuckDB, parsers, storage)
 │   ├── devac-cli/      # Command-line interface
 │   ├── devac-mcp/      # MCP server for AI assistants
-│   └── devac-worktree/ # Git worktree + Claude workflow for GitHub issues
+│   ├── devac-worktree/ # Git worktree + Claude workflow for GitHub issues
+│   ├── browser-core/   # Browser automation core (Playwright wrapper)
+│   ├── browser-mcp/    # MCP server for browser automation
+│   └── browser-cli/    # CLI for browser automation
 ├── turbo.json          # Turborepo configuration
 ├── biome.json          # Linting and formatting
 └── pnpm-workspace.yaml # Workspace definition
@@ -28,12 +31,19 @@ devac/
 @pietgk/devac-mcp  ────┘
 
 @pietgk/devac-worktree  (standalone)
+
+@pietgk/browser-cli  ────┐
+                         ├──> @pietgk/browser-core
+@pietgk/browser-mcp  ────┘
 ```
 
 - **@pietgk/devac-core**: Standalone, no internal dependencies
 - **@pietgk/devac-cli**: Depends on @pietgk/devac-core
 - **@pietgk/devac-mcp**: Depends on @pietgk/devac-core
 - **@pietgk/devac-worktree**: Standalone CLI for issue-based workflows
+- **@pietgk/browser-core**: Standalone Playwright wrapper
+- **@pietgk/browser-cli**: Depends on @pietgk/browser-core
+- **@pietgk/browser-mcp**: Depends on @pietgk/browser-core
 
 ## Essential Commands
 
@@ -66,18 +76,26 @@ pnpm clean
 After building, link all CLI packages globally for local development:
 
 ```bash
-# Link all CLIs globally (run once after build)
+# Link DevAC CLIs globally (run once after build)
 (cd packages/devac-cli && pnpm link --global)
 (cd packages/devac-mcp && pnpm link --global)
 (cd packages/devac-worktree && pnpm link --global)
 
+# Link Browser CLIs globally
+(cd packages/browser-cli && pnpm link --global)
+(cd packages/browser-mcp && pnpm link --global)
+
 # Or use the workflow command (builds + links + verifies)
 devac workflow install-local
 
-# Verify installation
+# Verify DevAC installation
 devac --version
 devac-mcp --version
 devac-worktree --version
+
+# Verify Browser installation
+browser --version
+browser-mcp --version
 ```
 
 ### Package-Specific Commands
@@ -159,6 +177,173 @@ Example: `myrepo:packages/api:function:abc123`
 | `devac mcp` | Start MCP server |
 | `devac workflow plugin-dev` | Switch to local plugin development mode |
 | `devac workflow plugin-global` | Revert to global/marketplace plugin mode |
+
+## Browser CLI Commands
+
+The browser CLI provides browser automation for AI agents and command-line users.
+
+### Session Management
+
+| Command | Description |
+|---------|-------------|
+| `browser session start` | Start new browser session |
+| `browser session stop [id]` | Stop browser session |
+| `browser session list` | List active sessions |
+
+Options for `session start`:
+- `--headed` - Run with visible browser window
+- `--viewport <WxH>` - Set viewport size (e.g., `1280x720`)
+- `--json` - Output as JSON
+
+### Navigation
+
+| Command | Description |
+|---------|-------------|
+| `browser navigate <url>` | Navigate to URL |
+| `browser reload` | Reload current page |
+| `browser back` | Go back in history |
+| `browser forward` | Go forward in history |
+
+Options for `navigate`:
+- `--wait-until <event>` - Wait until event (`load`, `domcontentloaded`, `networkidle`)
+
+### Page Reading
+
+| Command | Description |
+|---------|-------------|
+| `browser read` | Read page accessibility tree with element refs |
+
+Options:
+- `--selector <css>` - Limit to elements matching selector
+- `--interactive-only` - Show only interactive elements
+- `--max-elements <n>` - Limit number of elements
+- `--json` - Output as JSON
+
+### Element Interaction
+
+| Command | Description |
+|---------|-------------|
+| `browser click <ref>` | Click element by ref |
+| `browser type <ref> <text>` | Type text into element |
+| `browser fill <ref> <value>` | Fill input field (clears first) |
+| `browser select <ref> <value>` | Select dropdown option |
+| `browser scroll <direction>` | Scroll page (up/down/left/right) |
+| `browser hover <ref>` | Hover over element |
+
+Options for `type`:
+- `--delay <ms>` - Delay between keystrokes
+- `--clear` - Clear field before typing
+
+Options for `scroll`:
+- `--amount <px>` - Scroll distance in pixels
+- `--ref <ref>` - Scroll specific element
+
+Options for `select`:
+- `--by <method>` - Select by `value`, `label`, or `index`
+
+### Screenshots
+
+| Command | Description |
+|---------|-------------|
+| `browser screenshot` | Capture page screenshot |
+
+Options:
+- `--full-page` - Capture full scrollable page
+- `--name <name>` - Custom filename
+- `--selector <css>` - Capture specific element
+
+### Element Finding
+
+| Command | Description |
+|---------|-------------|
+| `browser find` | Find elements by various strategies |
+| `browser eval <script>` | Execute JavaScript in page |
+
+Find options:
+- `--selector <css>` - Find by CSS selector
+- `--text <text>` - Find by text content
+- `--role <role>` - Find by ARIA role
+- `--name <name>` - Filter by accessible name (with --role)
+- `--label <text>` - Find by label text
+- `--placeholder <text>` - Find by placeholder
+- `--test-id <id>` - Find by data-testid
+
+### Example Workflow
+
+```bash
+# Start a browser session
+browser session start --headed
+
+# Navigate to a page
+browser navigate https://example.com
+
+# Read the page to get element refs
+browser read --interactive-only --json
+
+# Interact with elements using refs
+browser click "button:Sign In"
+browser fill "email-input" "user@example.com"
+browser fill "password-input" "secret123"
+browser click "button:Submit"
+
+# Take a screenshot
+browser screenshot --name login-complete
+
+# Stop the session
+browser session stop
+```
+
+## Browser MCP Server
+
+The browser-mcp server exposes browser automation tools for AI assistants.
+
+### Running Browser MCP Server
+
+```bash
+# Start the MCP server
+browser-mcp
+```
+
+### Browser MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `browser_session_start` | Start new browser session |
+| `browser_session_stop` | Stop browser session |
+| `browser_session_list` | List active sessions |
+| `browser_navigate` | Navigate to URL |
+| `browser_reload` | Reload current page |
+| `browser_back` | Go back in history |
+| `browser_forward` | Go forward in history |
+| `browser_read_page` | Get accessibility tree with element refs |
+| `browser_get_text` | Get text content of element |
+| `browser_click` | Click element by ref |
+| `browser_type` | Type text into element |
+| `browser_fill` | Fill input field |
+| `browser_select` | Select dropdown option |
+| `browser_scroll` | Scroll page or element |
+| `browser_scroll_into_view` | Scroll element into viewport |
+| `browser_hover` | Hover over element |
+| `browser_screenshot` | Capture screenshot |
+| `browser_find` | Find elements by strategy |
+| `browser_execute_js` | Execute JavaScript |
+
+### Element Reference System
+
+Element refs are the primary way to identify and interact with page elements. The system uses a hybrid strategy that prioritizes deterministic identifiers:
+
+1. **testId** - `data-testid` attribute (most stable)
+2. **ariaLabel** - Unique `aria-label` attribute
+3. **role:name** - Semantic ref from ARIA role + accessible name (e.g., `button:Submit`)
+4. **fallback** - Context-aware sequential ref (e.g., `form_1:button_2`)
+
+**Example refs:**
+- `email-input` - From data-testid
+- `button:Sign In` - From role:name
+- `link:Forgot Password` - From role:name
+- `form_1:checkbox_1` - Fallback ref
+
+**Important:** Refs are scoped to page state and invalidated on navigation. Always call `browser_read_page` after navigation to get fresh refs.
 
 ## Plugin Development
 
