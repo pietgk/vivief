@@ -22,6 +22,11 @@ export const MCP_TOOLS: MCPTool[] = [
         viewport: {
           type: "object",
           description: "Viewport dimensions { width, height }",
+          properties: {
+            width: { type: "number", minimum: 1, description: "Viewport width in pixels" },
+            height: { type: "number", minimum: 1, description: "Viewport height in pixels" },
+          },
+          required: ["width", "height"],
         },
       },
       required: [],
@@ -263,12 +268,22 @@ export const MCP_TOOLS: MCPTool[] = [
           type: "number",
           description: "Scroll amount in pixels (default: 500)",
         },
-        ref: {
-          type: "string",
-          description: "Optional: Element ref to scroll instead of page",
-        },
       },
       required: ["direction"],
+    },
+  },
+  {
+    name: "browser_scroll_into_view",
+    description: "Scroll an element into the visible viewport.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ref: {
+          type: "string",
+          description: "Element ref from browser_read_page",
+        },
+      },
+      required: ["ref"],
     },
   },
   {
@@ -346,6 +361,10 @@ export const MCP_TOOLS: MCPTool[] = [
         script: {
           type: "string",
           description: "JavaScript code to execute",
+        },
+        timeout: {
+          type: "number",
+          description: "Maximum execution time in ms (default: 30000)",
         },
       },
       required: ["script"],

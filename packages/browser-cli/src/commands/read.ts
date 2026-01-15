@@ -4,30 +4,15 @@
  * browser read [--selector <css>] [--json] [--interactive-only]
  */
 
-import { PageReader, type ReadPageOptions, SessionManager } from "@pietgk/browser-core";
+import { PageReader, type ReadPageOptions } from "@pietgk/browser-core";
 import type { Command } from "commander";
+import { getCurrentPage } from "./shared.js";
 import { type CommandRegister, type CommonOptions, printError, printOutput } from "./types.js";
 
 interface ReadOptions extends CommonOptions {
   selector?: string;
   interactiveOnly?: boolean;
   maxElements?: string;
-}
-
-/**
- * Get current page context
- */
-function getCurrentPage() {
-  const manager = SessionManager.getInstance();
-  const session = manager.getCurrentSession();
-  if (!session) {
-    throw new Error("No active browser session. Start one with: browser session start");
-  }
-  const page = session.getCurrentPage();
-  if (!page) {
-    throw new Error("No active page in session");
-  }
-  return page;
 }
 
 /**

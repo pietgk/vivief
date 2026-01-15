@@ -14,9 +14,12 @@ export interface MCPTool {
 
 export interface PropertySchema {
   type: string;
-  description: string;
+  description?: string;
   enum?: string[];
   items?: PropertySchema;
+  properties?: Record<string, PropertySchema>;
+  required?: string[];
+  minimum?: number;
 }
 
 /**

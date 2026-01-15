@@ -9,7 +9,7 @@
 
 import { mkdir, readdir, stat, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, normalize, resolve } from "node:path";
 import type { Page } from "playwright";
 import type { PageContext } from "../session/page-context.js";
 import type { ScreenshotOptions, ScreenshotResult } from "../types/index.js";
@@ -45,10 +45,30 @@ export class ScreenshotManager {
   }
 
   /**
+   * Validate that a sessionId doesn't contain path traversal sequences.
+   * Returns the validated session directory path.
+   * @throws Error if path traversal is detected
+   */
+  private validateSessionPath(sessionId: string): string {
+    // Resolve to absolute path and normalize
+    const baseDir = resolve(normalize(this.config.baseDir));
+    const sessionDir = resolve(baseDir, sessionId);
+
+    // Ensure the resolved path is within the base directory
+    if (!sessionDir.startsWith(`${baseDir}/`) && sessionDir !== baseDir) {
+      throw new Error(
+        `Invalid session ID: path traversal attempt detected. Session ID "${sessionId}" would resolve outside base directory.`
+      );
+    }
+
+    return sessionDir;
+  }
+
+  /**
    * Initialize the screenshot directory
    */
   private async ensureDir(sessionId: string): Promise<string> {
-    const dir = join(this.config.baseDir, sessionId);
+    const dir = this.validateSessionPath(sessionId);
     await mkdir(dir, { recursive: true });
 
     if (!this.initialized && this.config.autoCleanup) {
@@ -203,7 +223,7 @@ export class ScreenshotManager {
    * List screenshots for a session
    */
   async list(sessionId: string): Promise<ScreenshotResult[]> {
-    const dir = join(this.config.baseDir, sessionId);
+    const dir = this.validateSessionPath(sessionId);
 
     try {
       const files = await readdir(dir);
@@ -333,8 +353,9 @@ export class ScreenshotManager {
 
   /**
    * Get the directory for a specific session
+   * @throws Error if sessionId contains path traversal sequences
    */
   getSessionDir(sessionId: string): string {
-    return join(this.config.baseDir, sessionId);
+    return this.validateSessionPath(sessionId);
   }
 }

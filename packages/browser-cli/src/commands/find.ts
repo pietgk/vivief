@@ -7,8 +7,9 @@
  * browser eval <script>
  */
 
-import { ElementFinder, SessionManager } from "@pietgk/browser-core";
+import { ElementFinder } from "@pietgk/browser-core";
 import type { Command } from "commander";
+import { getCurrentPage } from "./shared.js";
 import { type CommandRegister, type CommonOptions, printError, printOutput } from "./types.js";
 
 interface FindOptions extends CommonOptions {
@@ -19,22 +20,6 @@ interface FindOptions extends CommonOptions {
   label?: string;
   placeholder?: string;
   testId?: string;
-}
-
-/**
- * Get current page context
- */
-function getCurrentPage() {
-  const manager = SessionManager.getInstance();
-  const session = manager.getCurrentSession();
-  if (!session) {
-    throw new Error("No active browser session. Start one with: browser session start");
-  }
-  const page = session.getCurrentPage();
-  if (!page) {
-    throw new Error("No active page in session");
-  }
-  return page;
 }
 
 /**

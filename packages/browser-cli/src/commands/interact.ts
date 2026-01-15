@@ -2,44 +2,38 @@
  * Interaction Commands
  *
  * browser click <ref>
+ * browser double-click <ref>
+ * browser right-click <ref>
  * browser type <ref> <text> [--delay <ms>] [--clear]
  * browser fill <ref> <value>
  * browser select <ref> <value> [--by value|label|index]
  * browser scroll <direction> [--amount 500] [--ref <ref>]
+ * browser scroll-into-view <ref>
  * browser hover <ref>
+ * browser get-text <ref>
+ * browser get-value <ref>
+ * browser wait <condition> [value] [--timeout <ms>]
  */
 
 import {
+  ElementFinder,
   type ScrollOptions,
   type SelectOptions,
-  SessionManager,
   type TypeOptions,
+  type WaitCondition,
   click,
+  doubleClick,
   fill,
   hover,
+  rightClick,
   scroll,
   scrollIntoView,
   select,
   type as typeText,
 } from "@pietgk/browser-core";
 import type { Command } from "commander";
+import { getCurrentPage } from "./shared.js";
 import { type CommandRegister, type CommonOptions, printError, printOutput } from "./types.js";
-
-/**
- * Get current page context
- */
-function getCurrentPage() {
-  const manager = SessionManager.getInstance();
-  const session = manager.getCurrentSession();
-  if (!session) {
-    throw new Error("No active browser session. Start one with: browser session start");
-  }
-  const page = session.getCurrentPage();
-  if (!page) {
-    throw new Error("No active page in session");
-  }
-  return page;
-}
 
 interface TypeCommandOptions extends CommonOptions {
   delay?: string;
@@ -53,6 +47,10 @@ interface SelectCommandOptions extends CommonOptions {
 interface ScrollCommandOptions extends CommonOptions {
   amount?: string;
   ref?: string;
+}
+
+interface WaitCommandOptions extends CommonOptions {
+  timeout?: string;
 }
 
 /**
@@ -283,6 +281,254 @@ export const registerInteractCommands: CommandRegister = (program: Command) => {
           {
             ref,
             message: `Hovered over element: ${ref}`,
+          },
+          options
+        );
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // double-click
+  program
+    .command("double-click")
+    .description("Double-click an element by ref")
+    .argument("<ref>", "Element ref from browser read")
+    .option("--json", "Output as JSON")
+    .action(async (ref: string, options: CommonOptions) => {
+      try {
+        const page = getCurrentPage();
+        const result = await doubleClick(page, ref);
+
+        if (!result.success) {
+          printError(result.error ?? "Double-click failed");
+          process.exit(1);
+        }
+
+        printOutput(
+          {
+            ref,
+            message: `Double-clicked element: ${ref}`,
+          },
+          options
+        );
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // right-click
+  program
+    .command("right-click")
+    .description("Right-click an element by ref")
+    .argument("<ref>", "Element ref from browser read")
+    .option("--json", "Output as JSON")
+    .action(async (ref: string, options: CommonOptions) => {
+      try {
+        const page = getCurrentPage();
+        const result = await rightClick(page, ref);
+
+        if (!result.success) {
+          printError(result.error ?? "Right-click failed");
+          process.exit(1);
+        }
+
+        printOutput(
+          {
+            ref,
+            message: `Right-clicked element: ${ref}`,
+          },
+          options
+        );
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // scroll-into-view
+  program
+    .command("scroll-into-view")
+    .description("Scroll an element into the visible viewport")
+    .argument("<ref>", "Element ref from browser read")
+    .option("--json", "Output as JSON")
+    .action(async (ref: string, options: CommonOptions) => {
+      try {
+        const page = getCurrentPage();
+        const result = await scrollIntoView(page, ref);
+
+        if (!result.success) {
+          printError(result.error ?? "Scroll into view failed");
+          process.exit(1);
+        }
+
+        printOutput(
+          {
+            ref,
+            message: `Scrolled element into view: ${ref}`,
+          },
+          options
+        );
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // get-text
+  program
+    .command("get-text")
+    .description("Get the text content of an element")
+    .argument("<ref>", "Element ref from browser read")
+    .option("--json", "Output as JSON")
+    .action(async (ref: string, options: CommonOptions) => {
+      try {
+        const page = getCurrentPage();
+        const finder = new ElementFinder(page);
+
+        const findResult = await finder.byRef(ref);
+        if (findResult.count === 0) {
+          printError(`Element not found: ${ref}`);
+          process.exit(1);
+        }
+
+        const locator = page.getLocator(ref);
+        const text = await locator.textContent();
+
+        if (options.json) {
+          printOutput(
+            {
+              ref,
+              text: text ?? "",
+            },
+            options
+          );
+        } else {
+          console.log(text ?? "");
+        }
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // get-value
+  program
+    .command("get-value")
+    .description("Get the input value of a form element")
+    .argument("<ref>", "Element ref from browser read")
+    .option("--json", "Output as JSON")
+    .action(async (ref: string, options: CommonOptions) => {
+      try {
+        const page = getCurrentPage();
+        const finder = new ElementFinder(page);
+
+        const findResult = await finder.byRef(ref);
+        if (findResult.count === 0) {
+          printError(`Element not found: ${ref}`);
+          process.exit(1);
+        }
+
+        const locator = page.getLocator(ref);
+        const value = await locator.inputValue();
+
+        if (options.json) {
+          printOutput(
+            {
+              ref,
+              value,
+            },
+            options
+          );
+        } else {
+          console.log(value);
+        }
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // wait
+  program
+    .command("wait")
+    .description("Wait for a condition before proceeding")
+    .argument(
+      "<condition>",
+      "Wait condition (selector, text, visible, hidden, navigation, networkIdle)"
+    )
+    .argument("[value]", "Selector, text, or ref depending on condition")
+    .option("--timeout <ms>", "Maximum wait time in ms", "30000")
+    .option("--json", "Output as JSON")
+    .action(async (condition: string, value: string | undefined, options: WaitCommandOptions) => {
+      try {
+        const page = getCurrentPage();
+        const timeout = options.timeout ? Number.parseInt(options.timeout, 10) : 30000;
+
+        const validConditions = [
+          "selector",
+          "text",
+          "visible",
+          "hidden",
+          "navigation",
+          "networkIdle",
+        ];
+        if (!validConditions.includes(condition)) {
+          printError(`Invalid condition: ${condition}. Use: ${validConditions.join(", ")}`);
+          process.exit(1);
+        }
+
+        // Build the wait condition
+        let waitCondition: WaitCondition;
+        switch (condition) {
+          case "selector":
+            if (!value) {
+              printError("Selector value required for selector wait");
+              process.exit(1);
+            }
+            waitCondition = { type: "selector", selector: value };
+            break;
+          case "text":
+            if (!value) {
+              printError("Text value required for text wait");
+              process.exit(1);
+            }
+            waitCondition = { type: "text", text: value };
+            break;
+          case "visible":
+            if (!value) {
+              printError("Element ref required for visible wait");
+              process.exit(1);
+            }
+            waitCondition = { type: "visible", ref: value };
+            break;
+          case "hidden":
+            if (!value) {
+              printError("Element ref required for hidden wait");
+              process.exit(1);
+            }
+            waitCondition = { type: "hidden", ref: value };
+            break;
+          case "navigation":
+            waitCondition = { type: "navigation" };
+            break;
+          case "networkIdle":
+            waitCondition = { type: "networkIdle" };
+            break;
+          default:
+            printError(`Unknown condition: ${condition}`);
+            process.exit(1);
+        }
+
+        await page.wait(waitCondition, { timeout });
+
+        printOutput(
+          {
+            condition,
+            value: value ?? null,
+            message: `Wait condition met: ${condition}`,
           },
           options
         );

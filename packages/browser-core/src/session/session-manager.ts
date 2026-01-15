@@ -27,6 +27,7 @@ export class SessionManager {
   private currentSessionId: string | null = null;
   private config: Required<SessionManagerConfig>;
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private cleanupInProgress = false;
 
   private constructor(config: SessionManagerConfig = {}) {
     this.config = {
@@ -195,10 +196,12 @@ export class SessionManager {
    * Start the cleanup interval for timed-out sessions
    */
   private startCleanupInterval(): void {
-    // Check every minute for timed-out sessions
+    // Check every 15 seconds for timed-out sessions (more frequent to avoid exceeding timeout significantly)
     this.cleanupIntervalId = setInterval(() => {
-      this.cleanupTimedOutSessions();
-    }, 60 * 1000);
+      this.cleanupTimedOutSessions().catch(() => {
+        // Ignore cleanup errors - they'll be logged if needed
+      });
+    }, 15 * 1000);
   }
 
   /**
@@ -213,20 +216,34 @@ export class SessionManager {
 
   /**
    * Clean up sessions that have exceeded the timeout
+   * Uses a mutex to prevent concurrent cleanups and collects IDs first
+   * to avoid modifying the map during iteration.
    */
-  private cleanupTimedOutSessions(): void {
-    const now = Date.now();
+  private async cleanupTimedOutSessions(): Promise<void> {
+    // Prevent concurrent cleanup runs
+    if (this.cleanupInProgress) {
+      return;
+    }
+    this.cleanupInProgress = true;
 
-    for (const [sessionId, session] of this.sessions) {
-      const info = session.getInfo();
-      const age = now - info.startTime;
+    try {
+      const now = Date.now();
+      const expiredSessionIds: string[] = [];
 
-      if (age > this.config.sessionTimeout) {
-        // Session has timed out - close it
-        this.closeSession(sessionId).catch(() => {
-          // Ignore cleanup errors
-        });
+      // Collect expired session IDs first to avoid modifying map during iteration
+      for (const [sessionId, session] of this.sessions) {
+        const info = session.getInfo();
+        const age = now - info.startTime;
+
+        if (age > this.config.sessionTimeout) {
+          expiredSessionIds.push(sessionId);
+        }
       }
+
+      // Close all expired sessions, waiting for each to complete
+      await Promise.allSettled(expiredSessionIds.map((sessionId) => this.closeSession(sessionId)));
+    } finally {
+      this.cleanupInProgress = false;
     }
   }
 }

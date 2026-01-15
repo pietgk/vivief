@@ -326,7 +326,7 @@ browser-mcp
 | `browser_hover` | Hover over element |
 | `browser_screenshot` | Capture screenshot |
 | `browser_find` | Find elements by strategy |
-| `browser_execute_js` | Execute JavaScript |
+| `browser_evaluate` | Execute JavaScript |
 
 ### Element Reference System
 

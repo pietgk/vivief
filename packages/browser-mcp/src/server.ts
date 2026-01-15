@@ -30,6 +30,59 @@ import {
 import { MCP_TOOLS } from "./tools/index.js";
 import type { MCPToolResult } from "./types.js";
 
+// ================== Input Validation Helpers ==================
+
+/**
+ * Validate that a required string parameter is present and non-empty
+ */
+function validateRequiredString(args: Record<string, unknown>, name: string): string {
+  const value = args[name];
+  if (value === undefined || value === null) {
+    throw new Error(`Required parameter '${name}' is missing`);
+  }
+  if (typeof value !== "string") {
+    throw new Error(`Parameter '${name}' must be a string, got ${typeof value}`);
+  }
+  if (value.trim() === "") {
+    throw new Error(`Parameter '${name}' cannot be empty`);
+  }
+  return value;
+}
+
+/**
+ * Validate that a ref parameter is present and valid
+ */
+function validateRef(args: Record<string, unknown>): string {
+  return validateRequiredString(args, "ref");
+}
+
+/**
+ * Validate that a URL parameter is present and valid
+ */
+function validateUrl(args: Record<string, unknown>): string {
+  const url = validateRequiredString(args, "url");
+  try {
+    new URL(url);
+  } catch {
+    throw new Error(`Invalid URL format: ${url}`);
+  }
+  return url;
+}
+
+/**
+ * Get an optional string parameter
+ */
+function getOptionalString(args: Record<string, unknown>, name: string): string | undefined {
+  const value = args[name];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`Parameter '${name}' must be a string if provided, got ${typeof value}`);
+  }
+  return value;
+}
+
 /**
  * Browser MCP Server class
  */
@@ -136,6 +189,9 @@ export class BrowserMCPServer {
         case "browser_scroll":
           return await this.handleScroll(args);
 
+        case "browser_scroll_into_view":
+          return await this.handleScrollIntoView(args);
+
         case "browser_hover":
           return await this.handleHover(args);
 
@@ -224,7 +280,7 @@ export class BrowserMCPServer {
 
   private async handleNavigate(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const url = args.url as string;
+    const url = validateUrl(args);
     const waitUntil = args.waitUntil as
       | "load"
       | "domcontentloaded"
@@ -327,7 +383,7 @@ export class BrowserMCPServer {
   private async handleGetText(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
     const finder = new ElementFinder(pageContext);
-    const ref = args.ref as string;
+    const ref = validateRef(args);
 
     const result = await finder.byRef(ref);
     if (result.count === 0) {
@@ -354,7 +410,7 @@ export class BrowserMCPServer {
   private async handleGetValue(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
     const finder = new ElementFinder(pageContext);
-    const ref = args.ref as string;
+    const ref = validateRef(args);
 
     const result = await finder.byRef(ref);
     if (result.count === 0) {
@@ -377,7 +433,7 @@ export class BrowserMCPServer {
 
   private async handleClick(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const ref = args.ref as string;
+    const ref = validateRef(args);
     const button = args.button as ClickOptions["button"];
 
     const result = await click(pageContext, ref, { button });
@@ -397,8 +453,8 @@ export class BrowserMCPServer {
 
   private async handleType(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const ref = args.ref as string;
-    const text = args.text as string;
+    const ref = validateRef(args);
+    const text = validateRequiredString(args, "text");
     const options: TypeOptions = {
       delay: args.delay as number | undefined,
       clear: args.clear as boolean | undefined,
@@ -421,8 +477,8 @@ export class BrowserMCPServer {
 
   private async handleFill(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const ref = args.ref as string;
-    const value = args.value as string;
+    const ref = validateRef(args);
+    const value = validateRequiredString(args, "value");
 
     const result = await fill(pageContext, ref, value);
 
@@ -441,8 +497,8 @@ export class BrowserMCPServer {
 
   private async handleSelect(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const ref = args.ref as string;
-    const value = args.value as string;
+    const ref = validateRef(args);
+    const value = validateRequiredString(args, "value");
     const by = (args.by as "value" | "label" | "index") ?? "value";
 
     const result = await select(pageContext, ref, value, { by });
@@ -463,18 +519,15 @@ export class BrowserMCPServer {
 
   private async handleScroll(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const direction = args.direction as ScrollOptions["direction"];
-    const amount = args.amount as number | undefined;
-    const ref = args.ref as string | undefined;
+    const direction = validateRequiredString(args, "direction") as ScrollOptions["direction"];
+    const amount = typeof args.amount === "number" ? args.amount : undefined;
 
-    if (ref) {
-      const result = await scrollIntoView(pageContext, ref);
-      if (!result.success) {
-        return { success: false, error: result.error ?? "Scroll failed" };
-      }
+    // Validate direction
+    const validDirections = ["up", "down", "left", "right"];
+    if (!validDirections.includes(direction)) {
       return {
-        success: true,
-        data: { message: `Scrolled element into view: ${ref}` },
+        success: false,
+        error: `Invalid scroll direction: ${direction}. Must be one of: ${validDirections.join(", ")}`,
       };
     }
 
@@ -486,13 +539,32 @@ export class BrowserMCPServer {
 
     return {
       success: true,
-      data: { message: `Scrolled page ${direction}` },
+      data: { message: `Scrolled page ${direction}`, amount: result.amount },
+    };
+  }
+
+  private async handleScrollIntoView(args: Record<string, unknown>): Promise<MCPToolResult> {
+    const pageContext = this.getCurrentPageContext();
+    const ref = validateRef(args);
+
+    const result = await scrollIntoView(pageContext, ref);
+
+    if (!result.success) {
+      return { success: false, error: result.error ?? "Scroll into view failed" };
+    }
+
+    return {
+      success: true,
+      data: {
+        ref,
+        message: `Scrolled element into view: ${ref}`,
+      },
     };
   }
 
   private async handleHover(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const ref = args.ref as string;
+    const ref = validateRef(args);
 
     const result = await hover(pageContext, ref);
 
@@ -514,9 +586,9 @@ export class BrowserMCPServer {
   private async handleFind(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
     const finder = new ElementFinder(pageContext);
-    const strategy = args.strategy as string;
-    const value = args.value as string;
-    const name = args.name as string | undefined;
+    const strategy = validateRequiredString(args, "strategy");
+    const value = validateRequiredString(args, "value");
+    const name = getOptionalString(args, "name");
     const visible = args.visible !== false;
 
     let result: Awaited<ReturnType<typeof finder.bySelector>> | undefined;
@@ -609,15 +681,32 @@ export class BrowserMCPServer {
 
   private async handleEvaluate(args: Record<string, unknown>): Promise<MCPToolResult> {
     const pageContext = this.getCurrentPageContext();
-    const script = args.script as string;
+    const script = validateRequiredString(args, "script");
+    const timeout = typeof args.timeout === "number" ? args.timeout : 30000;
 
     const page = pageContext.getPlaywrightPage();
-    const result = await page.evaluate(script);
 
-    return {
-      success: true,
-      data: { result },
-    };
+    try {
+      const result = await Promise.race([
+        page.evaluate(script),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Script evaluation timed out after ${timeout}ms`)),
+            timeout
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        data: { result },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   // ================== Wait Handler ==================

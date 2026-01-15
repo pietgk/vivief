@@ -183,7 +183,14 @@ export interface ScreenshotResult {
 
 // ================== Find Types ==================
 
-export type FindStrategy = "ref" | "selector" | "text" | "role" | "label";
+export type FindStrategy =
+  | "ref"
+  | "selector"
+  | "text"
+  | "role"
+  | "label"
+  | "placeholder"
+  | "testId";
 
 export interface FindOptions {
   /** Search strategy */
@@ -257,7 +264,7 @@ export class BrowserError extends Error {
 export class StaleElementRefError extends BrowserError {
   constructor(ref: string) {
     super(
-      `Element ref '${ref}' is no longer valid (page navigated). Call browser_read_page to get new refs.`,
+      `Element ref '${ref}' is no longer valid. The page may have changed. Call browser_read_page to get new refs.`,
       "STALE_ELEMENT_REF"
     );
     this.name = "StaleElementRefError";

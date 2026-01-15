@@ -75,7 +75,7 @@ describe("ElementFinder", () => {
       expect(mockPage.locator).toHaveBeenCalledWith(".my-button");
       expect(result.count).toBe(1);
       expect(result.elements).toHaveLength(1);
-      expect(result.elements[0].ref).toBe("click-btn");
+      expect(result.elements[0]!.ref).toBe("click-btn");
     });
 
     it("finds elements by text strategy", async () => {
@@ -284,7 +284,7 @@ describe("ElementFinder", () => {
     it("extracts element data correctly", async () => {
       const result = await finder.find({ strategy: "selector", value: "button" });
 
-      expect(result.elements[0]).toMatchObject({
+      expect(result.elements[0]!).toMatchObject({
         tag: "button",
         role: "button",
         name: "Click Me",

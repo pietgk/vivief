@@ -7,28 +7,13 @@
  * browser forward
  */
 
-import { type NavigateOptions, SessionManager } from "@pietgk/browser-core";
+import type { NavigateOptions } from "@pietgk/browser-core";
 import type { Command } from "commander";
+import { getCurrentPage } from "./shared.js";
 import { type CommandRegister, type CommonOptions, printError, printOutput } from "./types.js";
 
 interface NavigateCommandOptions extends CommonOptions {
   waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit";
-}
-
-/**
- * Get current page context, error if no session
- */
-function getCurrentPage() {
-  const manager = SessionManager.getInstance();
-  const session = manager.getCurrentSession();
-  if (!session) {
-    throw new Error("No active browser session. Start one with: browser session start");
-  }
-  const page = session.getCurrentPage();
-  if (!page) {
-    throw new Error("No active page in session");
-  }
-  return page;
 }
 
 /**
