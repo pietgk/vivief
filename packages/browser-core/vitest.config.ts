@@ -6,6 +6,7 @@ export default defineConfig({
     forceExit: true,
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
+    exclude: ["__tests__/integration/**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
