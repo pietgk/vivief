@@ -318,6 +318,7 @@ Effects form natural hierarchies - low-level compose into high-level:
 |-------|----------|-----|
 | **Low-level** (boundaries) | DBQuery, HTTPRequest, EmailSend | Sequence diagrams, detailed tracing |
 | **High-level** (composed) | ChargePayment, AuthenticateUser, ProcessOrder | C4 diagrams, architecture docs |
+| **Actor-level** (state machines) | DialogMachine, PaymentFlow, AuthActor | Behavioral documentation |
 
 ```
 High-Level: ChargePayment
@@ -327,6 +328,8 @@ High-Level: ChargePayment
 ```
 
 Hierarchies emerge through **Rules** that aggregate low-level effects.
+
+**Extended hierarchy**: For state machines as effects (Actors), see [actors.md](./actors.md) which extends this hierarchy with Transition, Actor, and ActorSystem levels.
 
 ### 5.6 Rules: Effect Aggregation
 
@@ -606,7 +609,8 @@ LLM capabilities change rapidly. Our system must:
 | **CWD** | Current working directory |
 | **Effect** | Immutable data describing something that happened or should happen |
 | **Effect Handler** | Function: `(state, effect) => (state', [effect'])` |
-| **Effect Hierarchy** | Low-level effects composing into high-level effects |
+| **Effect Hierarchy** | Low-level effects composing into high-level effects; see [actors.md](./actors.md) for Actor-level extension |
+| **Effect Telemetry** | Runtime observation converted to effect format (see [actors.md](./actors.md)) |
 | **Effect Store** | Conceptual model: append-only Effect Stream + accumulated State |
 | **Entity** | A code symbol with a unique ID |
 | **Executable Spec** | Lint rule that enforces architectural intent automatically |
@@ -621,6 +625,8 @@ LLM capabilities change rapidly. Our system must:
 | **Parent Directory** | The workspace directory above repos; enables multi-repo work |
 | **Pipeline** | Data flow path (Vision→View, Question→Answer, Query→Data) |
 | **Rule** | Pattern matcher that transforms/aggregates effects |
+| **Actor** | Higher-level effect representing a state machine (see [actors.md](./actors.md)) |
+| **StateTransition** | Effect representing a state change within an Actor (see [actors.md](./actors.md)) |
 | **Runtime Extraction** | Getting effects from test execution (actual paths) |
 | **Seed** | Queryable extraction of a source of truth |
 | **Sibling** | Another repo in the same workspace |

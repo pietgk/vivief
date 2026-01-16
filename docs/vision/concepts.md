@@ -243,6 +243,18 @@ What causes DevAC to update:
 | **Code Diagnostics** | Validation results for code health (errors, lint, tests, coverage) — from Validators pillar |
 | **Work Activity** | PRs, reviews, issues, releases — what's pending in the workflow — from Workflow pillar |
 
+### Actor Terms
+
+| Term | Definition |
+|------|------------|
+| **Actor** | Higher-level effect representing a state machine with states, transitions, and context |
+| **StateTransition** | Effect representing a state change (from, to, event, guard, actions) |
+| **ActorSystem** | Effect representing multiple actors communicating with each other |
+| **Effect Telemetry** | Runtime observation converted to effect format for comparison with static analysis |
+| **TransitionPattern** | Rule that matches effect sequences to produce StateTransition effects |
+| **ActorPattern** | Rule that groups related StateTransitions into an Actor effect |
+| **Effect Telemetry MCP** | MCP server that observes runtime and converts to effects (browser-mcp, expo-mcp, otel-mcp) |
+
 ### Deprecated Terms
 
 | Old Term | Use Instead | Reason |
@@ -262,6 +274,7 @@ What causes DevAC to update:
 |----------|---------|
 | [foundation.md](./foundation.md) | Deep conceptual dive — effect handlers, pipelines, rules |
 | [validation.md](./validation.md) | Unified feedback model — Watch → Validate → Cache → Query |
+| [actors.md](./actors.md) | Actor model — state machines as higher-level effects |
 | [foundation-visual.md](./foundation-visual.md) | Mermaid diagrams illustrating concepts |
 
 ---
