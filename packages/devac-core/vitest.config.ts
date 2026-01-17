@@ -12,10 +12,10 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts", "src/**/index.ts", "src/**/types.ts", "src/**/__tests__/**"],
       thresholds: {
-        statements: 61, // Current: 61.58%
-        branches: 77, // Current: 77.03%
-        functions: 67, // Current: 67.47%
-        lines: 61, // Current: 61.58%
+        statements: 74, // Current: 74.1%
+        branches: 80, // Current: 80.03%
+        functions: 78, // Current: 78.82%
+        lines: 74, // Current: 74.1%
       },
       reportOnFailure: true,
     },
