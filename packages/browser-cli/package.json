@@ -1,0 +1,39 @@
+{
+  "name": "@pietgk/browser-cli",
+  "version": "0.1.0",
+  "description": "CLI for browser automation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "browser": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "prebuild": "node ../../scripts/generate-version.mjs .",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "pretest": "ps -eo ppid,pid,command 2>/dev/null | grep vitest | awk '$1 == 1 { print $2 }' | xargs kill 2>/dev/null || true",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@pietgk/browser-core": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.28",
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
