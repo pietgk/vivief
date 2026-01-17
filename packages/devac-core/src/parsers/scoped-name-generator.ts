@@ -80,7 +80,9 @@ export type SymbolKind =
   | "setter"
   | "constructor"
   | "static_method"
-  | "static_property";
+  | "static_property"
+  | "jsx_component"
+  | "html_element";
 
 /**
  * Generate a scoped name for a symbol

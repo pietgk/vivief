@@ -23,42 +23,56 @@ This document tracks implementation gaps against the vision. Items are organized
 
 ## Phase 0: JSX Component Extraction (Prerequisite)
 
-**Status**: ⬜ Not started
+**Status**: ✅ Complete
 
-JSX extraction must be implemented before A11y or Actor discovery can proceed.
+JSX extraction has been implemented, enabling A11y and Actor discovery phases.
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
-| ⬜ JSX element handlers | Add `handleJSXElement()`, `handleJSXFragment()` to TypeScript parser | High |
-| ⬜ Component hierarchy edges | Create CONTAINS edges for nested JSX | High |
-| ⬜ Props extraction | Extract props passed to components as node properties | High |
-| ⬜ Dynamic prop handling | Handle `prop={variable}` expressions | Medium |
+| ✅ JSX element handlers | Added `handleJSXElement()`, `handleJSXFragment()` to TypeScript parser | High |
+| ✅ Component hierarchy edges | Created RENDERS, INSTANTIATES, and PASSES_PROPS edges for component hierarchy | High |
+| ✅ Props extraction | Extract props as node properties including regular, ARIA, and event handlers | High |
+| ✅ PASSES_PROPS edges | Track props passed from parent to child components | High |
+| ✅ Dynamic prop handling | Handle `prop={variable}` expressions with `[expression]` placeholders | Medium |
+| ✅ ARIA attribute extraction | Extract `role`, `aria-*` attributes as separate properties | High |
+| ✅ Event handler detection | Track `onClick`, `onKeyDown`, etc. with keyboard a11y warnings | High |
+| ✅ Auto Hub Sync | Added `--sync` flag to validate command for auto-detected repo sync | Medium |
 | ⬜ Component composition | Track HOCs, render props, hooks patterns | Medium |
 
-**Files to modify**:
-- `packages/devac-core/src/parsers/typescript-parser.ts`
-- `packages/devac-core/src/types/nodes.ts`
+**Files modified**:
+- `packages/devac-core/src/parsers/typescript-parser.ts` - Added JSX handlers, props extraction, PASSES_PROPS edges
+- `packages/devac-core/src/parsers/scoped-name-generator.ts` - Added `jsx_component` and `html_element` kinds
+- `packages/devac-core/src/types/edges.ts` - Added `RENDERS` and `PASSES_PROPS` edge types
+- `packages/devac-core/src/types/nodes.ts` - Added `html_element` to NodeKind
+- `packages/devac-cli/src/commands/validate.ts` - Added `--sync` flag with auto repo ID detection
+- `packages/devac-core/src/index.ts` - Exported `detectRepoId` utilities
 
-**Validation**: Can query "list all Button components in codebase"
+**Tests added**:
+- `packages/devac-core/__tests__/jsx-extraction.test.ts` - 40 comprehensive tests (basic extraction, props, ARIA, PASSES_PROPS, html_element)
+- `packages/devac-cli/__tests__/validate-command.test.ts` - 5 new tests for --sync flag
+
+**Validation**: ✅ Can query JSX components, props, ARIA attributes, and component hierarchy
 
 ---
 
 ## Phase 1: A11y Attribute Extraction
 
-**Status**: ⬜ Not started
+**Status**: 🔄 Partially complete (merged with Phase 0)
+
+Most A11y attribute extraction was implemented as part of Phase 0.
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
-| ⬜ ARIA attribute extraction | Extract `role`, `aria-*` as node properties | High |
-| ⬜ Interactive element detection | Identify interactive elements (buttons, inputs, etc.) | High |
+| ✅ ARIA attribute extraction | Extract `role`, `aria-*` as node properties | High |
+| ✅ Interactive element detection | HTML elements identified as `html_element` kind | High |
 | ⬜ ARIA relationship edges | Create REFERENCES edges for `aria-controls`, `aria-labelledby` | High |
-| ⬜ Event handler detection | Track `onClick`, `onKeyDown`, etc. | Medium |
+| ✅ Event handler detection | Track `onClick`, `onKeyDown`, etc. with a11y warnings | Medium |
 | ⬜ tabIndex handling | Extract and validate keyboard accessibility | Medium |
 
-**Files to modify**:
-- `packages/devac-core/src/parsers/typescript-parser.ts`
+**Files modified** (in Phase 0):
+- `packages/devac-core/src/parsers/typescript-parser.ts` - ARIA attributes stored in node properties
 
-**Validation**: Can query "find elements with aria-controls"
+**Validation**: ✅ Can query "find elements with aria-controls" via node properties
 
 ---
 
@@ -179,7 +193,8 @@ Items requiring investigation before implementation:
 
 | Gap | Description | Status |
 |-----|-------------|--------|
-| ⬜ jsx-extraction.md | Implementation guide for JSX parsing | Not created |
+| ✅ jsx-extraction.test.ts | Comprehensive tests demonstrating JSX parsing | Created |
+| ✅ phase-0-plan.md | Phase 0 implementation plan | Created |
 | ⬜ actor-discovery.md | Implementation guide for Actor discovery | Not created |
 | ⬜ Storybook integration guide | How to set up OTel with Storybook | Not created |
 
@@ -208,3 +223,4 @@ When all gaps are closed:
 ---
 
 *Last reviewed: 2026-01-17*
+*Phase 0 completed: 2026-01-17*

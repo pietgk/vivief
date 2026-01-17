@@ -23,6 +23,7 @@ export type NodeKind =
   | "parameter"
   | "decorator"
   | "jsx_component"
+  | "html_element"
   | "hook"
   | "unknown";
 

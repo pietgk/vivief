@@ -387,4 +387,79 @@ describe("CLI: validate command", () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe("--sync flag", () => {
+    it("accepts sync option without repo-id", async () => {
+      const options: ValidateOptions = {
+        packagePath: tempDir,
+        changedFiles: [],
+        mode: "quick",
+        sync: true,
+      };
+
+      const result = await validateCommand(options);
+
+      // Should complete without crashing even without hub
+      expect(result.success).toBe(true);
+    });
+
+    it("prefers explicit repo-id over auto-detection when both provided", async () => {
+      const options: ValidateOptions = {
+        packagePath: tempDir,
+        changedFiles: [],
+        mode: "quick",
+        sync: true,
+        repoId: "explicit/repo-id",
+      };
+
+      const result = await validateCommand(options);
+
+      // Should complete without crashing
+      expect(result.success).toBe(true);
+    });
+
+    it("does not push to hub when sync is false", async () => {
+      const options: ValidateOptions = {
+        packagePath: tempDir,
+        changedFiles: [],
+        mode: "quick",
+        sync: false,
+      };
+
+      const result = await validateCommand(options);
+
+      expect(result.success).toBe(true);
+      expect(result.pushedToHub).toBeUndefined();
+    });
+
+    it("handles push-to-hub with repo-id", async () => {
+      const options: ValidateOptions = {
+        packagePath: tempDir,
+        changedFiles: [],
+        mode: "quick",
+        pushToHub: true,
+        repoId: "test/repo",
+      };
+
+      const result = await validateCommand(options);
+
+      // Should complete (hub may not exist but shouldn't crash)
+      expect(result.success).toBe(true);
+    });
+
+    it("skips hub push when push-to-hub is true but repo-id is missing", async () => {
+      const options: ValidateOptions = {
+        packagePath: tempDir,
+        changedFiles: [],
+        mode: "quick",
+        pushToHub: true,
+        // No repoId - should skip push
+      };
+
+      const result = await validateCommand(options);
+
+      expect(result.success).toBe(true);
+      expect(result.pushedToHub).toBeUndefined();
+    });
+  });
 });

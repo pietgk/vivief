@@ -15,6 +15,7 @@ import {
   type ValidationCoordinatorResult,
   type ValidationMode,
   createHubClient,
+  detectRepoId,
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
@@ -46,6 +47,8 @@ export interface ValidateOptions {
   pushToHub?: boolean;
   /** Repository ID for Hub push (required if pushToHub is true) */
   repoId?: string;
+  /** Auto-sync results to Hub (auto-detects repo ID) */
+  sync?: boolean;
 }
 
 /**
@@ -120,18 +123,30 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
     // Apply config overrides to result
     const finalResult = applyConfigOverrides(result, options, configOverrides);
 
-    // Push to Hub if requested
-    if (options.pushToHub && options.repoId) {
+    // Push to Hub if requested (--sync auto-detects repo ID, --push-to-hub requires explicit --repo-id)
+    const shouldPushToHub = options.sync || (options.pushToHub && options.repoId);
+    if (shouldPushToHub) {
       const hubDir = await getWorkspaceHubDir();
       try {
-        const client = createHubClient({ hubDir });
-        const pushResult = await pushValidationResultsToHub(
-          client,
-          options.repoId,
-          options.packagePath,
-          finalResult
-        );
-        finalResult.pushedToHub = pushResult.pushed;
+        // Auto-detect repo ID for --sync, or use provided --repo-id
+        let repoId = options.repoId;
+        if (!repoId && options.sync) {
+          const detected = await detectRepoId(options.packagePath);
+          repoId = detected.repoId;
+        }
+
+        if (!repoId) {
+          console.error("Warning: Could not determine repository ID for Hub sync");
+        } else {
+          const client = createHubClient({ hubDir });
+          const pushResult = await pushValidationResultsToHub(
+            client,
+            repoId,
+            options.packagePath,
+            finalResult
+          );
+          finalResult.pushedToHub = pushResult.pushed;
+        }
       } catch (hubError) {
         // Don't fail validation if Hub push fails - log warning
         console.error(
@@ -254,6 +269,7 @@ export function registerValidateCommand(program: Command): void {
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--push-to-hub", "Push results to central Hub")
     .option("--repo-id <id>", "Repository ID for Hub push")
+    .option("--sync", "Auto-sync results to Hub (auto-detects repo ID)")
     .option("--json", "Output as JSON")
     .action(async (options) => {
       const result = await validateCommand({
@@ -267,6 +283,7 @@ export function registerValidateCommand(program: Command): void {
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
         pushToHub: options.pushToHub,
         repoId: options.repoId,
+        sync: options.sync,
       });
 
       // Check architecture drift if requested
