@@ -11,6 +11,12 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts", "src/**/index.ts", "src/**/types.ts", "src/**/__tests__/**"],
+      thresholds: {
+        statements: 61, // Current: 61.58%
+        branches: 77, // Current: 77.03%
+        functions: 67, // Current: 67.47%
+        lines: 61, // Current: 61.58%
+      },
       reportOnFailure: true,
     },
     testTimeout: 60000,

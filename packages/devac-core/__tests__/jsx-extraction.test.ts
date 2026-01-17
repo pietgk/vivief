@@ -860,6 +860,231 @@ const App = () => (
   });
 
   // ==========================================================================
+  // Module-Level JSX
+  // ==========================================================================
+
+  describe("module-level JSX", () => {
+    it("creates jsx_component for module-level variable assignment", async () => {
+      const code = `
+export const element = <Button label="test" />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode).toBeDefined();
+      expect(buttonNode?.properties.props).toEqual({
+        label: "test",
+      });
+
+      // CONTAINS edge should exist for the jsx_component
+      const containsEdge = result.edges.find(
+        (e) => e.edge_type === "CONTAINS" && e.target_entity_id === buttonNode?.entity_id
+      );
+      expect(containsEdge).toBeDefined();
+    });
+
+    it("handles JSX in module-level arrow function expression", async () => {
+      const code = `
+const render = () => <Component />;
+export { render };
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const componentNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Component"
+      );
+      expect(componentNode).toBeDefined();
+
+      // Should have CONTAINS edge from render function
+      const renderFunc = result.nodes.find((n) => n.kind === "function" && n.name === "render");
+      expect(renderFunc).toBeDefined();
+
+      const containsEdge = result.edges.find(
+        (e) =>
+          e.edge_type === "CONTAINS" &&
+          e.source_entity_id === renderFunc?.entity_id &&
+          e.target_entity_id === componentNode?.entity_id
+      );
+      expect(containsEdge).toBeDefined();
+    });
+  });
+
+  // ==========================================================================
+  // Namespaced JSX
+  // ==========================================================================
+
+  describe("namespaced JSX", () => {
+    it("skips JSXNamespacedName elements (xml:special)", async () => {
+      const code = `
+function App() {
+  return <xml:special attr="value" />;
+}
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      // Namespaced elements should be skipped - no jsx_component created
+      const jsxNodes = result.nodes.filter((n) => n.kind === "jsx_component");
+      expect(jsxNodes.length).toBe(0);
+    });
+
+    it("handles namespaced attributes (xml:lang)", async () => {
+      const code = `
+function App() {
+  return <Button xml:lang="en" xml:space="preserve" />;
+}
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode).toBeDefined();
+
+      // Namespaced attributes should be captured with colon
+      const props = buttonNode?.properties.props as Record<string, string> | undefined;
+      expect(props?.["xml:lang"]).toBe("en");
+      expect(props?.["xml:space"]).toBe("preserve");
+    });
+  });
+
+  // ==========================================================================
+  // Attribute Value Edge Cases
+  // ==========================================================================
+
+  describe("attribute value edge cases", () => {
+    it("handles explicit boolean true literal", async () => {
+      const code = `
+const App = () => <Button enabled={true} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode?.properties.props).toEqual({
+        enabled: true,
+      });
+    });
+
+    it("handles explicit boolean false literal", async () => {
+      const code = `
+const App = () => <Button disabled={false} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode?.properties.props).toEqual({
+        disabled: false,
+      });
+    });
+
+    it("handles simple template literal without expressions", async () => {
+      const code = `
+const App = () => <Button text={\`static text\`} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode?.properties.props).toEqual({
+        text: "static text",
+      });
+    });
+
+    it("handles template literal with expressions as complex", async () => {
+      const code = `
+const name = "World";
+const App = () => <Button text={\`Hello \${name}\`} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      // Template literals with expressions are captured as complex
+      const props = buttonNode?.properties.props as Record<string, string> | undefined;
+      expect(props?.text).toBe("{...}");
+    });
+
+    it("handles JSX element as prop value (inside expression container)", async () => {
+      const code = `
+const App = () => <Button icon={<Icon name="star" />} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      const props = buttonNode?.properties.props as Record<string, string> | undefined;
+      // JSX inside expression container is treated as complex expression
+      expect(props?.icon).toBe("{...}");
+
+      // The Icon component should also be extracted
+      const iconNode = result.nodes.find((n) => n.kind === "jsx_component" && n.name === "Icon");
+      expect(iconNode).toBeDefined();
+    });
+
+    it("handles JSX fragment as prop value (inside expression container)", async () => {
+      const code = `
+const App = () => <Button content={<>Hello World</>} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      const props = buttonNode?.properties.props as Record<string, string> | undefined;
+      // JSX fragment inside expression container is treated as complex expression
+      expect(props?.content).toBe("{...}");
+    });
+
+    it("handles string literal inside expression container", async () => {
+      const code = `
+const App = () => <Button text={"hello world"} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode?.properties.props).toEqual({
+        text: "hello world",
+      });
+    });
+
+    it("handles numeric literal props", async () => {
+      const code = `
+const App = () => <Button count={42} />;
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const buttonNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Button"
+      );
+      expect(buttonNode?.properties.props).toEqual({
+        count: "42",
+      });
+    });
+  });
+
+  // ==========================================================================
   // html_element Kind
   // ==========================================================================
 
@@ -922,6 +1147,94 @@ const App = () => (
       const divNode = htmlNodes[0];
       expect(divNode?.properties.potentialA11yIssue).toBe(true);
       expect(divNode?.properties.isInteractive).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // File Type Detection
+  // ==========================================================================
+
+  describe("file type detection", () => {
+    it("detects .ts files as typescript", async () => {
+      const code = `
+const add = (a: number, b: number): number => a + b;
+`;
+
+      const result = await parser.parseContent(code, "test.ts", testConfig);
+
+      // Parser should handle .ts files correctly
+      const funcNode = result.nodes.find((n) => n.kind === "function" && n.name === "add");
+      expect(funcNode).toBeDefined();
+    });
+
+    it("detects .tsx files as typescript", async () => {
+      const code = `
+const App = () => <Button />;
+`;
+
+      const result = await parser.parseContent(code, "component.tsx", testConfig);
+
+      const jsxNode = result.nodes.find((n) => n.kind === "jsx_component");
+      expect(jsxNode).toBeDefined();
+    });
+
+    it("detects .js files as javascript", async () => {
+      const code = `
+const add = (a, b) => a + b;
+`;
+
+      const result = await parser.parseContent(code, "test.js", testConfig);
+
+      const funcNode = result.nodes.find((n) => n.kind === "function" && n.name === "add");
+      expect(funcNode).toBeDefined();
+    });
+
+    it("detects .jsx files as javascript", async () => {
+      const code = `
+const App = () => <Button />;
+`;
+
+      const result = await parser.parseContent(code, "component.jsx", testConfig);
+
+      const jsxNode = result.nodes.find((n) => n.kind === "jsx_component");
+      expect(jsxNode).toBeDefined();
+    });
+
+    it("detects .mjs files as javascript", async () => {
+      const code = `
+export const add = (a, b) => a + b;
+`;
+
+      const result = await parser.parseContent(code, "module.mjs", testConfig);
+
+      const funcNode = result.nodes.find((n) => n.kind === "function" && n.name === "add");
+      expect(funcNode).toBeDefined();
+    });
+
+    it("detects .cjs files as javascript", async () => {
+      const code = `
+const add = (a, b) => a + b;
+module.exports = { add };
+`;
+
+      const result = await parser.parseContent(code, "common.cjs", testConfig);
+
+      const funcNode = result.nodes.find((n) => n.kind === "function" && n.name === "add");
+      expect(funcNode).toBeDefined();
+    });
+
+    it("handles unknown file extensions gracefully", async () => {
+      const code = `
+const add = (a, b) => a + b;
+`;
+      // Parser should handle unknown extensions without crashing
+      // It may return empty results or minimal parsing
+      const result = await parser.parseContent(code, "script.xyz", testConfig);
+
+      // Should return a valid result object (even if empty)
+      expect(result).toBeDefined();
+      expect(result.nodes).toBeDefined();
+      expect(result.edges).toBeDefined();
     });
   });
 });

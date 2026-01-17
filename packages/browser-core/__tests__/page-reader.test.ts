@@ -148,9 +148,9 @@ describe("PageReader", () => {
       await pageReader.readPage({ maxElements: 50 });
 
       expect(mockPage.evaluate).toHaveBeenCalled();
-      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
+      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0];
       // Check that maxElements parameter was passed (third argument in the array)
-      expect(evaluateCall[1]?.[2]).toBe(50);
+      expect(evaluateCall?.[1]?.[2]).toBe(50);
     });
 
     it("respects includeHidden option", async () => {
@@ -158,9 +158,9 @@ describe("PageReader", () => {
 
       await pageReader.readPage({ includeHidden: true });
 
-      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
+      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0];
       // Check that includeHidden parameter was passed (second argument in the array)
-      expect(evaluateCall[1]?.[1]).toBe(true);
+      expect(evaluateCall?.[1]?.[1]).toBe(true);
     });
 
     it("respects interactiveOnly option", async () => {
@@ -168,9 +168,9 @@ describe("PageReader", () => {
 
       await pageReader.readPage({ interactiveOnly: true });
 
-      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
+      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0];
       // Check that interactiveOnly parameter was passed (fourth argument in the array)
-      expect(evaluateCall[1]?.[3]).toBe(true);
+      expect(evaluateCall?.[1]?.[3]).toBe(true);
     });
 
     it("respects selector option", async () => {
@@ -178,9 +178,9 @@ describe("PageReader", () => {
 
       await pageReader.readPage({ selector: "#main-content" });
 
-      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0]!;
+      const evaluateCall = (mockPage.evaluate as ReturnType<typeof vi.fn>).mock.calls[0];
       // Check that selector parameter was passed (first argument in the array)
-      expect(evaluateCall[1]?.[0]).toBe("#main-content");
+      expect(evaluateCall?.[1]?.[0]).toBe("#main-content");
     });
 
     it("handles duplicate testIds by appending counter", async () => {
