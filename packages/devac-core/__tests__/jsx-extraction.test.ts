@@ -1280,4 +1280,246 @@ const add = (a, b) => a + b;
       expect(result.edges).toBeDefined();
     });
   });
+
+  // ==========================================================================
+  // ARIA Relationship Edges (Phase 1)
+  // ==========================================================================
+
+  describe("ARIA relationship edges", () => {
+    it("creates REFERENCES edge for aria-labelledby", async () => {
+      const code = `
+const App = () => (
+  <Dialog aria-labelledby="title-id" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "labelledby"
+      );
+      expect(refEdges.length).toBe(1);
+      expect(refEdges[0]?.target_entity_id).toBe("unresolved:aria:title-id");
+      expect(refEdges[0]?.properties.ariaAttribute).toBe("aria-labelledby");
+      expect(refEdges[0]?.properties.referencedId).toBe("title-id");
+    });
+
+    it("creates multiple REFERENCES edges for space-separated IDs", async () => {
+      const code = `
+const App = () => (
+  <div role="dialog" aria-describedby="desc1 desc2 desc3" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "describedby"
+      );
+      expect(refEdges.length).toBe(3);
+      expect(refEdges.map((e) => e.properties.referencedId).sort()).toEqual([
+        "desc1",
+        "desc2",
+        "desc3",
+      ]);
+    });
+
+    it("creates REFERENCES edge for aria-controls", async () => {
+      const code = `
+const App = () => (
+  <Button aria-controls="menu-dropdown">Toggle Menu</Button>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "controls"
+      );
+      expect(refEdges.length).toBe(1);
+      expect(refEdges[0]?.target_entity_id).toBe("unresolved:aria:menu-dropdown");
+    });
+
+    it("creates REFERENCES edge for aria-owns", async () => {
+      const code = `
+const App = () => (
+  <div role="listbox" aria-owns="option1 option2" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "owns"
+      );
+      expect(refEdges.length).toBe(2);
+    });
+
+    it("creates REFERENCES edge for aria-activedescendant (single ID)", async () => {
+      const code = `
+const App = () => (
+  <div role="listbox" aria-activedescendant="selected-option" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "activedescendant"
+      );
+      expect(refEdges.length).toBe(1);
+      expect(refEdges[0]?.properties.referencedId).toBe("selected-option");
+    });
+
+    it("handles ARIA ID references on components", async () => {
+      const code = `
+const App = () => (
+  <Modal aria-labelledby="modal-title" aria-describedby="modal-desc" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const modalNode = result.nodes.find((n) => n.kind === "jsx_component" && n.name === "Modal");
+
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.source_entity_id === modalNode?.entity_id
+      );
+      expect(refEdges.length).toBe(2);
+    });
+
+    it("does not create REFERENCES edges for dynamic ARIA IDs", async () => {
+      const code = `
+const App = ({ titleId }) => (
+  <Dialog aria-labelledby={titleId} />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      // Dynamic values (expressions) should not create REFERENCES edges
+      const refEdges = result.edges.filter(
+        (e) => e.edge_type === "REFERENCES" && e.properties.ariaRelationType === "labelledby"
+      );
+      expect(refEdges.length).toBe(0);
+    });
+  });
+
+  // ==========================================================================
+  // Element ID Extraction (Phase 1)
+  // ==========================================================================
+
+  describe("element ID extraction", () => {
+    it("extracts id attribute on HTML elements", async () => {
+      const code = `
+const App = () => (
+  <div id="main-content" role="main">Content</div>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const htmlNode = result.nodes.find(
+        (n) => n.kind === "html_element" && n.properties.htmlElement === "div"
+      );
+      expect(htmlNode?.properties.elementId).toBe("main-content");
+    });
+
+    it("extracts id attribute on components", async () => {
+      const code = `
+const App = () => (
+  <Panel id="side-panel" />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const panelNode = result.nodes.find((n) => n.kind === "jsx_component" && n.name === "Panel");
+      expect(panelNode?.properties.elementId).toBe("side-panel");
+    });
+
+    it("does not extract dynamic id values", async () => {
+      const code = `
+const App = ({ dynamicId }) => (
+  <div id={dynamicId} role="region">Content</div>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const htmlNode = result.nodes.find(
+        (n) => n.kind === "html_element" && n.properties.htmlElement === "div"
+      );
+      // Dynamic IDs should not be stored as elementId (they can't be resolved statically)
+      expect(htmlNode?.properties.elementId).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // tabIndex Handling (Phase 1)
+  // ==========================================================================
+
+  describe("tabIndex handling", () => {
+    it("extracts tabIndex value and suppresses a11y warning when >= 0", async () => {
+      const code = `
+const App = () => (
+  <div tabIndex={0} onClick={handleClick}>Focusable div</div>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const htmlNode = result.nodes.find(
+        (n) => n.kind === "html_element" && n.properties.htmlElement === "div"
+      );
+      expect(htmlNode?.properties.tabIndex).toBe(0);
+      // Should NOT flag as a11y issue because tabIndex >= 0 makes it focusable
+      expect(htmlNode?.properties.potentialA11yIssue).toBe(false);
+    });
+
+    it("extracts negative tabIndex but still flags a11y issue", async () => {
+      const code = `
+const App = () => (
+  <div tabIndex={-1} onClick={handleClick}>Programmatically focusable</div>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const htmlNode = result.nodes.find(
+        (n) => n.kind === "html_element" && n.properties.htmlElement === "div"
+      );
+      expect(htmlNode?.properties.tabIndex).toBe(-1);
+      // tabIndex=-1 removes from tab order, so it's still flagged as potential issue
+      expect(htmlNode?.properties.potentialA11yIssue).toBe(true);
+    });
+
+    it("handles tabIndex on components", async () => {
+      const code = `
+const App = () => (
+  <Card tabIndex={0} />
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const cardNode = result.nodes.find((n) => n.kind === "jsx_component" && n.name === "Card");
+      expect(cardNode?.properties.tabIndex).toBe(0);
+    });
+
+    it("handles lowercase tabindex attribute", async () => {
+      const code = `
+const App = () => (
+  <div tabindex="0" onClick={handleClick} role="button">Focusable</div>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      const htmlNode = result.nodes.find(
+        (n) => n.kind === "html_element" && n.properties.htmlElement === "div"
+      );
+      expect(htmlNode?.properties.tabIndex).toBe(0);
+    });
+  });
 });

@@ -37025,11 +37025,13 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
       "name": "WrappedComponent",
       "properties": {
         "ariaProps": {},
+        "elementId": null,
         "eventHandlers": [],
         "hasSpreadProps": true,
         "isComponent": true,
         "language": "typescript",
         "props": {},
+        "tabIndex": null,
       },
       "qualified_name": "WrappedComponent@237:11",
       "start_line": 237,

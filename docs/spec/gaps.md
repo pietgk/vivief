@@ -91,22 +91,37 @@ These gaps require complex mocking that conflicts with Vitest's module hoisting:
 
 ## Phase 1: A11y Attribute Extraction
 
-**Status**: 🔄 Partially complete (merged with Phase 0)
+**Status**: ✅ Complete
 
-Most A11y attribute extraction was implemented as part of Phase 0.
+All A11y attribute extraction has been implemented, enabling WCAG validation and ARIA relationship tracking.
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
 | ✅ ARIA attribute extraction | Extract `role`, `aria-*` as node properties | High |
 | ✅ Interactive element detection | HTML elements identified as `html_element` kind | High |
-| ⬜ ARIA relationship edges | Create REFERENCES edges for `aria-controls`, `aria-labelledby` | High |
+| ✅ ARIA relationship edges | Create REFERENCES edges for `aria-controls`, `aria-labelledby`, `aria-describedby`, `aria-owns`, etc. | High |
 | ✅ Event handler detection | Track `onClick`, `onKeyDown`, etc. with a11y warnings | Medium |
-| ⬜ tabIndex handling | Extract and validate keyboard accessibility | Medium |
+| ✅ tabIndex handling | Extract tabIndex value; tabIndex >= 0 suppresses a11y warnings | Medium |
+| ✅ Element ID tracking | Extract `id` attribute to enable ARIA reference resolution | Medium |
 
-**Files modified** (in Phase 0):
-- `packages/devac-core/src/parsers/typescript-parser.ts` - ARIA attributes stored in node properties
+**Files modified**:
+- `packages/devac-core/src/parsers/typescript-parser.ts` - Added ARIA ID reference edges, element ID extraction, tabIndex handling, improved a11y logic
 
-**Validation**: ✅ Can query "find elements with aria-controls" via node properties
+**Implementation details**:
+- Added `ARIA_ID_REFERENCE_ATTRS` constant for 8 ARIA ID-referencing attributes
+- Extended `JSXPropsResult` with `elementId`, `tabIndex`, and `ariaIdRefs` fields
+- REFERENCES edges created with `ariaRelationType`, `ariaAttribute`, and `referencedId` properties
+- Target entity IDs use `unresolved:aria:{id}` format for future resolution
+- `tabIndex >= 0` makes element keyboard focusable (suppresses a11y warning)
+- `tabIndex={-1}` still flags potential a11y issue (element not in tab order)
+
+**Tests added**:
+- 14 new tests in `packages/devac-core/__tests__/jsx-extraction.test.ts`:
+  - ARIA relationship edges (7 tests): aria-labelledby, space-separated IDs, aria-controls, aria-owns, aria-activedescendant, components, dynamic IDs
+  - Element ID extraction (3 tests): HTML elements, components, dynamic IDs
+  - tabIndex handling (4 tests): tabIndex >= 0, tabIndex -1, components, lowercase tabindex
+
+**Validation**: ✅ Can query ARIA relationships via REFERENCES edges with `ariaRelationType` property
 
 ---
 
@@ -259,3 +274,4 @@ When all gaps are closed:
 
 *Last reviewed: 2026-01-17*
 *Phase 0 completed: 2026-01-17*
+*Phase 1 completed: 2026-01-17*

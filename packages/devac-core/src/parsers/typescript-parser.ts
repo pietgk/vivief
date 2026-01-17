@@ -58,6 +58,36 @@ import {
 // ============================================================================
 
 /**
+ * ARIA attributes that reference element IDs
+ * These can contain space-separated lists of IDs (for multiple: true)
+ */
+const ARIA_ID_REFERENCE_ATTRS: Record<string, { multiple: boolean; relationType: string }> = {
+  "aria-labelledby": { multiple: true, relationType: "labelledby" },
+  "aria-describedby": { multiple: true, relationType: "describedby" },
+  "aria-controls": { multiple: true, relationType: "controls" },
+  "aria-owns": { multiple: true, relationType: "owns" },
+  "aria-flowto": { multiple: true, relationType: "flowto" },
+  "aria-activedescendant": {
+    multiple: false,
+    relationType: "activedescendant",
+  },
+  "aria-errormessage": { multiple: false, relationType: "errormessage" },
+  "aria-details": { multiple: false, relationType: "details" },
+};
+
+/**
+ * ARIA ID reference extracted from an attribute
+ */
+interface AriaIdReference {
+  /** The attribute name (e.g., "aria-labelledby") */
+  attrName: string;
+  /** The relation type (e.g., "labelledby") */
+  relationType: string;
+  /** The target IDs referenced */
+  targetIds: string[];
+}
+
+/**
  * Result of extracting props from JSX attributes
  */
 interface JSXPropsResult {
@@ -69,6 +99,12 @@ interface JSXPropsResult {
   handlers: string[];
   /** Whether spread props are used ({...props}) */
   hasSpread: boolean;
+  /** Element ID if present (static values only) */
+  elementId: string | null;
+  /** tabIndex value if present */
+  tabIndex: number | null;
+  /** ARIA ID references for creating REFERENCES edges */
+  ariaIdRefs: AriaIdReference[];
 }
 
 // ============================================================================
@@ -1544,6 +1580,9 @@ export class TypeScriptParser implements LanguageParser {
       aria: {},
       handlers: [],
       hasSpread: false,
+      elementId: null,
+      tabIndex: null,
+      ariaIdRefs: [],
     };
 
     for (const attr of attributes) {
@@ -1560,11 +1599,49 @@ export class TypeScriptParser implements LanguageParser {
         ? attr.name.name
         : `${attr.name.namespace.name}:${attr.name.name.name}`;
 
+      // Extract element ID (static values only)
+      if (name === "id") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string" && !value.startsWith("{")) {
+          result.elementId = value;
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      // Extract tabIndex
+      if (name === "tabIndex" || name === "tabindex") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string") {
+          const parsed = Number.parseInt(value, 10);
+          if (!Number.isNaN(parsed)) {
+            result.tabIndex = parsed;
+          }
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
       // ARIA attributes (aria-* and role)
       if (name.startsWith("aria-") || name === "role") {
         const value = this.extractJSXAttributeValue(attr.value);
         if (value !== null) {
-          result.aria[name] = String(value);
+          const strValue = String(value);
+          result.aria[name] = strValue;
+
+          // Check if this is an ARIA ID-referencing attribute
+          const ariaRefConfig = ARIA_ID_REFERENCE_ATTRS[name];
+          if (ariaRefConfig && !strValue.startsWith("{")) {
+            // Parse ID(s) - can be space-separated
+            const ids = strValue.split(/\s+/).filter((id) => id.length > 0);
+            if (ids.length > 0) {
+              result.ariaIdRefs.push({
+                attrName: name,
+                relationType: ariaRefConfig.relationType,
+                targetIds: ids,
+              });
+            }
+          }
         }
         continue;
       }
@@ -1610,6 +1687,10 @@ export class TypeScriptParser implements LanguageParser {
       }
       if (t.isNumericLiteral(expr)) {
         return String(expr.value);
+      }
+      // Handle negative numbers: {-1} is a UnaryExpression with operator "-"
+      if (t.isUnaryExpression(expr) && expr.operator === "-" && t.isNumericLiteral(expr.argument)) {
+        return String(-expr.argument.value);
       }
       if (t.isBooleanLiteral(expr)) {
         return expr.value;
@@ -1729,6 +1810,8 @@ export class TypeScriptParser implements LanguageParser {
         eventHandlers: props.handlers,
         hasSpreadProps: props.hasSpread,
         isComponent: true,
+        elementId: props.elementId,
+        tabIndex: props.tabIndex,
       },
     });
 
@@ -1749,6 +1832,25 @@ export class TypeScriptParser implements LanguageParser {
         node,
       })
     );
+
+    // Create REFERENCES edges for ARIA ID references (e.g., aria-labelledby, aria-controls)
+    for (const ariaRef of props.ariaIdRefs) {
+      for (const targetId of ariaRef.targetIds) {
+        ctx.result.edges.push(
+          ctx.createEdge({
+            sourceEntityId: componentNode.entity_id,
+            targetEntityId: `unresolved:aria:${targetId}`,
+            edgeType: "REFERENCES",
+            node,
+            properties: {
+              ariaRelationType: ariaRef.relationType,
+              ariaAttribute: ariaRef.attrName,
+              referencedId: targetId,
+            },
+          })
+        );
+      }
+    }
 
     // Check for parent JSX element to create RENDERS edge
     let parentJSX = nodePath.parentPath;
@@ -1852,6 +1954,8 @@ export class TypeScriptParser implements LanguageParser {
     const hasKeyboardHandler = hasOnKeyDown || hasOnKeyUp || hasOnKeyPress;
     const hasRole = "role" in props.aria;
     const hasTabIndex = "tabIndex" in props.regular || "tabindex" in props.regular;
+    // tabIndex >= 0 makes element keyboard focusable
+    const isKeyboardFocusable = props.tabIndex !== null && props.tabIndex >= 0;
 
     // Interactive elements that don't need role/tabIndex
     const interactiveElements = new Set([
@@ -1866,12 +1970,20 @@ export class TypeScriptParser implements LanguageParser {
     const isNativeInteractive = interactiveElements.has(elementName.toLowerCase());
 
     // Flag potential a11y issues: onClick without keyboard support on non-interactive elements
+    // Only tabIndex >= 0 makes the element keyboard accessible (suppresses the warning)
+    // tabIndex={-1} still flags because element is not in tab order
     const potentialA11yIssue =
-      hasOnClick && !isNativeInteractive && !hasKeyboardHandler && !hasRole && !hasTabIndex;
+      hasOnClick && !isNativeInteractive && !hasKeyboardHandler && !hasRole && !isKeyboardFocusable;
 
     // Store as node properties on a synthetic node for query purposes
     // This allows SQL queries like: SELECT * FROM nodes WHERE properties->>'potentialA11yIssue' = 'true'
-    if (Object.keys(props.aria).length > 0 || potentialA11yIssue) {
+    // Create node if: has ARIA props, has a11y issue, has tabIndex, or has elementId
+    const hasAriaProps = Object.keys(props.aria).length > 0;
+    const hasAriaIdRefs = props.ariaIdRefs.length > 0;
+    const hasElementId = props.elementId !== null;
+    const hasTabIndexProp = props.tabIndex !== null;
+
+    if (hasAriaProps || potentialA11yIssue || hasAriaIdRefs || hasElementId || hasTabIndexProp) {
       const line = node.loc?.start.line ?? 1;
       const col = node.loc?.start.column ?? 0;
 
@@ -1889,11 +2001,13 @@ export class TypeScriptParser implements LanguageParser {
           ariaProps: props.aria,
           eventHandlers: props.handlers,
           hasSpreadProps: props.hasSpread,
-          isInteractive: isNativeInteractive || hasRole || hasTabIndex,
+          isInteractive: isNativeInteractive || hasRole || hasTabIndex || isKeyboardFocusable,
           potentialA11yIssue,
           a11yDetails: potentialA11yIssue
             ? "onClick without keyboard support on non-interactive element"
             : null,
+          elementId: props.elementId,
+          tabIndex: props.tabIndex,
         },
       });
 
@@ -1901,6 +2015,25 @@ export class TypeScriptParser implements LanguageParser {
 
       // Create CONTAINS edge
       ctx.result.edges.push(ctx.createContainsEdge(sourceEntityId, htmlNode.entity_id, node));
+
+      // Create REFERENCES edges for ARIA ID references (e.g., aria-labelledby, aria-controls)
+      for (const ariaRef of props.ariaIdRefs) {
+        for (const targetId of ariaRef.targetIds) {
+          ctx.result.edges.push(
+            ctx.createEdge({
+              sourceEntityId: htmlNode.entity_id,
+              targetEntityId: `unresolved:aria:${targetId}`,
+              edgeType: "REFERENCES",
+              node,
+              properties: {
+                ariaRelationType: ariaRef.relationType,
+                ariaAttribute: ariaRef.attrName,
+                referencedId: targetId,
+              },
+            })
+          );
+        }
+      }
     }
   }
 
