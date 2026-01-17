@@ -1,4 +1,4 @@
-# Actor Model: From Effects to State Machines
+# Actor Model: State Machines as Effects
 
 > Extending DevAC's effect model to discover, represent, and validate stateful behavior as first-class Actors.
 
@@ -6,6 +6,9 @@
 - [concepts.md](./concepts.md) — Core thesis, Four Pillars, glossary
 - [foundation.md](./foundation.md) — Effect handler pattern, effect types, rules
 - [validation.md](./validation.md) — Watch → Validate → Cache → Query
+- [ui-effects.md](./ui-effects.md) — JSX components, A11y, Storybook integration
+
+**Implementation**: See [actor-discovery.md](../implementation/actor-discovery.md) for how to build this.
 
 ---
 
@@ -13,20 +16,24 @@
 
 Code contains implicit state machines that aren't queryable:
 
-| Pattern | Example | What's Hidden |
-|---------|---------|---------------|
-| `useState` / `useReducer` | `const [isOpen, setIsOpen] = useState(false)` | States: closed, open. Events: open, close |
-| Event handler sequences | `onClick → validate → submit → redirect` | Flow: idle → validating → submitting → done |
-| Conditional logic | `if (user.isAuthenticated) { ... }` | States: anonymous, authenticated |
-| UI flows | Dialog open/close, form steps | Complete state machine buried in handlers |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Hidden State Machines                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  useState/useReducer     →  States: closed, open            │
+│  Event handlers          →  Flow: idle → validating → done  │
+│  Conditional logic       →  States: anonymous, authenticated│
+│  UI flows (dialogs)      →  Complete machine in handlers    │
+│                                                              │
+│  These ARE the documentation but they're not queryable.     │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**The gap**: DevAC extracts effects (FunctionCall, Store, Condition) but doesn't compose them into the **state machines they represent**. These state machines ARE the documentation—they describe what the system does.
+**The gap**: DevAC extracts effects (FunctionCall, Store, Condition) but doesn't compose them into the **state machines they represent**.
 
-**Our thesis**: By treating state machines as **higher-level effects** (Actors), we can:
-1. Discover them from effect sequences (static analysis)
-2. Validate them against runtime behavior (effect telemetry)
-3. Query them like any other effect
-4. Generate documentation automatically
+**Our thesis**: State machines ARE documentation—they describe what the system does. By treating them as **higher-level effects** (Actors), we can query, validate, and document them automatically.
 
 ---
 
@@ -40,58 +47,50 @@ Code contains implicit state machines that aren't queryable:
 - Actions performed on transitions (focus trap, API call)
 
 **Actors follow the same pattern**. The effect handler formula from [foundation.md](./foundation.md):
+
 ```
 effectHandler = (state, effect) => (state', [effect'])
 ```
 
 Applies directly to actors:
-```
-dialogHandler = (DialogState, UserEvent) => (DialogState', [FocusMove, APICall, Announce])
-```
-
-**Actors enable composition**. Actors can contain other actors:
-```
-CheckoutFlow (Actor)
-  ├── CartActor
-  ├── PaymentActor
-  └── ConfirmationActor
-```
-
-**Actors unify static and runtime**. Both produce the same Actor effect type:
-- Static: Inferred from code patterns
-- Runtime: Discovered from actual interactions
-
-### 2.2 The Effect Hierarchy (Extended)
-
-Building on [foundation.md Section 5.5](./foundation.md#55-effect-hierarchies), we extend the hierarchy:
 
 ```
-Level 0: Raw Effects (from AST)
-  │  Condition, Store, Retrieve, FunctionCall, Send
-  │  (Already in foundation.md)
-  │
-  ▼
-Level 1: Transition Effects (pattern-matched)
-  │  StateTransition { from, to, event, guard, actions }
-  │  (Inferred from effect sequences)
-  │
-  ▼
-Level 2: Actor Effects (grouped transitions)
-  │  Actor { id, states, transitions, context }
-  │  (State machine as queryable effect)
-  │
-  ▼
-Level 3: Domain Actors (business meaning)
-  │  PaymentFlow, AuthenticationFlow, BookingFlow
-  │  (Named, documented, validated)
-  │
-  ▼
-Level 4: ActorSystem (actors communicating)
-     ActorSystem { actors, communications }
-     (Full system behavior model)
+dialogHandler = (DialogState, UserEvent) => (DialogState', [FocusMove, APICall])
 ```
 
-**This mirrors domain effect composition**:
+**Actors enable composition**. Actors can contain other actors, creating a hierarchy that maps naturally to system architecture.
+
+### 2.2 The Effect Hierarchy
+
+Building on [foundation.md Section 5.5](./foundation.md#55-effect-hierarchies):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Effect Hierarchy                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Level 4: ActorSystem                                        │
+│     ↑     [Actors communicating with each other]             │
+│     │                                                        │
+│  Level 3: Domain Actors                                      │
+│     ↑     [PaymentFlow, AuthFlow, BookingFlow]              │
+│     │                                                        │
+│  Level 2: Actor Effects                                      │
+│     ↑     [State machine with states + transitions]          │
+│     │                                                        │
+│  Level 1: StateTransition                                    │
+│     ↑     [from → to, event, guard, actions]                │
+│     │                                                        │
+│  Level 0.5: Validated Effects (from tests)                   │
+│     ↑     [Runtime-confirmed, with execution context]        │
+│     │                                                        │
+│  Level 0: Raw Effects (from AST)                             │
+│           [Condition, Store, FunctionCall, Send]             │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+This mirrors domain effect composition:
 - Low-level: `FunctionCall("stripe.charges.create")`
 - Domain: `DomainEffect("Payment:Charge")`
 - Actor: `Actor("PaymentFlow")` with states: idle → processing → success/failed
@@ -102,148 +101,90 @@ Level 4: ActorSystem (actors communicating)
 
 Actors can be discovered from three complementary sources:
 
-### 3.1 Explicit Extraction (XState, etc.)
+### 3.1 Explicit Extraction
 
-**What**: Direct AST parsing of state machine definitions.
+**What**: Direct parsing of state machine definitions in code.
 
-**Patterns**:
-```typescript
-// XState v5
-const machine = setup({...}).createMachine({...})
+**Examples**:
+- XState `createMachine()` and `setup().createMachine()`
+- `useReducer` with explicit state patterns
+- Any library that defines state machines declaratively
 
-// XState v4
-const machine = createMachine({...})
-
-// useReducer with explicit states
-const reducer = (state, action) => {
-  switch (action.type) {
-    case 'OPEN': return { ...state, status: 'open' }
-    // ...
-  }
-}
-```
-
-**Output**: Machine definition directly in seeds.
-
-**Why it exists**: Some codebases explicitly define state machines. Extract them directly rather than inferring.
+**Output**: Machine definition directly in seeds, queryable as Actor effects.
 
 ### 3.2 Effect Path Analysis (Inference)
 
 **What**: Pattern recognition on effect sequences to infer implicit state machines.
 
 **The insight**: A state machine is a **higher-level effect** composed from lower-level effects:
+
 ```
-[Condition + Store + FunctionCall sequence] → StateTransition effect
-[Multiple StateTransition effects sharing state] → Actor effect
+[Condition + Store + FunctionCall] → StateTransition
+[Multiple StateTransitions sharing state] → Actor
 ```
 
-**Patterns to recognize**:
+**Patterns that indicate state machines**:
+- `Condition` effects → guards/branches → possible states
+- `Store` effects → state assignments → state variables
+- `FunctionCall` after conditions → transition actions
+- Event handlers (`onClick`, `onSubmit`) → triggering events
 
-| Effect Pattern | Indicates |
-|----------------|-----------|
-| `Condition` effects | Guards/branches → possible states |
-| `Store` effects | State assignments → state variables |
-| `FunctionCall` after conditions | Transition actions |
-| Event handlers (`onClick`, `onSubmit`) | Events that trigger transitions |
+### 3.3 Runtime Validation (Test-Driven)
 
-**Implementation approach**:
-1. Extend Rules Engine with `TransitionPattern` rule type
-2. Define patterns in `state-machine-patterns.md` (like `package-effects.md`)
-3. Rules match effect sequences → produce `StateTransition` effects
-4. Group related transitions → produce `Actor` effect
+**What**: Tests execute code paths, producing telemetry that validates static analysis.
 
-**Why it exists**: Most code contains implicit state machines that aren't explicitly defined. Effect path analysis discovers them.
+**The approach**:
+1. Tests run with OpenTelemetry instrumentation
+2. Spans capture effect execution with entity IDs
+3. Correlation matches runtime spans to static effects
+4. Result: "This effect was actually reached" vs "static only"
 
-### 3.3 Runtime Effect Telemetry
+**Why tests, not live observation**:
+- Tests are deterministic and repeatable
+- No custom browser instrumentation needed
+- CI/CD naturally produces runtime data
+- Same entity IDs enable correlation
 
-**What**: Runtime observation from any environment, converted to effects.
-
-**The generalization**: All runtime environments can produce **Effect Telemetry**:
-
-| Environment | MCP Server | What It Observes |
-|-------------|------------|------------------|
-| **Browser** | `browser-mcp` | A11y tree, DOM interactions, focus movement, network |
-| **React Native** | `expo-mcp` (future) | Component tree, gestures, navigation |
-| **Server** | `otel-mcp` | OpenTelemetry spans, traces, metrics |
-
-**Why they exist**: Static analysis sees what code *declares*. Runtime telemetry sees what code *does*. Together they validate each other.
-
-**The pattern**: All Effect Telemetry MCPs:
-1. Observe runtime behavior in their environment
-2. Convert observations to the same effect format
-3. Feed into the same seed database
-4. Enable comparison: static-inferred vs runtime-observed
+See [test-strategy.md](../spec/test-strategy.md) for how different test types contribute.
 
 ---
 
-## 4. Effect Telemetry MCPs
+## 4. Effect Types
 
-### 4.1 The Unified Pattern
+### 4.1 StateTransition
 
-Every Effect Telemetry MCP follows the same flow:
+Represents a single state change:
 
-```
-Runtime Environment → Observation → Effect Conversion → Seed Database
-       │                  │                │                │
-       │                  │                │                ▼
-       │                  │                │         Query alongside
-       │                  │                │         static effects
-       │                  │                ▼
-       │                  │         Same effect types:
-       │                  │         FunctionCall, Store, Send, etc.
-       │                  ▼
-       │           Environment-specific:
-       │           - Browser: DOM events, focus, network
-       │           - Mobile: gestures, navigation
-       │           - Server: spans, traces
-       ▼
-  Where code actually runs
-```
+| Property | Description |
+|----------|-------------|
+| `from` | Source state (or "*" for any) |
+| `to` | Target state |
+| `event` | Event name that triggers transition |
+| `guard` | Condition that must be true (optional) |
+| `actions` | Effects executed during transition |
+| `source` | How discovered: "static" or "runtime" |
 
-### 4.2 Browser Effect Telemetry (`browser-mcp`)
+### 4.2 Actor
 
-**Observes**:
-- Accessibility tree (interactive elements, roles, states)
-- DOM interactions (clicks, focus, keyboard)
-- Network activity (requests triggered by interactions)
-- Console messages (errors, warnings)
+Represents a complete state machine:
 
-**Converts to**:
-- `FunctionCall` effects for handler invocations
-- `Send` effects for network requests
-- `Store` effects for state changes (via DOM observation)
-- `StateTransition` effects for observed state changes
+| Property | Description |
+|----------|-------------|
+| `id` | Unique identifier |
+| `name` | Human-readable name |
+| `states` | All possible states |
+| `initialState` | Starting state |
+| `transitions` | StateTransition effect IDs |
+| `source` | "explicit", "inferred", or "validated" |
 
-### 4.3 Mobile Effect Telemetry (`expo-mcp` - Future)
+### 4.3 ActorSystem
 
-**Observes**:
-- Component tree structure
-- Gesture events (tap, swipe, long press)
-- Navigation transitions
-- Native module calls
+Represents actors communicating:
 
-### 4.4 Server Effect Telemetry (`otel-mcp`)
-
-**Observes**:
-- OpenTelemetry spans and traces
-- Database queries
-- External API calls
-- Message queue interactions
-
-### 4.5 Validation Loop
-
-The power comes from comparing static and runtime:
-
-```
-Static analysis says:    "Button click triggers submitForm()"
-Runtime telemetry says:  "Button click triggered submitForm() + analytics.track()"
-                                                                    │
-                                                                    ▼
-Gap detected: "analytics.track() not in static extraction"
-              → Missing rule OR dynamic behavior to document
-```
-
-This feeds into the quality loop from [ADR-0031](../adr/0031-architecture-quality-improvement-loop.md).
+| Property | Description |
+|----------|-------------|
+| `actors` | Actor effect IDs |
+| `communications` | Events sent between actors |
 
 ---
 
@@ -251,51 +192,25 @@ This feeds into the quality loop from [ADR-0031](../adr/0031-architecture-qualit
 
 ### 5.1 With Rules Engine
 
-The existing Rules Engine (see [foundation.md Section 5.6](./foundation.md#56-rules-effect-aggregation)) is extended with new rule types:
+The existing Rules Engine is extended with new rule types:
 
 | Rule Type | Input | Output |
 |-----------|-------|--------|
-| `DomainEffectRule` (existing) | FunctionCall patterns | Domain effects (Payment:Charge) |
-| `TransitionPatternRule` (new) | Effect sequences | StateTransition effects |
-| `ActorPatternRule` (new) | Grouped transitions | Actor effects |
-
-**Example TransitionPattern rule**:
-```typescript
-{
-  name: "useState-toggle",
-  pattern: {
-    sequence: [
-      { type: "Store", target: /^set[A-Z]/ },
-      { type: "Condition", references: "$target" }
-    ]
-  },
-  output: {
-    type: "StateTransition",
-    infer: {
-      stateVariable: "$target",
-      states: ["from condition branches"]
-    }
-  }
-}
-```
+| `DomainEffectRule` | FunctionCall patterns | Domain effects |
+| `TransitionPatternRule` | Effect sequences | StateTransition effects |
+| `ActorPatternRule` | Grouped transitions | Actor effects |
 
 ### 5.2 With Seeds
 
-Actors are stored as effects in `effects.parquet`:
+Actors are stored as effects in `effects.parquet`, queryable via SQL:
 
 ```sql
--- Find all Actors in the codebase
+-- Find all Actors
+SELECT * FROM effects WHERE effect_type = 'Actor';
+
+-- Find actors with specific states  
 SELECT * FROM effects 
-WHERE effect_type = 'Actor';
-
--- Find transitions for a specific Actor
-SELECT * FROM effects
-WHERE effect_type = 'StateTransition'
-  AND properties->>'actorId' = 'DialogMachine';
-
--- Find actors with specific states
-SELECT * FROM effects
-WHERE effect_type = 'Actor'
+WHERE effect_type = 'Actor' 
   AND properties->>'states' LIKE '%submitting%';
 ```
 
@@ -304,149 +219,62 @@ WHERE effect_type = 'Actor'
 Actors become first-class citizens in architecture diagrams:
 
 ```
-C4 Container Diagram
-├── WebApp (Container)
-│   ├── AuthenticationActor (state machine)
-│   ├── BookingFlowActor (state machine)
-│   └── PaymentActor (state machine)
-└── API (Container)
-    └── OrderProcessingActor (state machine)
+C4 Container: WebApp
+  ├── AuthenticationActor (state machine)
+  ├── BookingFlowActor (state machine)
+  └── PaymentActor (state machine)
 ```
-
-The C4 generator (see [ADR-0031](../adr/0031-architecture-quality-improvement-loop.md)) is extended to include Actors.
 
 ### 5.4 With Validation
 
-Actors participate in the validation quality loop:
+Actors participate in the quality loop (ADR-0031):
 
 | Check | What It Validates |
 |-------|------------------|
-| Static completeness | All useState/useReducer patterns have inferred Actors |
-| Runtime alignment | Static-inferred Actors match runtime-discovered behavior |
-| Documentation coverage | All Actors have human-validated descriptions |
-| Transition coverage | All transitions are exercised in tests |
+| Static completeness | All useState/useReducer have inferred Actors |
+| Runtime alignment | Static-inferred matches runtime-observed |
+| Documentation | All Actors have descriptions |
+| Test coverage | All transitions exercised |
 
 ---
 
-## 6. Effect Types (New)
+## 6. The Vision Realized
 
-### 6.1 StateTransition Effect
+When complete, you can answer with deterministic queries:
 
-Represents a single state change:
+- "What implicit state machines exist in this component?"
+- "What states can the BookingDialog be in?"
+- "Which transitions are never exercised by tests?"
+- "Show all actors in the PaymentFlow and how they communicate"
 
-```typescript
-type StateTransitionEffect = {
-  effect_type: "StateTransition"
-  from: string              // Source state (or "*" for any)
-  to: string                // Target state
-  event: string             // Event name that triggers transition
-  guard?: string            // Condition that must be true
-  actions: Effect[]         // Effects executed during transition
-  actorId: string           // Parent Actor this belongs to
-  source: "static" | "runtime"  // How it was discovered
-}
-```
-
-### 6.2 Actor Effect
-
-Represents a complete state machine:
-
-```typescript
-type ActorEffect = {
-  effect_type: "Actor"
-  id: string                // Unique identifier
-  name: string              // Human-readable name
-  states: string[]          // All possible states
-  initialState: string      // Starting state
-  context?: Record<string, unknown>  // Extended state (data)
-  transitions: string[]     // IDs of StateTransition effects
-  source: "explicit" | "inferred" | "runtime"
-  confidence?: number       // For inferred actors (0-1)
-}
-```
-
-### 6.3 ActorSystem Effect
-
-Represents actors communicating:
-
-```typescript
-type ActorSystemEffect = {
-  effect_type: "ActorSystem"
-  actors: string[]          // IDs of Actor effects
-  communications: {
-    from: string            // Source Actor ID
-    to: string              // Target Actor ID
-    event: string           // Event sent between actors
-  }[]
-}
-```
+**This is the same thesis as DevAC's core**: Make the system deterministically queryable for analysis, documentation, and verification.
 
 ---
 
 ## 7. Glossary
 
-For Actor-related terminology, see the **Actor Terms** section in [concepts.md](./concepts.md#actor-terms).
+See [concepts.md](./concepts.md#actor-terms) for full definitions:
 
-Key terms defined there:
-- **Actor**, **StateTransition**, **ActorSystem** — effect types
-- **TransitionPattern**, **ActorPattern** — rule types
-- **Effect Telemetry**, **Effect Telemetry MCP** — runtime observation concepts
-
----
-
-## 8. Research Questions
-
-Before full implementation, these questions need investigation:
-
-1. **Pattern reliability**: What effect patterns reliably indicate state machines vs. conditional logic?
-2. **Implicit state handling**: How to handle `useState` without clear machine structure?
-3. **Rules Engine capability**: Can the current Rules Engine handle sequence matching, or need new infrastructure?
-4. **Cross-component actors**: How to model actors that span multiple components?
-5. **Existing tools**: How do other tools (Stately, XState visualizer) approach state machine inference?
+| Term | Definition |
+|------|------------|
+| **Actor** | Higher-level effect representing a state machine |
+| **StateTransition** | Effect representing a state change |
+| **ActorSystem** | Multiple actors communicating |
+| **Effect Telemetry** | Runtime observation as effects |
+| **TransitionPattern** | Rule matching effects → transitions |
 
 ---
 
-## 9. Implementation Phases
+## 8. Note on Implementation Documentation
 
-### Phase 1: Explicit Extraction
-- Parse XState `createMachine()` and `setup().createMachine()` patterns
-- Store as Actor effects in seeds
-- Enable basic queries
+> The documentation of what is currently implemented is generated from the code by DevAC itself. This vision document describes the conceptual model; the implementation docs are the source of truth for current capabilities.
 
-### Phase 2: Effect Path Analysis (MVP)
-- Define initial TransitionPattern rules
-- Start with simple patterns (useState toggle, reducer switch)
-- Validate with known state machines
-
-### Phase 3: Runtime Telemetry Integration
-- Implement browser-mcp effect conversion
-- Compare static vs runtime Actors
-- Feed gaps into quality loop
-
-### Phase 4: Full Actor System
-- Detect actor communication patterns
-- Generate ActorSystem effects
-- Enhance C4 diagrams with actors
+See:
+- [actor-discovery.md](../implementation/actor-discovery.md) — How to implement actor discovery
+- [otel-integration.md](../implementation/otel-integration.md) — OTel + test-driven approach
+- [gaps.md](../spec/gaps.md) — What's not yet implemented
 
 ---
 
-## 10. What This Document Is
-
-This document extends the DevAC conceptual foundation with the **Actor model**:
-
-**This document defines**:
-- Actors as higher-level effects (state machines)
-- Three sources of Actor discovery (explicit, inferred, runtime)
-- Effect Telemetry as generalized runtime observation
-- Integration with existing Rules Engine, Seeds, C4, and Validation
-- New effect types (StateTransition, Actor, ActorSystem)
-
-**This document does NOT define**:
-- Implementation details (those belong in implementation docs)
-- Specific rule definitions (those belong in `state-machine-patterns.md`)
-- API specifications (those belong in package docs)
-
----
-
-*Version: 1.0 — Initial Actor Model specification*
-*This extends [foundation.md](./foundation.md) with Actor-level effects.*
+*Version: 2.0 — Clean vision without implementation details*
+*Extends [foundation.md](./foundation.md) with Actor-level effects.*
