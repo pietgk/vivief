@@ -221,10 +221,13 @@ LLMs access the same data via MCP:
 | Document | Relationship |
 |----------|--------------|
 | [Concepts](./concepts.md) | Four Pillars, terminology, glossary |
+| [Foundation](./foundation.md) | Effect Handler pattern, Human/LLM/System division |
+| [Actors](./actors.md) | State machines as effects, runtime telemetry, validation quality loop |
+| [UI Effects](./ui-effects.md) | A11y as queryable state, Storybook integration |
+| [Test Strategy](../spec/test-strategy.md) | How tests validate effects — unit, integration, Storybook, E2E |
 | [ADR-0017: Validation Hub Cache](../adr/0017-validation-hub-cache.md) | Why DuckDB for validation cache |
 | [ADR-0018: Unified Diagnostics Model](../adr/0018-unified-diagnostics-model.md) | Schema design for unified diagnostics |
 | [ADR-0019: Coverage Validator](../adr/0019-coverage-validator.md) | Coverage as first-class diagnostic |
-| [Foundation](./foundation.md) | Effect Handler pattern, Human/LLM/System division |
 
 ---
 

@@ -4,6 +4,50 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
 
+
+# e2e pages element 
+
+lets figure out how we combine the concepts tha browser-mcp can:
+get all page accessibility elements as effects
+trigger an effect on any of these elements
+get updatied page accessibility elements after triggering an effect
+generating 1 big xstate machine of the system by 'clicking' and all possible ones
+
+
+- we have the concept of extracting 
+  - code -> ast -> effects -> higher level effect
+  - ui 
+
+lets try to define how we describe ui in our effect system
+- we have code -> ast -> effects -> higher level effect
+in https://github.com/pietgk/vivief/issues/187 we researched mapping html (being UI) to effect graphs
+- we are looking into describing effect-graphs (state machines could be a nice more usable way) as a possible way to enable making effects more understandable.
+
+i am looking for a few different ways to turn this in the next elegant way to make our vivief effect system 
+and the effect improvement loop more deterministic and having less friction going from deterministic code extracted affect to c4 documentation to matching it with the reasoning c4 documentation.
+i think you should look at the current implementation and documentation (foundation, concepts and the adr with the improvement loop and c4 validated and generated concept as a starting point. the ui part from html and from react component in the code and the a11y ideas can help to define this.
+
+lets first create the concepts clear without any implementation details yet as i first need the feects and the concept of higher level effects for code and ui with xstate from path traversal from effects
+
+can you tunr this into a minimal prompt to make sure our starting question is clear and consice
+
+phase 3 is where we need to improve our vision.
+- xstate machines can come from xstate machines used in the code,
+- but also can come from combining effects detecting state and event from them and creating xstate machines from analysing flow. a kind of effect path analysis. maybe ast -> effects need to be improved, maybe pattern recognition is needed, maybe research on how others do this. be i think this needs full attention to see if we can difine this as clear as usable as the rest of the document, it could be seen in the same way as creating higher level effects but this time the higher level effect is a statemachine, its probably overlapping with effect hierarch as a grouping form enabling them to become actors. the idea of a higher level effect being an actor might be a very powerfull concept that is already closer to the documentation itself
+
+
+the current plan has a lot of history and evolution and a review context making it harder to understand read and evaluate given that we want the revised idea in a clean high quality that delivers the goals.
+so lets create a high quality cleaned up docs spec where needed (its allowed to move some to docs/archive if that makes the vision more consistent and readable) our vision should exclude implementation details (create a seperate implementation document and a seperate gaps document as needed).
+this so we have a resulting vision that is more stable and implementation that are clean on how to implement it and plan remaining gaps both in solid seperate files.
+lets make sure we end up with a coherent total vision with the existing vision and the current implementation and the ui component extraction with accessibility extraction cleanly defined with the otel ideas 
+and high quality static jsx component extraction.
+lets use the visual digrams to make sure the ideas are understandable in an easy comprehensible way.
+also make explicit how unit, integration, storybook play tests are use to their advantage to achieve the best match where can also state that storybook also is inherently part of the documentation.
+the mapping to 'effect actors' and storybook visual ui components shout for a pleasant usable idea to integrate.
+
+the idea is that the vison docs and the implementation file can be used as a starting point for a plan
+
+
 # notes
 
 lets keep an eye on devac-cli/docs/package-effects.md grouping got lost in pr 122 2026-01-10 versus 2026-01-06
