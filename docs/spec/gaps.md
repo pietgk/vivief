@@ -55,6 +55,40 @@ JSX extraction has been implemented, enabling A11y and Actor discovery phases.
 
 ---
 
+## Phase 0 Known Limitations
+
+**Status**: 📋 Documented (Low Priority)
+
+Minor issues identified during quality review that can be addressed when needed:
+
+| Gap | Description | Priority | Notes |
+|-----|-------------|----------|-------|
+| ⬜ Parent JSX boundary handling | JSX in callbacks may link to outer parent incorrectly | Low | Defer until real problem occurs |
+| ⬜ Method refactoring | `handleJSXElement` is ~120 lines, could be split | Low | Code style, not a bug |
+| ⬜ Node position deduplication | Two JSX at same line:column could collide | Low | Unlikely in real code |
+
+---
+
+## Test Coverage Gaps (Deferred)
+
+**Status**: 📋 Documented (Complex Mocking Required)
+
+These gaps require complex mocking that conflicts with Vitest's module hoisting:
+
+| Gap | Description | Priority | Notes |
+|-----|-------------|----------|-------|
+| ⬜ getIssuesForContext() tests | Requires child_process mocking with callback pattern | Medium | Needs research on spawn mocking |
+| ⬜ getReviewsForContext() tests | Same as above | Medium | Same solution needed |
+| ⬜ Performance/scale tests | Tests with 1000+ items | Low | Add when performance issues arise |
+| ⬜ Concurrent operation tests | Race condition testing | Low | Add when bugs reported |
+
+**Research needed:**
+- How to mock `child_process.exec` with Vitest's hoisting
+- Consider using `spawn` instead of `exec` for better testability
+- Explore `vitest-mock-process` or similar libraries
+
+---
+
 ## Phase 1: A11y Attribute Extraction
 
 **Status**: 🔄 Partially complete (merged with Phase 0)
@@ -195,6 +229,7 @@ Items requiring investigation before implementation:
 |-----|-------------|--------|
 | ✅ jsx-extraction.test.ts | Comprehensive tests demonstrating JSX parsing | Created |
 | ✅ phase-0-plan.md | Phase 0 implementation plan | Created |
+| ⬜ handleJSXElement refactoring | Split into smaller helper methods | Low priority |
 | ⬜ actor-discovery.md | Implementation guide for Actor discovery | Not created |
 | ⬜ Storybook integration guide | How to set up OTel with Storybook | Not created |
 

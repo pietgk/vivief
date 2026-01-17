@@ -572,6 +572,49 @@ const App = () => (
       expect(names).toEqual(["DataDisplay", "DataProvider"]);
     });
 
+    it("handles JSX in nested callbacks correctly", async () => {
+      // Test case for parent traversal across callback boundaries
+      // This verifies that JSX inside callbacks (useEffect, map, etc.)
+      // correctly links to the outer parent JSX component
+      const code = `
+const Layout = () => (
+  <Container>
+    {items.map(item => (
+      <Item key={item.id} />
+    ))}
+  </Container>
+);
+`;
+
+      const result = await parser.parseContent(code, "test.tsx", testConfig);
+
+      // Find the components
+      const containerNode = result.nodes.find(
+        (n) => n.kind === "jsx_component" && n.name === "Container"
+      );
+      const itemNode = result.nodes.find((n) => n.kind === "jsx_component" && n.name === "Item");
+
+      expect(containerNode).toBeDefined();
+      expect(itemNode).toBeDefined();
+
+      // Find RENDERS edges where Item is the target
+      const rendersToItem = result.edges.filter(
+        (e) => e.edge_type === "RENDERS" && e.target_entity_id === itemNode?.entity_id
+      );
+
+      // Item should be rendered by Container (its visual parent in the JSX tree)
+      // even though it's inside a callback function
+      expect(rendersToItem.length).toBeGreaterThanOrEqual(1);
+
+      // Verify Container renders Item (through the callback)
+      if (rendersToItem.length > 0) {
+        const containerRendersItem = rendersToItem.find(
+          (e) => e.source_entity_id === containerNode?.entity_id
+        );
+        expect(containerRendersItem).toBeDefined();
+      }
+    });
+
     it("handles typed React.FC components", async () => {
       const code = `
 import React from "react";

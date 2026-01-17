@@ -521,7 +521,7 @@ describe("likec4-dynamic-generator", () => {
 
       // Payment chains should score higher due to external + payment domain
       if (chains.length >= 2) {
-        expect(chains[0]?.score).toBeGreaterThanOrEqual(chains[1]?.score);
+        expect(chains[0]?.score ?? 0).toBeGreaterThanOrEqual(chains[1]?.score ?? 0);
       }
     });
 
