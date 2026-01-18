@@ -68,6 +68,7 @@ and compare vivief against them this to enable design choices and next steps
 | Hub federation | ✅ Strong | Three-layer model is well-designed |
 | JSX/UI extraction | ✅ Strong | Phase 0-1 complete, 54+ tests |
 | WCAG validation | ✅ Strong | Phase 2 complete, 5 rules, 73 tests |
+| Hook-based automation | 🟡 Medium | Vision clear (new doc), implementation zero |
 | Actor model | 🟡 Medium | Vision clear, implementation pending |
 | Rules Engine | 🟡 Medium | Works but no sequence matching |
 | Effect correlation | ⬜ Weak | OTel integration not implemented |
@@ -121,6 +122,7 @@ and compare vivief against them this to enable design choices and next steps
 | **Effect correlation** | Match static to runtime via OTel | Not implemented | Cannot validate test coverage |
 | **Sequence rules** | Match effect sequences | Not implemented | Cannot express "A then B" |
 | ~~Auto hub sync~~ | ~~Implicit cache updates~~ | ✅ **Complete** (`--sync` flag) | Reduced friction |
+| **Hook-based triggers** | Auto-inject diagnostics, solve until clean | Not implemented | Manual workflow only |
 | **Scale benchmarking** | Handle large codebases | No benchmark data | Cannot compare to Augment (400k files) |
 | **Language coverage** | Multi-language support | 3 languages | Aider supports 40+; limited reach |
 | **Embeddings/RAG** | Semantic code search | SQL only | No vector-based similarity search |
@@ -343,6 +345,7 @@ Documentation Gen   ████████████████░░░░
 4. **MCP-native**: Built for AI assistants from the ground up (21 tools)
 5. **Federation with DuckDB**: Cross-repo queries without central server overhead
 6. **WCAG validation as diagnostics** (NEW): A11y issues alongside type/lint errors—no other tool integrates WCAG into a unified diagnostics pipeline
+7. **Hook + Instructions pattern** (PLANNED): Reliable injection via hooks, intelligent action via instructions—no other tool combines deterministic triggers with LLM judgment
 
 ---
 
@@ -417,7 +420,20 @@ Documentation Gen   ████████████████░░░░
 | WcagValidator integration | ✅ Complete | Unified diagnostics |
 | A11y in validation pipeline | ✅ Complete | Full mode validation |
 
-**Phase 3A: OTel Integration (NEXT PRIORITY)**
+**Phase 3: Hook-Based Validation Triggering (NEW - NEXT PRIORITY)**
+
+| Task | Priority | Effort | Impact |
+|------|----------|--------|--------|
+| Create hooks.json with UserPromptSubmit/Stop | P0 | Low | Auto-inject diagnostic status |
+| Add `devac status --inject` command | P0 | Medium | Hook-compatible output |
+| Add `devac validate --on-stop` command | P0 | Medium | Resolution instructions |
+| Progressive disclosure (`level` param) | P1 | Low | Reduce context noise |
+| Update diagnostics-triage skill | P1 | Low | Document auto-injection |
+
+**Vision:** See @docs/vision/combine-reliable-context-injection-with-intelligent-instruction-following.md
+**ADR:** See @docs/adr/0043-hook-based-validation-triggering.md
+
+**Phase 4A: OTel Integration**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -425,7 +441,15 @@ Documentation Gen   ████████████████░░░░
 | Test span exporter | P1 | Medium | Captures runtime effects |
 | Correlation queries | P2 | Medium | "Which effects are tested?" |
 
-**Phase 4: Actor Discovery**
+**Phase 4B: Effect Correlation**
+
+| Task | Priority | Effort | Impact |
+|------|----------|--------|--------|
+| OTel spans table | P1 | Medium | Store runtime data |
+| Correlation view | P2 | Medium | Join effects and spans |
+| Coverage queries | P2 | Medium | "Which effects are tested?" |
+
+**Phase 5: Actor Discovery**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -433,7 +457,7 @@ Documentation Gen   ████████████████░░░░
 | Effect sequence rules | P2 | High | Enables inference |
 | Actor effect type | P2 | Medium | Queryable state machines |
 
-**Phase 5: Scalability & Competitive Parity (NEW)**
+**Phase 6: Scalability & Competitive Parity**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -459,6 +483,7 @@ Documentation Gen   ████████████████░░░░
 | **Nx** | DevAC analysis in Nx Cloud | Deeper affected analysis |
 | **Storybook** | Effects in Storybook addon | Unified component docs |
 | **Anthropic/Claude** | Official DevAC MCP | Better AI coding experience |
+| **Claude Code Hooks** | Native hook integration | First-class validation automation |
 
 ### 5.4 Success Metrics (Updated 2026-01-18)
 
@@ -510,8 +535,8 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 - **Yes, if** you need queryable code intelligence for AI assistants, architecture documentation, or cross-repo analysis
 - **Yes, if** you want A11y/WCAG validation integrated with your code analysis (unique capability)
 - **Yes, if** you're building React apps and want queryable component hierarchy
-- **Wait, if** you need runtime correlation via OTel (Phase 3A)
-- **Wait, if** you need XState/Actor discovery (Phase 4)
+- **Wait, if** you need runtime correlation via OTel (Phase 4A)
+- **Wait, if** you need XState/Actor discovery (Phase 5)
 - **No, if** you only need code search (use Sourcegraph) or build orchestration (use Nx)
 - **No, if** you need 40+ language support immediately (use Aider's repo map)
 
@@ -570,6 +595,9 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 - [AI Code Documentation - IBM](https://www.ibm.com/think/insights/ai-code-documentation-benefits-top-tips)
 - [AI for Code Documentation - Graphite](https://graphite.com/guides/ai-code-documentation-automation)
 - [Top Documentation Generator Tools 2025](https://kodesage.ai/blog/7-documentation-generators)
+
+### Hook-Based Automation (Added 2026-01-18)
+- [Personal Assistant Plugin Analysis](../vision/combine-reliable-context-injection-with-intelligent-instruction-following.md) — Internal analysis
 
 ### New Competitive Analysis (Added 2026-01-18)
 - [GitHub Stack Graphs](https://github.blog/2021-12-09-introducing-stack-graphs/) — Petabyte-scale code navigation

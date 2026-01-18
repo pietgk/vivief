@@ -172,7 +172,39 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 
 ---
 
-## Phase 3A: OTel Integration
+## Phase 3: Hook-Based Validation Triggering (NEW)
+
+**Status**: ⬜ Not started
+
+Hook-based automation to make validation proactive rather than manual. This phase makes DevAC a first-class Claude Code citizen with automatic context injection.
+
+**Vision Document:** @docs/vision/combine-reliable-context-injection-with-intelligent-instruction-following.md
+**ADR:** @docs/adr/0043-hook-based-validation-triggering.md
+
+| Gap | Description | Priority | Notes |
+|-----|-------------|----------|-------|
+| ⬜ hooks.json creation | Create `plugins/devac/hooks/hooks.json` with UserPromptSubmit and Stop hooks | High | Core infrastructure |
+| ⬜ `devac status --inject` | CLI command outputting hook-compatible JSON with diagnostic counts | High | UserPromptSubmit integration |
+| ⬜ `devac validate --on-stop` | CLI command running validation and outputting resolution instructions | High | Stop hook integration |
+| ⬜ Progressive disclosure | Add `level` parameter to `get_all_diagnostics` MCP tool | Medium | Reduce context noise |
+| ⬜ Session context | Track edited files per session for targeted validation | Medium | Performance optimization |
+| ⬜ diagnostics-triage skill update | Document auto-injection behavior | Low | User awareness |
+
+**Files to create/modify:**
+- `plugins/devac/hooks/hooks.json` - Hook definitions (CREATE)
+- `packages/devac-cli/src/commands/status.ts` - Add `--inject` flag (MODIFY)
+- `packages/devac-cli/src/commands/validate.ts` - Add `--on-stop` flag (MODIFY)
+- `packages/devac-mcp/src/tools/diagnostics.ts` - Add `level` parameter (MODIFY)
+- `plugins/devac/skills/diagnostics-triage/SKILL.md` - Document auto-injection (MODIFY)
+
+**Validation:**
+- UserPromptSubmit: Introduce error, start session, verify status reminder appears
+- Stop: Edit file with error, complete response, verify resolution instructions
+- Progressive: Test all three levels (counts, summary, details)
+
+---
+
+## Phase 4A: OTel Integration
 
 **Status**: ⬜ Not started
 
@@ -197,7 +229,7 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 
 ---
 
-## Phase 3B: Effect Correlation
+## Phase 4B: Effect Correlation
 
 **Status**: ⬜ Not started
 
@@ -217,11 +249,11 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 
 ---
 
-## Phase 4: Actor Discovery
+## Phase 5: Actor Discovery
 
 **Status**: ⬜ Not started
 
-### 4A: Explicit XState Extraction
+### 5A: Explicit XState Extraction
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
@@ -230,7 +262,7 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 | ⬜ Machine state extraction | Extract states, events, transitions | High |
 | ⬜ Actor effect creation | Create Actor effects from parsed machines | High |
 
-### 4B: Effect Path Analysis (Inference)
+### 5B: Effect Path Analysis (Inference)
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
@@ -240,7 +272,7 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 | ⬜ Condition → guard mapping | Map conditionals to transition guards | Medium |
 | ⬜ ActorPattern rules | Group transitions into Actors | Medium |
 
-### 4C: Research Needed
+### 5C: Research Needed
 
 | Question | Status |
 |----------|--------|
@@ -252,7 +284,7 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 
 ---
 
-## Phase 5: Scalability & Competitive Parity (NEW)
+## Phase 6: Scalability & Competitive Parity
 
 **Status**: ⬜ Not started
 
@@ -286,8 +318,10 @@ Items requiring investigation before implementation:
 | Implicit state handling | useState without clear machine structure | ⬜ |
 | Cross-component actors | Actors spanning multiple components | ⬜ |
 | Sequence matching | Rules Engine capability for patterns | ⬜ |
-| Scale benchmarking | Performance at 100k+ nodes vs competitors | ⬜ (NEW) |
-| Embeddings/RAG | Vector search vs SQL-only tradeoffs | ⬜ (NEW) |
+| Scale benchmarking | Performance at 100k+ nodes vs competitors | ⬜ |
+| Embeddings/RAG | Vector search vs SQL-only tradeoffs | ⬜ |
+| Hook event patterns | Best practices for UserPromptSubmit/Stop hooks | ⬜ (NEW) |
+| Session state management | How to track edited files across messages | ⬜ (NEW) |
 
 ---
 
@@ -312,8 +346,10 @@ When all gaps are closed:
 | JSX components queryable | 100% extracted | ✅ Complete |
 | A11y attributes queryable | All ARIA + interactive elements | ✅ Complete |
 | WCAG violations in diagnostics | Alongside type/lint errors | ✅ Complete |
-| Effect-test correlation | 100% of tested effects matched | ⬜ Phase 3B |
-| Actor discovery | Explicit + inferred machines queryable | ⬜ Phase 4 |
+| Hook automation active | Plugin has working hooks | ⬜ Phase 3 |
+| Auto-injection working | Diagnostic status injected on issues | ⬜ Phase 3 |
+| Effect-test correlation | 100% of tested effects matched | ⬜ Phase 4B |
+| Actor discovery | Explicit + inferred machines queryable | ⬜ Phase 5 |
 
 **Competitive Benchmarks** (NEW - from 2026-01-18 review):
 
@@ -332,7 +368,8 @@ When all gaps are closed:
 - This document should be updated as implementation progresses
 - New gaps discovered during implementation should be added here
 - Consider splitting into separate tracking issues as phases begin
-- **2026-01-18**: Added Phase 5 (Scalability & Competitive Parity) based on expanded competitive analysis
+- **2026-01-18**: Added Phase 3 (Hook-Based Validation Triggering) from vision document analysis
+- **2026-01-18**: Added Phase 6 (Scalability & Competitive Parity) based on expanded competitive analysis
 - **2026-01-18**: Added competitive benchmarks to Success Metrics
 
 ---
@@ -341,4 +378,5 @@ When all gaps are closed:
 *Phase 0 completed: 2026-01-17*
 *Phase 1 completed: 2026-01-17*
 *Phase 2 completed: 2026-01-18*
-*Phase 5 added: 2026-01-18* (Scalability gaps from competitive analysis)
+*Phase 3 added: 2026-01-18* (Hook-based validation triggering from vision document)
+*Phase 6 added: 2026-01-18* (Scalability gaps from competitive analysis)
