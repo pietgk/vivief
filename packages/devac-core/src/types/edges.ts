@@ -26,7 +26,9 @@ export type EdgeType =
   | "ACCESSES" // Accesses property/field
   | "THROWS" // Function throws error type
   | "AWAITS" // Awaits promise/async call
-  | "YIELDS"; // Generator yields value
+  | "YIELDS" // Generator yields value
+  | "RENDERS" // JSX: Component renders another component as child
+  | "PASSES_PROPS"; // JSX: Component passes props to child component
 
 /**
  * Parsed edge from structural analysis

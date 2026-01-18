@@ -54,6 +54,60 @@ import {
 } from "./scoped-name-generator.js";
 
 // ============================================================================
+// JSX Types
+// ============================================================================
+
+/**
+ * ARIA attributes that reference element IDs
+ * These can contain space-separated lists of IDs (for multiple: true)
+ */
+const ARIA_ID_REFERENCE_ATTRS: Record<string, { multiple: boolean; relationType: string }> = {
+  "aria-labelledby": { multiple: true, relationType: "labelledby" },
+  "aria-describedby": { multiple: true, relationType: "describedby" },
+  "aria-controls": { multiple: true, relationType: "controls" },
+  "aria-owns": { multiple: true, relationType: "owns" },
+  "aria-flowto": { multiple: true, relationType: "flowto" },
+  "aria-activedescendant": {
+    multiple: false,
+    relationType: "activedescendant",
+  },
+  "aria-errormessage": { multiple: false, relationType: "errormessage" },
+  "aria-details": { multiple: false, relationType: "details" },
+};
+
+/**
+ * ARIA ID reference extracted from an attribute
+ */
+interface AriaIdReference {
+  /** The attribute name (e.g., "aria-labelledby") */
+  attrName: string;
+  /** The relation type (e.g., "labelledby") */
+  relationType: string;
+  /** The target IDs referenced */
+  targetIds: string[];
+}
+
+/**
+ * Result of extracting props from JSX attributes
+ */
+interface JSXPropsResult {
+  /** Regular props (className, id, data-*, etc.) */
+  regular: Record<string, string | boolean | null>;
+  /** ARIA attributes (aria-*, role) */
+  aria: Record<string, string>;
+  /** Event handler names (onClick, onKeyDown, etc.) */
+  handlers: string[];
+  /** Whether spread props are used ({...props}) */
+  hasSpread: boolean;
+  /** Element ID if present (static values only) */
+  elementId: string | null;
+  /** tabIndex value if present */
+  tabIndex: number | null;
+  /** ARIA ID references for creating REFERENCES edges */
+  ariaIdRefs: AriaIdReference[];
+}
+
+// ============================================================================
 // JSDoc Extraction Utilities
 // ============================================================================
 
@@ -68,7 +122,9 @@ import {
  */
 function extractDocumentation(node: BabelNode, parentNode?: BabelNode | null): string | null {
   // Type for node with comments
-  type NodeWithComments = BabelNode & { leadingComments?: Array<{ type: string; value: string }> };
+  type NodeWithComments = BabelNode & {
+    leadingComments?: Array<{ type: string; value: string }>;
+  };
 
   // First try the node itself
   let comments = (node as NodeWithComments).leadingComments;
@@ -374,7 +430,10 @@ function extractUrlFromArguments(args: t.CallExpression["arguments"]): string | 
  * - /${STAGE}/service-endpoints/...
  * - /v1/internal/...
  */
-function isM2MCall(urlPattern: string): { isM2M: boolean; targetService: string | null } {
+function isM2MCall(urlPattern: string): {
+  isM2M: boolean;
+  targetService: string | null;
+} {
   // Pattern: /:STAGE/service-endpoints/endpoint
   const m2mMatch = urlPattern.match(/\/:?\w+\/(\w+)-endpoints?\//i);
   if (m2mMatch) {
@@ -595,6 +654,19 @@ export class TypeScriptParser implements LanguageParser {
       // biome-ignore lint/suspicious/noExplicitAny: Babel traverse callback types are untyped
       TSEnumDeclaration: (nodePath: any) => {
         this.handleEnum(nodePath, ctx, fileEntityId);
+      },
+
+      // ========================================================================
+      // JSX/TSX specific
+      // ========================================================================
+      // biome-ignore lint/suspicious/noExplicitAny: Babel traverse callback types are untyped
+      JSXElement: (nodePath: any) => {
+        this.handleJSXElement(nodePath, ctx, fileEntityId);
+      },
+
+      // biome-ignore lint/suspicious/noExplicitAny: Babel traverse callback types are untyped
+      JSXFragment: (nodePath: any) => {
+        this.handleJSXFragment(nodePath, ctx, fileEntityId);
       },
     });
   }
@@ -1496,6 +1568,476 @@ export class TypeScriptParser implements LanguageParser {
   }
 
   // ==========================================================================
+  // JSX Handler Methods
+  // ==========================================================================
+
+  /**
+   * Result of extracting props from JSX attributes
+   */
+  private extractJSXProps(attributes: (t.JSXAttribute | t.JSXSpreadAttribute)[]): JSXPropsResult {
+    const result: JSXPropsResult = {
+      regular: {},
+      aria: {},
+      handlers: [],
+      hasSpread: false,
+      elementId: null,
+      tabIndex: null,
+      ariaIdRefs: [],
+    };
+
+    for (const attr of attributes) {
+      if (t.isJSXSpreadAttribute(attr)) {
+        result.hasSpread = true;
+        continue;
+      }
+
+      if (!t.isJSXIdentifier(attr.name) && !t.isJSXNamespacedName(attr.name)) {
+        continue;
+      }
+
+      const name = t.isJSXIdentifier(attr.name)
+        ? attr.name.name
+        : `${attr.name.namespace.name}:${attr.name.name.name}`;
+
+      // Extract element ID (static values only)
+      if (name === "id") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string" && !value.startsWith("{")) {
+          result.elementId = value;
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      // Extract tabIndex
+      if (name === "tabIndex" || name === "tabindex") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string") {
+          const parsed = Number.parseInt(value, 10);
+          if (!Number.isNaN(parsed)) {
+            result.tabIndex = parsed;
+          }
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      // ARIA attributes (aria-* and role)
+      if (name.startsWith("aria-") || name === "role") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (value !== null) {
+          const strValue = String(value);
+          result.aria[name] = strValue;
+
+          // Check if this is an ARIA ID-referencing attribute
+          const ariaRefConfig = ARIA_ID_REFERENCE_ATTRS[name];
+          if (ariaRefConfig && !strValue.startsWith("{")) {
+            // Parse ID(s) - can be space-separated
+            const ids = strValue.split(/\s+/).filter((id) => id.length > 0);
+            if (ids.length > 0) {
+              result.ariaIdRefs.push({
+                attrName: name,
+                relationType: ariaRefConfig.relationType,
+                targetIds: ids,
+              });
+            }
+          }
+        }
+        continue;
+      }
+
+      // Event handlers (onClick, onKeyDown, etc.)
+      if (
+        name.startsWith("on") &&
+        name.length > 2 &&
+        name[2] !== undefined &&
+        name[2] === name[2].toUpperCase()
+      ) {
+        result.handlers.push(name);
+        continue;
+      }
+
+      // Regular props
+      result.regular[name] = this.extractJSXAttributeValue(attr.value);
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract the value from a JSX attribute
+   */
+  private extractJSXAttributeValue(value: t.JSXAttribute["value"]): string | boolean | null {
+    if (value === null) {
+      return true; // Boolean attribute: <Button disabled />
+    }
+    if (t.isStringLiteral(value)) {
+      return value.value;
+    }
+    if (t.isJSXExpressionContainer(value)) {
+      const expr = value.expression;
+      if (t.isJSXEmptyExpression(expr)) {
+        return null;
+      }
+      if (t.isIdentifier(expr)) {
+        return `{${expr.name}}`;
+      }
+      if (t.isStringLiteral(expr)) {
+        return expr.value;
+      }
+      if (t.isNumericLiteral(expr)) {
+        return String(expr.value);
+      }
+      // Handle negative numbers: {-1} is a UnaryExpression with operator "-"
+      if (t.isUnaryExpression(expr) && expr.operator === "-" && t.isNumericLiteral(expr.argument)) {
+        return String(-expr.argument.value);
+      }
+      if (t.isBooleanLiteral(expr)) {
+        return expr.value;
+      }
+      if (t.isTemplateLiteral(expr) && expr.quasis.length === 1 && expr.quasis[0]) {
+        return expr.quasis[0].value.raw;
+      }
+      // For complex expressions, return a placeholder
+      return "{...}";
+    }
+    if (t.isJSXElement(value)) {
+      return "{<JSX>}";
+    }
+    if (t.isJSXFragment(value)) {
+      return "{<Fragment>}";
+    }
+    return null;
+  }
+
+  /**
+   * Extract component name from JSXMemberExpression (e.g., Modal.Header)
+   */
+  private extractJSXMemberName(expr: t.JSXMemberExpression): string {
+    const parts: string[] = [];
+    let current: t.JSXMemberExpression | t.JSXIdentifier = expr;
+
+    while (t.isJSXMemberExpression(current)) {
+      parts.unshift(current.property.name);
+      current = current.object;
+    }
+
+    if (t.isJSXIdentifier(current)) {
+      parts.unshift(current.name);
+    }
+
+    return parts.join(".");
+  }
+
+  /**
+   * Handle JSX elements to create component nodes and hierarchy edges
+   *
+   * Creates:
+   * - jsx_component nodes for PascalCase components
+   * - INSTANTIATES edges to component definitions
+   * - RENDERS edges for parent-child relationships
+   * - Extracts props, ARIA attributes, and event handlers
+   */
+  private handleJSXElement(
+    nodePath: NodePath<t.JSXElement>,
+    ctx: ParserContext,
+    fileEntityId: string
+  ): void {
+    const node = nodePath.node;
+    const openingElement = node.openingElement;
+
+    // Extract component name
+    let componentName: string;
+    if (t.isJSXIdentifier(openingElement.name)) {
+      componentName = openingElement.name.name;
+    } else if (t.isJSXMemberExpression(openingElement.name)) {
+      componentName = this.extractJSXMemberName(openingElement.name);
+    } else if (t.isJSXNamespacedName(openingElement.name)) {
+      // xml:foo style - skip these
+      return;
+    } else {
+      return;
+    }
+
+    // Determine if this is a component (PascalCase) or HTML element (lowercase)
+    const isComponent = /^[A-Z]/.test(componentName);
+
+    // Extract props for all elements (components and HTML)
+    const props = this.extractJSXProps(openingElement.attributes);
+
+    // For HTML elements, we still want to capture ARIA attributes for accessibility analysis
+    // but we don't create nodes for them
+    if (!isComponent) {
+      // Store ARIA attributes in effects if present
+      if (Object.keys(props.aria).length > 0 || props.handlers.length > 0) {
+        this.recordHtmlElementAccessibility(node, componentName, props, ctx, fileEntityId);
+      }
+      return;
+    }
+
+    // Find enclosing function (the component this JSX is in)
+    const enclosingFunction = nodePath.getFunctionParent();
+    let parentEntityId = fileEntityId;
+    if (enclosingFunction) {
+      const funcEntityId = ctx.getNodeEntityId(enclosingFunction.node);
+      if (funcEntityId) {
+        parentEntityId = funcEntityId;
+      }
+    }
+
+    // Generate scoped name for this JSX usage
+    const line = node.loc?.start.line ?? 1;
+    const col = node.loc?.start.column ?? 0;
+    const scopedName = generateScopedName(
+      {
+        name: `${componentName}@${line}:${col}`,
+        kind: "jsx_component",
+        isTopLevel: false,
+      },
+      ctx.scopeContext
+    );
+
+    // Create JSX component usage node
+    const componentNode = ctx.createNode({
+      name: componentName,
+      kind: "jsx_component",
+      scopedName,
+      node,
+      isExported: false,
+      properties: {
+        props: props.regular,
+        ariaProps: props.aria,
+        eventHandlers: props.handlers,
+        hasSpreadProps: props.hasSpread,
+        isComponent: true,
+        elementId: props.elementId,
+        tabIndex: props.tabIndex,
+      },
+    });
+
+    ctx.result.nodes.push(componentNode);
+
+    // Register this JSX element for parent-child lookups
+    ctx.registerNodeEntity(node, componentNode.entity_id);
+
+    // Create CONTAINS edge from parent function to this JSX usage
+    ctx.result.edges.push(ctx.createContainsEdge(parentEntityId, componentNode.entity_id, node));
+
+    // Create INSTANTIATES edge to the component definition (unresolved)
+    ctx.result.edges.push(
+      ctx.createEdge({
+        sourceEntityId: componentNode.entity_id,
+        targetEntityId: `unresolved:${componentName}`,
+        edgeType: "INSTANTIATES",
+        node,
+      })
+    );
+
+    // Create REFERENCES edges for ARIA ID references (e.g., aria-labelledby, aria-controls)
+    for (const ariaRef of props.ariaIdRefs) {
+      for (const targetId of ariaRef.targetIds) {
+        ctx.result.edges.push(
+          ctx.createEdge({
+            sourceEntityId: componentNode.entity_id,
+            targetEntityId: `unresolved:aria:${targetId}`,
+            edgeType: "REFERENCES",
+            node,
+            properties: {
+              ariaRelationType: ariaRef.relationType,
+              ariaAttribute: ariaRef.attrName,
+              referencedId: targetId,
+            },
+          })
+        );
+      }
+    }
+
+    // Check for parent JSX element to create RENDERS edge
+    let parentJSX = nodePath.parentPath;
+    // Walk up to find parent JSXElement (skip JSXFragment children array, etc.)
+    while (parentJSX) {
+      if (t.isJSXElement(parentJSX.node)) {
+        const parentJSXEntityId = ctx.getNodeEntityId(parentJSX.node);
+        if (parentJSXEntityId) {
+          ctx.result.edges.push(
+            ctx.createEdge({
+              sourceEntityId: parentJSXEntityId,
+              targetEntityId: componentNode.entity_id,
+              edgeType: "RENDERS",
+              node,
+              properties: {
+                slot: "children",
+              },
+            })
+          );
+
+          // Create PASSES_PROPS edges for each prop passed to this component
+          const allProps = { ...props.regular, ...props.aria };
+          const propNames = Object.keys(allProps);
+          if (propNames.length > 0 || props.handlers.length > 0) {
+            ctx.result.edges.push(
+              ctx.createEdge({
+                sourceEntityId: parentJSXEntityId,
+                targetEntityId: componentNode.entity_id,
+                edgeType: "PASSES_PROPS",
+                node,
+                properties: {
+                  props: propNames,
+                  eventHandlers: props.handlers,
+                  hasSpreadProps: props.hasSpread,
+                  propCount: propNames.length + props.handlers.length,
+                },
+              })
+            );
+          }
+        }
+        break;
+      }
+      parentJSX = parentJSX.parentPath;
+    }
+  }
+
+  /**
+   * Handle JSX fragments (<>...</>)
+   *
+   * Fragments don't create nodes but we track them for hierarchy purposes
+   */
+  private handleJSXFragment(
+    nodePath: NodePath<t.JSXFragment>,
+    ctx: ParserContext,
+    _fileEntityId: string
+  ): void {
+    // JSX Fragments don't need their own nodes, but we register them
+    // so that child elements can find their parent correctly
+    const node = nodePath.node;
+
+    // Find enclosing function
+    const enclosingFunction = nodePath.getFunctionParent();
+    if (enclosingFunction) {
+      const funcEntityId = ctx.getNodeEntityId(enclosingFunction.node);
+      if (funcEntityId) {
+        // Register the fragment with the function's entity ID
+        // This way, children of fragments are connected to the function
+        ctx.registerNodeEntity(node, funcEntityId);
+      }
+    }
+  }
+
+  /**
+   * Record accessibility information for HTML elements
+   *
+   * This creates effects to track ARIA attributes and event handlers
+   * on native HTML elements for accessibility analysis.
+   */
+  private recordHtmlElementAccessibility(
+    node: t.JSXElement,
+    elementName: string,
+    props: JSXPropsResult,
+    ctx: ParserContext,
+    fileEntityId: string
+  ): void {
+    // Find enclosing function
+    const enclosingFunc = ctx.result.nodes.find(
+      (n) =>
+        n.kind === "function" &&
+        n.start_line <= (node.loc?.start.line ?? 0) &&
+        n.end_line >= (node.loc?.end.line ?? 0)
+    );
+
+    const sourceEntityId = enclosingFunc?.entity_id ?? fileEntityId;
+
+    // Check for accessibility issues
+    const hasOnClick = props.handlers.includes("onClick");
+    const hasOnKeyDown = props.handlers.includes("onKeyDown");
+    const hasOnKeyUp = props.handlers.includes("onKeyUp");
+    const hasOnKeyPress = props.handlers.includes("onKeyPress");
+    const hasKeyboardHandler = hasOnKeyDown || hasOnKeyUp || hasOnKeyPress;
+    const hasRole = "role" in props.aria;
+    const hasTabIndex = "tabIndex" in props.regular || "tabindex" in props.regular;
+    // tabIndex >= 0 makes element keyboard focusable
+    const isKeyboardFocusable = props.tabIndex !== null && props.tabIndex >= 0;
+
+    // Interactive elements that don't need role/tabIndex
+    const interactiveElements = new Set([
+      "a",
+      "button",
+      "input",
+      "select",
+      "textarea",
+      "details",
+      "summary",
+    ]);
+    const isNativeInteractive = interactiveElements.has(elementName.toLowerCase());
+
+    // Flag potential a11y issues: onClick without keyboard support on non-interactive elements
+    // Only tabIndex >= 0 makes the element keyboard accessible (suppresses the warning)
+    // tabIndex={-1} still flags because element is not in tab order
+    const potentialA11yIssue =
+      hasOnClick && !isNativeInteractive && !hasKeyboardHandler && !hasRole && !isKeyboardFocusable;
+
+    // Store as node properties on a synthetic node for query purposes
+    // This allows SQL queries like: SELECT * FROM nodes WHERE properties->>'potentialA11yIssue' = 'true'
+    // Create node if: has ARIA props, has a11y issue, has tabIndex, or has elementId
+    const hasAriaProps = Object.keys(props.aria).length > 0;
+    const hasAriaIdRefs = props.ariaIdRefs.length > 0;
+    const hasElementId = props.elementId !== null;
+    const hasTabIndexProp = props.tabIndex !== null;
+
+    if (hasAriaProps || potentialA11yIssue || hasAriaIdRefs || hasElementId || hasTabIndexProp) {
+      const line = node.loc?.start.line ?? 1;
+      const col = node.loc?.start.column ?? 0;
+
+      // We could create a dedicated effect type here, but for now we'll
+      // store this information for future WCAG validation rules
+      // The data is captured in the parent component's context
+      const htmlNode = ctx.createNode({
+        name: `${elementName}@${line}:${col}`,
+        kind: "html_element",
+        scopedName: `html:${elementName}@${line}:${col}`,
+        node,
+        isExported: false,
+        properties: {
+          htmlElement: elementName,
+          ariaProps: props.aria,
+          eventHandlers: props.handlers,
+          hasSpreadProps: props.hasSpread,
+          isInteractive: isNativeInteractive || hasRole || hasTabIndex || isKeyboardFocusable,
+          potentialA11yIssue,
+          a11yDetails: potentialA11yIssue
+            ? "onClick without keyboard support on non-interactive element"
+            : null,
+          elementId: props.elementId,
+          tabIndex: props.tabIndex,
+        },
+      });
+
+      ctx.result.nodes.push(htmlNode);
+
+      // Create CONTAINS edge
+      ctx.result.edges.push(ctx.createContainsEdge(sourceEntityId, htmlNode.entity_id, node));
+
+      // Create REFERENCES edges for ARIA ID references (e.g., aria-labelledby, aria-controls)
+      for (const ariaRef of props.ariaIdRefs) {
+        for (const targetId of ariaRef.targetIds) {
+          ctx.result.edges.push(
+            ctx.createEdge({
+              sourceEntityId: htmlNode.entity_id,
+              targetEntityId: `unresolved:aria:${targetId}`,
+              edgeType: "REFERENCES",
+              node,
+              properties: {
+                ariaRelationType: ariaRef.relationType,
+                ariaAttribute: ariaRef.attrName,
+                referencedId: targetId,
+              },
+            })
+          );
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
   // Helper Methods
   // ==========================================================================
 
@@ -1663,6 +2205,7 @@ class ParserContext {
     isAsync?: boolean;
     isGenerator?: boolean;
     documentation?: string | null;
+    properties?: Record<string, unknown>;
   }): ParsedNode {
     const loc = opts.node.loc;
 
@@ -1703,6 +2246,7 @@ class ParserContext {
       branch: this.config.branch,
       properties: {
         language: "typescript",
+        ...opts.properties,
       },
     });
   }

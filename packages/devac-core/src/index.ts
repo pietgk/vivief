@@ -315,6 +315,13 @@ export {
   setGlobalLogLevel,
   getGlobalLogLevel,
   logger,
+  // Git utilities
+  detectRepoId,
+  detectRepoIdFromGit,
+  detectRepoIdFromPackageJson,
+  parseGitConfigForOrigin,
+  parseGitUrl,
+  getRepoIdSync,
 } from "./utils/index.js";
 export type {
   AtomicWriteOptions,
@@ -323,6 +330,7 @@ export type {
   Logger,
   LogLevel,
   LoggerOptions,
+  RepoIdResult,
 } from "./utils/index.js";
 
 // Rules Engine (v3.0 foundation - pattern matching for effects)

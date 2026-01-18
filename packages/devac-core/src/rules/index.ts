@@ -81,3 +81,18 @@ export {
   type SignificanceEngineConfig,
   type SignificanceEngineStats,
 } from "./significance-rules.js";
+
+// WCAG accessibility rules
+export {
+  WCAG_RULES,
+  getWcagRules,
+  getWcagRuleById,
+  getWcagRulesByCriterion,
+  isCheckableNodeKind,
+  type WcagRule,
+  type WcagViolation,
+  type WcagContext,
+  type WcagLevel,
+  type WcagSeverity,
+  type CheckableNodeKind,
+} from "./wcag-rules.js";

@@ -163,6 +163,7 @@ describe("HubClient", () => {
 
         // Verify request went to MCP
         expect(receivedRequests).toHaveLength(1);
+        // biome-ignore lint/style/noNonNullAssertion: We just asserted length is 1
         const request = receivedRequests[0]!;
         expect(request.method).toBe("query");
         expect(request.params).toEqual({ sql: "SELECT 1 as test" });
@@ -216,6 +217,7 @@ describe("HubClient", () => {
         await client.listRepos();
 
         expect(receivedRequests).toHaveLength(1);
+        // biome-ignore lint/style/noNonNullAssertion: We just asserted length is 1
         expect(receivedRequests[0]!.method).toBe("listRepos");
       } finally {
         await close();
@@ -243,6 +245,7 @@ describe("HubClient", () => {
         await client.registerRepo("/test/repo");
 
         expect(receivedRequests).toHaveLength(1);
+        // biome-ignore lint/style/noNonNullAssertion: We just asserted length is 1
         const request = receivedRequests[0]!;
         expect(request.method).toBe("register");
         expect(request.params).toEqual({ repoPath: "/test/repo" });
@@ -329,6 +332,7 @@ describe("HubClient", () => {
         ]);
 
         expect(receivedRequests).toHaveLength(1);
+        // biome-ignore lint/style/noNonNullAssertion: We just asserted length is 1
         const request = receivedRequests[0]!;
         expect(request.method).toBe("pushValidationErrors");
         expect(request.params).toMatchObject({

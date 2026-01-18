@@ -284,7 +284,7 @@ describe("ElementFinder", () => {
     it("extracts element data correctly", async () => {
       const result = await finder.find({ strategy: "selector", value: "button" });
 
-      expect(result.elements[0]!).toMatchObject({
+      expect(result.elements[0]).toMatchObject({
         tag: "button",
         role: "button",
         name: "Click Me",

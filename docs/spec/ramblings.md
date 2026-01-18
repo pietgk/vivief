@@ -4,6 +4,7 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
 
+can you do a very thorough check where th test chect to handle a bug
 
 # e2e pages element 
 

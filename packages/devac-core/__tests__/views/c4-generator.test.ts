@@ -5,13 +5,23 @@
  */
 
 import { describe, expect, it } from "vitest";
+import type { GroupingRule } from "../../src/rules/grouping-rules.js";
 import type { DomainEffect } from "../../src/rules/rule-engine.js";
+import type { SignificanceRule } from "../../src/rules/significance-rules.js";
+import type { EnrichedDomainEffect, InternalEdge } from "../../src/types/enriched-effects.js";
 import {
+  applyGroupingRules,
+  applySignificanceFiltering,
   discoverDomainBoundaries,
+  exportContainersToEnhancedLikeC4,
+  exportContainersToLikeC4,
   exportContainersToPlantUML,
+  exportContextToEnhancedLikeC4,
+  exportContextToLikeC4,
   exportContextToPlantUML,
   generateC4Containers,
   generateC4Context,
+  sanitizeLikeC4Id,
 } from "../../src/views/c4-generator.js";
 
 /**
@@ -29,6 +39,30 @@ function createDomainEffect(overrides: Partial<DomainEffect> = {}): DomainEffect
     filePath: "src/services/db.ts",
     startLine: 10,
     metadata: {},
+    ...overrides,
+  };
+}
+
+/**
+ * Helper to create an enriched domain effect for testing
+ */
+function createEnrichedEffect(overrides: Partial<EnrichedDomainEffect> = {}): EnrichedDomainEffect {
+  return {
+    sourceEffectId: "effect-1",
+    domain: "Database",
+    action: "Write",
+    ruleId: "test-rule",
+    ruleName: "Test Rule",
+    originalEffectType: "FunctionCall",
+    sourceEntityId: "test:pkg:function:testFunc",
+    filePath: "/Users/test/project/src/services/db.ts",
+    startLine: 10,
+    metadata: {},
+    // Enriched fields
+    sourceName: "testFunc",
+    sourceQualifiedName: "src/services/db.testFunc",
+    relativeFilePath: "src/services/db.ts",
+    sourceKind: "function",
     ...overrides,
   };
 }
@@ -149,7 +183,9 @@ describe("C4 Generator", () => {
         }),
       ];
 
-      const diagram = generateC4Containers(effects, { systemName: "TestSystem" });
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+      });
 
       const apiContainer = diagram.containers.find((c) => c.id === "api");
       expect(apiContainer?.components).toHaveLength(2);
@@ -172,7 +208,9 @@ describe("C4 Generator", () => {
         }),
       ];
 
-      const diagram = generateC4Containers(effects, { systemName: "TestSystem" });
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+      });
 
       const apiContainer = diagram.containers.find((c) => c.id === "api");
       expect(apiContainer?.relationships).toHaveLength(1);
@@ -294,6 +332,540 @@ describe("C4 Generator", () => {
       const dbBoundary = boundaries.find((b) => b.name === "Database");
 
       expect(authBoundary?.cohesionScore).toBeGreaterThan(dbBoundary?.cohesionScore ?? 0);
+    });
+  });
+
+  describe("applySignificanceFiltering", () => {
+    it("returns all effects when no threshold specified", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ domain: "Database", action: "Write" }),
+        createDomainEffect({ domain: "Auth", action: "Login" }),
+      ];
+
+      const filtered = applySignificanceFiltering(effects, {
+        systemName: "TestSystem",
+      });
+
+      expect(filtered).toHaveLength(2);
+    });
+
+    it("filters effects below significance threshold", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ domain: "Database", action: "Write" }),
+        createDomainEffect({ domain: "Logging", action: "Debug" }),
+      ];
+
+      const significanceRules: SignificanceRule[] = [
+        {
+          id: "debug-hidden",
+          name: "Hide Debug",
+          match: { action: "Debug" },
+          emit: { level: "hidden" },
+        },
+      ];
+
+      const filtered = applySignificanceFiltering(effects, {
+        systemName: "TestSystem",
+        significanceRules,
+        significanceThreshold: "minor",
+      });
+
+      // Debug should be filtered out (hidden < minor)
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0]?.action).toBe("Write");
+    });
+
+    it("includes hidden effects when includeHidden is true", () => {
+      const effects: DomainEffect[] = [createDomainEffect({ domain: "Logging", action: "Debug" })];
+
+      const significanceRules: SignificanceRule[] = [
+        {
+          id: "debug-hidden",
+          name: "Hide Debug",
+          match: { action: "Debug" },
+          emit: { level: "hidden" },
+        },
+      ];
+
+      const filtered = applySignificanceFiltering(effects, {
+        systemName: "TestSystem",
+        significanceRules,
+        significanceThreshold: "hidden",
+        includeHidden: true,
+      });
+
+      expect(filtered).toHaveLength(1);
+    });
+  });
+
+  describe("applyGroupingRules", () => {
+    it("returns null when no rules match", () => {
+      const effect = createDomainEffect({ domain: "Database" });
+      const rules: GroupingRule[] = [
+        {
+          id: "payment-rule",
+          name: "Payment Rule",
+          match: { domain: "Payment" },
+          emit: { container: "Payment Layer" },
+        },
+      ];
+
+      const result = applyGroupingRules(effect, rules);
+
+      expect(result).toBeNull();
+    });
+
+    it("returns grouping result when rule matches by domain", () => {
+      const effect = createDomainEffect({ domain: "Payment" });
+      const rules: GroupingRule[] = [
+        {
+          id: "payment-rule",
+          name: "Payment Rule",
+          match: { domain: "Payment" },
+          emit: { container: "Payment Layer" },
+        },
+      ];
+
+      const result = applyGroupingRules(effect, rules);
+
+      expect(result).not.toBeNull();
+      expect(result?.container).toBe("Payment Layer");
+      expect(result?.ruleId).toBe("payment-rule");
+    });
+
+    it("returns grouping result when rule matches by file path", () => {
+      const effect = createDomainEffect({ filePath: "src/api/users.ts" });
+      const rules: GroupingRule[] = [
+        {
+          id: "api-rule",
+          name: "API Rule",
+          match: { filePath: /src\/api/ },
+          emit: { container: "API Layer" },
+        },
+      ];
+
+      const result = applyGroupingRules(effect, rules);
+
+      expect(result).not.toBeNull();
+      expect(result?.container).toBe("API Layer");
+    });
+  });
+
+  describe("sanitizeLikeC4Id", () => {
+    it("replaces special characters with underscores", () => {
+      expect(sanitizeLikeC4Id("external:Database:mysql")).toBe("external_Database_mysql");
+    });
+
+    it("prefixes with underscore if starts with digit", () => {
+      expect(sanitizeLikeC4Id("123test")).toBe("_123test");
+    });
+
+    it("preserves valid identifiers", () => {
+      expect(sanitizeLikeC4Id("validIdentifier_123")).toBe("validIdentifier_123");
+    });
+  });
+
+  describe("exportContextToLikeC4", () => {
+    it("generates valid LikeC4 syntax", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          domain: "Database",
+          action: "Write",
+          metadata: { isExternal: true, provider: "mysql" },
+        }),
+      ];
+
+      const context = generateC4Context(effects, {
+        systemName: "MySystem",
+        systemDescription: "Test system",
+      });
+      const likec4 = exportContextToLikeC4(context);
+
+      expect(likec4).toContain("specification {");
+      expect(likec4).toContain("model {");
+      expect(likec4).toContain("views {");
+      expect(likec4).toContain("system = system 'MySystem'");
+      expect(likec4).toContain("external_system");
+    });
+  });
+
+  describe("exportContainersToLikeC4", () => {
+    it("generates valid LikeC4 syntax with containers", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ filePath: "src/api/users.ts" }),
+        createDomainEffect({ filePath: "src/services/payment.ts" }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "MySystem",
+      });
+      const likec4 = exportContainersToLikeC4(diagram);
+
+      expect(likec4).toContain("specification {");
+      expect(likec4).toContain("element container");
+      expect(likec4).toContain("element component");
+      expect(likec4).toContain("model {");
+      expect(likec4).toContain("views {");
+      expect(likec4).toContain("view containers {");
+    });
+
+    it("includes components within containers", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          sourceEntityId: "test:pkg:function:saveUser",
+          filePath: "src/api/users.ts",
+        }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "MySystem",
+      });
+      const likec4 = exportContainersToLikeC4(diagram);
+
+      expect(likec4).toContain("component");
+    });
+  });
+
+  describe("exportContextToEnhancedLikeC4", () => {
+    it("generates enhanced LikeC4 with custom specification", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          domain: "Payment",
+          action: "Charge",
+          metadata: { isExternal: true, provider: "stripe" },
+        }),
+      ];
+
+      const context = generateC4Context(effects, {
+        systemName: "PaymentSystem",
+      });
+      const likec4 = exportContextToEnhancedLikeC4(context, {
+        domainEffects: effects,
+      });
+
+      expect(likec4).toContain("specification {");
+      expect(likec4).toContain("model {");
+      expect(likec4).toContain("PaymentSystem");
+    });
+
+    it("includes domain metadata", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ domain: "Database", action: "Write" }),
+        createDomainEffect({ domain: "Payment", action: "Charge" }),
+      ];
+
+      const context = generateC4Context(effects, {
+        systemName: "TestSystem",
+      });
+      const likec4 = exportContextToEnhancedLikeC4(context, {
+        domainEffects: effects,
+      });
+
+      expect(likec4).toContain("metadata");
+      expect(likec4).toContain("domains");
+    });
+  });
+
+  describe("exportContainersToEnhancedLikeC4", () => {
+    it("generates enhanced LikeC4 with source links", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          sourceEntityId: "test:pkg:function:saveUser",
+          filePath: "src/api/users.ts",
+        }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "MySystem",
+      });
+      const likec4 = exportContainersToEnhancedLikeC4(diagram, {
+        domainEffects: effects,
+        includeSourceLinks: true,
+        sourceBasePath: "./",
+      });
+
+      expect(likec4).toContain("link");
+      expect(likec4).toContain("Source Code");
+    });
+
+    it("creates views for container drill-down", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          sourceEntityId: "test:pkg:function:saveUser",
+          filePath: "src/api/users.ts",
+        }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "MySystem",
+      });
+      const likec4 = exportContainersToEnhancedLikeC4(diagram, {
+        domainEffects: effects,
+      });
+
+      expect(likec4).toContain("view containers");
+      // Should have a drill-down view for the container
+      expect(likec4).toContain("_components");
+    });
+  });
+
+  describe("generateC4Containers with enriched effects", () => {
+    it("uses enriched effect names and paths", () => {
+      const effects: EnrichedDomainEffect[] = [
+        createEnrichedEffect({
+          sourceName: "UserService",
+          relativeFilePath: "src/services/user.ts",
+          sourceEntityId: "test:pkg:class:UserService",
+        }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+      });
+
+      const servicesContainer = diagram.containers.find((c) => c.id === "services");
+      expect(servicesContainer).toBeDefined();
+
+      const component = servicesContainer?.components[0];
+      expect(component?.name).toBe("UserService");
+      expect(component?.filePath).toBe("src/services/user.ts");
+    });
+  });
+
+  describe("generateC4Containers with internal edges", () => {
+    it("adds internal relationships between containers", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          sourceEntityId: "test:pkg:function:apiHandler",
+          filePath: "src/api/handler.ts",
+          domain: "HTTP",
+          action: "Handle",
+        }),
+        createDomainEffect({
+          sourceEntityId: "test:pkg:function:dbQuery",
+          filePath: "src/db/query.ts",
+          domain: "Database",
+          action: "Query",
+        }),
+      ];
+
+      const internalEdges: InternalEdge[] = [
+        {
+          sourceEntityId: "test:pkg:function:apiHandler",
+          targetEntityId: "test:pkg:function:dbQuery",
+        },
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+        internalEdges,
+      });
+
+      const apiContainer = diagram.containers.find((c) => c.id === "api");
+      const hasCallsRelationship = apiContainer?.relationships.some(
+        (r) => r.to === "db" && r.label.includes("calls")
+      );
+
+      expect(hasCallsRelationship).toBe(true);
+    });
+  });
+
+  describe("generateC4Containers with rule-based grouping", () => {
+    it("uses grouping rules when containerGrouping is rules", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          filePath: "src/controllers/user.ts",
+          domain: "HTTP",
+          action: "Handle",
+        }),
+        createDomainEffect({
+          filePath: "src/repositories/user.ts",
+          domain: "Database",
+          action: "Query",
+        }),
+      ];
+
+      const groupingRules: GroupingRule[] = [
+        {
+          id: "controller-rule",
+          name: "Controller Rule",
+          match: { filePath: /controllers/ },
+          emit: { container: "Presentation Layer" },
+        },
+        {
+          id: "repository-rule",
+          name: "Repository Rule",
+          match: { filePath: /repositories/ },
+          emit: { container: "Data Layer" },
+        },
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+        containerGrouping: "rules",
+        groupingRules,
+      });
+
+      const presentationLayer = diagram.containers.find((c) => c.id === "Presentation Layer");
+      const dataLayer = diagram.containers.find((c) => c.id === "Data Layer");
+
+      expect(presentationLayer).toBeDefined();
+      expect(dataLayer).toBeDefined();
+    });
+
+    it("falls back to directory grouping when no rules match", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          filePath: "src/utils/helper.ts",
+          domain: "Internal",
+          action: "Process",
+        }),
+      ];
+
+      const groupingRules: GroupingRule[] = [
+        {
+          id: "api-rule",
+          name: "API Rule",
+          match: { filePath: /api/ },
+          emit: { container: "API Layer" },
+        },
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+        containerGrouping: "rules",
+        groupingRules,
+      });
+
+      // Should fall back to directory-based grouping
+      const utilsContainer = diagram.containers.find((c) => c.id === "utils");
+      expect(utilsContainer).toBeDefined();
+    });
+  });
+
+  describe("generateC4Containers with package grouping", () => {
+    it("groups by package name", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ filePath: "packages/core/src/service.ts" }),
+        createDomainEffect({ filePath: "packages/api/src/handler.ts" }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+        containerGrouping: "package",
+      });
+
+      const coreContainer = diagram.containers.find((c) => c.id === "core");
+      const apiContainer = diagram.containers.find((c) => c.id === "api");
+
+      expect(coreContainer).toBeDefined();
+      expect(apiContainer).toBeDefined();
+    });
+  });
+
+  describe("generateC4Containers with flat grouping", () => {
+    it("groups all effects into main container", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ filePath: "src/api/users.ts" }),
+        createDomainEffect({ filePath: "src/services/payment.ts" }),
+        createDomainEffect({ filePath: "src/db/query.ts" }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+        containerGrouping: "flat",
+      });
+
+      expect(diagram.containers).toHaveLength(1);
+      expect(diagram.containers[0]?.id).toBe("main");
+    });
+  });
+
+  describe("relationship aggregation", () => {
+    it("aggregates multiple relationships to same target", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({
+          filePath: "src/api/handler.ts",
+          domain: "Database",
+          action: "Read",
+          metadata: { isExternal: true, provider: "mysql" },
+        }),
+        createDomainEffect({
+          filePath: "src/api/handler.ts",
+          domain: "Database",
+          action: "Write",
+          metadata: { isExternal: true, provider: "mysql" },
+        }),
+        createDomainEffect({
+          filePath: "src/api/handler.ts",
+          domain: "Database",
+          action: "Query",
+          metadata: { isExternal: true, provider: "mysql" },
+        }),
+      ];
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "TestSystem",
+      });
+
+      const apiContainer = diagram.containers.find((c) => c.id === "api");
+      // Should have aggregated relationships
+      expect(apiContainer?.relationships.length).toBeLessThan(3);
+      // Label should mention call count
+      const rel = apiContainer?.relationships[0];
+      expect(rel?.label).toContain("calls");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles empty effects array", () => {
+      const context = generateC4Context([], { systemName: "EmptySystem" });
+
+      expect(context.effectCount).toBe(0);
+      expect(context.domains).toHaveLength(0);
+      expect(context.externalSystems).toHaveLength(0);
+    });
+
+    it("handles effects with no external systems", () => {
+      const effects: DomainEffect[] = [
+        createDomainEffect({ metadata: {} }),
+        createDomainEffect({ metadata: { isExternal: false } }),
+      ];
+
+      const context = generateC4Context(effects, { systemName: "TestSystem" });
+
+      expect(context.externalSystems).toHaveLength(0);
+    });
+
+    it("handles special characters in system names", () => {
+      const context = generateC4Context([], {
+        systemName: 'Test\'s "System" <Special>',
+        systemDescription: "Description with 'quotes'",
+      });
+
+      // Basic LikeC4 export doesn't escape - use enhanced version for escaping
+      const likec4 = exportContextToEnhancedLikeC4(context);
+
+      // Enhanced version should escape single quotes
+      expect(likec4).toContain("Test\\'s");
+    });
+
+    it("handles very long effect lists", () => {
+      const effects: DomainEffect[] = Array.from({ length: 100 }, (_, i) =>
+        createDomainEffect({
+          sourceEffectId: `effect-${i}`,
+          sourceEntityId: `test:pkg:function:func${i}`,
+          filePath: `src/services/service${i % 10}.ts`,
+        })
+      );
+
+      const diagram = generateC4Containers(effects, {
+        systemName: "LargeSystem",
+      });
+
+      // Should group into containers
+      expect(diagram.containers.length).toBeGreaterThan(0);
+      expect(diagram.containers.length).toBeLessThan(100);
     });
   });
 });

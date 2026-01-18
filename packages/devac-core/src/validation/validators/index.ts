@@ -35,3 +35,11 @@ export {
   type FileCoverage,
   type CoverageSummary,
 } from "./coverage-validator.js";
+
+export {
+  WcagValidator,
+  createWcagValidator,
+  type WcagOptions,
+  type WcagResult,
+  type WcagValidationIssue,
+} from "./wcag-validator.js";

@@ -22,7 +22,7 @@ export interface ValidationIssue {
   /** Severity level */
   severity: "error" | "warning";
   /** Source of the issue */
-  source: "tsc" | "eslint" | "biome" | "test" | "coverage";
+  source: "tsc" | "eslint" | "biome" | "test" | "coverage" | "wcag";
   /** Error code (e.g., TS2345, no-unused-vars) */
   code?: string;
 }

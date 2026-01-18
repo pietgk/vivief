@@ -302,4 +302,150 @@ describe("CoverageValidator", () => {
       expect(belowThreshold.length).toBe(0);
     });
   });
+
+  describe("coverage calculation edge cases", () => {
+    it("handles files with no statements (100% coverage)", async () => {
+      const coverageDir = path.join(tempDir, "coverage");
+      await fs.mkdir(coverageDir, { recursive: true });
+
+      // File with no statements (empty file)
+      const coverageData = {
+        [path.join(tempDir, "src", "empty.ts")]: {
+          path: path.join(tempDir, "src", "empty.ts"),
+          statementMap: {},
+          fnMap: {},
+          branchMap: {},
+          s: {},
+          f: {},
+          b: {},
+        },
+      };
+
+      await fs.writeFile(
+        path.join(coverageDir, "coverage-final.json"),
+        JSON.stringify(coverageData)
+      );
+
+      const files = await validator.parseCoverageJson(
+        path.join(coverageDir, "coverage-final.json"),
+        tempDir
+      );
+
+      expect(files.length).toBe(1);
+      // Empty files should report 100% coverage (nothing to cover)
+      expect(files[0]?.statements).toBe(100);
+      expect(files[0]?.functions).toBe(100);
+      expect(files[0]?.branches).toBe(100);
+    });
+
+    it("calculates correct percentages for partial coverage", async () => {
+      const coverageDir = path.join(tempDir, "coverage");
+      await fs.mkdir(coverageDir, { recursive: true });
+
+      // File with exactly 50% statement coverage
+      const coverageData = {
+        [path.join(tempDir, "src", "partial.ts")]: {
+          path: path.join(tempDir, "src", "partial.ts"),
+          statementMap: { "0": {}, "1": {} },
+          fnMap: { "0": {}, "1": {}, "2": {} },
+          branchMap: { "0": {} },
+          s: { "0": 1, "1": 0 },
+          f: { "0": 1, "1": 1, "2": 0 },
+          b: { "0": [1, 1] },
+        },
+      };
+
+      await fs.writeFile(
+        path.join(coverageDir, "coverage-final.json"),
+        JSON.stringify(coverageData)
+      );
+
+      const files = await validator.parseCoverageJson(
+        path.join(coverageDir, "coverage-final.json"),
+        tempDir
+      );
+
+      expect(files.length).toBe(1);
+      expect(files[0]?.statements).toBe(50); // 1/2 = 50%
+      expect(files[0]?.functions).toBeCloseTo(66.7, 0); // 2/3 ≈ 66.7%
+      expect(files[0]?.branches).toBe(100); // 2/2 = 100%
+    });
+
+    it("handles branch coverage with mixed hit counts", async () => {
+      const coverageDir = path.join(tempDir, "coverage");
+      await fs.mkdir(coverageDir, { recursive: true });
+
+      // File with mixed branch hits
+      const coverageData = {
+        [path.join(tempDir, "src", "branches.ts")]: {
+          path: path.join(tempDir, "src", "branches.ts"),
+          statementMap: { "0": {} },
+          fnMap: {},
+          branchMap: { "0": {}, "1": {} },
+          s: { "0": 1 },
+          f: {},
+          b: { "0": [1, 0], "1": [1, 1] }, // 3 out of 4 branches covered
+        },
+      };
+
+      await fs.writeFile(
+        path.join(coverageDir, "coverage-final.json"),
+        JSON.stringify(coverageData)
+      );
+
+      const files = await validator.parseCoverageJson(
+        path.join(coverageDir, "coverage-final.json"),
+        tempDir
+      );
+
+      expect(files.length).toBe(1);
+      expect(files[0]?.branches).toBe(75); // 3/4 = 75%
+    });
+  });
+
+  describe("detectCoverageTool edge cases", () => {
+    it("detects vitest from dependencies (not devDependencies)", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({
+          dependencies: { vitest: "^1.0.0" },
+        })
+      );
+
+      const tool = await validator.detectCoverageTool(tempDir);
+      expect(tool).toBe("vitest");
+    });
+
+    it("detects tool from script when not in dependencies", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({
+          scripts: { "test:coverage": "vitest run --coverage" },
+        })
+      );
+
+      const tool = await validator.detectCoverageTool(tempDir);
+      expect(tool).toBe("vitest");
+    });
+
+    it("returns null for malformed package.json", async () => {
+      await fs.writeFile(path.join(tempDir, "package.json"), "not valid json");
+
+      const tool = await validator.detectCoverageTool(tempDir);
+      expect(tool).toBeNull();
+    });
+
+    it("returns null when no coverage tool found", async () => {
+      await fs.writeFile(
+        path.join(tempDir, "package.json"),
+        JSON.stringify({
+          name: "no-test-tools",
+          dependencies: { lodash: "^4.0.0" },
+        })
+      );
+
+      const tool = await validator.detectCoverageTool(tempDir);
+      expect(tool).toBeNull();
+    });
+  });
 });

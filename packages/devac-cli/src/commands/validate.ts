@@ -15,6 +15,7 @@ import {
   type ValidationCoordinatorResult,
   type ValidationMode,
   createHubClient,
+  detectRepoId,
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
@@ -46,6 +47,10 @@ export interface ValidateOptions {
   pushToHub?: boolean;
   /** Repository ID for Hub push (required if pushToHub is true) */
   repoId?: string;
+  /** Auto-sync results to Hub (auto-detects repo ID) */
+  sync?: boolean;
+  /** Hook stop mode - output hook-compatible JSON for Claude Code Stop hook */
+  onStop?: boolean;
 }
 
 /**
@@ -120,18 +125,30 @@ export async function validateCommand(options: ValidateOptions): Promise<Validat
     // Apply config overrides to result
     const finalResult = applyConfigOverrides(result, options, configOverrides);
 
-    // Push to Hub if requested
-    if (options.pushToHub && options.repoId) {
+    // Push to Hub if requested (--sync auto-detects repo ID, --push-to-hub requires explicit --repo-id)
+    const shouldPushToHub = options.sync || (options.pushToHub && options.repoId);
+    if (shouldPushToHub) {
       const hubDir = await getWorkspaceHubDir();
       try {
-        const client = createHubClient({ hubDir });
-        const pushResult = await pushValidationResultsToHub(
-          client,
-          options.repoId,
-          options.packagePath,
-          finalResult
-        );
-        finalResult.pushedToHub = pushResult.pushed;
+        // Auto-detect repo ID for --sync, or use provided --repo-id
+        let repoId = options.repoId;
+        if (!repoId && options.sync) {
+          const detected = await detectRepoId(options.packagePath);
+          repoId = detected.repoId;
+        }
+
+        if (!repoId) {
+          console.error("Warning: Could not determine repository ID for Hub sync");
+        } else {
+          const client = createHubClient({ hubDir });
+          const pushResult = await pushValidationResultsToHub(
+            client,
+            repoId,
+            options.packagePath,
+            finalResult
+          );
+          finalResult.pushedToHub = pushResult.pushed;
+        }
       } catch (hubError) {
         // Don't fail validation if Hub push fails - log warning
         console.error(
@@ -236,6 +253,96 @@ function createErrorResult(mode: ValidationMode, error: string, startTime: numbe
 }
 
 /**
+ * Get changed files from git (staged and unstaged)
+ */
+async function getGitChangedFiles(packagePath: string): Promise<string[]> {
+  const { execSync } = await import("node:child_process");
+
+  try {
+    // Get both staged and unstaged changes
+    const staged = execSync("git diff --cached --name-only", {
+      cwd: packagePath,
+      encoding: "utf-8",
+    }).trim();
+    const unstaged = execSync("git diff --name-only", {
+      cwd: packagePath,
+      encoding: "utf-8",
+    }).trim();
+
+    const files = new Set<string>();
+    if (staged) {
+      for (const file of staged.split("\n")) {
+        if (file) files.add(file);
+      }
+    }
+    if (unstaged) {
+      for (const file of unstaged.split("\n")) {
+        if (file) files.add(file);
+      }
+    }
+
+    return Array.from(files);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Format validation result as hook-compatible JSON for Stop hook
+ */
+function formatOnStopHookOutput(result: ValidateResult): string | null {
+  // Silent if no issues
+  if (result.totalIssues === 0) {
+    return null;
+  }
+
+  // Build issue summary
+  const issueLines: string[] = [];
+
+  if (result.typecheck?.issues && result.typecheck.issues.length > 0) {
+    // Group by file
+    const byFile = new Map<string, number>();
+    for (const issue of result.typecheck.issues) {
+      const count = byFile.get(issue.file) ?? 0;
+      byFile.set(issue.file, count + 1);
+    }
+    for (const [file, count] of byFile) {
+      issueLines.push(`- ${count} TypeScript error${count > 1 ? "s" : ""} in ${file}`);
+    }
+  }
+
+  if (result.lint?.issues && result.lint.issues.length > 0) {
+    // Group by file
+    const byFile = new Map<string, { errors: number; warnings: number }>();
+    for (const issue of result.lint.issues) {
+      const existing = byFile.get(issue.file) ?? { errors: 0, warnings: 0 };
+      if (issue.severity === "error") {
+        existing.errors++;
+      } else {
+        existing.warnings++;
+      }
+      byFile.set(issue.file, existing);
+    }
+    for (const [file, counts] of byFile) {
+      const parts: string[] = [];
+      if (counts.errors > 0) parts.push(`${counts.errors} error${counts.errors > 1 ? "s" : ""}`);
+      if (counts.warnings > 0)
+        parts.push(`${counts.warnings} warning${counts.warnings > 1 ? "s" : ""}`);
+      issueLines.push(`- ${parts.join(", ")} (ESLint) in ${file}`);
+    }
+  }
+
+  const hookOutput = {
+    hookSpecificOutput: {
+      hookEventName: "Stop",
+      additionalContext: `<system-reminder>\nValidation found issues:\n${issueLines.join("\n")}\n\nConsider fixing these before continuing.\n</system-reminder>`,
+    },
+  };
+
+  return JSON.stringify(hookOutput);
+}
+
+/**
  * Register the validate command with the CLI program
  */
 export function registerValidateCommand(program: Command): void {
@@ -254,11 +361,26 @@ export function registerValidateCommand(program: Command): void {
     .option("-t, --timeout <ms>", "Timeout in milliseconds")
     .option("--push-to-hub", "Push results to central Hub")
     .option("--repo-id <id>", "Repository ID for Hub push")
+    .option("--sync", "Auto-sync results to Hub (auto-detects repo ID)")
     .option("--json", "Output as JSON")
+    .option(
+      "--on-stop",
+      "Output hook-compatible JSON for Claude Code Stop hook (auto-detects changed files)"
+    )
     .action(async (options) => {
+      // In on-stop mode, auto-detect changed files from git
+      let changedFiles = options.files || [];
+      if (options.onStop && changedFiles.length === 0) {
+        changedFiles = await getGitChangedFiles(path.resolve(options.package));
+        // Silent exit if no changed files in on-stop mode
+        if (changedFiles.length === 0) {
+          return;
+        }
+      }
+
       const result = await validateCommand({
         packagePath: path.resolve(options.package),
-        changedFiles: options.files || [],
+        changedFiles,
         mode: options.mode as ValidationMode,
         skipTypecheck: options.skipTypecheck,
         skipLint: options.skipLint,
@@ -267,7 +389,18 @@ export function registerValidateCommand(program: Command): void {
         timeout: options.timeout ? Number.parseInt(options.timeout, 10) : undefined,
         pushToHub: options.pushToHub,
         repoId: options.repoId,
+        sync: options.sync,
+        onStop: options.onStop,
       });
+
+      // Handle on-stop hook output
+      if (options.onStop) {
+        const hookOutput = formatOnStopHookOutput(result);
+        if (hookOutput) {
+          console.log(hookOutput);
+        }
+        return;
+      }
 
       // Check architecture drift if requested
       if (options.architecture) {
