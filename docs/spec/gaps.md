@@ -7,7 +7,7 @@
 - [ui-effects.md](../vision/ui-effects.md) — UI Effects vision
 - [test-strategy.md](./test-strategy.md) — Test approach
 
-**Last Updated**: 2026-01-17
+**Last Updated**: 2026-01-18
 
 ---
 
@@ -127,21 +127,48 @@ All A11y attribute extraction has been implemented, enabling WCAG validation and
 
 ## Phase 2: WCAG Validation
 
-**Status**: ⬜ Not started
+**Status**: ✅ Complete
+
+All WCAG validation has been implemented, enabling accessibility issue detection alongside TypeScript and lint errors.
 
 | Gap | Description | Priority |
 |-----|-------------|----------|
-| ⬜ WCAG rule definitions | Define rules in Rules Engine format | High |
-| ⬜ Missing accessible name detection | WCAG 4.1.2 validation | High |
-| ⬜ Keyboard accessibility check | Validate interactive elements are keyboard accessible | High |
-| ⬜ Broken ARIA reference detection | Find `aria-controls` pointing to non-existent IDs | Medium |
-| ⬜ Diagnostics output | Output as diagnostics alongside type/lint errors | Medium |
+| ✅ WCAG rule definitions | Define rules in Rules Engine format | High |
+| ✅ Missing accessible name detection | WCAG 4.1.2 validation | High |
+| ✅ Keyboard accessibility check | Validate interactive elements are keyboard accessible | High |
+| ✅ Broken ARIA reference detection | Find `aria-controls` pointing to non-existent IDs | Medium |
+| ✅ Diagnostics output | Output as diagnostics alongside type/lint errors | Medium |
 
-**Files to create**:
-- `packages/devac-core/src/rules/wcag-rules.ts`
-- `packages/devac-core/src/analysis/wcag-analyzer.ts`
+**Files created**:
+- `packages/devac-core/src/rules/wcag-rules.ts` - 5 WCAG rules with query functions
+- `packages/devac-core/src/validation/wcag-analyzer.ts` - Analyzer with utility functions
+- `packages/devac-core/src/validation/validators/wcag-validator.ts` - Validator following existing pattern
 
-**Validation**: `devac status` shows a11y violations
+**Files modified**:
+- `packages/devac-core/src/validation/validation-coordinator.ts` - Added WCAG validation to orchestration
+- `packages/devac-core/src/validation/issue-enricher.ts` - Added "wcag" to ValidationIssue source type
+- `packages/devac-core/src/validation/validators/index.ts` - Exported WcagValidator
+- `packages/devac-core/src/validation/index.ts` - Exported WCAG analyzer and validator
+- `packages/devac-core/src/rules/index.ts` - Exported WCAG rules
+
+**Implementation details**:
+- 5 WCAG rules implemented:
+  - `wcag-keyboard-accessible` (2.1.1, Level A) - Interactive elements must be keyboard accessible
+  - `wcag-accessible-name` (4.1.2, Level A) - Interactive elements must have accessible name
+  - `wcag-valid-aria-reference` (1.3.1, Level A) - ARIA ID references must point to existing elements
+  - `wcag-no-positive-tabindex` (2.4.3, Level A) - Avoid tabIndex > 0
+  - `wcag-button-has-text` (4.1.2, Level A) - Buttons must have text content or aria-label
+- WcagAnalyzer with utility functions for grouping and filtering issues
+- WcagValidator integrates with SeedReader and ValidationCoordinator
+- ValidationCoordinator runs WCAG validation in full mode (disabled in quick mode)
+- Issues appear in unified_diagnostics alongside tsc/eslint errors
+
+**Tests added**:
+- `packages/devac-core/__tests__/wcag-rules.test.ts` - 37 tests for rule definitions and query functions
+- `packages/devac-core/__tests__/wcag-analyzer.test.ts` - 26 tests for analyzer and utility functions
+- `packages/devac-core/__tests__/validation/validators/wcag-validator.test.ts` - 10 tests for validator integration
+
+**Validation**: ✅ WCAG violations appear as diagnostics with proper source, severity, and WCAG criterion metadata
 
 ---
 
@@ -272,6 +299,7 @@ When all gaps are closed:
 
 ---
 
-*Last reviewed: 2026-01-17*
+*Last reviewed: 2026-01-18*
 *Phase 0 completed: 2026-01-17*
 *Phase 1 completed: 2026-01-17*
+*Phase 2 completed: 2026-01-18*

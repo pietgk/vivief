@@ -18,10 +18,12 @@ import {
   type LintValidator,
   type TestValidator,
   type TypecheckValidator,
+  type WcagValidator,
   createCoverageValidator,
   createLintValidator,
   createTestValidator,
   createTypecheckValidator,
+  createWcagValidator,
 } from "./validators/index.js";
 
 /**
@@ -45,6 +47,8 @@ export interface ValidationConfig {
   runCoverage: boolean;
   /** Coverage threshold for lines (default: 0 = report all) */
   coverageThreshold?: number;
+  /** Whether to run WCAG accessibility validation */
+  runWcag: boolean;
   /** Timeout for each validator in milliseconds */
   timeout: number;
   /** Whether to enrich issues with CodeGraph context */
@@ -92,6 +96,15 @@ export interface ValidationCoordinatorResult {
       statements: number;
     };
   };
+  /** WCAG accessibility results (if run) */
+  wcag?: {
+    success: boolean;
+    issues: EnrichedIssue[];
+    timeMs: number;
+    checkedCount: number;
+    passedCount: number;
+    passRate: number;
+  };
   /** Total number of issues across all validators */
   totalIssues: number;
   /** Total time taken in milliseconds */
@@ -107,6 +120,7 @@ const QUICK_MODE_CONFIG: ValidationConfig = {
   runLint: true,
   runTests: false,
   runCoverage: false,
+  runWcag: false, // WCAG validation requires parsed seeds
   timeout: 5000, // 5 seconds
   enrichIssues: true,
 };
@@ -120,6 +134,7 @@ const FULL_MODE_CONFIG: ValidationConfig = {
   runLint: true,
   runTests: true,
   runCoverage: true,
+  runWcag: true, // Run WCAG validation in full mode
   coverageThreshold: 0,
   timeout: 300000, // 5 minutes
   enrichIssues: true,
@@ -138,6 +153,7 @@ export class ValidationCoordinator {
   private lintValidator: LintValidator;
   private testValidator: TestValidator;
   private coverageValidator: CoverageValidator;
+  private wcagValidator: WcagValidator;
 
   constructor(
     private pool: DuckDBPool,
@@ -149,6 +165,7 @@ export class ValidationCoordinator {
     this.typecheckValidator = createTypecheckValidator();
     this.lintValidator = createLintValidator();
     this.testValidator = createTestValidator();
+    this.wcagValidator = createWcagValidator(seedReader);
     this.coverageValidator = createCoverageValidator();
   }
 
@@ -175,6 +192,7 @@ export class ValidationCoordinator {
     let lintResult: ValidationCoordinatorResult["lint"];
     let testsResult: ValidationCoordinatorResult["tests"];
     let coverageResult: ValidationCoordinatorResult["coverage"];
+    let wcagResult: ValidationCoordinatorResult["wcag"];
     let totalIssues = 0;
 
     // Run typecheck if enabled
@@ -207,7 +225,14 @@ export class ValidationCoordinator {
       totalIssues += result.issues.length;
     }
 
-    // Determine overall success (coverage issues are warnings, don't fail overall)
+    // Run WCAG accessibility validation if enabled
+    if (fullConfig.runWcag) {
+      const result = await this.runWcag(fullConfig);
+      wcagResult = result;
+      totalIssues += result.issues.length;
+    }
+
+    // Determine overall success (coverage and WCAG issues are warnings, don't fail overall)
     const success =
       (typecheckResult?.success ?? true) &&
       (lintResult?.success ?? true) &&
@@ -221,6 +246,7 @@ export class ValidationCoordinator {
       lint: lintResult,
       tests: testsResult,
       coverage: coverageResult,
+      wcag: wcagResult,
       totalIssues,
       totalTimeMs: Date.now() - startTime,
     };
@@ -449,6 +475,56 @@ export class ValidationCoordinator {
         ],
         timeMs: 0,
         summary: { lines: 0, branches: 0, functions: 0, statements: 0 },
+      };
+    }
+  }
+
+  /**
+   * Run WCAG accessibility validation
+   */
+  private async runWcag(
+    config: ValidationConfig
+  ): Promise<NonNullable<ValidationCoordinatorResult["wcag"]>> {
+    try {
+      const result = await this.wcagValidator.validate({
+        timeout: config.timeout,
+      });
+
+      // Convert WCAG issues to EnrichedIssue format
+      const issues: EnrichedIssue[] = result.issues.map((issue) => ({
+        ...issue,
+        promptMarkdown: this.issueEnricher.generatePrompt({
+          ...issue,
+          promptMarkdown: "",
+        }),
+      }));
+
+      return {
+        success: result.success,
+        issues,
+        timeMs: result.timeMs,
+        checkedCount: result.checkedCount,
+        passedCount: result.passedCount,
+        passRate: result.passRate,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        issues: [
+          {
+            file: this.packagePath,
+            line: 0,
+            column: 0,
+            message: error instanceof Error ? error.message : String(error),
+            severity: "error",
+            source: "wcag",
+            promptMarkdown: "",
+          },
+        ],
+        timeMs: 0,
+        checkedCount: 0,
+        passedCount: 0,
+        passRate: 0,
       };
     }
   }

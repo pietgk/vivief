@@ -20,10 +20,11 @@ DevAC/Vivief represents an ambitious attempt to create a **unified, queryable de
 ### The proposed prompt to update review is based on the below prompt creating the first version: 
 
 do a very thorough review of the total documentation with its vision and concepts 
-and the current implementation and determine the pros and cons and the quality of the total concept and vision 
+and the current implementation (code, docs, adr)and determine the pros and cons and the quality of the total concept and vision 
 and compare it against other initiatives that do similar thing 
 and compare vivief against them this to enable design choices and next steps
-the previous time we did a comprehensive review we created docs/spec/comprehensive-review.md, use it as the document to update with the updated comprehensive review.
+the previous time we did a comprehensive review we created docs/spec/comprehensive-review.md and docs/spec/gaps.md, use them as the documents to update with the updated comprehensive review and new gaps.
+
 
 ### The first version (2026-01-17) is created from:
 

@@ -46,7 +46,26 @@ export {
   type CoverageIssue,
   type FileCoverage,
   type CoverageSummary,
+  WcagValidator,
+  createWcagValidator,
+  type WcagOptions,
+  type WcagResult,
+  type WcagValidationIssue,
 } from "./validators/index.js";
+
+// WCAG Analyzer
+export {
+  analyzeWcag,
+  groupIssuesByFile,
+  groupIssuesBySeverity,
+  groupIssuesByCriterion,
+  getIssueCounts,
+  filterIssuesBySeverity,
+  getAnalysisSummary,
+  type WcagAnalyzerOptions,
+  type WcagIssue,
+  type WcagAnalysisResult,
+} from "./wcag-analyzer.js";
 
 // Validation Coordinator
 export {
