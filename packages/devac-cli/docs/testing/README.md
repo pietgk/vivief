@@ -39,10 +39,10 @@ Understandable tests enable:
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| Test Harness | [`devac-core/src/test-harness/`](../../../../devac-core/src/test-harness/) | Workspace creation, assertions |
-| Git Simulator | [`git-simulator.ts`](../../../../devac-core/src/test-harness/git-simulator.ts) | Staged/unstaged file simulation |
-| Hook Schemas | [`hook-output-schema.ts`](../../../../devac-core/src/test-harness/hook-output-schema.ts) | Zod validation for hook JSON |
-| Fixtures | [`fixtures-validation/`](../../../../fixtures-validation/) | Test packages with known errors |
+| Test Harness | [`devac-core/src/test-harness/`](../../../devac-core/src/test-harness/) | Workspace creation, assertions |
+| Git Simulator | [`git-simulator.ts`](../../../devac-core/src/test-harness/git-simulator.ts) | Staged/unstaged file simulation |
+| Hook Schemas | [`hook-output-schema.ts`](../../../devac-core/src/test-harness/hook-output-schema.ts) | Zod validation for hook JSON |
+| Fixtures | [`fixtures-validation/`](../../../fixtures-validation/) | Test packages with known errors |
 | Integration | [`__tests__/integration/`](../../__tests__/integration/) | Harness-based tests |
 | E2E | [`__tests__/e2e/`](../../__tests__/e2e/) | Full CLI execution tests |
 
@@ -97,7 +97,7 @@ See [Fixtures Guide](./fixtures-guide.md) for detailed error explanations.
 ## Quick Usage Example
 
 ```typescript
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 
 const harness = new ValidationTestHarness(fixturesPath);
 

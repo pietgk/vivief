@@ -233,7 +233,7 @@ The 24 unit test files cover:
 ### New E2E Test
 ```typescript
 // __tests__/e2e/new-feature.e2e.test.ts
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 
 describe("New Feature E2E", () => {
   const harness = new ValidationTestHarness(fixturesPath);
@@ -254,7 +254,7 @@ describe("New Feature E2E", () => {
 ### New Integration Test
 ```typescript
 // __tests__/integration/new-flow.integration.test.ts
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 
 describe("New Flow Integration", () => {
   const harness = new ValidationTestHarness(fixturesPath);

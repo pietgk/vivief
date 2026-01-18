@@ -6,7 +6,7 @@ Complete API documentation for the validation test harness, Git simulator, and h
 
 **Import:**
 ```typescript
-import { ValidationTestHarness, createValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness, createValidationTestHarness } from "@pietgk/devac-core/test-harness";
 ```
 
 ### Constructor
@@ -16,7 +16,7 @@ const harness = new ValidationTestHarness(fixturesBasePath: string);
 ```
 
 **Parameters:**
-- `fixturesBasePath` — Absolute path to fixtures directory (typically `fixtures-validation/packages/`)
+- `fixturesBasePath` — Absolute path to fixtures directory (typically `fixtures-validation/`)
 
 ### Workspace Management
 
@@ -202,7 +202,7 @@ harness.assertValidationResult(result: HookAssertionResult, expected: ExpectedRe
 
 **Import:**
 ```typescript
-import { GitSimulator, execGit } from "@anthropic/devac-core/test-harness";
+import { GitSimulator, execGit } from "@pietgk/devac-core/test-harness";
 ```
 
 ### Constructor
@@ -352,7 +352,7 @@ Default message: `"Initial commit"`.
 Execute arbitrary Git commands.
 
 ```typescript
-import { execGit } from "@anthropic/devac-core/test-harness";
+import { execGit } from "@pietgk/devac-core/test-harness";
 
 const result = await execGit(args: string[], cwd: string, timeout?: number);
 ```
@@ -388,7 +388,7 @@ import {
   extractReminderContent,
   parseDiagnosticsCounts,
   hasIssues,
-} from "@anthropic/devac-core/test-harness";
+} from "@pietgk/devac-core/test-harness";
 ```
 
 ### Schema Definitions
@@ -511,11 +511,11 @@ const hasProblem = hasIssues(hookOutput: HookOutput);
 ### Full E2E Test Pattern
 
 ```typescript
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 import { execCli } from "./helpers";
 
 describe("Feature E2E", () => {
-  const fixturesPath = path.join(__dirname, "../../../fixtures-validation/packages");
+  const fixturesPath = path.join(__dirname, "../../../fixtures-validation");
   const harness = new ValidationTestHarness(fixturesPath);
 
   afterAll(() => harness.cleanup());
@@ -558,7 +558,7 @@ import {
   validateHookOutput,
   extractReminderContent,
   parseDiagnosticsCounts,
-} from "@anthropic/devac-core/test-harness";
+} from "@pietgk/devac-core/test-harness";
 
 function processHookOutput(stdout: string) {
   // Parse JSON

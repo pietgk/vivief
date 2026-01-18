@@ -48,7 +48,8 @@
       "test-fixtures",
       "packages/fixtures-typescript",
       "packages/fixtures-python",
-      "packages/fixtures-csharp"
+      "packages/fixtures-csharp",
+      "packages/fixtures-validation"
     ]
   }
 }

@@ -249,19 +249,19 @@ it("handles partial staging", async () => {
 ### Run All E2E Tests
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- --grep="e2e"
+pnpm test --filter=@pietgk/devac-cli -- --grep="e2e"
 ```
 
 ### Run Specific File
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- cli-hooks.e2e.test.ts
+pnpm test --filter=@pietgk/devac-cli -- cli-hooks.e2e.test.ts
 ```
 
 ### Run with Verbose Output
 
 ```bash
-DEBUG=devac:* pnpm test --filter=@anthropic/devac-cli -- cli-hooks.e2e.test.ts
+DEBUG=devac:* pnpm test --filter=@pietgk/devac-cli -- cli-hooks.e2e.test.ts
 ```
 
 ### Run with Timeout Extension
@@ -269,7 +269,7 @@ DEBUG=devac:* pnpm test --filter=@anthropic/devac-cli -- cli-hooks.e2e.test.ts
 E2E tests may need longer timeouts:
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- --testTimeout=60000 cli-hooks.e2e.test.ts
+pnpm test --filter=@pietgk/devac-cli -- --testTimeout=60000 cli-hooks.e2e.test.ts
 ```
 
 ---
@@ -316,12 +316,12 @@ console.log(result.exitCode); // Process exit code
 ### Template
 
 ```typescript
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 import { execCli } from "../helpers";
 import path from "path";
 
 describe("Feature E2E", () => {
-  const fixturesPath = path.join(__dirname, "../../../fixtures-validation/packages");
+  const fixturesPath = path.join(__dirname, "../../../fixtures-validation");
   const harness = new ValidationTestHarness(fixturesPath);
 
   afterAll(async () => {

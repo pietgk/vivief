@@ -163,6 +163,7 @@ await watchResult.controller?.stop();
 
 - [CLI Reference](../../docs/cli-reference.md) - Full command documentation
 - [Quick Start](../../docs/quick-start.md) - Getting started guide
+- [Testing Guide](./docs/testing/README.md) - Validation test suite documentation
 
 ## License
 

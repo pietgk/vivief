@@ -323,25 +323,25 @@ Tests for workspace discovery and structure detection.
 ### Run All Integration Tests
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- --grep="integration"
+pnpm test --filter=@pietgk/devac-cli -- --grep="integration"
 ```
 
 ### Run Specific File
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- hook-output.integration.test.ts
+pnpm test --filter=@pietgk/devac-cli -- hook-output.integration.test.ts
 ```
 
 ### Run with Coverage
 
 ```bash
-pnpm test --filter=@anthropic/devac-cli -- --coverage --grep="integration"
+pnpm test --filter=@pietgk/devac-cli -- --coverage --grep="integration"
 ```
 
 ### Debug Mode
 
 ```bash
-DEBUG=devac:* pnpm test --filter=@anthropic/devac-cli -- hook-output.integration.test.ts
+DEBUG=devac:* pnpm test --filter=@pietgk/devac-cli -- hook-output.integration.test.ts
 ```
 
 ---
@@ -351,12 +351,12 @@ DEBUG=devac:* pnpm test --filter=@anthropic/devac-cli -- hook-output.integration
 ### Template
 
 ```typescript
-import { ValidationTestHarness } from "@anthropic/devac-core/test-harness";
+import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 import { execCli } from "../helpers";
 import path from "path";
 
 describe("Feature Integration", () => {
-  const fixturesPath = path.join(__dirname, "../../../fixtures-validation/packages");
+  const fixturesPath = path.join(__dirname, "../../../fixtures-validation");
   const harness = new ValidationTestHarness(fixturesPath);
 
   afterAll(async () => {

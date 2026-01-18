@@ -4,7 +4,7 @@ This document details the test fixture packages, their purposes, and the specifi
 
 ## Overview
 
-**Location:** `packages/fixtures-validation/packages/`
+**Location:** `packages/fixtures-validation/`
 
 Fixtures are pre-built TypeScript packages with intentional errors used to verify validation behavior. Each fixture targets a specific validation type.
 
@@ -268,7 +268,7 @@ const workspace = await harness.createTempWorkspace({
 
 When adding a new fixture:
 
-1. **Create directory:** `fixtures-validation/packages/pkg-new-fixture/`
+1. **Create directory:** `fixtures-validation/pkg-new-fixture/`
 
 2. **Add package.json:**
    ```json
