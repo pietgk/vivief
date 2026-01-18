@@ -1,5 +1,16 @@
 # @pietgk/devac-core
 
+## 0.26.0
+
+### Minor Changes
+
+- 94a6c53: Add validation test harness for testing devac validation hooks
+
+  - Add ValidationTestHarness class for workspace management and fixture operations
+  - Add GitSimulator class for Git operations in tests
+  - Add hook output schema validation with Zod for parsing validation results
+  - Add fixture packages with intentional errors for comprehensive testing
+
 ## 0.25.1
 
 ### Patch Changes
