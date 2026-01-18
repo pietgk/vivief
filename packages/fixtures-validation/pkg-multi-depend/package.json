@@ -1,0 +1,21 @@
+{
+  "name": "@pietgk/fixture-pkg-multi-depend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fixture with cross-package dependencies for testing affected analysis",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pietgk/fixture-pkg-clean": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.1"
+  }
+}
