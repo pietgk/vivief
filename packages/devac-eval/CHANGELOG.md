@@ -1,5 +1,11 @@
 # @pietgk/devac-eval
 
+## 0.25.0
+
+### Patch Changes
+
+- @pietgk/devac-core@0.25.0
+
 ## 0.24.4
 
 ### Patch Changes
