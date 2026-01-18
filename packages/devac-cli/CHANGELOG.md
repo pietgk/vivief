@@ -1,5 +1,18 @@
 # @pietgk/devac-cli
 
+## 0.25.1
+
+### Patch Changes
+
+- b87fba4: Fix logger output in hook mode for clean JSON output
+
+  - Add `setGlobalLogLevel("silent")` at start of `status --inject` command
+  - Modify logger `shouldLog()` to respect global log level dynamically
+  - Ensures hook JSON output is not polluted with PackageManager debug logs
+
+- Updated dependencies [b87fba4]
+  - @pietgk/devac-core@0.25.1
+
 ## 0.25.0
 
 ### Minor Changes
