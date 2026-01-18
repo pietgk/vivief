@@ -1,0 +1,19 @@
+{
+  "name": "@pietgk/fixtures-validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test fixtures for DevAC validation system",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Fixtures do not need building'",
+    "test": "echo 'Fixtures are tested by consumer packages'",
+    "typecheck": "echo 'Fixtures intentionally contain type errors for testing'"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
