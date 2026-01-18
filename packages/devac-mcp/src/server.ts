@@ -533,9 +533,26 @@ export class DevacMCPServer {
 
   /**
    * Get all diagnostics (unified view)
+   * Supports level parameter: 'counts' | 'summary' | 'details' (default)
    */
   private async executeGetAllDiagnostics(input: Record<string, unknown>): Promise<MCPToolResult> {
     try {
+      const level = (input.level as string) ?? "details";
+
+      // Route based on level for progressive disclosure
+      if (level === "counts") {
+        // Fast path: just return totals by severity
+        const counts = await this.provider.getDiagnosticsCounts();
+        return { success: true, data: counts };
+      }
+
+      if (level === "summary") {
+        // Medium detail: return grouped counts by source
+        const summary = await this.provider.getDiagnosticsSummary("source");
+        return { success: true, data: summary };
+      }
+
+      // Full details (default): return diagnostic records with filters
       const filter: DiagnosticsFilter = {
         repo_id: input.repo_id as string | undefined,
         source: input.source as DiagnosticsSource[] | undefined,

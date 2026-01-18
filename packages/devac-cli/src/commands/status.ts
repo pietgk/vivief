@@ -45,6 +45,9 @@ export interface StatusOptions {
 
   /** After gathering, sync CI results to hub */
   sync?: boolean;
+
+  /** Hook injection mode - output hook-compatible JSON for Claude Code hooks */
+  inject?: boolean;
 }
 
 export interface StatusResult {
@@ -726,6 +729,32 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
           const repos = await client.listRepos();
           result.health.reposRegistered = repos.length;
 
+          // Fast path for --inject mode (hook injection)
+          if (options.inject) {
+            try {
+              const counts = await client.getDiagnosticsCounts();
+              const totalIssues = counts.error + counts.warning;
+
+              // Silent if no issues (empty output = no injection)
+              if (totalIssues === 0) {
+                return result;
+              }
+
+              // Output hook-compatible JSON
+              const hookOutput = {
+                hookSpecificOutput: {
+                  hookEventName: "UserPromptSubmit",
+                  additionalContext: `<system-reminder>\nDevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.\n</system-reminder>`,
+                },
+              };
+              console.log(JSON.stringify(hookOutput));
+              return result;
+            } catch {
+              // If diagnostics not available, return silently
+              return result;
+            }
+          }
+
           // Get diagnostics from hub (skip if --seeds-only)
           if (!seedsOnly) {
             try {
@@ -899,6 +928,7 @@ export function registerStatusCommand(program: Command): void {
     .option("--seeds-only", "Show only seed status (skip diagnostics)")
     .option("--cached", "Skip live CI fetch, use hub cache only (faster)")
     .option("--sync", "Sync CI results to hub after gathering")
+    .option("--inject", "Output hook-compatible JSON for Claude Code hooks (silent if no issues)")
     .action(async (options) => {
       // Determine format
       let format: "oneline" | "brief" | "full" = "brief";
@@ -913,7 +943,13 @@ export function registerStatusCommand(program: Command): void {
         seedsOnly: options.seedsOnly,
         cached: options.cached,
         sync: options.sync,
+        inject: options.inject,
       });
+
+      // In inject mode, output is already handled in statusCommand
+      if (options.inject) {
+        return;
+      }
 
       if (result.success) {
         if (options.json) {

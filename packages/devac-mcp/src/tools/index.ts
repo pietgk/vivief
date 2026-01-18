@@ -229,6 +229,12 @@ export const MCP_TOOLS: MCPTool[] = [
     inputSchema: {
       type: "object",
       properties: {
+        level: {
+          type: "string",
+          enum: ["counts", "summary", "details"],
+          description:
+            "Level of detail: 'counts' returns totals by severity, 'summary' returns grouped counts, 'details' returns full diagnostic records (default)",
+        },
         repo_id: {
           type: "string",
           description: "Filter by repository ID (e.g., 'github.com/org/repo')",

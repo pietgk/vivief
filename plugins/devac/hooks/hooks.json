@@ -1,0 +1,14 @@
+{
+  "hooks": [
+    {
+      "event": "UserPromptSubmit",
+      "command": "devac status --inject",
+      "blocking": false
+    },
+    {
+      "event": "Stop",
+      "command": "devac validate --on-stop --mode quick",
+      "blocking": false
+    }
+  ]
+}

@@ -2,6 +2,40 @@
 
 Triage and prioritize diagnostics, errors, and issues using DevAC's Validators Pillar outputs.
 
+## Automatic Context Injection (Hooks)
+
+DevAC automatically injects diagnostic status into Claude Code conversations via hooks:
+
+### UserPromptSubmit Hook
+When you start a conversation, if there are unresolved errors or warnings, DevAC automatically injects a status reminder:
+```
+DevAC Status: 3 errors, 2 warnings
+Run get_all_diagnostics to see details.
+```
+
+### Stop Hook
+After code changes are made, the Stop hook runs quick validation and reminds you of any new issues introduced:
+```
+Validation found issues:
+- 2 TypeScript errors in src/foo.ts
+- 1 ESLint warning in src/bar.ts
+
+Consider fixing these before continuing.
+```
+
+### "Solve Until None" Workflow
+The hooks enable an iterative workflow:
+1. See diagnostic status when starting work
+2. Make code changes
+3. Get reminded of any issues introduced
+4. Fix issues
+5. Repeat until no issues remain
+
+This creates a natural loop that keeps the codebase healthy.
+
+### Disabling Hooks
+To disable automatic injection, remove or comment out entries in `plugins/devac/hooks/hooks.json`.
+
 ## Triggers
 
 This skill activates when users ask about:
@@ -96,14 +130,30 @@ When many similar issues exist:
 
 If MCP server is configured, these tools provide equivalent functionality:
 
-### `get_diagnostics_summary`
+### `get_all_diagnostics`
+Supports progressive disclosure via the `level` parameter:
 ```
-get_diagnostics_summary()
+# Fast: just get counts
+get_all_diagnostics(level: "counts")
+# Returns: { critical: 0, error: 3, warning: 2, suggestion: 0, note: 0, total: 5 }
+
+# Medium: get summary grouped by source
+get_all_diagnostics(level: "summary")
+# Returns: [{ source: "tsc", count: 2 }, { source: "eslint", count: 3 }]
+
+# Full: get all diagnostic records (default)
+get_all_diagnostics(level: "details", severity: ["error"])
+# Returns: full diagnostic records with file paths, messages, etc.
 ```
 
-### `get_all_diagnostics`
+### `get_diagnostics_summary`
 ```
-get_all_diagnostics(severity: "error")
+get_diagnostics_summary(groupBy: "source")
+```
+
+### `get_diagnostics_counts`
+```
+get_diagnostics_counts()
 ```
 
 ### `query_sql`
