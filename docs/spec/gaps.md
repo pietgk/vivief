@@ -252,6 +252,30 @@ All WCAG validation has been implemented, enabling accessibility issue detection
 
 ---
 
+## Phase 5: Scalability & Competitive Parity (NEW)
+
+**Status**: ⬜ Not started
+
+Gaps identified from expanded competitive analysis (2026-01-18):
+
+| Gap | Description | Priority | Competitive Context |
+|-----|-------------|----------|---------------------|
+| ⬜ Scale benchmarking | Test with 100k+ nodes, measure memory/latency | High | Augment handles 400k+ files |
+| ⬜ Memory profiling | Profile DuckDB/Parquet memory under load | Medium | Constrained environments |
+| ⬜ Language coverage research | Roadmap for Go, Rust, Java, etc. | Medium | Aider supports 40+ languages |
+| ⬜ Embeddings exploration | Research vector search for semantic queries | Low | Cursor/Augment use RAG |
+| ⬜ IDE extension exploration | VSCode/Cursor extension feasibility | Low | Cursor/Windsurf have native IDE |
+
+**Research needed:**
+- How does DuckDB perform with 1M+ rows in nodes table?
+- What's the memory footprint for 100k file analysis?
+- Should DevAC use embeddings alongside SQL, or stay SQL-pure?
+- Could MCP serve as indirect IDE integration?
+
+**Validation**: Benchmark data vs Augment, Stack Graphs claims
+
+---
+
 ## Research Gaps
 
 Items requiring investigation before implementation:
@@ -262,6 +286,8 @@ Items requiring investigation before implementation:
 | Implicit state handling | useState without clear machine structure | ⬜ |
 | Cross-component actors | Actors spanning multiple components | ⬜ |
 | Sequence matching | Rules Engine capability for patterns | ⬜ |
+| Scale benchmarking | Performance at 100k+ nodes vs competitors | ⬜ (NEW) |
+| Embeddings/RAG | Vector search vs SQL-only tradeoffs | ⬜ (NEW) |
 
 ---
 
@@ -281,13 +307,23 @@ Items requiring investigation before implementation:
 
 When all gaps are closed:
 
-| Metric | Target |
-|--------|--------|
-| JSX components queryable | 100% extracted |
-| A11y attributes queryable | All ARIA + interactive elements |
-| WCAG violations in diagnostics | Alongside type/lint errors |
-| Effect-test correlation | 100% of tested effects matched |
-| Actor discovery | Explicit + inferred machines queryable |
+| Metric | Target | Status |
+|--------|--------|--------|
+| JSX components queryable | 100% extracted | ✅ Complete |
+| A11y attributes queryable | All ARIA + interactive elements | ✅ Complete |
+| WCAG violations in diagnostics | Alongside type/lint errors | ✅ Complete |
+| Effect-test correlation | 100% of tested effects matched | ⬜ Phase 3B |
+| Actor discovery | Explicit + inferred machines queryable | ⬜ Phase 4 |
+
+**Competitive Benchmarks** (NEW - from 2026-01-18 review):
+
+| Metric | DevAC Current | Competitor Reference | Target |
+|--------|---------------|---------------------|--------|
+| File scale | Untested | Augment: 400k+ files | Test at 100k files |
+| Node scale | Untested | Stack Graphs: petabyte | Test at 1M nodes |
+| Language count | 3 (TS, Python, C#) | Aider: 40+ | 5 (add Go, Rust) |
+| Query latency p95 | ~200ms | Unknown | <100ms |
+| Memory per 10k nodes | Unknown | Unknown | <100MB |
 
 ---
 
@@ -296,6 +332,8 @@ When all gaps are closed:
 - This document should be updated as implementation progresses
 - New gaps discovered during implementation should be added here
 - Consider splitting into separate tracking issues as phases begin
+- **2026-01-18**: Added Phase 5 (Scalability & Competitive Parity) based on expanded competitive analysis
+- **2026-01-18**: Added competitive benchmarks to Success Metrics
 
 ---
 
@@ -303,3 +341,4 @@ When all gaps are closed:
 *Phase 0 completed: 2026-01-17*
 *Phase 1 completed: 2026-01-17*
 *Phase 2 completed: 2026-01-18*
+*Phase 5 added: 2026-01-18* (Scalability gaps from competitive analysis)

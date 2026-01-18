@@ -2,24 +2,29 @@
 
 > A thorough analysis of the DevAC vision, current implementation, comparison with similar tools, and recommendations for next steps.
 
-**Date**: 2026-01-17
-**Status**: Strategic Review Document
+**Date**: 2026-01-18
+**Status**: Strategic Review Document (Updated)
 
 ---
 
 ## Executive Summary
 
-DevAC/Vivief represents an ambitious attempt to create a **unified, queryable development platform** where code behavior, architecture, and development workflow become deterministic data. The vision is coherent and architecturally sound, but significant gaps exist between vision and implementation.
+DevAC/Vivief represents an ambitious attempt to create a **unified, queryable development platform** where code behavior, architecture, and development workflow become deterministic data. The vision is coherent and architecturally sound, and significant progress has been made closing implementation gaps since the initial review.
 
 **Key Finding**: DevAC's core value proposition—making code effects queryable via SQL—is unique in the ecosystem. No other tool combines code property graphs, effect extraction, rules-based aggregation, multi-repo federation, and MCP integration in a single coherent framework.
 
-**Quality Score**: 7.5/10 for vision coherence, 6.5/10 for implementation completeness
+**Update (2026-01-18)**: Phases 0-2 are now complete:
+- ✅ Phase 0: JSX extraction (40 tests, RENDERS/PASSES_PROPS edges)
+- ✅ Phase 1: A11y attributes (ARIA relationship edges, element ID tracking)
+- ✅ Phase 2: WCAG validation (5 rules, 73 tests, unified diagnostics)
+
+**Quality Score**: 8/10 for vision coherence (up from 7.5), 7/10 for implementation completeness (up from 6.5)
 
 **Important**: This document is to be updated by further reviews on review requests. 
 
 ### The proposed prompt to update review is based on the below prompt creating the first version: 
 
-do a very thorough review of the total documentation with its vision and concepts 
+do a very thorough review of the total vivief documentation with its vision and concepts 
 and the current implementation (code, docs, adr)and determine the pros and cons and the quality of the total concept and vision 
 and compare it against other initiatives that do similar thing 
 and compare vivief against them this to enable design choices and next steps
@@ -61,8 +66,9 @@ and compare vivief against them this to enable design choices and next steps
 | Four Pillars model | ✅ Strong | Clear separation of concerns |
 | Seeds (queryable state) | ✅ Strong | DuckDB + Parquet is solid choice |
 | Hub federation | ✅ Strong | Three-layer model is well-designed |
-| Actor model | 🟡 Medium | Vision clear, implementation zero |
-| UI Effects | 🟡 Medium | Vision clear, implementation zero |
+| JSX/UI extraction | ✅ Strong | Phase 0-1 complete, 54+ tests |
+| WCAG validation | ✅ Strong | Phase 2 complete, 5 rules, 73 tests |
+| Actor model | 🟡 Medium | Vision clear, implementation pending |
 | Rules Engine | 🟡 Medium | Works but no sequence matching |
 | Effect correlation | ⬜ Weak | OTel integration not implemented |
 
@@ -96,37 +102,44 @@ and compare vivief against them this to enable design choices and next steps
 | Python parsing | ✅ Production | Subprocess-based, AST extraction |
 | C# parsing | ✅ Production | Tree-sitter based, 46KB |
 | Effect extraction | ✅ Production | FunctionCall, Store, Retrieve, Send, Request, Response |
+| **JSX extraction** | ✅ Production | RENDERS, PASSES_PROPS edges; 40 tests |
+| **A11y extraction** | ✅ Production | ARIA refs, element IDs, tabIndex; 14 tests |
+| **WCAG validation** | ✅ Production | 5 rules, 73 tests, unified diagnostics |
 | Rules Engine | ✅ Production | Domain categorization, 13KB builtin rules |
 | Hub federation | ✅ Production | DuckDB central, IPC concurrency (ADR-0024) |
 | MCP Server | ✅ Production | 21 tools, comprehensive coverage |
 | CLI | ✅ Production | 40+ commands |
-| Validation pipeline | ✅ Production | tsc, eslint, test, coverage integration |
+| Validation pipeline | ✅ Production | tsc, eslint, test, coverage, **WCAG** integration |
 | C4 diagram generation | ✅ Production | Context, Container, Component levels |
 
 ### 2.2 Critical Gaps
 
 | Gap | Vision Claims | Reality | Impact |
 |-----|---------------|---------|--------|
-| **JSX extraction** | Query React components, A11y | Not implemented | Cannot analyze UI layer |
+| ~~JSX extraction~~ | ~~Query React components, A11y~~ | ✅ **Complete** | Now queryable |
 | **State machines** | Discover XState, infer from effects | Not implemented | Cannot query workflow state |
 | **Effect correlation** | Match static to runtime via OTel | Not implemented | Cannot validate test coverage |
 | **Sequence rules** | Match effect sequences | Not implemented | Cannot express "A then B" |
-| **Auto hub sync** | Implicit cache updates | Manual refresh required | Developer friction |
+| ~~Auto hub sync~~ | ~~Implicit cache updates~~ | ✅ **Complete** (`--sync` flag) | Reduced friction |
+| **Scale benchmarking** | Handle large codebases | No benchmark data | Cannot compare to Augment (400k files) |
+| **Language coverage** | Multi-language support | 3 languages | Aider supports 40+; limited reach |
+| **Embeddings/RAG** | Semantic code search | SQL only | No vector-based similarity search |
 
 ### 2.3 Implementation Depth Analysis
 
 ```
-Depth of Implementation by Area:
+Depth of Implementation by Area (Updated 2026-01-18):
 
-Code Extraction     ████████████████████░░░░ 80%
+Code Extraction     █████████████████████░░░ 85% (↑ from 80%)
   - Languages       ████████████████████████ 100% (TS, Py, C#)
   - Semantic        ████████████████████░░░░ 80% (types, imports)
-  - UI/JSX          ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
+  - UI/JSX          ███████████████████████░ 95% (↑ from 0%)
   - State machines  ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
 
 Effects & Rules     ████████████████░░░░░░░░ 65%
   - Basic effects   ████████████████████████ 100%
   - Domain rules    ████████████████████████ 100%
+  - WCAG rules      ████████████████████████ 100% (NEW)
   - Sequence rules  ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
   - Actor rules     ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
 
@@ -135,10 +148,10 @@ Storage & Query     ████████████████████
   - Hub (DuckDB)    ████████████████████████ 100%
   - Federation      ████████████████████░░░░ 85%
 
-Validation          ████████████████████░░░░ 80%
+Validation          ██████████████████████░░ 90% (↑ from 80%)
   - Type/lint/test  ████████████████████████ 100%
   - Coverage        ████████████████████████ 100%
-  - A11y            ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
+  - A11y/WCAG       ████████████████████████ 100% (↑ from 0%)
 
 Runtime Integration ░░░░░░░░░░░░░░░░░░░░░░░░ 5%
   - OTel setup      ░░░░░░░░░░░░░░░░░░░░░░░░ 0%
@@ -164,8 +177,15 @@ Documentation Gen   ████████████████░░░░
 | **Nx** | Monorepo orchestration | Dependency graph | Affected analysis, caching |
 | **Structurizr** | Architecture diagrams | C4 model DSL | Diagrams from code |
 | **CodeRabbit** | AI code review | AST + AI | PR analysis, fix suggestions |
-| **Augment Code** | AI assistant | Semantic indexing | Context awareness |
-| **Qodo** | Code quality | RAG + codebase awareness | Test generation, reviews |
+| **Augment Code** | AI assistant | 5-layer semantic comprehension | Context awareness, 400k+ files |
+| **Qodo** | Code quality | Agentic context + RAG | Test gen, cross-repo impact |
+| **GitHub Stack Graphs** | Code navigation | File-incremental DSL | Petabyte-scale, name resolution |
+| **Cursor/Windsurf** | AI IDE | Merkle tree sync, custom models | Deep IDE integration |
+| **Continue.dev** | AI assistant | Local embeddings + RAG | Open-source, privacy-first |
+| **Aider** | AI pair programmer | Tree-sitter + PageRank repo map | 40+ languages, terminal-native |
+| **ast-grep MCP** | Code search | Structural AST pattern matching | MCP-native like DevAC |
+| **Code Pathfinder MCP** | Code analysis | 5-pass semantic indexing | Python-focused MCP server |
+| **Repomix** | AI context | Tree-sitter compression | Packaging code for LLMs |
 
 ### 3.2 Detailed Comparisons
 
@@ -239,15 +259,90 @@ Documentation Gen   ████████████████░░░░
 
 **Verdict**: AI assistants are *consumers* of code intelligence. DevAC is a *provider*. They're complementary: DevAC provides the deterministic substrate that AI assistants need.
 
-### 3.3 Unique Value Proposition
+#### DevAC vs GitHub Stack Graphs (NEW)
 
-**What DevAC does that no other tool does**:
+| Aspect | DevAC | Stack Graphs |
+|--------|-------|--------------|
+| **Primary Use** | Queryable code effects | Code navigation at scale |
+| **Scale Target** | Hundreds of repos | Petabyte-scale (all of GitHub) |
+| **Indexing** | Package-incremental seeds | File-incremental DSL |
+| **Name Resolution** | Import tracking, type inference | Stack-based scope matching |
+| **Query Language** | SQL (DuckDB) | Graph traversal DSL |
+| **Effect Extraction** | ✅ Behavior as data | ❌ Structure only |
+| **MCP Integration** | ✅ 21 tools | ❌ None |
+| **Open Source** | ✅ Yes | ✅ Yes |
+
+**Verdict**: Stack Graphs solves precise name resolution at massive scale. DevAC solves *what code does*, not just what it references. Stack Graphs could provide better cross-file resolution for DevAC's import tracking.
+
+#### DevAC vs Augment Code Context Engine (NEW)
+
+| Aspect | DevAC | Augment |
+|--------|-------|---------|
+| **Primary Use** | Queryable code intelligence | AI coding assistant |
+| **Context Model** | Seeds (effects, nodes, edges) | 5-layer semantic comprehension |
+| **Scale** | Untested at 400k files | 400k+ files demonstrated |
+| **Cross-repo** | ✅ Hub federation | ✅ "Full repo context" |
+| **Query Interface** | SQL + MCP | Natural language |
+| **Effect Extraction** | ✅ Yes | ❌ Semantic summaries |
+| **Transparency** | ✅ Fully queryable | ❌ Proprietary black box |
+| **Pricing** | Open source | Commercial |
+
+**Verdict**: Augment has proven scale and polished UX. DevAC offers transparency and effect extraction that Augment lacks. DevAC could learn from Augment's 5-layer model for context prioritization.
+
+#### DevAC vs Cursor/Windsurf AI IDEs (NEW)
+
+| Aspect | DevAC | Cursor/Windsurf |
+|--------|-------|-----------------|
+| **Primary Use** | Code intelligence provider | AI-native IDE |
+| **Architecture** | CLI + MCP server | Full IDE with custom models |
+| **Sync Model** | Content-hash seeds | Merkle tree incremental sync |
+| **IDE Integration** | ❌ CLI/MCP only | ✅ Native IDE |
+| **Effect Extraction** | ✅ Yes | ❌ No |
+| **Custom Models** | Uses Claude via MCP | Custom-trained code models |
+| **User Experience** | Developer tools mindset | Consumer UX mindset |
+
+**Verdict**: Cursor/Windsurf win on UX and IDE integration. DevAC wins on effect extraction and deterministic queries. Consider: DevAC as an MCP server *for* Cursor/Windsurf.
+
+#### DevAC vs Aider Repo Map (NEW)
+
+| Aspect | DevAC | Aider |
+|--------|-------|-------|
+| **Primary Use** | Queryable code effects | AI pair programming |
+| **Language Support** | 3 (TS, Python, C#) | 40+ via Tree-sitter |
+| **Context Building** | Seeds (full extraction) | Repo map (PageRank priority) |
+| **Graph Model** | Nodes, edges, effects | Tags (symbol → file map) |
+| **A11y/WCAG** | ✅ Full support | ❌ None |
+| **Terminal Native** | ✅ CLI | ✅ CLI |
+| **Open Source** | ✅ Yes | ✅ Yes |
+
+**Verdict**: Aider's 40+ language support and PageRank-based context selection are impressive. DevAC's deeper extraction (effects, WCAG) suits specialized use cases. Could learn from Aider's language breadth strategy.
+
+### 3.3 Feature Comparison Matrix (NEW)
+
+| Feature | DevAC | Joern | Stack Graphs | Augment | Cursor | Aider |
+|---------|-------|-------|--------------|---------|--------|-------|
+| **Effect extraction** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **SQL queries** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **MCP server** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Cross-repo** | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **A11y/WCAG** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **C4 diagrams** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **IDE integration** | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **40+ languages** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Taint analysis** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Vector/RAG** | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| **Petabyte scale** | ❓ | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+### 3.4 Unique Value Proposition
+
+**What DevAC does that no other tool does** (updated 2026-01-18):
 
 1. **Effects as first-class citizens**: No other tool extracts code *behavior* (FunctionCall, Store, Retrieve, Send) as queryable data
 2. **Rules-based aggregation**: Compose low-level effects into domain effects (ChargePayment from DB + HTTP + Email)
 3. **Unified diagnostics**: Type errors, lint, test, coverage, CI, issues, PR reviews in one queryable table
 4. **MCP-native**: Built for AI assistants from the ground up (21 tools)
 5. **Federation with DuckDB**: Cross-repo queries without central server overhead
+6. **WCAG validation as diagnostics** (NEW): A11y issues alongside type/lint errors—no other tool integrates WCAG into a unified diagnostics pipeline
 
 ---
 
@@ -260,21 +355,26 @@ Documentation Gen   ████████████████░░░░
 | **Coherent vision** | Foundation doc, ADRs | Reduces architectural confusion |
 | **Solid storage layer** | DuckDB + Parquet working | Fast queries, easy federation |
 | **Effect taxonomy** | 6 data + 2 flow + 3 group effects | Comprehensive behavior model |
-| **Rules engine** | Domain classification working | Enables C4 generation |
+| **Rules engine** | Domain + WCAG classification | Enables C4 generation + A11y |
 | **Honest gap tracking** | gaps.md exists and is accurate | Trust in documentation |
 | **MCP integration** | 21 tools production-ready | AI-first architecture |
 | **Multi-language** | TS, Python, C# | Practical polyglot support |
+| **JSX/A11y extraction** (NEW) | 54+ tests, RENDERS/PASSES_PROPS | Can analyze React component hierarchy |
+| **WCAG validation** (NEW) | 5 rules, 73 tests | A11y as first-class diagnostics |
 
 ### 4.2 Weaknesses
 
 | Weakness | Evidence | Impact |
 |----------|----------|--------|
-| **Vision-implementation gap** | Actors, UI Effects at 0% | Disappointment, confusion |
-| **No UI extraction** | JSX/A11y not implemented | Cannot analyze React apps fully |
+| **Vision-implementation gap** | Actors at 0%, OTel at 0% | Still significant, but narrowing |
+| ~~No UI extraction~~ | ~~JSX/A11y not implemented~~ | ✅ **Closed** (Phase 0-2 complete) |
 | **No runtime correlation** | OTel not integrated | Cannot validate test coverage |
 | **Single-file rules** | No sequence matching | Cannot express "A then B" |
-| **Manual hub refresh** | No auto-sync | Developer friction |
+| ~~Manual hub refresh~~ | ~~No auto-sync~~ | ✅ **Closed** (`--sync` flag) |
 | **Limited adoption signals** | No public usage stats | Unclear product-market fit |
+| **No scale benchmarks** (NEW) | No data vs Augment 400k files | Cannot prove large codebase support |
+| **Limited language coverage** (NEW) | 3 languages vs Aider's 40+ | Narrower applicability |
+| **No IDE integration** (NEW) | CLI/MCP only | Higher adoption friction vs Cursor |
 
 ### 4.3 Risks
 
@@ -290,25 +390,34 @@ Documentation Gen   ████████████████░░░░
 
 ## Part 5: Strategic Recommendations
 
-### 5.1 Prioritized Next Steps
+### 5.1 Prioritized Next Steps (Updated 2026-01-18)
 
-**Phase 0: Foundation Completion (1-2 months)**
+**Phase 0: Foundation Completion** ✅ **COMPLETE**
 
-| Task | Priority | Effort | Impact |
-|------|----------|--------|--------|
-| JSX element extraction | P0 | Medium | Enables UI queries |
-| Component hierarchy edges | P0 | Medium | Enables containment queries |
-| ARIA attribute extraction | P1 | Low | Enables A11y queries |
-| Auto hub sync on validate | P1 | Low | Reduces friction |
+| Task | Status | Notes |
+|------|--------|-------|
+| JSX element extraction | ✅ Complete | 40 tests, RENDERS edges |
+| Component hierarchy edges | ✅ Complete | PASSES_PROPS, INSTANTIATES |
+| ARIA attribute extraction | ✅ Complete | All ARIA attrs + a11y warnings |
+| Auto hub sync on validate | ✅ Complete | `--sync` flag with auto repo ID |
 
-**Phase 1: Validation Enhancement (1 month)**
+**Phase 1: A11y Attributes** ✅ **COMPLETE**
 
-| Task | Priority | Effort | Impact |
-|------|----------|--------|--------|
-| WCAG rules in Rules Engine | P1 | Medium | A11y as diagnostics |
-| A11y in `devac status` | P1 | Low | Visibility |
+| Task | Status | Notes |
+|------|--------|-------|
+| ARIA relationship edges | ✅ Complete | REFERENCES edges for aria-* |
+| Element ID tracking | ✅ Complete | `elementId` extraction |
+| tabIndex handling | ✅ Complete | Keyboard accessibility detection |
 
-**Phase 2: Runtime Correlation (2-3 months)**
+**Phase 2: WCAG Validation** ✅ **COMPLETE**
+
+| Task | Status | Notes |
+|------|--------|-------|
+| WCAG rules in Rules Engine | ✅ Complete | 5 rules, 73 tests |
+| WcagValidator integration | ✅ Complete | Unified diagnostics |
+| A11y in validation pipeline | ✅ Complete | Full mode validation |
+
+**Phase 3A: OTel Integration (NEXT PRIORITY)**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -316,7 +425,7 @@ Documentation Gen   ████████████████░░░░
 | Test span exporter | P1 | Medium | Captures runtime effects |
 | Correlation queries | P2 | Medium | "Which effects are tested?" |
 
-**Phase 3: Actor Discovery (3+ months)**
+**Phase 4: Actor Discovery**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -324,13 +433,23 @@ Documentation Gen   ████████████████░░░░
 | Effect sequence rules | P2 | High | Enables inference |
 | Actor effect type | P2 | Medium | Queryable state machines |
 
-### 5.2 What NOT to Do
+**Phase 5: Scalability & Competitive Parity (NEW)**
 
-1. **Don't build a full IDE** — Stay focused on queryable intelligence
+| Task | Priority | Effort | Impact |
+|------|----------|--------|--------|
+| Scale benchmarking (100k+ nodes) | P2 | Medium | Prove large codebase support |
+| Memory profiling | P2 | Low | Optimize for constrained envs |
+| Language coverage research | P3 | Low | Roadmap for more languages |
+| Embeddings exploration | P3 | High | Semantic search capability |
+
+### 5.2 What NOT to Do (Updated)
+
+1. **Don't build a full IDE** — Stay focused on queryable intelligence (use MCP for IDE integration)
 2. **Don't compete with Nx** — Complement, don't replace build tools
-3. **Don't add more languages before JSX** — Finish core before expanding
+3. ~~Don't add more languages before JSX~~ — ✅ JSX complete; now can consider language expansion
 4. **Don't build production OTel before test OTel** — Start with controlled environment
-5. **Don't over-document vision** — Focus on implementation docs now
+5. **Don't chase scale before proving value** — Augment has 400k files, but DevAC's value is depth, not breadth
+6. **Don't add embeddings without clear use case** — SQL queries are deterministic; RAG adds variability
 
 ### 5.3 Partnership Opportunities
 
@@ -341,55 +460,71 @@ Documentation Gen   ████████████████░░░░
 | **Storybook** | Effects in Storybook addon | Unified component docs |
 | **Anthropic/Claude** | Official DevAC MCP | Better AI coding experience |
 
-### 5.4 Success Metrics
+### 5.4 Success Metrics (Updated 2026-01-18)
 
-| Metric | Current | Target (6 mo) | Target (12 mo) |
-|--------|---------|---------------|----------------|
-| Node kinds extracted | 17 | 20 (+ JSX) | 25 (+ Actors) |
-| Effect types | 6 + 2 flow | 6 + 2 + 2 Actor | 10 + sequence |
-| MCP tools | 21 | 25 | 30 |
-| Hub query latency (p95) | ~200ms | <150ms | <100ms |
-| GitHub stars | ? | 500 | 2000 |
-| Active users | ? | 100 | 500 |
+| Metric | Previous | Current | Target (6 mo) | Target (12 mo) |
+|--------|----------|---------|---------------|----------------|
+| Node kinds extracted | 17 | **19** (+jsx_component, html_element) | 22 (+ Actor kinds) | 25 |
+| Edge types | 8 | **10** (+RENDERS, PASSES_PROPS) | 12 (+ OTel) | 15 |
+| WCAG rules | 0 | **5** | 10 | 15 |
+| Test coverage (JSX) | 0 | **54+** tests | Maintain | Maintain |
+| Effect types | 6 + 2 flow | 6 + 2 flow | 8 + 2 Actor | 10 + sequence |
+| MCP tools | 21 | 21 | 25 | 30 |
+| Hub query latency (p95) | ~200ms | ~200ms | <150ms | <100ms |
+| Scale benchmark | None | None | 100k nodes tested | 500k nodes tested |
+
+**Competitive Benchmarks** (NEW):
+| Competitor | Their Scale | DevAC Target |
+|------------|-------------|--------------|
+| Augment | 400k+ files | Benchmark at 100k files |
+| Stack Graphs | Petabyte | Focus on depth, not breadth |
+| Aider | 40+ languages | 5 languages (TS, Python, C#, Go, Rust) |
 
 ---
 
 ## Part 6: Conclusion
 
-### 6.1 Overall Assessment
+### 6.1 Overall Assessment (Updated 2026-01-18)
 
-DevAC/Vivief is a **well-architected, partially-implemented code intelligence platform** with a unique value proposition: making code *behavior* queryable rather than just code *structure*.
+DevAC/Vivief is a **well-architected, progressively-implemented code intelligence platform** with a unique value proposition: making code *behavior* queryable rather than just code *structure*.
 
 **Strengths**:
 - Coherent vision with honest gap tracking
 - Solid DuckDB + Parquet foundation
 - Effect model is genuinely novel
 - MCP-first architecture is forward-thinking
+- **JSX/A11y/WCAG extraction now complete** (NEW)
+- **Unified diagnostics pipeline mature** (NEW)
 
 **Challenges**:
-- Significant implementation gaps (UI, Actors, OTel)
+- ~~Significant implementation gaps (UI, Actors, OTel)~~ → UI complete; Actors and OTel remain
 - Vision docs may set unrealistic expectations
 - Limited adoption signals
+- **Scale benchmarking needed** (NEW) — competitors have proven 400k+ file support
+- **Language coverage limited** (NEW) — 3 languages vs Aider's 40+
 
-### 6.2 Verdict
+### 6.2 Verdict (Updated)
 
 **Should you invest in DevAC?**
 
 - **Yes, if** you need queryable code intelligence for AI assistants, architecture documentation, or cross-repo analysis
-- **Yes, if** you're willing to contribute to closing the implementation gaps
-- **Wait, if** you need production-ready UI/Actor/runtime correlation today
+- **Yes, if** you want A11y/WCAG validation integrated with your code analysis (unique capability)
+- **Yes, if** you're building React apps and want queryable component hierarchy
+- **Wait, if** you need runtime correlation via OTel (Phase 3A)
+- **Wait, if** you need XState/Actor discovery (Phase 4)
 - **No, if** you only need code search (use Sourcegraph) or build orchestration (use Nx)
+- **No, if** you need 40+ language support immediately (use Aider's repo map)
 
-### 6.3 Final Score
+### 6.3 Final Score (Updated)
 
-| Dimension | Score | Notes |
-|-----------|-------|-------|
-| Vision coherence | 8/10 | Clear, consistent, future-proof |
-| Documentation quality | 8/10 | Excellent structure, honest gaps |
-| Implementation depth | 6/10 | Core solid, edges incomplete |
-| Competitive position | 7/10 | Unique niche, not yet dominant |
-| Adoption readiness | 6/10 | Works for code analysis, gaps for UI/runtime |
-| **Overall** | **7/10** | Promising platform, needs focused execution |
+| Dimension | Previous | Current | Notes |
+|-----------|----------|---------|-------|
+| Vision coherence | 8/10 | **8/10** | Clear, consistent, future-proof |
+| Documentation quality | 8/10 | **8/10** | Excellent structure, honest gaps |
+| Implementation depth | 6/10 | **7/10** ↑ | JSX, A11y, WCAG complete |
+| Competitive position | 7/10 | **7.5/10** ↑ | WCAG integration is unique |
+| Adoption readiness | 6/10 | **7/10** ↑ | UI extraction now works |
+| **Overall** | **7/10** | **7.5/10** ↑ | Executing well on roadmap |
 
 ---
 
@@ -436,6 +571,19 @@ DevAC/Vivief is a **well-architected, partially-implemented code intelligence pl
 - [AI for Code Documentation - Graphite](https://graphite.com/guides/ai-code-documentation-automation)
 - [Top Documentation Generator Tools 2025](https://kodesage.ai/blog/7-documentation-generators)
 
+### New Competitive Analysis (Added 2026-01-18)
+- [GitHub Stack Graphs](https://github.blog/2021-12-09-introducing-stack-graphs/) — Petabyte-scale code navigation
+- [Stack Graphs Paper](https://dl.acm.org/doi/10.1145/3428236) — Incremental, file-local name resolution
+- [Augment Code Context Engine](https://www.augmentcode.com/blog/how-augment-understands-your-codebase) — 5-layer semantic comprehension
+- [Cursor AI](https://cursor.sh/) — AI-native IDE with custom models
+- [Windsurf](https://codeium.com/windsurf) — Cascade AI agentic flows
+- [Continue.dev](https://continue.dev/) — Open-source AI assistant
+- [Aider](https://aider.chat/) — AI pair programming with repo maps
+- [Aider Repo Map](https://aider.chat/docs/repomap.html) — Tree-sitter + PageRank context selection
+- [ast-grep](https://ast-grep.github.io/) — Structural AST pattern matching
+- [Repomix](https://github.com/yamadashy/repomix) — Pack repositories for AI context
+- [Code Pathfinder MCP](https://github.com/code-pathfinder/mcp-server) — 5-pass semantic indexing
+
 ---
 
-*This review was conducted in January 2026 based on the vivief codebase at packages/devac-* and documentation at docs/*.*
+*This review was initially conducted on 2026-01-17 and updated on 2026-01-18 to reflect completion of Phases 0-2 and expanded competitive analysis. Based on the vivief codebase at packages/devac-* and documentation at docs/*.*
