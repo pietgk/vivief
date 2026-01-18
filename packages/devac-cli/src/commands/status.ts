@@ -19,6 +19,7 @@ import {
   discoverContext,
   getCIStatusForContext,
   getWorkspaceStatus,
+  setGlobalLogLevel,
   syncCIStatusToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
@@ -637,6 +638,11 @@ function formatSeedState(state: string): string {
  * Execute status command
  */
 export async function statusCommand(options: StatusOptions): Promise<StatusResult> {
+  // In inject mode, silence all logging to ensure clean JSON output
+  if (options.inject) {
+    setGlobalLogLevel("silent");
+  }
+
   const cwd = path.resolve(options.path);
   const seedsOnly = options.seedsOnly ?? false;
 
