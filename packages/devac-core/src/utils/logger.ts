@@ -125,6 +125,11 @@ class LoggerImpl implements Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
+    // If global level is "silent", silence all loggers regardless of instance level
+    // This allows setGlobalLogLevel("silent") to silence all loggers dynamically
+    if (globalLogLevel === "silent") {
+      return false;
+    }
     return LOG_LEVEL_PRIORITY[level] <= LOG_LEVEL_PRIORITY[this.level];
   }
 
