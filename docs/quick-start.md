@@ -56,10 +56,6 @@ If using Claude Code with the DevAC plugin:
 
 This command verifies your DevAC installation, initializes the central hub, enables plugin hooks, and registers your workspace.
 
-### Advanced: Workspace Repository
-
-For teams wanting versioned workspace configuration, see [Workspace Repository](./workspace-repo.md).
-
 ## Basic Usage
 
 ### 1. Check Status
@@ -159,6 +155,7 @@ your-project/
 | `devac analyze` | Parse and generate seeds |
 | `devac analyze --if-changed` | Only re-analyze changed files |
 | `devac analyze --force` | Force full re-analysis |
+| `devac sync` | Analyze packages and register repos with hub |
 | `devac query "<sql>"` | Run DuckDB SQL query |
 | `devac watch` | Watch for file changes |
 | `devac diagnostics` | Query all diagnostics from hub |
@@ -179,21 +176,24 @@ For projects with multiple repositories in a parent directory:
 └── api-ghapi-123-auth/  ← Worktree for issue #123
 ```
 
-### Step 1: Generate Seeds for Each Repo
-
-Each repository needs seeds before workspace-level monitoring works:
+### Step 1: Initialize Hub and Sync Workspace
 
 ```bash
-# Option A: Manual analysis per repo
-cd ~/ws/api && devac analyze
-cd ~/ws/web && devac analyze
-cd ~/ws/shared && devac analyze
+# From parent directory
+cd ~/ws
 
-# Option B: Use watch mode (auto-analyzes if seeds missing)
-cd ~/ws/api && devac watch &
-cd ~/ws/web && devac watch &
-cd ~/ws/shared && devac watch &
+# Initialize hub (one-time)
+devac hub init
+
+# Sync all repos - analyzes packages needing seeds
+devac sync
 ```
+
+This discovers all repos in the workspace, analyzes packages that don't have seeds yet, and makes them available for hub queries.
+
+**Alternative approaches:**
+- `devac analyze` in each repo individually
+- `devac watch` per repo for continuous updates
 
 ### Step 2: Check Workspace Status
 
@@ -238,10 +238,10 @@ devac workspace watch
 ### Step 4: Query Across Repos
 
 ```bash
-# Find function across all registered repos
+# Find function across all repos with seeds (auto-discovered)
 devac hub query "SELECT * FROM nodes WHERE name='handleLogin'"
 
-# View registered repos
+# View available repos (auto-discovers repos with seeds)
 devac hub list
 ```
 

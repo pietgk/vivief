@@ -130,13 +130,13 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 
 | File | Purpose |
 |------|---------|
-| `types.ts` | WorkspaceInfo, WorkspaceRepoInfo, WorkspaceState |
+| `types.ts` | WorkspaceInfo, WorkspaceRepoInfo types |
 | `discover.ts` | Repo scanning, issueId parsing, worktree detection |
-| `state.ts` | State persistence to `.devac/state.json` |
 | `seed-detector.ts` | Watch `.devac/seed/**/*.parquet` |
 | `watcher.ts` | Unified workspace-level file watcher |
 | `auto-refresh.ts` | Debounced hub refresh on seed changes |
 | `manager.ts` | WorkspaceManager orchestration |
+| `status.ts` | Workspace status reporting |
 
 **CLI Commands:**
 
@@ -161,27 +161,19 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 
 ### Context
 
-The original design specified `.devac/state.json` for state persistence. In practice, convention-based auto-discovery has proven sufficient and simpler for most use cases.
-
-Additionally, teams working in multi-repo environments needed a way to:
-- Share workspace configuration via version control
-- Auto-generate documentation from per-repo files
-- Onboard new team members with a single command
+The original design specified `.devac/state.json` for state persistence. In practice, convention-based auto-discovery has proven sufficient and simpler.
 
 ### Changes
 
-1. **State persistence is optional** - Workspace discovery now works without `.devac/state.json`. The filesystem-based auto-discovery scans for `.git` directories and detects repositories automatically.
+1. **State persistence removed** - `.devac/state.json` has been removed entirely. Workspace discovery works purely via filesystem scanning.
 
 2. **Auto-discovery is default** - Repositories are discovered by scanning the parent directory for git repositories, rather than requiring explicit registration.
 
-3. **Workspace Repository Pattern** - Added `devac workspace repo` commands for teams that need versioned workspace configuration:
-   - `devac workspace repo init` - Create a workspace repository
-   - `devac workspace repo sync` - Sync CLAUDE.md from AGENTS.md files
-   - `devac workspace repo install` - Clone repos and set up workspace
-   - `devac workspace repo status` - Show workspace repository status
+3. **Lazy registration** - Hub registration is now automatic. When querying the hub (via `devac hub list`, `devac hub query`, etc.), repositories with `.devac/seed/` directories are automatically discovered and registered. Explicit `devac hub register` is optional.
 
 ### Impact
 
-- **Section "State Persistence"** is now optional, not required. Workspaces function correctly without persistent state.
+- **Section "State Persistence"** no longer applies - state.json has been removed
+- **`devac hub register`** is now optional - lazy registration handles most use cases
+- **Implementation table** updated: `state.ts` removed from workspace module
 - **All other architectural decisions** remain unchanged.
-- **New capability**: Teams can now use versioned workspace configuration via the workspace repository pattern. See [ADR-0044](0044-workspace-repo-pattern.md).

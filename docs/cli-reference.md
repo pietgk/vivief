@@ -485,9 +485,49 @@ Examples:
 
 ## Hub Commands
 
-### devac hub register
+> **Note:** Repositories with `.devac/seed/` directories are automatically discovered and available for hub queries. Explicit registration is optional.
 
-Register a repository with the central hub.
+### devac sync
+
+Analyze packages and register repositories with the hub in one command. This is the recommended way to set up a multi-repo workspace.
+
+```bash
+devac sync [options]
+
+Options:
+  -p, --path <path>     Workspace path (default: current directory)
+  --analyze-only        Only analyze packages, don't register
+  --register-only       Only register repos, don't analyze
+  --force               Force full reanalysis (ignore optimization)
+  --dry-run             Show what would be done without making changes
+
+Examples:
+  devac sync                    # Analyze + register all repos in workspace
+  devac sync --dry-run          # Preview what would be done
+  devac sync --analyze-only     # Only analyze packages needing seeds
+  devac sync --force            # Force full reanalysis of all packages
+```
+
+**What it does:**
+1. Discovers all repositories in the workspace
+2. Analyzes packages that don't have seeds yet (or all packages with `--force`)
+3. Registers repositories with the hub
+
+**Output:**
+```
+Analyzing devac-core...
+  ✓ devac-core: 2341 nodes, 1892 edges
+Analyzing devac-cli...
+  ✓ devac-cli: 1205 nodes, 987 edges
+Registering vivief...
+  ✓ github.com/pietgk/vivief: 5 package(s), 234 cross-repo edges
+
+Sync complete: 2 package(s) analyzed, 1 repo(s) registered
+```
+
+### devac hub register (optional)
+
+Explicitly register a repository with the central hub.
 
 ```bash
 devac hub register [path]
@@ -499,6 +539,8 @@ Examples:
   devac hub register                   # Register current repo
   devac hub register ~/code/repo-api   # Register another repo
 ```
+
+**Note:** This command is optional - repos with seeds are auto-registered when the hub is queried. Use this for explicit control or to force re-registration.
 
 ### devac hub unregister
 
@@ -516,7 +558,7 @@ Examples:
 
 ### devac hub list
 
-List registered repositories.
+List available repositories (auto-discovers repos with seeds).
 
 ```bash
 devac hub list
@@ -532,7 +574,7 @@ Output:
 
 ### devac hub query
 
-Query across all registered repositories.
+Query across all repos with seeds (auto-discovered).
 
 ```bash
 devac hub query "<sql>" [options]

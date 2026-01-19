@@ -40,13 +40,14 @@ devac workflow plugin-dev
 
 After running this, **restart Claude Code** to load the hooks.
 
-## Step 4: Register Workspace
+## Step 4: Analyze Repository
 
-Register and analyze the current repository:
+Generate seed data for the current repository:
 ```bash
-devac hub register .
 devac analyze .
 ```
+
+**Note:** Repositories with seeds are automatically discovered and available for hub queries - no explicit registration needed.
 
 ## Step 5: Verify Setup
 
@@ -120,9 +121,9 @@ ls -la ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
 
 ### No diagnostics showing
 
-1. Ensure repository is registered:
+1. Ensure repository has been analyzed:
    ```bash
-   devac hub status
+   devac analyze .
    ```
 
 2. Run validation to populate diagnostics:

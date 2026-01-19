@@ -131,10 +131,7 @@ devac watch -p ./my-package --debounce 200
 # Initialize central hub
 devac hub init
 
-# Register a repository
-devac hub register ./my-repo
-
-# List registered repositories
+# List available repositories (auto-discovers repos with seeds)
 devac hub list
 
 # Check hub status
@@ -143,6 +140,8 @@ devac hub status
 # Refresh manifests
 devac hub refresh
 ```
+
+**Note:** Repositories with `.devac/seed/` directories are automatically discovered and available for hub queries. Explicit registration via `devac hub register` is optional.
 
 ### Diagnostics
 
@@ -238,20 +237,6 @@ devac workspace init
 ### Workspace Repository Commands
 
 For teams wanting versioned workspace configuration:
-
-```bash
-# Initialize a workspace repository
-devac workspace repo init
-
-# Sync CLAUDE.md from per-repo AGENTS.md files
-devac workspace repo sync
-
-# Install workspace (clone repos, set up links)
-devac workspace repo install
-
-# Check workspace repository status
-devac workspace repo status
-```
 
 See [Workspace Repository Pattern](./docs/workspace-repo.md) for detailed documentation.
 
