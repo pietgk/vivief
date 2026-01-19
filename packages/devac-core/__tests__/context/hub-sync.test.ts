@@ -204,10 +204,11 @@ describe("syncCIStatusToHub", () => {
     const result = await syncCIStatusToHub(mockHub, ciResult);
 
     expect(result.pushed).toBe(1);
-    const diag = mockHub.pushedDiagnostics[0]!;
-    expect(diag.severity).toBe("error");
-    expect(diag.title).toContain("CI failing");
-    expect(diag.description).toContain("Add feature");
+    const diag = mockHub.pushedDiagnostics[0];
+    expect(diag).toBeDefined();
+    expect(diag?.severity).toBe("error");
+    expect(diag?.title).toContain("CI failing");
+    expect(diag?.description).toContain("Add feature");
   });
 
   it("creates pending diagnostic for pending CI", async () => {
@@ -236,10 +237,11 @@ describe("syncCIStatusToHub", () => {
     const result = await syncCIStatusToHub(mockHub, ciResult);
 
     expect(result.pushed).toBe(1);
-    const diag = mockHub.pushedDiagnostics[0]!;
-    expect(diag.severity).toBe("note");
-    expect(diag.title).toContain("CI pending");
-    expect(diag.actionable).toBe(false);
+    const diag = mockHub.pushedDiagnostics[0];
+    expect(diag).toBeDefined();
+    expect(diag?.severity).toBe("note");
+    expect(diag?.title).toContain("CI pending");
+    expect(diag?.actionable).toBe(false);
   });
 
   it("creates diagnostics for in_progress checks", async () => {
@@ -1081,11 +1083,12 @@ describe("syncReviewsToHub", () => {
     const result = await syncReviewsToHub(mockHub, reviewsResult);
 
     expect(result.pushed).toBe(1);
-    const commentDiag = mockHub.pushedDiagnostics[0]!;
-    expect(commentDiag.file_path).toBe("src/index.ts");
-    expect(commentDiag.line_number).toBe(42);
-    expect(commentDiag.severity).toBe("suggestion");
-    expect(commentDiag.category).toBe("code-review");
+    const commentDiag = mockHub.pushedDiagnostics[0];
+    expect(commentDiag).toBeDefined();
+    expect(commentDiag?.file_path).toBe("src/index.ts");
+    expect(commentDiag?.line_number).toBe(42);
+    expect(commentDiag?.severity).toBe("suggestion");
+    expect(commentDiag?.category).toBe("code-review");
   });
 
   it("marks dismissed comments as resolved", async () => {

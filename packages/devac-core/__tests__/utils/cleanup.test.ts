@@ -112,7 +112,8 @@ describe("cleanup utilities", () => {
 
     it("counts temp files in dry run mode", async () => {
       vi.mocked(fileExists).mockResolvedValue(true);
-      mockFs.readdir.mockResolvedValueOnce(["file1", "file2", "file3"] as any);
+      const mockFiles = ["file1", "file2", "file3"] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockFiles);
 
       const result = await cleanupPackageSeeds("/test/package", {
         removeStaleLocks: false,
@@ -226,15 +227,15 @@ describe("cleanup utilities", () => {
 
   describe("getSeedStorageStats", () => {
     it("calculates storage stats correctly", async () => {
-      const mockEntries = [{ name: "base", isDirectory: () => true, isFile: () => false }];
+      const mockEntries = [
+        { name: "base", isDirectory: () => true, isFile: () => false },
+      ] as never[];
       const mockBaseEntries = [
         { name: "nodes.parquet", isDirectory: () => false, isFile: () => true },
         { name: "edges.parquet", isDirectory: () => false, isFile: () => true },
-      ];
+      ] as never[];
 
-      mockFs.readdir
-        .mockResolvedValueOnce(mockEntries as any)
-        .mockResolvedValueOnce(mockBaseEntries as any);
+      mockFs.readdir.mockResolvedValueOnce(mockEntries).mockResolvedValueOnce(mockBaseEntries);
 
       mockFs.stat
         .mockResolvedValueOnce({ size: 1000 } as Stats)
@@ -248,14 +249,14 @@ describe("cleanup utilities", () => {
     });
 
     it("handles branch partition files", async () => {
-      const mockEntries = [{ name: "branch", isDirectory: () => true, isFile: () => false }];
+      const mockEntries = [
+        { name: "branch", isDirectory: () => true, isFile: () => false },
+      ] as never[];
       const mockBranchEntries = [
         { name: "delta.parquet", isDirectory: () => false, isFile: () => true },
-      ];
+      ] as never[];
 
-      mockFs.readdir
-        .mockResolvedValueOnce(mockEntries as any)
-        .mockResolvedValueOnce(mockBranchEntries as any);
+      mockFs.readdir.mockResolvedValueOnce(mockEntries).mockResolvedValueOnce(mockBranchEntries);
 
       mockFs.stat.mockResolvedValueOnce({ size: 200 } as Stats);
 

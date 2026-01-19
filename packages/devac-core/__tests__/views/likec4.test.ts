@@ -244,7 +244,9 @@ describe("likec4-json-parser", () => {
       };
       const parsed = parseModel(model);
 
-      const element = parsed.components.get("system.core.parser")!;
+      const element = parsed.components.get("system.core.parser");
+      expect(element).toBeDefined();
+      if (!element) throw new Error("element should be defined");
       const containerId = getContainerId(element, parsed);
 
       expect(containerId).toBe("system.core");
@@ -274,7 +276,9 @@ describe("likec4-json-parser", () => {
 
       // root.module is a component (has parent, not container kind)
       // root.module.service should trace back to root
-      const element = parsed.components.get("root.module.service")!;
+      const element = parsed.components.get("root.module.service");
+      expect(element).toBeDefined();
+      if (!element) throw new Error("element should be defined");
       const containerId = getContainerId(element, parsed);
 
       expect(containerId).toBe("root");

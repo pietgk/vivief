@@ -299,11 +299,13 @@ describe("atomic-write utilities", () => {
       const now = Date.now();
       const oldTime = now - 2 * 60 * 60 * 1000; // 2 hours ago
 
-      mockFs.readdir.mockResolvedValueOnce([
+      // Mock Dirent-like objects for fs.readdir
+      const mockDirents = [
         { name: ".tmp_old", isFile: () => true },
         { name: "tmp_also_old", isFile: () => true },
         { name: "regular_file", isFile: () => true },
-      ] as any);
+      ] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       mockFs.stat
         .mockResolvedValueOnce({ mtimeMs: oldTime } as Stats)
@@ -319,7 +321,8 @@ describe("atomic-write utilities", () => {
       const now = Date.now();
       const recentTime = now - 30 * 60 * 1000; // 30 minutes ago
 
-      mockFs.readdir.mockResolvedValueOnce([{ name: ".tmp_recent", isFile: () => true }] as any);
+      const mockDirents = [{ name: ".tmp_recent", isFile: () => true }] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       mockFs.stat.mockResolvedValueOnce({ mtimeMs: recentTime } as Stats);
 
@@ -330,9 +333,10 @@ describe("atomic-write utilities", () => {
     });
 
     it("ignores directories", async () => {
-      mockFs.readdir.mockResolvedValueOnce([
+      const mockDirents = [
         { name: ".tmp_dir", isFile: () => false, isDirectory: () => true },
-      ] as any);
+      ] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       const result = await cleanupTempFiles("/test/dir");
 
@@ -341,9 +345,8 @@ describe("atomic-write utilities", () => {
     });
 
     it("ignores files not matching pattern", async () => {
-      mockFs.readdir.mockResolvedValueOnce([
-        { name: "regular_file.txt", isFile: () => true },
-      ] as any);
+      const mockDirents = [{ name: "regular_file.txt", isFile: () => true }] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       const result = await cleanupTempFiles("/test/dir");
 
@@ -363,10 +366,11 @@ describe("atomic-write utilities", () => {
       const now = Date.now();
       const oldTime = now - 2 * 60 * 60 * 1000;
 
-      mockFs.readdir.mockResolvedValueOnce([
+      const mockDirents = [
         { name: ".tmp_file1", isFile: () => true },
         { name: ".tmp_file2", isFile: () => true },
-      ] as any);
+      ] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       mockFs.stat
         .mockRejectedValueOnce(new Error("Permission denied"))
@@ -382,10 +386,11 @@ describe("atomic-write utilities", () => {
       const now = Date.now();
       const oldTime = now - 2 * 60 * 60 * 1000;
 
-      mockFs.readdir.mockResolvedValueOnce([
+      const mockDirents = [
         { name: "custom_prefix_file", isFile: () => true },
         { name: ".tmp_not_matched", isFile: () => true },
-      ] as any);
+      ] as never[];
+      mockFs.readdir.mockResolvedValueOnce(mockDirents);
 
       mockFs.stat.mockResolvedValueOnce({ mtimeMs: oldTime } as Stats);
 

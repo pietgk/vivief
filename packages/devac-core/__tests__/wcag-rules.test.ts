@@ -50,6 +50,17 @@ function createTestNode(overrides: Partial<ParsedNode> = {}): ParsedNode {
   };
 }
 
+/**
+ * Helper to get a rule by ID with assertion that it exists
+ */
+function getRequiredRule(ruleId: string) {
+  const rule = getWcagRuleById(ruleId);
+  if (!rule) {
+    throw new Error(`Rule ${ruleId} not found`);
+  }
+  return rule;
+}
+
 function createTestContext(nodes: ParsedNode[] = []): WcagContext {
   const elementIdMap = new Map<string, ParsedNode>();
   for (const node of nodes) {
@@ -179,7 +190,7 @@ describe("isCheckableNodeKind", () => {
 // ============================================================================
 
 describe("wcag-keyboard-accessible rule", () => {
-  const rule = getWcagRuleById("wcag-keyboard-accessible")!;
+  const rule = getRequiredRule("wcag-keyboard-accessible");
 
   it("should detect elements with potentialA11yIssue flag", () => {
     const node = createTestNode({
@@ -227,7 +238,7 @@ describe("wcag-keyboard-accessible rule", () => {
 // ============================================================================
 
 describe("wcag-accessible-name rule", () => {
-  const rule = getWcagRuleById("wcag-accessible-name")!;
+  const rule = getRequiredRule("wcag-accessible-name");
 
   it("should not flag non-interactive elements", () => {
     const node = createTestNode({
@@ -318,7 +329,7 @@ describe("wcag-accessible-name rule", () => {
 // ============================================================================
 
 describe("wcag-no-positive-tabindex rule", () => {
-  const rule = getWcagRuleById("wcag-no-positive-tabindex")!;
+  const rule = getRequiredRule("wcag-no-positive-tabindex");
 
   it("should flag elements with positive tabIndex", () => {
     const node = createTestNode({
@@ -394,7 +405,7 @@ describe("wcag-no-positive-tabindex rule", () => {
 // ============================================================================
 
 describe("wcag-button-has-text rule", () => {
-  const rule = getWcagRuleById("wcag-button-has-text")!;
+  const rule = getRequiredRule("wcag-button-has-text");
 
   it("should not flag non-button elements", () => {
     const node = createTestNode({
@@ -478,7 +489,7 @@ describe("wcag-button-has-text rule", () => {
 // ============================================================================
 
 describe("wcag-valid-aria-reference rule", () => {
-  const rule = getWcagRuleById("wcag-valid-aria-reference")!;
+  const rule = getRequiredRule("wcag-valid-aria-reference");
 
   it("should have correct metadata", () => {
     expect(rule.id).toBe("wcag-valid-aria-reference");
