@@ -25,6 +25,31 @@ import {
 import type { Command } from "commander";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Workspace Config Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WorkspaceRepo {
+  name: string;
+  purpose: string;
+  docs: string;
+  stack?: string[];
+}
+
+export interface WorkspaceRelationship {
+  consumer: string;
+  provider: string;
+  type: "api" | "package" | "content";
+  description?: string;
+}
+
+export interface WorkspaceConfig {
+  name: string;
+  description?: string;
+  repos: WorkspaceRepo[];
+  relationships?: WorkspaceRelationship[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -207,6 +232,46 @@ function isWatchActive(workspacePath: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Load workspace configuration from workspace/workspace.json
+ */
+function loadWorkspaceConfig(workspacePath: string): WorkspaceConfig | undefined {
+  const workspaceJsonPath = path.join(workspacePath, "workspace", "workspace.json");
+  try {
+    if (!fs.existsSync(workspaceJsonPath)) {
+      return undefined;
+    }
+    const content = fs.readFileSync(workspaceJsonPath, "utf-8");
+    return JSON.parse(content) as WorkspaceConfig;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Format workspace context for injection
+ */
+function formatWorkspaceContext(config: WorkspaceConfig): string {
+  const lines: string[] = [];
+  lines.push(`Workspace: ${config.name}`);
+  if (config.description) {
+    lines.push(config.description);
+  }
+  lines.push("");
+  lines.push("Repos:");
+  for (const repo of config.repos) {
+    lines.push(`  - ${repo.name}: ${repo.purpose} (see @${repo.name}/${repo.docs})`);
+  }
+  if (config.relationships && config.relationships.length > 0) {
+    lines.push("");
+    lines.push("Relationships:");
+    for (const rel of config.relationships) {
+      lines.push(`  - ${rel.consumer} → ${rel.provider} (${rel.type})`);
+    }
+  }
+  return lines.join("\n");
 }
 
 /**
@@ -691,18 +756,30 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     // Try to find workspace (walk up to find parent with multiple repos)
     let checkPath = cwd;
     let workspacePath: string | undefined;
-    for (let i = 0; i < 5; i++) {
-      // Check up to 5 levels
-      const parentPath = path.dirname(checkPath);
-      if (parentPath === checkPath) break;
 
-      // Check if parent looks like a workspace (has .devac or multiple git repos)
-      const devacPath = path.join(parentPath, ".devac");
-      if (fs.existsSync(devacPath)) {
-        workspacePath = parentPath;
-        break;
+    // First check if cwd itself is a workspace (has workspace/workspace.json or .devac)
+    const cwdWorkspaceJson = path.join(cwd, "workspace", "workspace.json");
+    const cwdDevac = path.join(cwd, ".devac");
+    if (fs.existsSync(cwdWorkspaceJson) || fs.existsSync(cwdDevac)) {
+      workspacePath = cwd;
+    }
+
+    // If not found, walk up the tree
+    if (!workspacePath) {
+      for (let i = 0; i < 5; i++) {
+        // Check up to 5 levels
+        const parentPath = path.dirname(checkPath);
+        if (parentPath === checkPath) break;
+
+        // Check if parent looks like a workspace (has .devac or workspace/workspace.json)
+        const devacPath = path.join(parentPath, ".devac");
+        const workspaceJsonPath = path.join(parentPath, "workspace", "workspace.json");
+        if (fs.existsSync(devacPath) || fs.existsSync(workspaceJsonPath)) {
+          workspacePath = parentPath;
+          break;
+        }
+        checkPath = parentPath;
       }
-      checkPath = parentPath;
     }
 
     // Get seed status from devac-core
@@ -737,28 +814,41 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
 
           // Fast path for --inject mode (hook injection)
           if (options.inject) {
+            const contextParts: string[] = [];
+
+            // Load workspace config if available
+            const workspaceConfig = loadWorkspaceConfig(workspacePath);
+            if (workspaceConfig) {
+              contextParts.push(formatWorkspaceContext(workspaceConfig));
+            }
+
+            // Get diagnostics if available
             try {
               const counts = await client.getDiagnosticsCounts();
               const totalIssues = counts.error + counts.warning;
-
-              // Silent if no issues (empty output = no injection)
-              if (totalIssues === 0) {
-                return result;
+              if (totalIssues > 0) {
+                contextParts.push(
+                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.`
+                );
               }
-
-              // Output hook-compatible JSON
-              const hookOutput = {
-                hookSpecificOutput: {
-                  hookEventName: "UserPromptSubmit",
-                  additionalContext: `<system-reminder>\nDevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.\n</system-reminder>`,
-                },
-              };
-              console.log(JSON.stringify(hookOutput));
-              return result;
             } catch {
-              // If diagnostics not available, return silently
+              // Diagnostics not available, continue without
+            }
+
+            // Silent if nothing to inject
+            if (contextParts.length === 0) {
               return result;
             }
+
+            // Output hook-compatible JSON
+            const hookOutput = {
+              hookSpecificOutput: {
+                hookEventName: "UserPromptSubmit",
+                additionalContext: `<system-reminder>\n${contextParts.join("\n\n")}\n</system-reminder>`,
+              },
+            };
+            console.log(JSON.stringify(hookOutput));
+            return result;
           }
 
           // Get diagnostics from hub (skip if --seeds-only)
@@ -799,6 +889,21 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
         } catch {
           // Hub exists but couldn't connect
         }
+      }
+
+      // Fallback inject mode when hub not available but workspace config exists
+      if (options.inject) {
+        const workspaceConfig = loadWorkspaceConfig(workspacePath);
+        if (workspaceConfig) {
+          const hookOutput = {
+            hookSpecificOutput: {
+              hookEventName: "UserPromptSubmit",
+              additionalContext: `<system-reminder>\n${formatWorkspaceContext(workspaceConfig)}\n</system-reminder>`,
+            },
+          };
+          console.log(JSON.stringify(hookOutput));
+        }
+        return result;
       }
     }
 
