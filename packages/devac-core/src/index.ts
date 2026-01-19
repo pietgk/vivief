@@ -142,8 +142,6 @@ export {
   type WorkspaceInfo,
   type WorkspaceRepoInfo,
   type WorkspaceConfig,
-  type WorkspaceState,
-  type WorkspaceRepoState,
   type RepoHubStatus,
   // Event types
   type WorkspaceEvent,
@@ -173,20 +171,6 @@ export {
   // Hub location validation
   validateHubLocation,
   type HubValidationResult,
-  // State management
-  getStateFilePath,
-  loadWorkspaceState,
-  saveWorkspaceState,
-  updateRepoState,
-  updateHubState,
-  removeRepoFromState,
-  isStateStale,
-  repoInfoToState,
-  syncStateWithDiscovery,
-  mergeStateIntoRepos,
-  getChangedRepos,
-  markReposAsRegistered,
-  stateFileExists,
   // Seed detector
   createSeedDetector,
   type SeedDetector,

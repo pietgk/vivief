@@ -131,10 +131,7 @@ devac watch -p ./my-package --debounce 200
 # Initialize central hub
 devac hub init
 
-# Register a repository
-devac hub register ./my-repo
-
-# List registered repositories
+# List available repositories (auto-discovers repos with seeds)
 devac hub list
 
 # Check hub status
@@ -143,6 +140,8 @@ devac hub status
 # Refresh manifests
 devac hub refresh
 ```
+
+**Note:** Repositories with `.devac/seed/` directories are automatically discovered and available for hub queries. Explicit registration via `devac hub register` is optional.
 
 ### Diagnostics
 
@@ -234,6 +233,12 @@ devac workspace init
 3. Hub enables cross-repo queries via MCP or CLI
 
 > **Note:** Repos must have seeds (run `devac analyze` or `devac watch` first) before `devac workspace watch` can detect changes.
+
+### Workspace Repository Commands
+
+For teams wanting versioned workspace configuration:
+
+See [Workspace Repository Pattern](./docs/workspace-repo.md) for detailed documentation.
 
 ### MCP Server
 

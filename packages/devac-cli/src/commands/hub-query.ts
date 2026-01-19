@@ -61,14 +61,15 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
   let pool: DuckDBPool | null = null;
 
   try {
-    // Get all registered repositories
+    // Get all registered repositories (lazy registration will auto-discover repos with seeds)
     const repos = await client.listRepos();
 
     if (repos.length === 0) {
       return {
         success: false,
-        message: "No repositories registered",
-        error: "Hub has no registered repositories. Run 'devac hub register <path>' first.",
+        message: "No repositories with seeds found",
+        error:
+          "No repositories with seed data found in workspace. Run 'devac analyze' in a repository first.",
       };
     }
 

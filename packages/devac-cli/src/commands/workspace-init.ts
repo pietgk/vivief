@@ -7,12 +7,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import {
-  type WorkspaceConfig,
-  createCentralHub,
-  discoverWorkspace,
-  saveWorkspaceState,
-} from "@pietgk/devac-core";
+import { type WorkspaceConfig, createCentralHub, discoverWorkspace } from "@pietgk/devac-core";
 
 /**
  * Workspace init command options
@@ -53,7 +48,6 @@ export interface WorkspaceInitResult {
   /** Paths created */
   paths: {
     config: string;
-    state: string;
     hub: string;
   };
 }
@@ -65,7 +59,6 @@ export async function workspaceInit(options: WorkspaceInitOptions): Promise<Work
   const workspacePath = path.resolve(options.workspacePath);
   const devacDir = path.join(workspacePath, ".devac");
   const configPath = path.join(devacDir, "workspace.json");
-  const statePath = path.join(devacDir, "state.json");
   const hubPath = path.join(devacDir, "hub.duckdb");
 
   const result: WorkspaceInitResult = {
@@ -75,7 +68,6 @@ export async function workspaceInit(options: WorkspaceInitOptions): Promise<Work
     reposRegistered: 0,
     paths: {
       config: configPath,
-      state: statePath,
       hub: hubPath,
     },
   };
@@ -120,18 +112,6 @@ export async function workspaceInit(options: WorkspaceInitOptions): Promise<Work
 
     await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
     result.configCreated = true;
-
-    // Initialize state
-    await saveWorkspaceState(workspacePath, {
-      version: "1.0",
-      lastDiscovery: new Date().toISOString(),
-      repos: info.repos.map((r) => ({
-        path: r.path,
-        repoId: r.repoId,
-        hubStatus: "unregistered" as const,
-        seedsLastModified: r.seedsLastModified,
-      })),
-    });
 
     // Initialize hub
     const hub = createCentralHub({ hubDir: devacDir });

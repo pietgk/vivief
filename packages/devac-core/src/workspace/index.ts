@@ -5,7 +5,6 @@
  * - Workspace discovery
  * - Unified file watching
  * - Hub auto-refresh
- * - State management
  *
  * @example
  * ```ts
@@ -31,8 +30,6 @@ export type {
   WorkspaceInfo,
   WorkspaceRepoInfo,
   WorkspaceConfig,
-  WorkspaceState,
-  WorkspaceRepoState,
   RepoHubStatus,
   // Event types
   WorkspaceEvent,
@@ -82,23 +79,6 @@ export {
   validateHubLocation,
   type HubValidationResult,
 } from "./discover.js";
-
-// State management
-export {
-  getStateFilePath,
-  loadWorkspaceState,
-  saveWorkspaceState,
-  updateRepoState,
-  updateHubState,
-  removeRepoFromState,
-  isStateStale,
-  repoInfoToState,
-  syncStateWithDiscovery,
-  mergeStateIntoRepos,
-  getChangedRepos,
-  markReposAsRegistered,
-  stateFileExists,
-} from "./state.js";
 
 // Seed detector
 export {

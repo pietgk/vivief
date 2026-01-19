@@ -255,14 +255,14 @@ describe("hub query command", () => {
     expect(result.output).toContain('"funcA"');
   });
 
-  it("fails if no repos are registered", async () => {
+  it("fails if no repos with seeds are found", async () => {
     const result = await hubQueryCommand({
       hubDir,
       sql: "SELECT * FROM nodes",
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Hub has no registered repositories");
+    expect(result.error).toContain("No repositories with seed data found");
   });
 
   it("fails if hub not initialized", async () => {

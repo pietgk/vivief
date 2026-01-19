@@ -91,49 +91,6 @@ export interface WorkspaceConfig {
 }
 
 /**
- * Persisted workspace state stored in .devac/state.json
- */
-export interface WorkspaceState {
-  /** State version for migrations */
-  version: "1.0";
-
-  /** Last discovery timestamp (ISO string) */
-  lastDiscovery: string;
-
-  /** Known repositories and their states */
-  repos: WorkspaceRepoState[];
-
-  /** Hub metadata */
-  hub?: {
-    /** Last refresh timestamp (ISO string) */
-    lastRefresh?: string;
-
-    /** Number of registered repos at last refresh */
-    registeredCount?: number;
-  };
-}
-
-/**
- * Per-repo state tracked in workspace state
- */
-export interface WorkspaceRepoState {
-  /** Repository path */
-  path: string;
-
-  /** Repository ID */
-  repoId: string;
-
-  /** Hub status at last check */
-  hubStatus: RepoHubStatus;
-
-  /** Content hash of seeds at last check */
-  seedsHash?: string;
-
-  /** Last modified timestamp of seeds */
-  seedsLastModified?: string;
-}
-
-/**
  * Complete workspace information
  */
 export interface WorkspaceInfo {

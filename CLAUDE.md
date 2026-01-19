@@ -135,7 +135,7 @@ DevAC uses a three-layer storage model:
 
 The Central Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
 
-- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub register`, `devac hub query`, etc.) communicate via Unix socket IPC (`~/.devac/mcp.sock`).
+- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub query`, etc.) communicate via Unix socket IPC (`~/.devac/mcp.sock`).
 - **When MCP is not running**: CLI commands access the hub directly.
 
 This is transparent to users - CLI commands work the same regardless of whether MCP is running. The `HubClient` class handles routing automatically.
@@ -145,7 +145,7 @@ This is transparent to users - CLI commands work the same regardless of whether 
 import { createHubClient } from "@pietgk/devac-core";
 
 const client = createHubClient();
-await client.registerRepo("/path/to/repo");  // Works with or without MCP
+const repos = await client.listRepos();  // Auto-discovers repos with seeds
 ```
 
 See [ADR-0024](docs/adr/0024-hub-single-writer-ipc.md) for details.
@@ -172,7 +172,7 @@ Example: `myrepo:packages/api:function:abc123`
 | `devac validate` | Validate code changes |
 | `devac affected <files>` | Find affected files |
 | `devac hub init` | Initialize central hub |
-| `devac hub register` | Register repository |
+| `devac hub list` | List available repositories (auto-discovers repos with seeds) |
 | `devac doctor` | Check system health and fix issues |
 | `devac mcp` | Start MCP server |
 | `devac workflow plugin-dev` | Switch to local plugin development mode |
@@ -376,20 +376,20 @@ The `plugin-dev` command creates a symlink so your local edits are used immediat
 ## MCP Server
 
 The MCP server supports two modes:
-- **Hub mode** (default): Query across all registered repositories via the central hub
+- **Hub mode** (default): Query across all repos with seeds via the central hub (auto-discovered)
 - **Package mode**: Query a single package
 
 ### Running MCP Server
 
 ```bash
-# Hub mode (default) - federated queries across all registered repos
+# Hub mode (default) - federated queries across all repos with seeds
 devac-mcp
 
 # Package mode - single package queries
 devac-mcp --package ./my-project
 ```
 
-Use `--package` to query a single package instead of all registered repos.
+Use `--package` to query a single package instead of all workspace repos.
 
 ### MCP Tools
 
@@ -400,8 +400,8 @@ The MCP server provides these tools for AI assistants:
 - `get_file_symbols`: Get symbols in a file
 - `get_affected`: Find affected files from changes
 - `get_call_graph`: Get call graph for a function
-- `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from registered repos)
-- `list_repos`: List registered repositories (hub mode only)
+- `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from repos)
+- `list_repos`: List available repositories (hub mode only, auto-discovers repos with seeds)
 
 ## Worktree CLI (devac-worktree)
 

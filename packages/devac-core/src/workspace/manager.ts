@@ -20,12 +20,6 @@ import { type CentralHub, createCentralHub } from "../hub/central-hub.js";
 import { type AutoRefresher, createAutoRefresher } from "./auto-refresh.js";
 import { discoverWorkspace, discoverWorkspaceRepos, formatWorkspaceInfo } from "./discover.js";
 import { type SeedDetector, createSeedDetector } from "./seed-detector.js";
-import {
-  loadWorkspaceState,
-  markReposAsRegistered,
-  mergeStateIntoRepos,
-  syncStateWithDiscovery,
-} from "./state.js";
 import type {
   WorkspaceEvent,
   WorkspaceEventHandler,
@@ -136,19 +130,22 @@ class WorkspaceManagerImpl implements WorkspaceManager {
     // Discover workspace
     const info = await discoverWorkspace(this.options.workspacePath);
 
-    // Load persisted state and merge
-    const state = await loadWorkspaceState(this.options.workspacePath);
-    const mergedRepos = mergeStateIntoRepos(info.repos, state);
+    // Get registered repos from hub to set hubStatus
+    const registeredRepos = await this.hub.listRepos();
+    const registeredIds = new Set(registeredRepos.map((r) => r.repoId));
 
-    // Update info with merged repos
+    // Update repos with hub status from registry
+    const reposWithStatus = info.repos.map((repo) => ({
+      ...repo,
+      hubStatus: registeredIds.has(repo.repoId) ? ("registered" as const) : repo.hubStatus,
+    }));
+
+    // Update info with repos
     this.workspaceInfo = {
       ...info,
-      repos: mergedRepos,
-      mainRepos: mergedRepos.filter((r) => !r.isWorktree),
+      repos: reposWithStatus,
+      mainRepos: reposWithStatus.filter((r) => !r.isWorktree),
     };
-
-    // Sync state with discovery
-    await syncStateWithDiscovery(this.options.workspacePath, mergedRepos);
 
     // Auto-register repos with seeds if enabled
     if (this.options.autoRegister) {
@@ -252,23 +249,16 @@ class WorkspaceManagerImpl implements WorkspaceManager {
     );
 
     let registered = 0;
-    const registeredPaths: string[] = [];
 
     for (const repo of reposWithSeeds) {
       try {
         await this.hub.registerRepo(repo.path);
         repo.hubStatus = "registered";
-        registeredPaths.push(repo.path);
         registered++;
       } catch (error) {
         // Log but continue with other repos
         console.error(`Failed to register ${repo.name}: ${error}`);
       }
-    }
-
-    // Update state
-    if (registeredPaths.length > 0) {
-      await markReposAsRegistered(this.options.workspacePath, registeredPaths);
     }
 
     return registered;
@@ -312,18 +302,24 @@ class WorkspaceManagerImpl implements WorkspaceManager {
     // Re-discover repos
     const repos = await discoverWorkspaceRepos(this.options.workspacePath);
 
-    // Load state and merge
-    const state = await loadWorkspaceState(this.options.workspacePath);
-    const mergedRepos = mergeStateIntoRepos(repos, state);
+    // Get registered repos from hub to set hubStatus
+    const registeredRepos = await this.hub.listRepos();
+    const registeredIds = new Set(registeredRepos.map((r) => r.repoId));
+
+    // Update repos with hub status from registry
+    const reposWithStatus = repos.map((repo) => ({
+      ...repo,
+      hubStatus: registeredIds.has(repo.repoId) ? ("registered" as const) : repo.hubStatus,
+    }));
 
     // Update workspace info
     if (this.workspaceInfo) {
-      this.workspaceInfo.repos = mergedRepos;
-      this.workspaceInfo.mainRepos = mergedRepos.filter((r) => !r.isWorktree);
+      this.workspaceInfo.repos = reposWithStatus;
+      this.workspaceInfo.mainRepos = reposWithStatus.filter((r) => !r.isWorktree);
 
       // Rebuild worktrees by issue
       const worktreesByIssue = new Map<string, WorkspaceRepoInfo[]>();
-      for (const repo of mergedRepos) {
+      for (const repo of reposWithStatus) {
         if (repo.isWorktree && repo.issueId) {
           const existing = worktreesByIssue.get(repo.issueId) ?? [];
           existing.push(repo);
@@ -333,12 +329,9 @@ class WorkspaceManagerImpl implements WorkspaceManager {
       this.workspaceInfo.worktreesByIssue = worktreesByIssue;
     }
 
-    // Sync state
-    await syncStateWithDiscovery(this.options.workspacePath, mergedRepos);
-
     // Update seed detector if running
     if (this.seedDetector) {
-      for (const repo of mergedRepos) {
+      for (const repo of reposWithStatus) {
         if (repo.hasSeeds) {
           await this.seedDetector.addRepo(repo.path);
         }

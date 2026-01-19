@@ -130,13 +130,13 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 
 | File | Purpose |
 |------|---------|
-| `types.ts` | WorkspaceInfo, WorkspaceRepoInfo, WorkspaceState |
+| `types.ts` | WorkspaceInfo, WorkspaceRepoInfo types |
 | `discover.ts` | Repo scanning, issueId parsing, worktree detection |
-| `state.ts` | State persistence to `.devac/state.json` |
 | `seed-detector.ts` | Watch `.devac/seed/**/*.parquet` |
 | `watcher.ts` | Unified workspace-level file watcher |
 | `auto-refresh.ts` | Debounced hub refresh on seed changes |
 | `manager.ts` | WorkspaceManager orchestration |
+| `status.ts` | Workspace status reporting |
 
 **CLI Commands:**
 
@@ -154,3 +154,26 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 - [Foundation Implementation Guide](../vision/foundation-impl-guide.md) - Implementation status
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture
 - [ADR-0014: Worktree Claude Workflow](0014-worktree-claude-workflow.md) - Worktree naming convention
+
+---
+
+## Amendment: Convention-Based Discovery (January 2026)
+
+### Context
+
+The original design specified `.devac/state.json` for state persistence. In practice, convention-based auto-discovery has proven sufficient and simpler.
+
+### Changes
+
+1. **State persistence removed** - `.devac/state.json` has been removed entirely. Workspace discovery works purely via filesystem scanning.
+
+2. **Auto-discovery is default** - Repositories are discovered by scanning the parent directory for git repositories, rather than requiring explicit registration.
+
+3. **Lazy registration** - Hub registration is now automatic. When querying the hub (via `devac hub list`, `devac hub query`, etc.), repositories with `.devac/seed/` directories are automatically discovered and registered. Explicit `devac hub register` is optional.
+
+### Impact
+
+- **Section "State Persistence"** no longer applies - state.json has been removed
+- **`devac hub register`** is now optional - lazy registration handles most use cases
+- **Implementation table** updated: `state.ts` removed from workspace module
+- **All other architectural decisions** remain unchanged.

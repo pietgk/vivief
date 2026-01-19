@@ -25,6 +25,16 @@ import {
 import type { Command } from "commander";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Auto-discovered Workspace Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DiscoveredRepo {
+  name: string;
+  docsFile: string; // "AGENTS.md" or "CLAUDE.md"
+  description?: string; // First paragraph from docs
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -207,6 +217,117 @@ function isWatchActive(workspacePath: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Extract the first paragraph from a markdown file for use as a description.
+ * Returns undefined if file doesn't exist or has no suitable content.
+ */
+function extractFirstParagraph(filePath: string): string | undefined {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.split("\n");
+
+    let inParagraph = false;
+    const paragraphLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip headings and empty lines at the start
+      if (!inParagraph) {
+        if (trimmed.startsWith("#") || trimmed === "") {
+          continue;
+        }
+        // Found start of first paragraph
+        inParagraph = true;
+      }
+
+      // Collect paragraph lines until empty line or heading
+      if (inParagraph) {
+        if (trimmed === "" || trimmed.startsWith("#")) {
+          break;
+        }
+        paragraphLines.push(trimmed);
+      }
+    }
+
+    if (paragraphLines.length === 0) {
+      return undefined;
+    }
+
+    // Join and truncate to reasonable length
+    const paragraph = paragraphLines.join(" ");
+    const maxLen = 100;
+    return paragraph.length > maxLen ? `${paragraph.substring(0, maxLen)}...` : paragraph;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Auto-discover repositories in a workspace directory.
+ * Looks for git repos with AGENTS.md or CLAUDE.md docs files.
+ */
+function discoverWorkspaceRepos(workspacePath: string): DiscoveredRepo[] {
+  const repos: DiscoveredRepo[] = [];
+
+  try {
+    const entries = fs.readdirSync(workspacePath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      // Skip non-directories and the "workspace" config repo itself
+      if (!entry.isDirectory() || entry.name === "workspace") {
+        continue;
+      }
+
+      const repoPath = path.join(workspacePath, entry.name);
+
+      // Check if it's a git repository
+      const gitPath = path.join(repoPath, ".git");
+      if (!fs.existsSync(gitPath)) {
+        continue;
+      }
+
+      // Find docs file (prefer AGENTS.md, fallback to CLAUDE.md)
+      const docsFile = ["AGENTS.md", "CLAUDE.md"].find((f) =>
+        fs.existsSync(path.join(repoPath, f))
+      );
+
+      // Skip repos without docs files
+      if (!docsFile) {
+        continue;
+      }
+
+      // Extract description from first paragraph
+      const description = extractFirstParagraph(path.join(repoPath, docsFile));
+
+      repos.push({
+        name: entry.name,
+        docsFile,
+        description,
+      });
+    }
+  } catch {
+    // Directory read failed, return empty
+  }
+
+  // Sort by name for consistent output
+  return repos.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Format discovered repos for injection
+ */
+function formatWorkspaceContext(repos: DiscoveredRepo[]): string {
+  const lines: string[] = [];
+  lines.push(`Workspace with ${repos.length} repos:`);
+  lines.push("");
+  for (const repo of repos) {
+    const desc = repo.description ? ` - ${repo.description}` : "";
+    lines.push(`  - ${repo.name}${desc} (see @${repo.name}/${repo.docsFile})`);
+  }
+  return lines.join("\n");
 }
 
 /**
@@ -691,18 +812,38 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     // Try to find workspace (walk up to find parent with multiple repos)
     let checkPath = cwd;
     let workspacePath: string | undefined;
-    for (let i = 0; i < 5; i++) {
-      // Check up to 5 levels
-      const parentPath = path.dirname(checkPath);
-      if (parentPath === checkPath) break;
 
-      // Check if parent looks like a workspace (has .devac or multiple git repos)
-      const devacPath = path.join(parentPath, ".devac");
-      if (fs.existsSync(devacPath)) {
-        workspacePath = parentPath;
-        break;
+    // Helper to check if a directory is a workspace
+    const isWorkspaceDir = (dirPath: string): boolean => {
+      // Check for .devac directory (DevAC hub)
+      if (fs.existsSync(path.join(dirPath, ".devac"))) {
+        return true;
       }
-      checkPath = parentPath;
+      // Check for workspace/CLAUDE.md (workspace config repo with docs)
+      if (fs.existsSync(path.join(dirPath, "workspace", "CLAUDE.md"))) {
+        return true;
+      }
+      return false;
+    };
+
+    // First check if cwd itself is a workspace
+    if (isWorkspaceDir(cwd)) {
+      workspacePath = cwd;
+    }
+
+    // If not found, walk up the tree
+    if (!workspacePath) {
+      for (let i = 0; i < 5; i++) {
+        // Check up to 5 levels
+        const parentPath = path.dirname(checkPath);
+        if (parentPath === checkPath) break;
+
+        if (isWorkspaceDir(parentPath)) {
+          workspacePath = parentPath;
+          break;
+        }
+        checkPath = parentPath;
+      }
     }
 
     // Get seed status from devac-core
@@ -737,28 +878,41 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
 
           // Fast path for --inject mode (hook injection)
           if (options.inject) {
+            const contextParts: string[] = [];
+
+            // Auto-discover repos in workspace
+            const discoveredRepos = discoverWorkspaceRepos(workspacePath);
+            if (discoveredRepos.length > 0) {
+              contextParts.push(formatWorkspaceContext(discoveredRepos));
+            }
+
+            // Get diagnostics if available
             try {
               const counts = await client.getDiagnosticsCounts();
               const totalIssues = counts.error + counts.warning;
-
-              // Silent if no issues (empty output = no injection)
-              if (totalIssues === 0) {
-                return result;
+              if (totalIssues > 0) {
+                contextParts.push(
+                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.`
+                );
               }
-
-              // Output hook-compatible JSON
-              const hookOutput = {
-                hookSpecificOutput: {
-                  hookEventName: "UserPromptSubmit",
-                  additionalContext: `<system-reminder>\nDevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.\n</system-reminder>`,
-                },
-              };
-              console.log(JSON.stringify(hookOutput));
-              return result;
             } catch {
-              // If diagnostics not available, return silently
+              // Diagnostics not available, continue without
+            }
+
+            // Silent if nothing to inject
+            if (contextParts.length === 0) {
               return result;
             }
+
+            // Output hook-compatible JSON
+            const hookOutput = {
+              hookSpecificOutput: {
+                hookEventName: "UserPromptSubmit",
+                additionalContext: `<system-reminder>\n${contextParts.join("\n\n")}\n</system-reminder>`,
+              },
+            };
+            console.log(JSON.stringify(hookOutput));
+            return result;
           }
 
           // Get diagnostics from hub (skip if --seeds-only)
@@ -799,6 +953,21 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
         } catch {
           // Hub exists but couldn't connect
         }
+      }
+
+      // Fallback inject mode when hub not available but workspace has repos
+      if (options.inject) {
+        const discoveredRepos = discoverWorkspaceRepos(workspacePath);
+        if (discoveredRepos.length > 0) {
+          const hookOutput = {
+            hookSpecificOutput: {
+              hookEventName: "UserPromptSubmit",
+              additionalContext: `<system-reminder>\n${formatWorkspaceContext(discoveredRepos)}\n</system-reminder>`,
+            },
+          };
+          console.log(JSON.stringify(hookOutput));
+        }
+        return result;
       }
     }
 

@@ -9,7 +9,11 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Database } from "duckdb-async";
 import { computeStringHash } from "../utils/hash.js";
-import { validateHubLocation } from "../workspace/discover.js";
+import {
+  discoverWorkspaceRepos,
+  isWorkspaceDirectory,
+  validateHubLocation,
+} from "../workspace/discover.js";
 import {
   type CrossRepoEdge,
   type DiagnosticsCategory,
@@ -169,6 +173,10 @@ export class CentralHub {
   private initialized = false;
   private lastSyncTime: string | null = null;
   private _readOnlyMode = false;
+  /** Cache for lazy discovery - timestamp of last discovery scan */
+  private lastDiscoveryTime = 0;
+  /** Debounce interval for discovery scans (5 seconds) */
+  private static readonly DISCOVERY_DEBOUNCE_MS = 5000;
 
   constructor(private options: CentralHubOptions) {
     this.hubPath = path.join(options.hubDir, "central.duckdb");
@@ -307,10 +315,76 @@ export class CentralHub {
   }
 
   /**
+   * Ensure repos with seeds are discovered and registered (lazy registration).
+   *
+   * This method:
+   * 1. Gets the workspace path from the hub directory
+   * 2. Discovers repos with .devac/seed/ directories
+   * 3. Auto-registers any that aren't already registered
+   *
+   * Uses debouncing to avoid scanning on every call.
+   */
+  private async ensureReposDiscovered(): Promise<void> {
+    // Skip in read-only mode (can't register)
+    if (this._readOnlyMode) {
+      return;
+    }
+
+    // Debounce: only scan once per DISCOVERY_DEBOUNCE_MS
+    const now = Date.now();
+    if (now - this.lastDiscoveryTime < CentralHub.DISCOVERY_DEBOUNCE_MS) {
+      return;
+    }
+    this.lastDiscoveryTime = now;
+
+    // The hub directory's parent is the workspace
+    const workspacePath = path.dirname(this.options.hubDir);
+
+    // Check if this is actually a workspace (contains git repos)
+    if (!(await isWorkspaceDirectory(workspacePath))) {
+      return; // Not in workspace mode
+    }
+
+    // Discover repos with seeds
+    const discovered = await discoverWorkspaceRepos(workspacePath, {
+      checkSeeds: true,
+      readBranches: false, // Skip branch reading for speed
+    });
+
+    // Filter to repos that have seeds
+    const reposWithSeeds = discovered.filter((r) => r.hasSeeds);
+
+    if (reposWithSeeds.length === 0) {
+      return;
+    }
+
+    // Get currently registered repos
+    const registered = await this.storage.listRepos();
+    const registeredPaths = new Set(registered.map((r) => r.local_path));
+
+    // Auto-register any missing repos
+    for (const repo of reposWithSeeds) {
+      if (!registeredPaths.has(repo.path)) {
+        try {
+          await this.registerRepo(repo.path);
+        } catch {
+          // Log warning but continue - repo may have other issues
+        }
+      }
+    }
+  }
+
+  /**
    * List all registered repositories
+   *
+   * Note: This method performs lazy registration - repos with seeds
+   * are automatically discovered and registered on first access.
    */
   async listRepos(): Promise<RepoInfo[]> {
     this.ensureInitialized();
+
+    // Lazy registration: auto-discover and register repos with seeds
+    await this.ensureReposDiscovered();
 
     const registrations = await this.storage.listRepos();
     const repoInfos: RepoInfo[] = [];
@@ -493,9 +567,15 @@ export class CentralHub {
    * - {edges} - union of all edges.parquet files
    * - {external_refs} - union of all external_refs.parquet files
    * - {effects} - union of all effects.parquet files (only those that exist)
+   *
+   * Note: This method performs lazy registration - repos with seeds
+   * are automatically discovered and registered on first access.
    */
   async query(sql: string): Promise<QueryResult> {
     this.ensureInitialized();
+
+    // Lazy registration: auto-discover and register repos with seeds
+    await this.ensureReposDiscovered();
 
     const startTime = Date.now();
 
