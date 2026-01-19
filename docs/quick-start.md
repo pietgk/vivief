@@ -46,6 +46,20 @@ pnpm build
 (cd packages/devac-cli && pnpm link --global)
 ```
 
+## First-Time Setup (Claude Code Users)
+
+If using Claude Code with the DevAC plugin:
+
+```bash
+/devac:setup
+```
+
+This command verifies your DevAC installation, initializes the central hub, enables plugin hooks, and registers your workspace.
+
+### Advanced: Workspace Repository
+
+For teams wanting versioned workspace configuration, see [Workspace Repository](./workspace-repo.md).
+
 ## Basic Usage
 
 ### 1. Check Status

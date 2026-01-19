@@ -40,9 +40,11 @@ Getting started and reference documentation.
 | Document | Description |
 |----------|-------------|
 | [Quick Start](./quick-start.md) | Get up and running (10 min) |
+| [Start Asking About Your Code](./start-asking-about-your-code-guide.md) | End-to-end AI integration guide |
 | [CLI Reference](./cli-reference.md) | All commands |
 | [API Reference](./api-reference.md) | Programmatic usage |
 | [MCP Server](./mcp-server.md) | AI assistant integration |
+| [Workspace Repository](./workspace-repo.md) | Versioned workspace config for teams |
 | [Worktree Workflow](./devac-worktree.md) | Issue-based git worktrees |
 | [Eval Framework](./eval-framework.md) | LLM answer quality evaluation |
 

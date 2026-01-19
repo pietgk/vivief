@@ -14,6 +14,7 @@ import { hubSyncCommand } from "./hub-sync.js";
 import { hubUnregister } from "./hub-unregister.js";
 import { mcpCommand } from "./mcp.js";
 import { workspaceInit } from "./workspace-init.js";
+import { registerWorkspaceRepoCommands } from "./workspace-repo/index.js";
 import { workspaceWatch } from "./workspace-watch.js";
 
 /**
@@ -254,6 +255,12 @@ export function registerWorkspaceCommand(program: Command): void {
         process.exit(1);
       }
     });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Workspace Repo Commands (for managing workspace configuration repo)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  registerWorkspaceRepoCommands(workspace);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Hub Commands (merged from `devac hub`)

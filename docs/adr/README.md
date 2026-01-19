@@ -44,6 +44,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0032](0032-hub-location-validation.md) | Hub Location Validation | Accepted | 2026-01 |
 | [0033](0033-calls-edge-resolution.md) | CALLS Edge Resolution for Call Graph Queries | Accepted | 2026-01 |
 | [0034](0034-extends-edge-resolution.md) | EXTENDS Edge Resolution for Inheritance Queries | Accepted | 2026-01 |
+| [0044](0044-workspace-repo-pattern.md) | Workspace Repository Pattern | Accepted | 2026-01 |
 
 ## Creating a New ADR
 

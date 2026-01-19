@@ -235,6 +235,26 @@ devac workspace init
 
 > **Note:** Repos must have seeds (run `devac analyze` or `devac watch` first) before `devac workspace watch` can detect changes.
 
+### Workspace Repository Commands
+
+For teams wanting versioned workspace configuration:
+
+```bash
+# Initialize a workspace repository
+devac workspace repo init
+
+# Sync CLAUDE.md from per-repo AGENTS.md files
+devac workspace repo sync
+
+# Install workspace (clone repos, set up links)
+devac workspace repo install
+
+# Check workspace repository status
+devac workspace repo status
+```
+
+See [Workspace Repository Pattern](./docs/workspace-repo.md) for detailed documentation.
+
 ### MCP Server
 
 ```bash

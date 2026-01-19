@@ -1012,6 +1012,110 @@ Examples:
 - Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
 - Unified diagnostics: `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts`
 
+### Workspace Repository Commands
+
+Commands for managing workspace repositories with versioned configuration. See [Workspace Repository Pattern](./workspace-repo.md) for concepts.
+
+#### devac workspace repo init
+
+Initialize a new workspace repository.
+
+```bash
+devac workspace repo init [options]
+
+Options:
+  --name <name>     Custom workspace name (default: parent directory name)
+  --path <path>     Parent directory path (default: current directory)
+  --force           Overwrite existing workspace repository
+
+Examples:
+  devac workspace repo init
+  devac workspace repo init --name platform
+  devac workspace repo init --path ~/projects
+```
+
+**Creates:**
+- `<name>-workspace/` directory
+- `workspace.yaml` with repository registry
+- `CLAUDE.md` with auto-generated sections
+- `.gitignore` for local state files
+
+#### devac workspace repo sync
+
+Synchronize `CLAUDE.md` from per-repo `AGENTS.md` files.
+
+```bash
+devac workspace repo sync [options]
+
+Options:
+  --dry-run         Show what would be synced without making changes
+  --force           Overwrite manual changes in auto-generated sections
+
+Examples:
+  devac workspace repo sync
+  devac workspace repo sync --dry-run
+```
+
+**Behavior:**
+1. Reads `workspace.yaml` for repository list
+2. Scans each repo for `AGENTS.md`
+3. Updates auto-generated sections in `CLAUDE.md`
+4. Preserves manual sections outside markers
+
+#### devac workspace repo install
+
+Install a workspace by cloning repositories and setting up links.
+
+```bash
+devac workspace repo install [options]
+
+Options:
+  --skip-clone      Skip cloning repositories (use existing)
+  --skip-symlink    Skip symlinking CLAUDE.md
+  --shallow         Use shallow clones for repositories
+
+Examples:
+  devac workspace repo install
+  devac workspace repo install --skip-clone
+```
+
+**Behavior:**
+1. Reads `workspace.yaml` for repository list
+2. Clones missing repositories to parent directory
+3. Creates symlink from parent `CLAUDE.md` to workspace `CLAUDE.md`
+4. Initializes DevAC hub if needed
+
+#### devac workspace repo status
+
+Show status of workspace repository and registered repos.
+
+```bash
+devac workspace repo status [options]
+
+Options:
+  --json            Output as JSON
+
+Examples:
+  devac workspace repo status
+  devac workspace repo status --json
+```
+
+**Output:**
+```
+Workspace: acme-workspace
+Path: /Users/you/ws/acme-workspace
+
+Repositories (3):
+  api        ✓ cloned  ✓ AGENTS.md  git:clean
+  web        ✓ cloned  ✓ AGENTS.md  git:modified (2 files)
+  shared     ✓ cloned  ✗ AGENTS.md  git:clean
+
+CLAUDE.md:
+  Auto-generated: 2026-01-15T10:30:00Z
+  Manual sections: 2
+  Repos synced: 2/3
+```
+
 ## Context Commands
 
 ### devac context

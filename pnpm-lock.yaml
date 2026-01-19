@@ -101,6 +101,9 @@ importers:
       glob:
         specifier: ^11.0.0
         version: 11.1.0
+      yaml:
+        specifier: ^2.6.0
+        version: 2.8.2
     devDependencies:
       '@types/node':
         specifier: ^20.17.28

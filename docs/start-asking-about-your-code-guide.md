@@ -176,6 +176,23 @@ Example configuration:
 }
 ```
 
+#### Running DevAC Setup (Recommended)
+
+For Claude Code users with the DevAC plugin installed, use the setup command:
+
+```bash
+/devac:setup
+```
+
+This command:
+1. Verifies DevAC CLI is installed and accessible
+2. Initializes the central hub for cross-repo queries
+3. Enables plugin hooks for automatic analysis
+4. Registers your workspace with the hub
+5. Verifies the complete setup
+
+The setup command provides a guided experience and troubleshoots common issues automatically.
+
 ### Option B: VS Code with GitHub Copilot
 
 VS Code with GitHub Copilot supports MCP servers through configuration files.

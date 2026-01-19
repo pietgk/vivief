@@ -13,12 +13,18 @@ DevAC/Vivief represents an ambitious attempt to create a **unified, queryable de
 
 **Key Finding**: DevAC's core value proposition—making code effects queryable via SQL—is unique in the ecosystem. No other tool combines code property graphs, effect extraction, rules-based aggregation, multi-repo federation, and MCP integration in a single coherent framework.
 
-**Update (2026-01-18)**: Phases 0-2 are now complete:
+**Update (2026-01-18)**: Phases 0-3 are now complete:
 - ✅ Phase 0: JSX extraction (40 tests, RENDERS/PASSES_PROPS edges)
 - ✅ Phase 1: A11y attributes (ARIA relationship edges, element ID tracking)
 - ✅ Phase 2: WCAG validation (5 rules, 73 tests, unified diagnostics)
+- ✅ Phase 3: Hook-based validation triggering (hooks.json, `--inject`, `--on-stop` flags, E2E tests)
 
-**Quality Score**: 8/10 for vision coherence (up from 7.5), 7/10 for implementation completeness (up from 6.5)
+**Additional Progress**:
+- Browser automation suite released (browser-cli, browser-core, browser-mcp v0.2.0)
+- 74 test files, 18,842 lines of test code
+- 47 CLI commands, 22 MCP tools, 43 ADRs
+
+**Quality Score**: 8/10 for vision coherence, 8/10 for implementation completeness (up from 7/10)
 
 **Important**: This document is to be updated by further reviews on review requests. 
 
@@ -68,7 +74,7 @@ and compare vivief against them this to enable design choices and next steps
 | Hub federation | ✅ Strong | Three-layer model is well-designed |
 | JSX/UI extraction | ✅ Strong | Phase 0-1 complete, 54+ tests |
 | WCAG validation | ✅ Strong | Phase 2 complete, 5 rules, 73 tests |
-| Hook-based automation | 🟡 Medium | Vision clear (new doc), implementation zero |
+| Hook-based automation | ✅ Strong | Phase 3 complete: hooks.json, CLI flags, E2E tests |
 | Actor model | 🟡 Medium | Vision clear, implementation pending |
 | Rules Engine | 🟡 Medium | Works but no sequence matching |
 | Effect correlation | ⬜ Weak | OTel integration not implemented |
@@ -79,7 +85,7 @@ and compare vivief against them this to enable design choices and next steps
 - `foundation.md` (comprehensive, well-structured)
 - `concepts.md` (clear glossary, quick reference)
 - `gaps.md` (honest gap tracking)
-- 33 ADRs documenting design decisions
+- 43 ADRs documenting design decisions (including ADR-0043 for hooks)
 
 **Good**:
 - `actors.md` (clean vision, no implementation confusion)
@@ -108,10 +114,12 @@ and compare vivief against them this to enable design choices and next steps
 | **WCAG validation** | ✅ Production | 5 rules, 73 tests, unified diagnostics |
 | Rules Engine | ✅ Production | Domain categorization, 13KB builtin rules |
 | Hub federation | ✅ Production | DuckDB central, IPC concurrency (ADR-0024) |
-| MCP Server | ✅ Production | 21 tools, comprehensive coverage |
-| CLI | ✅ Production | 40+ commands |
+| MCP Server | ✅ Production | 22 tools, comprehensive coverage |
+| CLI | ✅ Production | 47 commands |
 | Validation pipeline | ✅ Production | tsc, eslint, test, coverage, **WCAG** integration |
 | C4 diagram generation | ✅ Production | Context, Container, Component levels |
+| **Hook-based automation** | ✅ Production | hooks.json, `--inject`, `--on-stop` flags (Phase 3) |
+| **Browser automation** | ✅ Production | browser-cli, browser-core, browser-mcp v0.2.0 |
 
 ### 2.2 Critical Gaps
 
@@ -122,7 +130,7 @@ and compare vivief against them this to enable design choices and next steps
 | **Effect correlation** | Match static to runtime via OTel | Not implemented | Cannot validate test coverage |
 | **Sequence rules** | Match effect sequences | Not implemented | Cannot express "A then B" |
 | ~~Auto hub sync~~ | ~~Implicit cache updates~~ | ✅ **Complete** (`--sync` flag) | Reduced friction |
-| **Hook-based triggers** | Auto-inject diagnostics, solve until clean | Not implemented | Manual workflow only |
+| ~~Hook-based triggers~~ | ~~Auto-inject diagnostics, solve until clean~~ | ✅ **Complete** (Phase 3) | Proactive validation |
 | **Scale benchmarking** | Handle large codebases | No benchmark data | Cannot compare to Augment (400k files) |
 | **Language coverage** | Multi-language support | 3 languages | Aider supports 40+; limited reach |
 | **Embeddings/RAG** | Semantic code search | SQL only | No vector-based similarity search |
@@ -319,21 +327,49 @@ Documentation Gen   ████████████████░░░░
 
 **Verdict**: Aider's 40+ language support and PageRank-based context selection are impressive. DevAC's deeper extraction (effects, WCAG) suits specialized use cases. Could learn from Aider's language breadth strategy.
 
-### 3.3 Feature Comparison Matrix (NEW)
+#### DevAC vs Sourcegraph Amp (NEW - 2025)
 
-| Feature | DevAC | Joern | Stack Graphs | Augment | Cursor | Aider |
-|---------|-------|-------|--------------|---------|--------|-------|
-| **Effect extraction** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **SQL queries** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **MCP server** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Cross-repo** | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **A11y/WCAG** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **C4 diagrams** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **IDE integration** | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **40+ languages** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| **Taint analysis** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Vector/RAG** | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
-| **Petabyte scale** | ❓ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Aspect | DevAC | Sourcegraph Amp |
+|--------|-------|-----------------|
+| **Primary Use** | Queryable code effects | Real-time codebase access for LLMs |
+| **AI Integration** | MCP server (22 tools) | Native LLM integration |
+| **Effect Extraction** | ✅ Comprehensive | ❌ Structure only |
+| **Behavior Analysis** | ✅ What code does | ❌ What code is |
+| **Scale** | Local/federated hub | Enterprise cloud |
+| **Open Source** | ✅ Yes | Partial |
+
+**Verdict**: Sourcegraph Amp validates the market for LLM code context. DevAC extracts *behavior* (effects) while Amp focuses on *structure*. Complementary: Amp for enterprise search, DevAC for effect analysis.
+
+#### DevAC vs CodeRabbit (NEW - 2025)
+
+| Aspect | DevAC | CodeRabbit |
+|--------|-------|------------|
+| **Primary Use** | Queryable code intelligence | AI-powered code review |
+| **Graph Model** | Effects + Seeds (Parquet) | AST + code graph |
+| **Diagnostics** | ✅ Unified (5 sources + WCAG) | PR-focused |
+| **WCAG/A11y** | ✅ Integrated | ❌ None |
+| **PR Integration** | ❌ CLI/MCP | ✅ Native |
+| **Auto-fix** | Via Claude + MCP | ✅ Built-in |
+
+**Verdict**: CodeRabbit shows value of code graph + AI for reviews. DevAC's unified diagnostics (including WCAG) is broader. Consider: DevAC diagnostics as input to CodeRabbit-style reviews.
+
+### 3.3 Feature Comparison Matrix (Updated 2026-01-18)
+
+| Feature | DevAC | Joern | Stack Graphs | Augment | Cursor | Aider | CodeRabbit |
+|---------|-------|-------|--------------|---------|--------|-------|------------|
+| **Effect extraction** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **SQL queries** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **MCP server** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Cross-repo** | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **A11y/WCAG** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **C4 diagrams** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Hook automation** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Browser automation** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **IDE integration** | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **40+ languages** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Taint analysis** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Vector/RAG** | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| **Petabyte scale** | ❓ | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
 
 ### 3.4 Unique Value Proposition
 
@@ -342,10 +378,11 @@ Documentation Gen   ████████████████░░░░
 1. **Effects as first-class citizens**: No other tool extracts code *behavior* (FunctionCall, Store, Retrieve, Send) as queryable data
 2. **Rules-based aggregation**: Compose low-level effects into domain effects (ChargePayment from DB + HTTP + Email)
 3. **Unified diagnostics**: Type errors, lint, test, coverage, CI, issues, PR reviews in one queryable table
-4. **MCP-native**: Built for AI assistants from the ground up (21 tools)
+4. **MCP-native**: Built for AI assistants from the ground up (22 tools)
 5. **Federation with DuckDB**: Cross-repo queries without central server overhead
-6. **WCAG validation as diagnostics** (NEW): A11y issues alongside type/lint errors—no other tool integrates WCAG into a unified diagnostics pipeline
-7. **Hook + Instructions pattern** (PLANNED): Reliable injection via hooks, intelligent action via instructions—no other tool combines deterministic triggers with LLM judgment
+6. **WCAG validation as diagnostics**: A11y issues alongside type/lint errors—no other tool integrates WCAG into a unified diagnostics pipeline
+7. **Hook + Instructions pattern** (COMPLETE): Reliable injection via hooks (`--inject`, `--on-stop`), intelligent action via instructions—no other tool combines deterministic triggers with LLM judgment
+8. **Browser automation suite** (NEW): Playwright-based browser control via CLI and MCP for E2E validation
 
 ---
 
@@ -360,10 +397,13 @@ Documentation Gen   ████████████████░░░░
 | **Effect taxonomy** | 6 data + 2 flow + 3 group effects | Comprehensive behavior model |
 | **Rules engine** | Domain + WCAG classification | Enables C4 generation + A11y |
 | **Honest gap tracking** | gaps.md exists and is accurate | Trust in documentation |
-| **MCP integration** | 21 tools production-ready | AI-first architecture |
+| **MCP integration** | 22 tools production-ready | AI-first architecture |
 | **Multi-language** | TS, Python, C# | Practical polyglot support |
-| **JSX/A11y extraction** (NEW) | 54+ tests, RENDERS/PASSES_PROPS | Can analyze React component hierarchy |
-| **WCAG validation** (NEW) | 5 rules, 73 tests | A11y as first-class diagnostics |
+| **JSX/A11y extraction** | 54+ tests, RENDERS/PASSES_PROPS | Can analyze React component hierarchy |
+| **WCAG validation** | 5 rules, 73 tests | A11y as first-class diagnostics |
+| **Hook-based automation** (NEW) | hooks.json, `--inject`, `--on-stop` | Proactive validation workflow |
+| **Browser automation** (NEW) | v0.2.0 suite released | E2E validation capability |
+| **Validation infrastructure** (NEW) | 74 test files, 18,842 lines | Mature diagnostics pipeline |
 
 ### 4.2 Weaknesses
 
@@ -420,20 +460,20 @@ Documentation Gen   ████████████████░░░░
 | WcagValidator integration | ✅ Complete | Unified diagnostics |
 | A11y in validation pipeline | ✅ Complete | Full mode validation |
 
-**Phase 3: Hook-Based Validation Triggering (NEW - NEXT PRIORITY)**
+**Phase 3: Hook-Based Validation Triggering** ✅ **COMPLETE**
 
-| Task | Priority | Effort | Impact |
-|------|----------|--------|--------|
-| Create hooks.json with UserPromptSubmit/Stop | P0 | Low | Auto-inject diagnostic status |
-| Add `devac status --inject` command | P0 | Medium | Hook-compatible output |
-| Add `devac validate --on-stop` command | P0 | Medium | Resolution instructions |
-| Progressive disclosure (`level` param) | P1 | Low | Reduce context noise |
-| Update diagnostics-triage skill | P1 | Low | Document auto-injection |
+| Task | Status | Notes |
+|------|--------|-------|
+| Create hooks.json with UserPromptSubmit/Stop | ✅ Complete | `plugins/devac/hooks/hooks.json` |
+| Add `devac status --inject` command | ✅ Complete | Hook-compatible JSON output |
+| Add `devac validate --on-stop` command | ✅ Complete | `--on-stop --mode quick` |
+| Integration tests | ✅ Complete | `hook-output.integration.test.ts` |
+| E2E tests | ✅ Complete | `cli-hooks.e2e.test.ts` |
 
 **Vision:** See @docs/vision/combine-reliable-context-injection-with-intelligent-instruction-following.md
 **ADR:** See @docs/adr/0043-hook-based-validation-triggering.md
 
-**Phase 4A: OTel Integration**
+**Phase 4A: OTel Integration (NEXT PRIORITY)**
 
 | Task | Priority | Effort | Impact |
 |------|----------|--------|--------|
@@ -492,9 +532,11 @@ Documentation Gen   ████████████████░░░░
 | Node kinds extracted | 17 | **19** (+jsx_component, html_element) | 22 (+ Actor kinds) | 25 |
 | Edge types | 8 | **10** (+RENDERS, PASSES_PROPS) | 12 (+ OTel) | 15 |
 | WCAG rules | 0 | **5** | 10 | 15 |
-| Test coverage (JSX) | 0 | **54+** tests | Maintain | Maintain |
-| Effect types | 6 + 2 flow | 6 + 2 flow | 8 + 2 Actor | 10 + sequence |
-| MCP tools | 21 | 21 | 25 | 30 |
+| Test files | - | **74** (18,842 lines) | Maintain | Maintain |
+| CLI commands | 40+ | **47** | 50 | 55 |
+| MCP tools | 21 | **22** | 25 | 30 |
+| ADRs | 34 | **43** | As needed | As needed |
+| Phases complete | 2 | **3** (0-3) | 4 (+ OTel) | 5 (+ Actors) |
 | Hub query latency (p95) | ~200ms | ~200ms | <150ms | <100ms |
 | Scale benchmark | None | None | 100k nodes tested | 500k nodes tested |
 
@@ -518,15 +560,17 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 - Solid DuckDB + Parquet foundation
 - Effect model is genuinely novel
 - MCP-first architecture is forward-thinking
-- **JSX/A11y/WCAG extraction now complete** (NEW)
-- **Unified diagnostics pipeline mature** (NEW)
+- **JSX/A11y/WCAG extraction now complete** (Phases 0-2)
+- **Hook-based validation automation complete** (Phase 3) — proactive validation workflow
+- **Unified diagnostics pipeline mature** — 74 test files, 18,842 lines
+- **Browser automation suite released** (v0.2.0) — E2E validation capability
 
 **Challenges**:
-- ~~Significant implementation gaps (UI, Actors, OTel)~~ → UI complete; Actors and OTel remain
+- ~~Significant implementation gaps (UI, Actors, OTel)~~ → UI and hooks complete; Actors and OTel remain
 - Vision docs may set unrealistic expectations
 - Limited adoption signals
-- **Scale benchmarking needed** (NEW) — competitors have proven 400k+ file support
-- **Language coverage limited** (NEW) — 3 languages vs Aider's 40+
+- **Scale benchmarking needed** — competitors have proven 400k+ file support
+- **Language coverage limited** — 3 languages vs Aider's 40+
 
 ### 6.2 Verdict (Updated)
 
@@ -535,6 +579,7 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 - **Yes, if** you need queryable code intelligence for AI assistants, architecture documentation, or cross-repo analysis
 - **Yes, if** you want A11y/WCAG validation integrated with your code analysis (unique capability)
 - **Yes, if** you're building React apps and want queryable component hierarchy
+- **Yes, if** you want proactive validation via Claude Code hooks (Phase 3 complete)
 - **Wait, if** you need runtime correlation via OTel (Phase 4A)
 - **Wait, if** you need XState/Actor discovery (Phase 5)
 - **No, if** you only need code search (use Sourcegraph) or build orchestration (use Nx)
@@ -546,10 +591,10 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 |-----------|----------|---------|-------|
 | Vision coherence | 8/10 | **8/10** | Clear, consistent, future-proof |
 | Documentation quality | 8/10 | **8/10** | Excellent structure, honest gaps |
-| Implementation depth | 6/10 | **7/10** ↑ | JSX, A11y, WCAG complete |
-| Competitive position | 7/10 | **7.5/10** ↑ | WCAG integration is unique |
-| Adoption readiness | 6/10 | **7/10** ↑ | UI extraction now works |
-| **Overall** | **7/10** | **7.5/10** ↑ | Executing well on roadmap |
+| Implementation depth | 6/10 | **8/10** ↑↑ | Phases 0-3 complete (JSX, A11y, WCAG, Hooks) |
+| Competitive position | 7/10 | **7.5/10** ↑ | WCAG + hook automation is unique |
+| Adoption readiness | 6/10 | **7.5/10** ↑ | UI extraction + proactive validation |
+| **Overall** | **7/10** | **8/10** ↑ | Strong execution, clear roadmap |
 
 ---
 
@@ -598,10 +643,27 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 
 ### Hook-Based Automation (Added 2026-01-18)
 - [Personal Assistant Plugin Analysis](../vision/combine-reliable-context-injection-with-intelligent-instruction-following.md) — Internal analysis
+- [ADR-0043: Hook-Based Validation Triggering](../adr/0043-hook-based-validation-triggering.md) — Implementation decision
 
 ### New Competitive Analysis (Added 2026-01-18)
 - [GitHub Stack Graphs](https://github.blog/2021-12-09-introducing-stack-graphs/) — Petabyte-scale code navigation
 - [Stack Graphs Paper](https://dl.acm.org/doi/10.1145/3428236) — Incremental, file-local name resolution
+- [Sourcegraph Amp](https://sourcegraph.com/amp) — Real-time codebase access for LLMs
+- [CodeRabbit](https://coderabbit.ai/) — AST + code graph for AI code reviews
+
+### State Machine Inference Research (Added 2026-01-18)
+- [ProtocolGPT (2025)](https://arxiv.org/abs/2405.00393) — LLM + RAG for FSM inference (>90% precision)
+- [AALpy](https://github.com/DES-Lab/AALpy) — Active automata learning library (Python)
+- [LearnLib](https://learnlib.de/) — Industrial-strength automata learning (Java)
+
+### OTel Correlation Research (Added 2026-01-18)
+- [OTel Code Attributes](https://opentelemetry.io/docs/specs/semconv/attributes-registry/code/) — Semantic conventions for code correlation
+- [Tracetest](https://tracetest.io/) — Trace-based E2E testing
+- [pytest-opentelemetry](https://pypi.org/project/pytest-opentelemetry/) — Test instrumentation for coverage
+
+### Sequence Pattern Matching Research (Added 2026-01-18)
+- [Joern Control-Flow Steps](https://docs.joern.io/cpgql/control-flow-steps/) — CPG-based queries (`controls`, `controlledBy`)
+- [Semgrep Pattern Syntax](https://semgrep.dev/docs/writing-rules/pattern-syntax) — Ellipsis operator for sequence matching
 - [Augment Code Context Engine](https://www.augmentcode.com/blog/how-augment-understands-your-codebase) — 5-layer semantic comprehension
 - [Cursor AI](https://cursor.sh/) — AI-native IDE with custom models
 - [Windsurf](https://codeium.com/windsurf) — Cascade AI agentic flows

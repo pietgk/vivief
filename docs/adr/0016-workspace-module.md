@@ -154,3 +154,34 @@ Parse by splitting on **last dash** to handle repos with dashes in their names:
 - [Foundation Implementation Guide](../vision/foundation-impl-guide.md) - Implementation status
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture
 - [ADR-0014: Worktree Claude Workflow](0014-worktree-claude-workflow.md) - Worktree naming convention
+
+---
+
+## Amendment: Convention-Based Discovery (January 2026)
+
+### Context
+
+The original design specified `.devac/state.json` for state persistence. In practice, convention-based auto-discovery has proven sufficient and simpler for most use cases.
+
+Additionally, teams working in multi-repo environments needed a way to:
+- Share workspace configuration via version control
+- Auto-generate documentation from per-repo files
+- Onboard new team members with a single command
+
+### Changes
+
+1. **State persistence is optional** - Workspace discovery now works without `.devac/state.json`. The filesystem-based auto-discovery scans for `.git` directories and detects repositories automatically.
+
+2. **Auto-discovery is default** - Repositories are discovered by scanning the parent directory for git repositories, rather than requiring explicit registration.
+
+3. **Workspace Repository Pattern** - Added `devac workspace repo` commands for teams that need versioned workspace configuration:
+   - `devac workspace repo init` - Create a workspace repository
+   - `devac workspace repo sync` - Sync CLAUDE.md from AGENTS.md files
+   - `devac workspace repo install` - Clone repos and set up workspace
+   - `devac workspace repo status` - Show workspace repository status
+
+### Impact
+
+- **Section "State Persistence"** is now optional, not required. Workspaces function correctly without persistent state.
+- **All other architectural decisions** remain unchanged.
+- **New capability**: Teams can now use versioned workspace configuration via the workspace repository pattern. See [ADR-0044](0044-workspace-repo-pattern.md).
