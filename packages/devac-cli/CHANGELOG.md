@@ -1,5 +1,21 @@
 # @pietgk/devac-cli
 
+## 0.27.0
+
+### Minor Changes
+
+- 52bc90a: feat(workspace): auto-discovery and setup plugin
+
+  - Replace `workspace.json` with filesystem-based auto-discovery for repos
+  - Repos are now discovered by scanning for `.git` directories with `AGENTS.md` or `CLAUDE.md`
+  - Add `/devac:setup` command for guided first-time setup in Claude Code
+  - Simpler setup - no configuration file needed
+
+### Patch Changes
+
+- Updated dependencies [52bc90a]
+  - @pietgk/devac-core@0.27.0
+
 ## 0.26.0
 
 ### Patch Changes
