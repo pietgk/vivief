@@ -25,28 +25,13 @@ import {
 import type { Command } from "commander";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Workspace Config Types
+// Auto-discovered Workspace Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface WorkspaceRepo {
+export interface DiscoveredRepo {
   name: string;
-  purpose: string;
-  docs: string;
-  stack?: string[];
-}
-
-export interface WorkspaceRelationship {
-  consumer: string;
-  provider: string;
-  type: "api" | "package" | "content";
-  description?: string;
-}
-
-export interface WorkspaceConfig {
-  name: string;
-  description?: string;
-  repos: WorkspaceRepo[];
-  relationships?: WorkspaceRelationship[];
+  docsFile: string; // "AGENTS.md" or "CLAUDE.md"
+  description?: string; // First paragraph from docs
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -235,41 +220,112 @@ function isWatchActive(workspacePath: string): boolean {
 }
 
 /**
- * Load workspace configuration from workspace/workspace.json
+ * Extract the first paragraph from a markdown file for use as a description.
+ * Returns undefined if file doesn't exist or has no suitable content.
  */
-function loadWorkspaceConfig(workspacePath: string): WorkspaceConfig | undefined {
-  const workspaceJsonPath = path.join(workspacePath, "workspace", "workspace.json");
+function extractFirstParagraph(filePath: string): string | undefined {
   try {
-    if (!fs.existsSync(workspaceJsonPath)) {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.split("\n");
+
+    let inParagraph = false;
+    const paragraphLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip headings and empty lines at the start
+      if (!inParagraph) {
+        if (trimmed.startsWith("#") || trimmed === "") {
+          continue;
+        }
+        // Found start of first paragraph
+        inParagraph = true;
+      }
+
+      // Collect paragraph lines until empty line or heading
+      if (inParagraph) {
+        if (trimmed === "" || trimmed.startsWith("#")) {
+          break;
+        }
+        paragraphLines.push(trimmed);
+      }
+    }
+
+    if (paragraphLines.length === 0) {
       return undefined;
     }
-    const content = fs.readFileSync(workspaceJsonPath, "utf-8");
-    return JSON.parse(content) as WorkspaceConfig;
+
+    // Join and truncate to reasonable length
+    const paragraph = paragraphLines.join(" ");
+    const maxLen = 100;
+    return paragraph.length > maxLen ? `${paragraph.substring(0, maxLen)}...` : paragraph;
   } catch {
     return undefined;
   }
 }
 
 /**
- * Format workspace context for injection
+ * Auto-discover repositories in a workspace directory.
+ * Looks for git repos with AGENTS.md or CLAUDE.md docs files.
  */
-function formatWorkspaceContext(config: WorkspaceConfig): string {
-  const lines: string[] = [];
-  lines.push(`Workspace: ${config.name}`);
-  if (config.description) {
-    lines.push(config.description);
-  }
-  lines.push("");
-  lines.push("Repos:");
-  for (const repo of config.repos) {
-    lines.push(`  - ${repo.name}: ${repo.purpose} (see @${repo.name}/${repo.docs})`);
-  }
-  if (config.relationships && config.relationships.length > 0) {
-    lines.push("");
-    lines.push("Relationships:");
-    for (const rel of config.relationships) {
-      lines.push(`  - ${rel.consumer} → ${rel.provider} (${rel.type})`);
+function discoverWorkspaceRepos(workspacePath: string): DiscoveredRepo[] {
+  const repos: DiscoveredRepo[] = [];
+
+  try {
+    const entries = fs.readdirSync(workspacePath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      // Skip non-directories and the "workspace" config repo itself
+      if (!entry.isDirectory() || entry.name === "workspace") {
+        continue;
+      }
+
+      const repoPath = path.join(workspacePath, entry.name);
+
+      // Check if it's a git repository
+      const gitPath = path.join(repoPath, ".git");
+      if (!fs.existsSync(gitPath)) {
+        continue;
+      }
+
+      // Find docs file (prefer AGENTS.md, fallback to CLAUDE.md)
+      const docsFile = ["AGENTS.md", "CLAUDE.md"].find((f) =>
+        fs.existsSync(path.join(repoPath, f))
+      );
+
+      // Skip repos without docs files
+      if (!docsFile) {
+        continue;
+      }
+
+      // Extract description from first paragraph
+      const description = extractFirstParagraph(path.join(repoPath, docsFile));
+
+      repos.push({
+        name: entry.name,
+        docsFile,
+        description,
+      });
     }
+  } catch {
+    // Directory read failed, return empty
+  }
+
+  // Sort by name for consistent output
+  return repos.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Format discovered repos for injection
+ */
+function formatWorkspaceContext(repos: DiscoveredRepo[]): string {
+  const lines: string[] = [];
+  lines.push(`Workspace with ${repos.length} repos:`);
+  lines.push("");
+  for (const repo of repos) {
+    const desc = repo.description ? ` - ${repo.description}` : "";
+    lines.push(`  - ${repo.name}${desc} (see @${repo.name}/${repo.docsFile})`);
   }
   return lines.join("\n");
 }
@@ -757,10 +813,21 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     let checkPath = cwd;
     let workspacePath: string | undefined;
 
-    // First check if cwd itself is a workspace (has workspace/workspace.json or .devac)
-    const cwdWorkspaceJson = path.join(cwd, "workspace", "workspace.json");
-    const cwdDevac = path.join(cwd, ".devac");
-    if (fs.existsSync(cwdWorkspaceJson) || fs.existsSync(cwdDevac)) {
+    // Helper to check if a directory is a workspace
+    const isWorkspaceDir = (dirPath: string): boolean => {
+      // Check for .devac directory (DevAC hub)
+      if (fs.existsSync(path.join(dirPath, ".devac"))) {
+        return true;
+      }
+      // Check for workspace/CLAUDE.md (workspace config repo with docs)
+      if (fs.existsSync(path.join(dirPath, "workspace", "CLAUDE.md"))) {
+        return true;
+      }
+      return false;
+    };
+
+    // First check if cwd itself is a workspace
+    if (isWorkspaceDir(cwd)) {
       workspacePath = cwd;
     }
 
@@ -771,10 +838,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
         const parentPath = path.dirname(checkPath);
         if (parentPath === checkPath) break;
 
-        // Check if parent looks like a workspace (has .devac or workspace/workspace.json)
-        const devacPath = path.join(parentPath, ".devac");
-        const workspaceJsonPath = path.join(parentPath, "workspace", "workspace.json");
-        if (fs.existsSync(devacPath) || fs.existsSync(workspaceJsonPath)) {
+        if (isWorkspaceDir(parentPath)) {
           workspacePath = parentPath;
           break;
         }
@@ -816,10 +880,10 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
           if (options.inject) {
             const contextParts: string[] = [];
 
-            // Load workspace config if available
-            const workspaceConfig = loadWorkspaceConfig(workspacePath);
-            if (workspaceConfig) {
-              contextParts.push(formatWorkspaceContext(workspaceConfig));
+            // Auto-discover repos in workspace
+            const discoveredRepos = discoverWorkspaceRepos(workspacePath);
+            if (discoveredRepos.length > 0) {
+              contextParts.push(formatWorkspaceContext(discoveredRepos));
             }
 
             // Get diagnostics if available
@@ -891,14 +955,14 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
         }
       }
 
-      // Fallback inject mode when hub not available but workspace config exists
+      // Fallback inject mode when hub not available but workspace has repos
       if (options.inject) {
-        const workspaceConfig = loadWorkspaceConfig(workspacePath);
-        if (workspaceConfig) {
+        const discoveredRepos = discoverWorkspaceRepos(workspacePath);
+        if (discoveredRepos.length > 0) {
           const hookOutput = {
             hookSpecificOutput: {
               hookEventName: "UserPromptSubmit",
-              additionalContext: `<system-reminder>\n${formatWorkspaceContext(workspaceConfig)}\n</system-reminder>`,
+              additionalContext: `<system-reminder>\n${formatWorkspaceContext(discoveredRepos)}\n</system-reminder>`,
             },
           };
           console.log(JSON.stringify(hookOutput));
