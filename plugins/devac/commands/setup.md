@@ -27,18 +27,47 @@ devac hub init
 
 This creates `~/.devac/central.duckdb` if it doesn't exist.
 
-## Step 3: Enable Hooks (Development Mode)
+## Step 3: Plugin Developer Mode (Optional)
 
-Symlink the plugin cache to the local plugin for immediate hook access:
-```bash
-devac workflow plugin-dev
-```
+This step is for DevAC contributors who want plugin changes to take effect immediately.
 
-**Note:** This enables validation hooks that:
-- Inject diagnostic status on every message (UserPromptSubmit)
-- Run quick validation on session end (Stop)
+**First, gather status:**
 
-After running this, **restart Claude Code** to load the hooks.
+1. Check for vivief repo with devac plugin:
+   ```bash
+   ls -d */plugins/devac/.claude-plugin 2>/dev/null || echo "NOT_FOUND"
+   ```
+
+2. Check current plugin cache mode:
+   ```bash
+   ls -la ~/.claude/plugins/cache/vivief/devac/1.0.0 2>/dev/null || echo "NOT_INSTALLED"
+   ```
+
+**Then display a status table to the user:**
+
+| Check | Status |
+|-------|--------|
+| Vivief repo with devac plugin | ✓ Found at `<path>` / ✗ Not found |
+| Plugin cache location | `~/.claude/plugins/cache/vivief/devac/1.0.0` |
+| Current mode | Developer (symlink → `<target>`) / Global (directory) / Not installed |
+
+**What each mode means:**
+- **Developer mode**: Plugin changes in `vivief/plugins/devac/` take effect immediately (after restart)
+- **Global mode**: Uses installed marketplace version
+
+**If vivief repo found, ask user via AskUserQuestion:**
+- "Enable developer mode" - runs `devac workflow plugin-dev --path <vivief-repo-path>`
+- "Disable developer mode" - runs `devac workflow plugin-global`
+- "Keep current / Skip" - no action
+
+**If NO vivief repo found:**
+Skip this step with message: "No local devac plugin source detected - skipping developer mode setup. This is normal for npm users."
+
+**Commands to use:**
+- Enable dev mode: `devac workflow plugin-dev --path <vivief-repo-path>`
+- Disable dev mode: `devac workflow plugin-global`
+
+After changing mode, **restart Claude Code** to load the hooks.
 
 ## Step 4: Analyze Repository
 
@@ -69,8 +98,8 @@ ls -la ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
 |-----------|----------|---------|
 | **Hub** | `~/.devac/central.duckdb` | Cross-repo query federation |
 | **Seeds** | `.devac/seed/` per repo | Package-level analysis data |
-| **Hooks** | Plugin cache (symlinked) | Validation triggers |
-| **Plugin** | `~/.claude/plugins/cache/vivief/devac/` | Symlinked to local for dev |
+| **Hooks** | Plugin cache | Validation triggers |
+| **Plugin** | `~/.claude/plugins/cache/vivief/devac/` | Marketplace version or symlink to local (dev mode) |
 
 ## After Setup
 
@@ -97,10 +126,10 @@ ls -la ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
 
 ### Hooks not triggering
 
-1. Check that plugin-dev symlink is active:
+1. Check that the plugin is installed:
    ```bash
    ls -la ~/.claude/plugins/cache/vivief/devac/
-   # Should show symlink → local plugin path
+   # Should show either a directory or symlink (if dev mode)
    ```
 
 2. Restart Claude Code to reload hooks
@@ -109,6 +138,23 @@ ls -la ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
    ```bash
    cat ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
    ```
+
+### Developer mode not working
+
+If you're a DevAC contributor and changes aren't reflected:
+
+1. Verify dev mode is active (should be a symlink):
+   ```bash
+   ls -la ~/.claude/plugins/cache/vivief/devac/1.0.0
+   # Should show: 1.0.0 -> /path/to/vivief/plugins/devac
+   ```
+
+2. Re-enable dev mode if needed:
+   ```bash
+   devac workflow plugin-dev --path /path/to/vivief
+   ```
+
+3. Restart Claude Code after enabling
 
 ### Hub not connecting
 
