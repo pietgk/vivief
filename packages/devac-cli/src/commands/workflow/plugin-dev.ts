@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { globSync } from "glob";
 import { getGitRoot, isGitRepo } from "../../utils/git-utils.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +75,56 @@ function findLocalPlugin(repoRoot: string): string | undefined {
   if (fs.existsSync(pluginPath) && fs.existsSync(path.join(pluginPath, ".claude-plugin"))) {
     return pluginPath;
   }
+  return undefined;
+}
+
+/**
+ * Check if a repository has the devac plugin
+ */
+function hasDevacPlugin(repoRoot: string): boolean {
+  const pluginPath = path.join(repoRoot, "plugins", "devac", ".claude-plugin");
+  return fs.existsSync(pluginPath);
+}
+
+/**
+ * Auto-discover vivief repository with devac plugin in workspace
+ * Prioritizes main vivief repo over worktrees (vivief-*)
+ */
+function discoverVivieRepo(startDir: string): string | undefined {
+  // Patterns to search for devac plugin - ordered by priority
+  // 1. Exact "vivief" match first (main repo)
+  // 2. Worktrees (vivief-*) as fallback
+  const patterns = [
+    path.join(startDir, "vivief/plugins/devac/.claude-plugin"),
+    path.join(startDir, "vivief-*/plugins/devac/.claude-plugin"),
+  ];
+
+  for (const pattern of patterns) {
+    const matches = globSync(pattern);
+    const firstMatch = matches[0];
+    if (firstMatch) {
+      // Return the repo root (3 levels up from .claude-plugin)
+      return path.dirname(path.dirname(path.dirname(firstMatch)));
+    }
+  }
+
+  // Also check parent directory
+  const parentDir = path.dirname(startDir);
+  if (parentDir !== startDir) {
+    const parentPatterns = [
+      path.join(parentDir, "vivief/plugins/devac/.claude-plugin"),
+      path.join(parentDir, "vivief-*/plugins/devac/.claude-plugin"),
+    ];
+
+    for (const pattern of parentPatterns) {
+      const matches = globSync(pattern);
+      const firstMatch = matches[0];
+      if (firstMatch) {
+        return path.dirname(path.dirname(path.dirname(firstMatch)));
+      }
+    }
+  }
+
   return undefined;
 }
 
@@ -164,13 +215,51 @@ function copyDir(src: string, dest: string): void {
  * Switch to local development mode (symlink)
  */
 export async function pluginDevCommand(options: PluginDevOptions): Promise<PluginDevResult> {
-  const cwd = options.path ? path.resolve(options.path) : process.cwd();
+  let repoRoot: string | undefined;
 
-  // Verify git repo
-  if (!isGitRepo(cwd)) {
+  // 1. If --path provided, check if it's a valid devac repo
+  if (options.path) {
+    const resolvedPath = path.resolve(options.path);
+    if (isGitRepo(resolvedPath)) {
+      const root = getGitRoot(resolvedPath);
+      if (root && hasDevacPlugin(root)) {
+        repoRoot = root;
+      }
+    }
+    // If explicit path doesn't have plugin, fail immediately with clear message
+    if (!repoRoot) {
+      return {
+        success: false,
+        error: `Path does not contain devac plugin: ${resolvedPath}`,
+        mode: "dev",
+        sourcePath: "",
+        cachePath: CACHE_VERSION_PATH,
+        action: "none",
+        tempCachesCleaned: 0,
+      };
+    }
+  }
+  // 2. If in a git repo with devac plugin, use it
+  else if (isGitRepo(process.cwd())) {
+    const root = getGitRoot(process.cwd());
+    if (root && hasDevacPlugin(root)) {
+      repoRoot = root;
+    }
+  }
+
+  // 3. Auto-discover vivief repo in workspace (if not already found)
+  if (!repoRoot) {
+    const discovered = discoverVivieRepo(process.cwd());
+    if (discovered && isGitRepo(discovered) && hasDevacPlugin(discovered)) {
+      repoRoot = getGitRoot(discovered) || discovered;
+    }
+  }
+
+  // 4. Fail if no valid repo found
+  if (!repoRoot) {
     return {
       success: false,
-      error: "Not a git repository",
+      error: "No repository with devac plugin found. Run from vivief repo or use --path.",
       mode: "dev",
       sourcePath: "",
       cachePath: CACHE_VERSION_PATH,
@@ -178,8 +267,6 @@ export async function pluginDevCommand(options: PluginDevOptions): Promise<Plugi
       tempCachesCleaned: 0,
     };
   }
-
-  const repoRoot = getGitRoot(cwd) || cwd;
 
   // Find local plugin
   const localPluginPath = findLocalPlugin(repoRoot);
