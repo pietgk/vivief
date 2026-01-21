@@ -11,7 +11,12 @@
 export { registerStatusCommand } from "./status.js";
 export { registerDiagnosticsCommand } from "./diagnostics.js";
 export { registerAnalyzeCommand } from "./analyze.js";
-export { registerQueryCommand } from "./query.js";
+// Query umbrella command (consolidates all query operations)
+export { registerQueryCommand } from "./query/index.js";
+export type { QuerySqlOptions, QuerySqlResult } from "./query/index.js";
+
+// Legacy: keep queryCommand for programmatic use
+// Note: registerQueryCommand is now from query/index.js, not query.js
 export { registerVerifyCommand } from "./verify.js";
 export { registerCleanCommand } from "./clean.js";
 export { registerWatchCommand } from "./watch.js";
@@ -296,7 +301,7 @@ export type { DoctorOptions, DoctorResult } from "./doctor.js";
 
 // Sync command (analyze + register workflow)
 export { syncCommand } from "./sync.js";
-export type { SyncOptions, SyncResult } from "./sync.js";
+export type { SyncOptions, SyncResult, SyncScope } from "./sync.js";
 
 // Doc-sync command (documentation generation)
 export { docSyncCommand } from "./doc-sync.js";

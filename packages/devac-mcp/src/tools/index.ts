@@ -1,5 +1,9 @@
 /**
  * MCP Tool Definitions
+ *
+ * Tool naming follows the CLI command pattern:
+ * - query_* for querying the code graph
+ * - status_* for status/diagnostics
  */
 
 import type { MCPTool } from "../types.js";
@@ -8,8 +12,9 @@ import type { MCPTool } from "../types.js";
  * All available MCP tools
  */
 export const MCP_TOOLS: MCPTool[] = [
+  // ================== Query Tools ==================
   {
-    name: "find_symbol",
+    name: "query_symbol",
     description: "Find a symbol by name in the codebase",
     inputSchema: {
       type: "object",
@@ -21,7 +26,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_dependencies",
+    name: "query_deps",
     description: "Get dependencies of a symbol",
     inputSchema: {
       type: "object",
@@ -33,7 +38,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_dependents",
+    name: "query_dependents",
     description: "Get symbols that depend on the target",
     inputSchema: {
       type: "object",
@@ -45,7 +50,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_file_symbols",
+    name: "query_file",
     description: "Get all symbols defined in a file",
     inputSchema: {
       type: "object",
@@ -56,7 +61,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_affected",
+    name: "query_affected",
     description: "Get files affected by changes",
     inputSchema: {
       type: "object",
@@ -72,7 +77,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_call_graph",
+    name: "query_call_graph",
     description: "Get the call graph for a function",
     inputSchema: {
       type: "object",
@@ -101,7 +106,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_schema",
+    name: "query_schema",
     description:
       "Get available tables and columns in the code graph database. Useful for discovering the schema before writing SQL queries. Returns seed tables (nodes, edges, external_refs, effects) and hub tables (repo_registry, validation_errors, unified_diagnostics).",
     inputSchema: {
@@ -111,7 +116,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "list_repos",
+    name: "query_repos",
     description:
       "List all registered repositories in the hub. Only available in hub mode. Returns repository metadata including path, package count, status, and last sync time.",
     inputSchema: {
@@ -121,7 +126,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_context",
+    name: "query_context",
     description:
       "Discover the current working context including sibling repositories and issue worktrees. Returns information about the current directory, parent directory containing repos, and any issue-related worktrees.",
     inputSchema: {
@@ -143,8 +148,9 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  // ================== Status Tools ==================
   {
-    name: "get_workspace_status",
+    name: "status",
     description:
       "Get workspace status including seed states for all repositories and packages. Shows which packages are analyzed (have base seeds), need analysis, or have delta changes. Use this to understand what needs to be analyzed or registered with the hub.",
     inputSchema: {
@@ -163,7 +169,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_validation_errors",
+    name: "status_diagnostics",
     description:
       "Get validation errors (type errors, lint issues, test failures) from the hub cache. Returns errors that need to be fixed. Only available in hub mode.",
     inputSchema: {
@@ -196,7 +202,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_validation_summary",
+    name: "status_diagnostics_summary",
     description:
       "Get a summary of validation errors grouped by repository, file, source, or severity. Useful for getting an overview of issues. Only available in hub mode.",
     inputSchema: {
@@ -212,7 +218,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_validation_counts",
+    name: "status_diagnostics_counts",
     description:
       "Get total counts of validation errors and warnings across all repositories. Only available in hub mode.",
     inputSchema: {
@@ -223,7 +229,7 @@ export const MCP_TOOLS: MCPTool[] = [
   },
   // ================== Unified Diagnostics Tools ==================
   {
-    name: "get_all_diagnostics",
+    name: "status_all_diagnostics",
     description:
       "Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Filter by source, severity, category, and more. Use this to answer 'What do I need to fix?' across all diagnostics types. Only available in hub mode.",
     inputSchema: {
@@ -288,7 +294,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_diagnostics_summary",
+    name: "status_all_diagnostics_summary",
     description:
       "Get a summary of all diagnostics grouped by source, severity, category, or repository. Provides an overview of what needs attention. Only available in hub mode.",
     inputSchema: {
@@ -304,7 +310,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "get_diagnostics_counts",
+    name: "status_all_diagnostics_counts",
     description:
       "Get total counts of diagnostics by severity (critical, error, warning, suggestion, note). Only available in hub mode.",
     inputSchema: {
@@ -313,7 +319,7 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
-  // ================== Effects, Rules, C4 Tools (v3.0) ==================
+  // ================== Query Effects, Rules, C4 Tools (v3.0) ==================
   {
     name: "query_effects",
     description:
@@ -351,7 +357,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "run_rules",
+    name: "query_rules",
     description:
       "Run the rules engine on effects to produce domain effects. Domain effects are high-level classifications like 'Payment:Charge', 'Auth:TokenVerify', 'Database:Query'. Returns matched domain effects and statistics about rule matches.",
     inputSchema: {
@@ -374,7 +380,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "list_rules",
+    name: "query_rules_list",
     description:
       "List available rules in the rules engine. Rules define patterns for classifying code effects into domain effects.",
     inputSchema: {
@@ -393,7 +399,7 @@ export const MCP_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: "generate_c4",
+    name: "query_c4",
     description:
       "Generate C4 architecture diagrams from code effects. Returns C4 model data and optionally PlantUML diagram code. Supports Context, Container, and Component levels.",
     inputSchema: {

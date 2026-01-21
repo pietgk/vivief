@@ -59,6 +59,31 @@ export interface StatusOptions {
 
   /** Hook injection mode - output hook-compatible JSON for Claude Code hooks */
   inject?: boolean;
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Phase 2 additions: Focused status flags (v4.0 reorganization)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  /** Show detailed diagnostics (validation errors/warnings) */
+  diagnostics?: boolean;
+
+  /** Show hub health details */
+  hub?: boolean;
+
+  /** Show seed freshness details */
+  seeds?: boolean;
+
+  /** Verify seed integrity (used with --seeds) */
+  verify?: boolean;
+
+  /** Run health checks (doctor mode) */
+  doctor?: boolean;
+
+  /** Auto-fix issues (used with --doctor) */
+  fix?: boolean;
+
+  /** Check if changeset is needed */
+  changeset?: boolean;
 }
 
 export interface StatusResult {
@@ -852,8 +877,9 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
       if (result.seeds.isWorkspace && !workspacePath) {
         workspacePath = result.seeds.workspacePath;
       }
-    } catch {
-      // Seed status detection failed, continue without it
+    } catch (_error) {
+      // Seed status detection failed - add hint to next steps
+      result.next.push("Seed detection failed. Run 'devac sync' to analyze packages.");
     }
 
     if (workspacePath) {
@@ -1104,18 +1130,128 @@ export function registerStatusCommand(program: Command): void {
     .option("--cached", "Skip live CI fetch, use hub cache only (faster)")
     .option("--sync", "Sync CI results to hub after gathering")
     .option("--inject", "Output hook-compatible JSON for Claude Code hooks (silent if no issues)")
+    // Phase 2 additions: Focused status flags
+    .option("--diagnostics", "Show detailed validation errors/warnings")
+    .option("--hub", "Show hub health details")
+    .option("--seeds", "Show seed freshness details")
+    .option("--verify", "Verify seed integrity (use with --seeds)")
+    .option("--doctor", "Run health checks")
+    .option("--fix", "Auto-fix issues (use with --doctor)")
+    .option("--changeset", "Check if changeset is needed")
     .action(async (options) => {
-      // Determine format
+      // Handle focused status modes that delegate to other commands
+      if (options.diagnostics) {
+        const { diagnosticsCommand } = await import("./diagnostics.js");
+        const hubDir = await (await import("../utils/workspace-discovery.js")).getWorkspaceHubDir();
+        const result = await diagnosticsCommand({
+          hubDir,
+          json: options.json,
+        });
+        console.log(result.output);
+        if (!result.success) process.exit(1);
+        return;
+      }
+
+      if (options.hub) {
+        const { hubStatus } = await import("./hub-status.js");
+        const hubDir = await (await import("../utils/workspace-discovery.js")).getWorkspaceHubDir();
+        const result = await hubStatus({ hubDir });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          if (result.success && result.status) {
+            console.log("Hub Status");
+            console.log("─".repeat(30));
+            console.log(`  Repos:      ${result.status.repoCount}`);
+            console.log(`  Packages:   ${result.status.totalPackages}`);
+            console.log(`  Last sync:  ${result.status.lastSync || "never"}`);
+          } else {
+            console.log(result.message);
+          }
+        }
+        if (!result.success) process.exit(1);
+        return;
+      }
+
+      if (options.seeds && options.verify) {
+        const { verifyCommand } = await import("./verify.js");
+        const result = await verifyCommand({
+          packagePath: path.resolve(options.path),
+          branch: "base",
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          if (result.valid) {
+            console.log("✓ Seeds verified successfully");
+            if (result.stats) {
+              console.log(`  Nodes: ${result.stats.nodeCount}`);
+              console.log(`  Edges: ${result.stats.edgeCount}`);
+              console.log(`  External refs: ${result.stats.refCount}`);
+              console.log(`  Files: ${result.stats.fileCount}`);
+            }
+          } else {
+            console.error("✗ Verification failed:");
+            for (const error of result.errors) {
+              console.error(`  • ${error}`);
+            }
+          }
+        }
+        if (!result.valid) process.exit(1);
+        return;
+      }
+
+      if (options.doctor) {
+        const { doctorCommand } = await import("./doctor.js");
+        const result = await doctorCommand({
+          cwd: options.path,
+          fix: options.fix,
+          json: options.json,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log(result.formatted);
+        }
+        if (!result.success) process.exit(1);
+        return;
+      }
+
+      if (options.changeset) {
+        const { checkChangesetCommand } = await import("./workflow/index.js");
+        const result = await checkChangesetCommand({
+          path: options.path,
+          json: options.json,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          if (result.needsChangeset) {
+            console.log("Changeset needed for the following packages:");
+            for (const pkg of result.packagesNeedingChangeset) {
+              console.log(`  - ${pkg}`);
+            }
+          } else {
+            console.log("✓ No changeset needed");
+          }
+        }
+        if (!result.success) process.exit(1);
+        return;
+      }
+
+      // Default: standard status command
       let format: "oneline" | "brief" | "full" = "brief";
       if (options.full) {
         format = "full";
       }
+      // --seeds without --verify shows seed status only
+      const seedsOnly = options.seedsOnly || options.seeds;
 
       const result = await statusCommand({
         path: options.path,
         format,
         json: options.json,
-        seedsOnly: options.seedsOnly,
+        seedsOnly,
         cached: options.cached,
         sync: options.sync,
         inject: options.inject,

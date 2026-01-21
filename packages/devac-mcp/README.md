@@ -17,7 +17,11 @@ This package provides an MCP server that exposes DevAC's code analysis capabilit
 ### Via CLI
 
 ```bash
-devac mcp start --package /path/to/your/package
+# Hub mode (default) - federated queries across all repos
+devac mcp
+
+# Package mode - single package queries
+devac mcp --package /path/to/your/package
 ```
 
 ### Programmatically
@@ -25,22 +29,18 @@ devac mcp start --package /path/to/your/package
 ```typescript
 import { createMCPServer, DevacMCPServer } from "@pietgk/devac-mcp";
 
-// Quick start
+// Quick start in hub mode
+const server = await createMCPServer({ mode: "hub" });
+
+// Or package mode
 const server = await createMCPServer({
+  mode: "package",
   packagePath: "/path/to/package",
 });
-
-// Or with more control
-const server = new DevacMCPServer({
-  packagePath: "/path/to/package",
-  memoryLimit: "512MB",
-});
-
-await server.start();
 
 // Check status
 console.log(server.getStatus());
-// { isRunning: true, toolCount: 7, uptime: 1234, packagePath: "..." }
+// { isRunning: true, mode: "hub", toolCount: 21, uptime: 1234 }
 
 // When done
 await server.stop();
@@ -48,24 +48,57 @@ await server.stop();
 
 ## Available Tools
 
-The MCP server exposes 7 tools:
+The MCP server exposes 21 tools organized by category:
+
+### Query Tools (10)
+
+Tools for querying the code graph, prefixed with `query_`:
 
 | Tool | Description |
 |------|-------------|
-| `find_symbol` | Find symbols by name and optionally filter by kind |
-| `get_dependencies` | Get all symbols that an entity depends on |
-| `get_dependents` | Get all symbols that depend on an entity |
-| `get_file_symbols` | Get all symbols defined in a file |
-| `get_affected` | Analyze impact of file changes |
-| `get_call_graph` | Get callers/callees of a function |
-| `query_sql` | Execute custom SQL queries (SELECT only) |
+| `query_symbol` | Find symbols by name and optionally filter by kind |
+| `query_deps` | Get dependencies of a symbol |
+| `query_dependents` | Get symbols that depend on the target |
+| `query_file` | Get all symbols defined in a file |
+| `query_affected` | Get files affected by changes |
+| `query_call_graph` | Get call graph for a function |
+| `query_sql` | Execute read-only SQL queries against the code graph |
+| `query_schema` | Get available tables and columns in the database |
+| `query_repos` | List all registered repositories (hub mode only) |
+| `query_context` | Discover workspace context and sibling repos |
+
+### Status Tools (7)
+
+Tools for status and diagnostics, prefixed with `status_`:
+
+| Tool | Description |
+|------|-------------|
+| `status` | Get workspace status including seed states |
+| `status_diagnostics` | Get validation errors (type errors, lint issues) |
+| `status_diagnostics_summary` | Get validation error summary by group |
+| `status_diagnostics_counts` | Get total counts of errors and warnings |
+| `status_all_diagnostics` | Get all diagnostics (validation + CI + issues) |
+| `status_all_diagnostics_summary` | Get all diagnostics summary |
+| `status_all_diagnostics_counts` | Get all diagnostics counts |
+
+### Effects/Rules/C4 Tools (4)
+
+Tools for code effects and architecture, prefixed with `query_`:
+
+| Tool | Description |
+|------|-------------|
+| `query_effects` | Query code effects (calls, stores, requests) |
+| `query_rules` | Run rules engine on effects |
+| `query_rules_list` | List available rules |
+| `query_c4` | Generate C4 architecture diagrams |
 
 ## Configuration
 
 ```typescript
 interface MCPServerOptions {
-  packagePath: string;     // Path to the analyzed package
-  memoryLimit?: string;    // DuckDB memory limit (default: "256MB")
+  mode: "hub" | "package";   // Operating mode
+  packagePath?: string;      // Required for package mode
+  memoryLimit?: string;      // DuckDB memory limit (default: "256MB")
 }
 ```
 
@@ -78,7 +111,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "devac": {
       "command": "npx",
-      "args": ["devac", "mcp", "start", "--package", "/path/to/your/package"]
+      "args": ["devac-mcp"]
     }
   }
 }
@@ -86,10 +119,10 @@ Add to your Claude Desktop configuration:
 
 ## Prerequisites
 
-Before using the MCP server, analyze your package:
+Before using the MCP server, analyze your packages:
 
 ```bash
-devac analyze /path/to/your/package
+devac sync
 ```
 
 This creates the `.devac/seed/` directory with Parquet files that the MCP server queries.
@@ -101,7 +134,7 @@ This creates the `.devac/seed/` directory with Parquet files that the MCP server
 ```typescript
 class DevacMCPServer {
   constructor(options: MCPServerOptions);
-  
+
   start(): Promise<void>;
   stop(): Promise<void>;
   isRunning(): boolean;
@@ -129,7 +162,7 @@ When the MCP server starts in hub mode:
 2. **Exclusive Access**: Opens `central.duckdb` with read-write access
 3. **IPC Handler**: Listens for CLI commands via the socket
 
-CLI commands (`devac hub register`, `devac hub query`, etc.) automatically detect whether MCP is running and route requests accordingly:
+CLI commands (`devac sync`, `devac query`, etc.) automatically detect whether MCP is running and route requests accordingly:
 
 ```
 ┌─────────┐     Unix Socket IPC       ┌─────────────────┐
@@ -183,7 +216,6 @@ See [ADR-0024](../../docs/adr/0024-hub-single-writer-ipc.md) for implementation 
 
 - [MCP Server Guide](../../docs/mcp-server.md) - Full documentation
 - [API Reference](../../docs/api-reference.md) - Programmatic API
-- [Storage System](../../docs/implementation/storage.md) - Hub IPC architecture
 
 ## License
 

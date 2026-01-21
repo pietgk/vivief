@@ -6,6 +6,33 @@ Its in no way presenting the prompt used, they can be ramblings to set the conte
 
 can you do a very thorough check where th test chect to handle a bug
 
+i changed my mind and think option E is closer to what i think we need.
+      i want to research the idea of using
+      sync, status and query and map everything into those concepts
+      so a developer is working together with the llm
+      devac sync makes sure everything from its source is available for query.
+      devec status show what the current status is including the results from
+      validation so we know what diagnostics there are to address.
+      devac query enable us to find out anything we want to know about the system
+      so analyze is not needed (its in sync)
+      init is not needed its in sync.
+      so what would it meand if we add this idea into the mix.
+      make sure to add this idea as a conceptualised idea into the plan so we can use
+      it to explain a limited set and be smart because i think we can
+      so again take a thorough look with this idea added and make sure we have its
+      pros and cons and the gaps in the idea that needs addressing
+      
+      devac status --doctor --fix is good
+        devac dev is also good
+        regarding run and validation we have a bit of a catch to solve:
+        so either devac status --validation to trigger the validation pipeline (includes typecheck, lint, test, coverage,
+        and more as needed) or validation is included by default in devac status.
+        for example when running devac sync in a workspace with fresh checked out repos and no hub we could say workspace
+        validation gives diagnostic that we need to create the hub. so run typescript is not what we want the llm to start
+        we want to inject the diagnostics including typecheck and lint issues (with extended context as already part of the
+        diagnostic concept) does this make sense and can you you see how this matches your research as this could be a bug
+        that the diagnistics concept is understood as an very essential part of the development feedback loop
+        
 # e2e pages element 
 
 lets figure out how we combine the concepts tha browser-mcp can:

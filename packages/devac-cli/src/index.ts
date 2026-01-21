@@ -10,36 +10,11 @@
 import { setGlobalLogLevel } from "@pietgk/devac-core";
 import { Command } from "commander";
 import {
-  registerAffectedCommand,
-  registerAnalyzeCommand,
-  registerArchitectureCommand,
-  registerC4Command,
-  registerCallGraphCommand,
-  registerCleanCommand,
-  registerContextCommand,
-  registerCoverageCommand,
-  registerDependentsCommand,
-  registerDepsCommand,
-  registerDiagnosticsCommand,
-  registerDocSyncCommand,
-  registerDoctorCommand,
-  registerEffectsCommand,
-  registerFileSymbolsCommand,
-  registerFindSymbolCommand,
-  registerHubCommand,
-  registerLintCommand,
   registerMcpCommand,
   registerQueryCommand,
-  registerRulesCommand,
   registerStatusCommand,
   registerSyncCommand,
-  registerTestCommand,
-  registerTypecheckCommand,
-  registerValidateCommand,
-  registerVerifyCommand,
-  registerWatchCommand,
   registerWorkflowCommand,
-  registerWorkspaceCommand,
 } from "./commands/index.js";
 import { VERSION } from "./version.js";
 
@@ -60,49 +35,28 @@ program
     }
   });
 
-// Register all commands
-registerStatusCommand(program);
-registerAnalyzeCommand(program);
-registerQueryCommand(program);
-registerVerifyCommand(program);
-registerCleanCommand(program);
-registerWatchCommand(program);
-registerTypecheckCommand(program);
-registerLintCommand(program);
-registerTestCommand(program);
-registerCoverageCommand(program);
-registerValidateCommand(program);
-registerAffectedCommand(program);
-registerFindSymbolCommand(program);
-registerDepsCommand(program);
-registerDependentsCommand(program);
-registerFileSymbolsCommand(program);
-registerCallGraphCommand(program);
-registerContextCommand(program);
-registerMcpCommand(program);
-registerHubCommand(program);
-registerWorkspaceCommand(program);
-registerDiagnosticsCommand(program);
+// ─────────────────────────────────────────────────────────────────────────────
+// Three Core Commands (v4.0 reorganization)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// v3.0 Effects, Rules, C4 commands
-registerEffectsCommand(program);
-registerRulesCommand(program);
-registerC4Command(program);
-
-// Architecture commands (improvement loop)
-registerArchitectureCommand(program);
-
-// Workflow commands (deterministic development operations)
-registerWorkflowCommand(program);
-
-// Doctor command (system health checks)
-registerDoctorCommand(program);
-
-// Sync command (analyze + register workflow)
+// Sync: analyze packages, register repos, sync CI/issues/docs
 registerSyncCommand(program);
 
-// Doc-sync command (documentation generation)
-registerDocSyncCommand(program);
+// Status: workspace health, seeds, diagnostics, doctor
+registerStatusCommand(program);
+
+// Query: all code graph queries (symbol, deps, sql, etc.)
+registerQueryCommand(program);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility Commands
+// ─────────────────────────────────────────────────────────────────────────────
+
+// MCP: start MCP server for AI assistants
+registerMcpCommand(program);
+
+// Workflow: CI/git integration (pre-commit, prepare-ship, etc.)
+registerWorkflowCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

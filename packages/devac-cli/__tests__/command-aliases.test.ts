@@ -1,12 +1,14 @@
 /**
- * Command Aliases Tests for DevAC CLI
+ * Command Structure Tests for DevAC CLI v4.0
  *
- * Tests that command aliases work correctly:
- * - analyze → extract
- * - validate → check
- * - workspace → ws
+ * Tests the three-command model:
+ * - sync: analyze packages, register repos, sync CI/issues/docs
+ * - status: workspace health, seeds, diagnostics, doctor
+ * - query: all code graph queries (symbol, deps, sql, etc.)
  *
- * Also tests the default action (devac with no args shows status)
+ * Plus utility commands:
+ * - mcp: MCP server for AI assistants
+ * - workflow: CI/git integration
  */
 
 import { execSync } from "node:child_process";
@@ -15,12 +17,12 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-describe("command aliases", () => {
+describe("CLI command structure (v4.0)", () => {
   let tempDir: string;
   const cliPath = path.resolve(__dirname, "../dist/index.js");
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-alias-test-"));
+    tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-cmd-test-"));
   });
 
   afterEach(async () => {
@@ -48,126 +50,222 @@ describe("command aliases", () => {
     }
   }
 
-  describe("analyze → extract alias", () => {
-    it("extract command shows same help as analyze", () => {
-      const analyzeHelp = runCli("analyze --help");
-      const extractHelp = runCli("extract --help");
-
-      expect(analyzeHelp.exitCode).toBe(0);
-      expect(extractHelp.exitCode).toBe(0);
-
-      // Both should mention "analyze|extract"
-      expect(analyzeHelp.stdout).toContain("analyze|extract");
-      expect(extractHelp.stdout).toContain("analyze|extract");
+  describe("main help shows three core commands", () => {
+    it("lists sync command", () => {
+      const help = runCli("--help");
+      expect(help.stdout).toContain("sync");
     });
 
-    it("extract command is listed in main help", () => {
+    it("lists status command", () => {
       const help = runCli("--help");
+      expect(help.stdout).toContain("status");
+    });
 
-      expect(help.stdout).toContain("analyze|extract");
+    it("lists query command", () => {
+      const help = runCli("--help");
+      expect(help.stdout).toContain("query");
+    });
+
+    it("lists mcp command", () => {
+      const help = runCli("--help");
+      expect(help.stdout).toContain("mcp");
+    });
+
+    it("lists workflow command", () => {
+      const help = runCli("--help");
+      expect(help.stdout).toContain("workflow");
     });
   });
 
-  describe("validate → check alias", () => {
-    it("check command shows same help as validate", () => {
-      const validateHelp = runCli("validate --help");
-      const checkHelp = runCli("check --help");
-
-      expect(validateHelp.exitCode).toBe(0);
-      expect(checkHelp.exitCode).toBe(0);
-
-      // Both should mention "validate|check"
-      expect(validateHelp.stdout).toContain("validate|check");
-      expect(checkHelp.stdout).toContain("validate|check");
-    });
-
-    it("check command is listed in main help", () => {
-      const help = runCli("--help");
-
-      expect(help.stdout).toContain("validate|check");
-    });
-  });
-
-  describe("workspace → ws alias", () => {
-    it("ws command shows same help as workspace", () => {
-      const workspaceHelp = runCli("workspace --help");
-      const wsHelp = runCli("ws --help");
-
-      expect(workspaceHelp.exitCode).toBe(0);
-      expect(wsHelp.exitCode).toBe(0);
-
-      // Both should mention "workspace|ws"
-      expect(workspaceHelp.stdout).toContain("workspace|ws");
-      expect(wsHelp.stdout).toContain("workspace|ws");
-    });
-
-    it("ws command is listed in main help", () => {
-      const help = runCli("--help");
-
-      expect(help.stdout).toContain("workspace|ws");
-    });
-
-    it("ws subcommands work (status)", () => {
-      const result = runCli("ws status --help");
-
+  describe("sync command", () => {
+    it("sync command is available", () => {
+      const result = runCli("sync --help");
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("status");
-    });
-  });
-
-  describe("merged workspace subcommands", () => {
-    it("workspace has register subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("register");
-    });
-
-    it("workspace has unregister subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("unregister");
-    });
-
-    it("workspace has list subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("list");
-    });
-
-    it("workspace has refresh subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("refresh");
-    });
-
-    it("workspace has sync subcommand", () => {
-      const result = runCli("workspace --help");
-
       expect(result.stdout).toContain("sync");
     });
 
-    it("workspace has ci subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("ci");
+    it("sync supports --validate flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--validate");
     });
 
-    it("workspace has issues subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("issues");
+    it("sync supports --ci flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--ci");
     });
 
-    it("workspace has review subcommand", () => {
-      const result = runCli("workspace --help");
-
-      expect(result.stdout).toContain("review");
+    it("sync supports --issues flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--issues");
     });
 
-    it("workspace has mcp subcommand", () => {
-      const result = runCli("workspace --help");
+    it("sync supports --docs flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--docs");
+    });
 
-      expect(result.stdout).toContain("mcp");
+    it("sync supports --watch flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--watch");
+    });
+
+    it("sync supports --force flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--force");
+    });
+
+    it("sync supports --clean flag", () => {
+      const result = runCli("sync --help");
+      expect(result.stdout).toContain("--clean");
+    });
+  });
+
+  describe("status command", () => {
+    it("status command is available", () => {
+      const result = runCli("status --help");
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("status");
+    });
+
+    it("status supports --brief option", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--brief");
+    });
+
+    it("status supports --full option", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--full");
+    });
+
+    it("status supports --diagnostics flag", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--diagnostics");
+    });
+
+    it("status supports --doctor flag", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--doctor");
+    });
+
+    it("status supports --seeds flag", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--seeds");
+    });
+
+    it("status supports --hub flag", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--hub");
+    });
+
+    it("status supports --changeset flag", () => {
+      const result = runCli("status --help");
+      expect(result.stdout).toContain("--changeset");
+    });
+  });
+
+  describe("query command", () => {
+    it("query command is available", () => {
+      const result = runCli("query --help");
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("query");
+    });
+
+    it("query has sql subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("sql");
+    });
+
+    it("query has symbol subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("symbol");
+    });
+
+    it("query has deps subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("deps");
+    });
+
+    it("query has dependents subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("dependents");
+    });
+
+    it("query has affected subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("affected");
+    });
+
+    it("query has file subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("file");
+    });
+
+    it("query has call-graph subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("call-graph");
+    });
+
+    it("query has effects subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("effects");
+    });
+
+    it("query has rules subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("rules");
+    });
+
+    it("query has c4 subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("c4");
+    });
+
+    it("query has context subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("context");
+    });
+
+    it("query has repos subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("repos");
+    });
+
+    it("query has schema subcommand", () => {
+      const result = runCli("query --help");
+      expect(result.stdout).toContain("schema");
+    });
+  });
+
+  describe("workflow command", () => {
+    it("workflow command is available", () => {
+      const result = runCli("workflow --help");
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("workflow");
+    });
+
+    it("workflow has pre-commit subcommand", () => {
+      const result = runCli("workflow --help");
+      expect(result.stdout).toContain("pre-commit");
+    });
+
+    it("workflow has prepare-ship subcommand", () => {
+      const result = runCli("workflow --help");
+      expect(result.stdout).toContain("prepare-ship");
+    });
+
+    it("workflow has check-changeset subcommand", () => {
+      const result = runCli("workflow --help");
+      expect(result.stdout).toContain("check-changeset");
+    });
+
+    it("workflow has install-local subcommand", () => {
+      const result = runCli("workflow --help");
+      expect(result.stdout).toContain("install-local");
+    });
+
+    it("workflow has plugin-dev subcommand", () => {
+      const result = runCli("workflow --help");
+      expect(result.stdout).toContain("plugin-dev");
     });
   });
 
@@ -176,7 +274,6 @@ describe("command aliases", () => {
       const result = runCli("");
 
       // Should show some status output (not help)
-      // Status output typically contains workspace/hub info
       expect(result.exitCode).toBe(0);
       // Should not show the full help text
       expect(result.stdout).not.toContain("Usage: devac [options] [command]");
@@ -194,48 +291,6 @@ describe("command aliases", () => {
           output.includes("ok") ||
           output.includes("next")
       ).toBe(true);
-    });
-  });
-
-  describe("diagnostics command", () => {
-    it("diagnostics command is available", () => {
-      const result = runCli("diagnostics --help");
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("diagnostics");
-    });
-
-    it("diagnostics command is listed in main help", () => {
-      const help = runCli("--help");
-
-      expect(help.stdout).toContain("diagnostics");
-    });
-  });
-
-  describe("status command", () => {
-    it("status command is available", () => {
-      const result = runCli("status --help");
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain("status");
-    });
-
-    it("status command supports --brief option", () => {
-      const result = runCli("status --help");
-
-      expect(result.stdout).toContain("--brief");
-    });
-
-    it("status command supports --full option", () => {
-      const result = runCli("status --help");
-
-      expect(result.stdout).toContain("--full");
-    });
-
-    it("status command is listed in main help", () => {
-      const help = runCli("--help");
-
-      expect(help.stdout).toContain("status");
     });
   });
 });

@@ -243,14 +243,18 @@ describe("MCP Tool Registration", () => {
   it("has all expected tools defined", () => {
     const toolNames = MCP_TOOLS.map((t) => t.name);
 
-    expect(toolNames).toContain("find_symbol");
-    expect(toolNames).toContain("get_dependencies");
-    expect(toolNames).toContain("get_dependents");
-    expect(toolNames).toContain("get_file_symbols");
-    expect(toolNames).toContain("get_affected");
-    expect(toolNames).toContain("get_call_graph");
+    // Query tools
+    expect(toolNames).toContain("query_symbol");
+    expect(toolNames).toContain("query_deps");
+    expect(toolNames).toContain("query_dependents");
+    expect(toolNames).toContain("query_file");
+    expect(toolNames).toContain("query_affected");
+    expect(toolNames).toContain("query_call_graph");
     expect(toolNames).toContain("query_sql");
-    expect(toolNames).toContain("list_repos");
+    expect(toolNames).toContain("query_repos");
+    // Status tools
+    expect(toolNames).toContain("status");
+    expect(toolNames).toContain("status_diagnostics");
   });
 
   it("each tool has required properties", () => {
@@ -263,34 +267,34 @@ describe("MCP Tool Registration", () => {
     }
   });
 
-  it("find_symbol requires name parameter", () => {
-    const findSymbol = MCP_TOOLS.find((t) => t.name === "find_symbol");
-    expect(findSymbol?.inputSchema.required).toContain("name");
+  it("query_symbol requires name parameter", () => {
+    const querySymbol = MCP_TOOLS.find((t) => t.name === "query_symbol");
+    expect(querySymbol?.inputSchema.required).toContain("name");
   });
 
-  it("get_dependencies requires entityId parameter", () => {
-    const getDeps = MCP_TOOLS.find((t) => t.name === "get_dependencies");
-    expect(getDeps?.inputSchema.required).toContain("entityId");
+  it("query_deps requires entityId parameter", () => {
+    const queryDeps = MCP_TOOLS.find((t) => t.name === "query_deps");
+    expect(queryDeps?.inputSchema.required).toContain("entityId");
   });
 
-  it("get_dependents requires entityId parameter", () => {
-    const getDependents = MCP_TOOLS.find((t) => t.name === "get_dependents");
-    expect(getDependents?.inputSchema.required).toContain("entityId");
+  it("query_dependents requires entityId parameter", () => {
+    const queryDependents = MCP_TOOLS.find((t) => t.name === "query_dependents");
+    expect(queryDependents?.inputSchema.required).toContain("entityId");
   });
 
-  it("get_file_symbols requires filePath parameter", () => {
-    const getFileSymbols = MCP_TOOLS.find((t) => t.name === "get_file_symbols");
-    expect(getFileSymbols?.inputSchema.required).toContain("filePath");
+  it("query_file requires filePath parameter", () => {
+    const queryFile = MCP_TOOLS.find((t) => t.name === "query_file");
+    expect(queryFile?.inputSchema.required).toContain("filePath");
   });
 
-  it("get_affected requires changedFiles parameter", () => {
-    const getAffected = MCP_TOOLS.find((t) => t.name === "get_affected");
-    expect(getAffected?.inputSchema.required).toContain("changedFiles");
+  it("query_affected requires changedFiles parameter", () => {
+    const queryAffected = MCP_TOOLS.find((t) => t.name === "query_affected");
+    expect(queryAffected?.inputSchema.required).toContain("changedFiles");
   });
 
-  it("get_call_graph requires entityId parameter", () => {
-    const getCallGraph = MCP_TOOLS.find((t) => t.name === "get_call_graph");
-    expect(getCallGraph?.inputSchema.required).toContain("entityId");
+  it("query_call_graph requires entityId parameter", () => {
+    const queryCallGraph = MCP_TOOLS.find((t) => t.name === "query_call_graph");
+    expect(queryCallGraph?.inputSchema.required).toContain("entityId");
   });
 
   it("query_sql requires sql parameter", () => {
@@ -298,9 +302,9 @@ describe("MCP Tool Registration", () => {
     expect(querySql?.inputSchema.required).toContain("sql");
   });
 
-  it("get_call_graph has direction enum", () => {
-    const getCallGraph = MCP_TOOLS.find((t) => t.name === "get_call_graph");
-    const directionProp = getCallGraph?.inputSchema.properties.direction as {
+  it("query_call_graph has direction enum", () => {
+    const queryCallGraph = MCP_TOOLS.find((t) => t.name === "query_call_graph");
+    const directionProp = queryCallGraph?.inputSchema.properties.direction as {
       enum?: string[];
     };
     expect(directionProp?.enum).toEqual(["callers", "callees", "both"]);
