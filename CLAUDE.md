@@ -164,16 +164,48 @@ Example: `myrepo:packages/api:function:abc123`
 
 ## CLI Commands
 
+DevAC uses three primary commands:
+
 | Command | Description |
 |---------|-------------|
-| `devac analyze` | Analyze package and generate seeds |
-| `devac query <sql>` | Execute SQL against seeds |
-| `devac watch` | Watch for changes and update incrementally |
-| `devac validate` | Validate code changes |
-| `devac affected <files>` | Find affected files |
-| `devac hub init` | Initialize central hub |
-| `devac hub list` | List available repositories (auto-discovers repos with seeds) |
-| `devac doctor` | Check system health and fix issues |
+| `devac sync` | Analyze packages, register repos, sync CI/issues |
+| `devac status` | Show health, diagnostics, doctor, seeds |
+| `devac query <subcommand>` | Query the code graph |
+
+### Sync Options
+
+```bash
+devac sync              # Analyze current package
+devac sync --validate   # Run validation after analysis
+devac sync --watch      # Continuous mode (watch for changes)
+devac sync --force      # Force full resync
+devac sync --ci         # Sync CI status
+devac sync --issues     # Sync GitHub issues
+```
+
+### Status Options
+
+```bash
+devac status              # Show basic status
+devac status --diagnostics # Show validation errors
+devac status --doctor     # Run health checks
+devac status --doctor --fix # Auto-fix issues
+```
+
+### Query Subcommands
+
+```bash
+devac query sql <sql>      # Execute raw SQL against seeds
+devac query symbol <name>  # Find symbols by name
+devac query deps <entity>  # Get dependencies
+devac query affected <files> # Impact analysis
+devac query repos          # List registered repos
+```
+
+### Other Commands
+
+| Command | Description |
+|---------|-------------|
 | `devac mcp` | Start MCP server |
 | `devac workflow plugin-dev` | Switch to local plugin development mode |
 | `devac workflow plugin-global` | Revert to global/marketplace plugin mode |
