@@ -153,7 +153,7 @@ export async function syncCommand(options: SyncOptions): Promise<SyncResult> {
   } catch {
     return createErrorResult(
       ["Hub not initialized"],
-      "Hub not initialized. Run 'devac hub init' first."
+      "Hub not initialized. Run 'devac sync' to initialize."
     );
   }
 

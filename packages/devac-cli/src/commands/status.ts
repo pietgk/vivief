@@ -623,7 +623,7 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
           let details = "";
           if (pkg.state === "none") {
             const relativePath = path.relative(result.seeds.workspacePath, pkg.packagePath);
-            details = `run: devac analyze -p ${relativePath}`;
+            details = `run: devac sync -p ${relativePath}`;
           } else if (pkg.state === "both" && pkg.deltaLastModified) {
             const branchDate = pkg.deltaLastModified.split("T")[0];
             details = `base: ${dateStr}, delta: ${branchDate}`;
@@ -1083,7 +1083,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } else if (result.diagnostics.warnings > 0) {
       result.next.push(`Address ${result.diagnostics.warnings} warnings`);
     } else if (!result.health.hubConnected) {
-      result.next.push("Initialize hub: devac hub init, then devac sync");
+      result.next.push("Initialize hub: devac sync");
     } else if (!result.health.watchActive) {
       result.next.push("Start watch: devac workspace watch");
     } else if (result.next.length === 0) {

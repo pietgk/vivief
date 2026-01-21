@@ -314,7 +314,7 @@ export function formatStatusFull(status: WorkspaceStatus): string {
 
         let details = "";
         if (pkg.state === "none") {
-          details = `run: devac analyze -p ${path.relative(status.workspacePath, pkg.packagePath)}`;
+          details = `run: devac sync -p ${path.relative(status.workspacePath, pkg.packagePath)}`;
         } else if (pkg.state === "both" && pkg.deltaLastModified) {
           const branchDate = pkg.deltaLastModified.split("T")[0];
           details = `base: ${dateStr}, delta: ${branchDate}`;

@@ -225,7 +225,7 @@ Fetching issue details...
 Add a `--watch` flag to the analyze command that monitors file changes.
 
 **Acceptance Criteria:**
-- [ ] `devac analyze --watch` starts file watcher
+- [ ] `devac sync --watch` starts file watcher
 - [ ] Changes trigger incremental re-analysis
 - [ ] Watcher can be stopped with Ctrl+C
 

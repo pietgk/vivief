@@ -71,7 +71,7 @@ export async function queryCommand(options: QueryOptions): Promise<QueryResult> 
       // Only warn if no views were created at all
       return {
         success: false,
-        error: `No seed files found. Run 'devac analyze' first. (${contextResult.warnings.join(", ")})`,
+        error: `No seed files found. Run 'devac sync' first. (${contextResult.warnings.join(", ")})`,
         timeMs: Date.now() - startTime,
       };
     }

@@ -74,12 +74,12 @@ devac diagnostics --severity error
 devac diagnostics --file src/services/
 ```
 
-### `devac validate`
+### `devac sync --validate`
 Run validators and refresh diagnostics.
 ```bash
-devac validate
-devac validate --type typescript
-devac validate --type eslint
+devac sync --validate
+devac sync --validate --type typescript
+devac sync --validate --type eslint
 ```
 
 ### `devac query`
@@ -169,7 +169,7 @@ LIMIT 10
 ## Notes
 
 - Diagnostics are refreshed when validators run
-- Run `devac validate` to update diagnostics
+- Run `devac sync --validate` to update diagnostics
 - Some issues may be auto-fixable - look for --fix options
 - Consider adding suppression comments for intentional violations
 - CLI and MCP share the same devac-core implementation and return identical results

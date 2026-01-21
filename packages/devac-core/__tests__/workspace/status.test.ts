@@ -586,7 +586,7 @@ describe("workspace status", () => {
       expect(result).toContain("2024-01-15");
       expect(result).toContain("pkg2");
       expect(result).toContain("[none ]");
-      expect(result).toContain("devac analyze");
+      expect(result).toContain("devac sync");
       expect(result).toContain("SUMMARY");
       expect(result).toContain("Repositories:       1");
     });

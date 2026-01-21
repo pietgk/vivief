@@ -206,11 +206,11 @@ MCP Stop:
 ```bash
 # With MCP running
 devac-mcp &
-devac hub register ./my-repo  # Uses IPC
+devac sync  # Uses IPC to register repo with hub
 
 # Without MCP
 pkill devac-mcp
-devac hub register ./my-repo  # Falls back to direct access
+devac sync  # Falls back to direct access
 ```
 
 ## References

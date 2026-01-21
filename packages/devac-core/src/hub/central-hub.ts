@@ -264,7 +264,7 @@ export class CentralHub {
     const hasSeed = await this.repoHasSeeds(repoPath);
     if (!hasSeed) {
       throw new Error(
-        `Repository at ${repoPath} has no .devac/seed/ directory. Run 'devac analyze' first.`
+        `Repository at ${repoPath} has no .devac/seed/ directory. Run 'devac sync' first.`
       );
     }
 

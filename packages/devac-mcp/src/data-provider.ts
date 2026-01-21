@@ -662,7 +662,7 @@ export class HubDataProvider implements DataProvider {
       console.error(`WARNING: ${validation.reason}`);
       if (validation.suggestedPath) {
         console.error(`Expected hub location: ${validation.suggestedPath}`);
-        console.error("Run 'devac doctor' to diagnose and fix hub issues.");
+        console.error("Run 'devac status --doctor' to diagnose and fix hub issues.");
       }
     }
 

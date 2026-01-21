@@ -383,7 +383,7 @@ export function generateEmptyEffectsDoc(
     "<!--",
     "  This file defines effect mappings for this package.",
     "  No effects were detected during analysis.",
-    "  Run `devac analyze` first to extract effects.",
+    "  Run `devac sync` first to extract effects.",
     "-->",
     "",
     "## Metadata",
@@ -391,7 +391,7 @@ export function generateEmptyEffectsDoc(
     `- **Last Updated:** ${date}`,
     "- **Verified:** ✗",
     "",
-    "_No effects detected. Run `devac analyze` first._",
+    "_No effects detected. Run `devac sync` first._",
     "",
   ];
 

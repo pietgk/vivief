@@ -64,7 +64,7 @@ export async function hubRefresh(options: HubRefreshOptions): Promise<HubRefresh
       edgesUpdated: 0,
       errors: [],
       message: "Hub not initialized",
-      error: `Hub not initialized at ${hubDir}. Run 'devac hub init' first.`,
+      error: `Hub not initialized at ${hubDir}. Run 'devac sync' first.`,
     };
   }
 

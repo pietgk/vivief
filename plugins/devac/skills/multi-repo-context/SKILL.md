@@ -31,24 +31,24 @@ Understand how changes in one repo affect others.
 
 Use DevAC CLI commands for multi-repo operations. CLI is preferred for lower context overhead.
 
-### `devac hub status`
+### `devac status --hub`
 Get hub connection and health status.
 ```bash
-devac hub status
+devac status --hub
 ```
 
-### `devac hub repos`
+### `devac query repos`
 List all repositories connected to the hub.
 ```bash
-devac hub repos
-devac hub repos --verbose
+devac query repos
+devac query repos --verbose
 ```
 
-### `devac find-symbol`
+### `devac query symbol`
 Search for symbols across all connected repos.
 ```bash
-devac find-symbol UserService --all-repos
-devac find-symbol authenticate --kind function
+devac query symbol UserService --all-repos
+devac query symbol authenticate --kind function
 ```
 
 ### `devac query`
@@ -71,14 +71,14 @@ devac context review  # Generate review prompt
 **User:** "Show me the workspace status"
 
 **Response approach:**
-1. Use `devac hub status` for hub health
-2. Use `devac hub repos` to enumerate all repos
+1. Use `devac status --hub` for hub health
+2. Use `devac query repos` to enumerate all repos
 3. Show repo names, paths, and analysis status
 
 **User:** "Find all implementations of UserService across repos"
 
 **Response approach:**
-1. Use `devac find-symbol UserService --all-repos`
+1. Use `devac query symbol UserService --all-repos`
 2. Group results by repository
 3. Show file paths and line numbers for each
 
@@ -135,9 +135,9 @@ ORDER BY repo
 
 ## Setup Requirements
 
-1. Initialize the hub: `devac hub init`
-2. Add repositories: `devac hub add ../repo-path`
-3. Analyze each repo: `devac analyze .` (from each repo)
+1. Initialize the hub: `devac sync` (automatic)
+2. Analyze each repo: `devac sync` (from each repo)
+3. Repos with seeds are auto-discovered for hub queries
 4. Query across repos via CLI or MCP
 
 ## Notes

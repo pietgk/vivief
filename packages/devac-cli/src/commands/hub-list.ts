@@ -59,7 +59,7 @@ export async function hubList(options: HubListOptions): Promise<HubListResult> {
       success: false,
       repos: [],
       message: "Hub not initialized",
-      error: `Hub not initialized at ${hubDir}. Run 'devac hub init' first.`,
+      error: `Hub not initialized at ${hubDir}. Run 'devac sync' first.`,
     };
   }
 

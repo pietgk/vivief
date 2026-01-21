@@ -38,9 +38,9 @@ export async function validateHubLocation(hubDir: string): Promise<{
 
 Remove the `--hub` flag from all CLI commands. All commands now default to hub/workspace mode:
 
-- `devac find-symbol` → queries workspace hub
-- `devac deps` → queries workspace hub
-- `devac query` → queries workspace hub
+- `devac query symbol` → queries workspace hub
+- `devac query deps` → queries workspace hub
+- `devac query sql` → queries workspace hub
 - etc.
 
 Users no longer need to think about "package mode" vs "hub mode". Query scope is determined by the query itself (WHERE clauses), not by flags.
@@ -64,7 +64,7 @@ MCP server startup warns when:
 
 ### 5. Doctor Checks
 
-Add `devac doctor` checks for:
+Add `devac status --doctor` checks for:
 - **hub-location**: Verify hub is at workspace level
 - **duplicate-hubs**: Scan for hub databases inside git repos
 
@@ -83,7 +83,7 @@ await hub.init({ skipValidation: true });
 - **Prevents misconfiguration**: Users can't accidentally create hubs in wrong locations
 - **Simpler CLI**: No need to remember `--hub` flag
 - **Clear errors**: Actionable messages instead of cryptic database errors
-- **Self-healing**: `devac doctor` can detect and fix misplaced hubs
+- **Self-healing**: `devac status --doctor` can detect and fix misplaced hubs
 
 ### Negative
 
@@ -99,7 +99,7 @@ await hub.init({ skipValidation: true });
 
 For users with hubs in wrong locations:
 
-1. `devac doctor` will detect misplaced hubs
+1. `devac status --doctor` will detect misplaced hubs
 2. MCP will warn on startup if connected to wrong hub
 3. Manual cleanup: `rm -rf <repo>/.devac/central.duckdb`
 4. Workspace-level hub remains intact with all data

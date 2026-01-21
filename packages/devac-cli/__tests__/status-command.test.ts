@@ -212,7 +212,7 @@ describe("status command", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.next).toContainEqual(expect.stringContaining("hub init"));
+      expect(result.next).toContainEqual(expect.stringContaining("devac sync"));
     });
 
     it("suggests starting watch when hub connected but watch inactive", async () => {

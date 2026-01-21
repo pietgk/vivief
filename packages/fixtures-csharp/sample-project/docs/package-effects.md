@@ -11,7 +11,7 @@
 <!--
   This file defines effect mappings for this package.
   No effects were detected during analysis.
-  Run `devac analyze` first to extract effects.
+  Run `devac sync` first to extract effects.
 -->
 
 ## Metadata
@@ -19,4 +19,4 @@
 - **Last Updated:** 2026-01-06
 - **Verified:** ✗
 
-_No effects detected. Run `devac analyze` first._
+_No effects detected. Run `devac sync` first._

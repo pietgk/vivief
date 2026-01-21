@@ -35,9 +35,9 @@ const hubInitializedCheck: HealthCheck = {
         name: "Hub initialized",
         status: "fail",
         message: "hub not initialized",
-        details: "Run 'devac hub init' to initialize the central hub",
+        details: "Run 'devac sync' to initialize the central hub",
         fixable: true,
-        fixCommand: "devac hub init",
+        fixCommand: "devac sync",
         category: "hub-health",
       };
     }
@@ -130,7 +130,7 @@ const hubLocationCheck: HealthCheck = {
             : ""),
         fixable: true,
         fixCommand: validation.suggestedPath
-          ? `rm -rf "${context.hubDir}" && devac hub init`
+          ? `rm -rf "${context.hubDir}" && devac sync`
           : undefined,
         category: "hub-health",
       };

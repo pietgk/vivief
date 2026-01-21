@@ -421,7 +421,7 @@ function generateEmptyDynamicView(titlePrefix: string): string {
 
   return `dynamic view effects_flow {
   title '${escapeString(title)}'
-  description 'No effect chains detected. Run devac analyze to extract effects.'
+  description 'No effect chains detected. Run devac sync to extract effects.'
 }
 `;
 }

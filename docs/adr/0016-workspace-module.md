@@ -13,8 +13,8 @@ DevAC supports multi-repo workflows through hub federation and worktree manageme
 - Tracking workspace-level state
 
 Users had to manually:
-1. Run `devac analyze` in each repo
-2. Run `devac hub register` for each repo
+1. Run `devac sync` in each repo
+2. Register each repo (now automatic)
 3. Manually refresh the hub after changes
 
 We needed a workspace-level abstraction that provides:
@@ -169,7 +169,7 @@ The original design specified `.devac/state.json` for state persistence. In prac
 
 2. **Auto-discovery is default** - Repositories are discovered by scanning the parent directory for git repositories, rather than requiring explicit registration.
 
-3. **Lazy registration** - Hub registration is now automatic. When querying the hub (via `devac hub list`, `devac hub query`, etc.), repositories with `.devac/seed/` directories are automatically discovered and registered. Explicit `devac hub register` is optional.
+3. **Lazy registration** - Hub registration is now automatic. When querying the hub (via `devac query repos`, `devac query sql`, etc.), repositories with `.devac/seed/` directories are automatically discovered and registered.
 
 ### Impact
 
