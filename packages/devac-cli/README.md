@@ -5,107 +5,180 @@ Command-line interface for DevAC - analyze, query, and manage code graphs from y
 ## Installation
 
 ```bash
-pnpm add @pietgk/devac-cli
-```
-
-Or install globally:
-
-```bash
 pnpm add -g @pietgk/devac-cli
 ```
 
-## Commands
+## Command Structure
 
-### analyze
+DevAC CLI uses three primary commands:
 
-Analyze a package and generate code graph seeds:
+| Command | Description |
+|---------|-------------|
+| `devac sync` | Analyze packages and register repos with hub |
+| `devac status` | Show DevAC status, health, and diagnostics |
+| `devac query <subcommand>` | Query the code graph |
 
-```bash
-devac analyze /path/to/package
+Plus utility commands:
+- `devac mcp` - Start MCP server for AI assistants
+- `devac workflow` - CI/git integration commands
 
-# Force full reanalysis (ignore cached results)
-devac analyze /path/to/package --force
-
-# Analyze with custom memory limit
-devac analyze /path/to/package --memory 512MB
-```
-
-### watch
-
-Watch for file changes and update seeds incrementally:
+## Quick Start
 
 ```bash
-devac watch /path/to/package
+# Check current status
+devac status
 
-# Force initial analysis
-devac watch /path/to/package --force
+# Analyze and register packages
+devac sync
+
+# Query the code graph
+devac query symbol MyClass
+devac query deps entity:fn:login
+devac query "SELECT * FROM nodes LIMIT 10"
 ```
 
-### affected
+## Sync Command
 
-Find symbols and files affected by changes:
+Analyze packages and register repos with the hub:
 
 ```bash
-# Analyze specific changed files
-devac affected /path/to/package --files src/user.ts,src/auth.ts
+# Smart sync based on context (workspace/repo/package)
+devac sync
 
-# Limit dependency depth
-devac affected /path/to/package --files src/user.ts --max-depth 5
+# With validation (typecheck, lint)
+devac sync --validate
 
-# Output as JSON
-devac affected /path/to/package --files src/user.ts --json
+# Continuous watch mode
+devac sync --watch
+
+# Force full resync
+devac sync --force
+
+# Include CI and GitHub issues data
+devac sync --ci --issues
+
+# Generate documentation
+devac sync --docs
+
+# Clean stale data first
+devac sync --clean
 ```
 
-### validate
+## Status Command
 
-Validate code changes with typecheck, lint, and tests:
+Show DevAC status, health, and diagnostics:
 
 ```bash
-# Quick validation (fast checks only)
-devac validate /path/to/package --changed src/user.ts --mode quick
+# Default summary view
+devac status
 
-# Full validation
-devac validate /path/to/package --changed src/user.ts --mode full
+# One-liner output
+devac status --brief
 
-# Skip specific checks
-devac validate /path/to/package --changed src/user.ts --skip-lint
+# Full details
+devac status --full
+
+# Show validation errors/warnings
+devac status --diagnostics
+
+# Show hub health
+devac status --hub
+
+# Show seed freshness
+devac status --seeds
+
+# Verify seed integrity
+devac status --seeds --verify
+
+# Run health checks
+devac status --doctor
+
+# Auto-fix issues
+devac status --doctor --fix
+
+# Check if changeset needed
+devac status --changeset
+
+# JSON output
+devac status --json
 ```
 
-### mcp
+## Query Command
+
+Query the code graph with subcommands:
+
+### Query Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `query sql <query>` | Execute raw SQL |
+| `query symbol <name>` | Find symbols by name |
+| `query deps <entityId>` | Get dependencies |
+| `query dependents <entityId>` | Get reverse dependencies |
+| `query file <path>` | Get symbols in a file |
+| `query call-graph <entityId>` | Get call graph |
+| `query affected <files...>` | Get affected files |
+| `query effects` | Query code effects |
+| `query repos` | List registered repos |
+| `query c4 [level]` | Generate C4 diagrams |
+| `query context` | Discover workspace context |
+| `query rules` | Run rules engine |
+| `query schema` | Get database schema |
+
+### Examples
+
+```bash
+# Find a symbol
+devac query symbol UserService
+
+# Get dependencies
+devac query deps myrepo:src/auth:fn:login
+
+# Raw SQL query
+devac query sql "SELECT name, kind FROM nodes WHERE is_exported = true"
+
+# Find affected files
+devac query affected src/auth.ts src/user.ts
+
+# Get call graph
+devac query call-graph myrepo:src/api:fn:handleRequest --direction callees
+
+# Generate C4 diagram
+devac query c4 context --format plantuml
+```
+
+## MCP Command
 
 Start the MCP server for AI assistant integration:
 
 ```bash
-devac mcp start --package /path/to/package
+# Hub mode (default) - federated queries across all repos
+devac mcp
 
-# With custom transport options
-devac mcp start --package /path/to/package --transport stdio
+# Package mode - single package queries
+devac mcp --package /path/to/package
 ```
 
-### Hub Commands
+## Workflow Command
 
-Manage the central hub for multi-package analysis. Hub commands auto-detect the workspace hub directory based on git conventions (run from a git repo or workspace containing git repos).
+CI/git integration commands:
 
 ```bash
-# Initialize a new hub (auto-detects workspace)
-devac hub init
+# Pre-commit validation
+devac workflow pre-commit
 
-# Register a package with the hub
-devac hub register --package /path/to/package
+# Full pre-ship validation
+devac workflow prepare-ship
 
-# List registered packages
-devac hub list
+# Check if changeset needed
+devac workflow check-changeset
 
-# Refresh all package seeds
-devac hub refresh
+# Build and link CLI locally
+devac workflow install-local
 
-# Check hub status
-devac hub status
-
-# Unregister a package
-devac hub unregister --package /path/to/package
-
-# Hub location is auto-detected from workspace
+# Plugin development mode
+devac workflow plugin-dev
+devac workflow plugin-global
 ```
 
 ## Configuration
@@ -131,39 +204,19 @@ Seeds are stored in `.devac/seed/` within your package:
       nodes.parquet      # Symbol definitions
       edges.parquet      # Symbol relationships
       external_refs.parquet  # Import references
+      effects.parquet    # Code effects (v3.0)
     meta.json           # Schema version and metadata
 ```
 
-## Programmatic Usage
+## Full Documentation
 
-```typescript
-import { analyzeCommand, watchCommand, mcpCommand } from "@pietgk/devac-cli";
-
-// Analyze a package
-const result = await analyzeCommand({
-  packagePath: "/path/to/package",
-  force: false,
-});
-
-// Start watching
-const watchResult = await watchCommand({
-  packagePath: "/path/to/package",
-});
-
-// When done
-await watchResult.controller?.stop();
-```
+- **[CLI Reference](../../docs/cli-reference.md)** - Complete command documentation
+- **[Quick Start Guide](../../docs/quick-start.md)** - Getting started
 
 ## Related Packages
 
 - [@pietgk/devac-core](../devac-core) - Core analysis library
 - [@pietgk/devac-mcp](../devac-mcp) - MCP server implementation
-
-## Documentation
-
-- [CLI Reference](../../docs/cli-reference.md) - Full command documentation
-- [Quick Start](../../docs/quick-start.md) - Getting started guide
-- [Testing Guide](./docs/testing/README.md) - Validation test suite documentation
 
 ## License
 

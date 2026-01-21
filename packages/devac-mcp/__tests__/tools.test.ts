@@ -20,20 +20,24 @@ describe("MCP Tool Definitions", () => {
     it("contains expected tool names", () => {
       const toolNames = MCP_TOOLS.map((t) => t.name);
 
-      expect(toolNames).toContain("find_symbol");
-      expect(toolNames).toContain("get_dependencies");
-      expect(toolNames).toContain("get_dependents");
-      expect(toolNames).toContain("get_file_symbols");
-      expect(toolNames).toContain("get_affected");
-      expect(toolNames).toContain("get_call_graph");
+      // Query tools
+      expect(toolNames).toContain("query_symbol");
+      expect(toolNames).toContain("query_deps");
+      expect(toolNames).toContain("query_dependents");
+      expect(toolNames).toContain("query_file");
+      expect(toolNames).toContain("query_affected");
+      expect(toolNames).toContain("query_call_graph");
       expect(toolNames).toContain("query_sql");
-      expect(toolNames).toContain("get_schema");
-      expect(toolNames).toContain("list_repos");
-      expect(toolNames).toContain("get_context");
+      expect(toolNames).toContain("query_schema");
+      expect(toolNames).toContain("query_repos");
+      expect(toolNames).toContain("query_context");
+      // Status tools
+      expect(toolNames).toContain("status");
+      expect(toolNames).toContain("status_diagnostics");
       // Unified diagnostics tools
-      expect(toolNames).toContain("get_all_diagnostics");
-      expect(toolNames).toContain("get_diagnostics_summary");
-      expect(toolNames).toContain("get_diagnostics_counts");
+      expect(toolNames).toContain("status_all_diagnostics");
+      expect(toolNames).toContain("status_all_diagnostics_summary");
+      expect(toolNames).toContain("status_all_diagnostics_counts");
     });
 
     it("has exactly 21 tools", () => {
@@ -64,8 +68,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("find_symbol schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "find_symbol");
+  describe("query_symbol schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_symbol");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -92,8 +96,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("get_dependencies schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "get_dependencies");
+  describe("query_deps schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_deps");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -110,8 +114,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("get_dependents schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "get_dependents");
+  describe("query_dependents schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_dependents");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -128,8 +132,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("get_file_symbols schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "get_file_symbols");
+  describe("query_file schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_file");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -146,8 +150,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("get_affected schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "get_affected");
+  describe("query_affected schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_affected");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -169,8 +173,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("get_call_graph schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "get_call_graph");
+  describe("query_call_graph schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_call_graph");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -214,8 +218,8 @@ describe("MCP Tool Definitions", () => {
     });
   });
 
-  describe("list_repos schema", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "list_repos");
+  describe("query_repos schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_repos");
 
     it("exists", () => {
       expect(tool).toBeDefined();
@@ -232,9 +236,9 @@ describe("MCP Tool Definitions", () => {
 });
 
 describe("Tool Input Validation", () => {
-  describe("find_symbol", () => {
+  describe("query_symbol", () => {
     it("schema accepts valid input", () => {
-      const tool = MCP_TOOLS.find((t) => t.name === "find_symbol");
+      const tool = MCP_TOOLS.find((t) => t.name === "query_symbol");
       const validInput = { name: "Calculator" };
 
       // Schema validation - properties exist
@@ -243,7 +247,7 @@ describe("Tool Input Validation", () => {
     });
 
     it("schema accepts optional kind", () => {
-      const tool = MCP_TOOLS.find((t) => t.name === "find_symbol");
+      const tool = MCP_TOOLS.find((t) => t.name === "query_symbol");
       const validInput = { name: "Calculator", kind: "class" };
 
       expect(tool?.inputSchema.properties.kind).toBeDefined();
@@ -251,9 +255,9 @@ describe("Tool Input Validation", () => {
     });
   });
 
-  describe("get_affected", () => {
+  describe("query_affected", () => {
     it("schema accepts array of changed files", () => {
-      const tool = MCP_TOOLS.find((t) => t.name === "get_affected");
+      const tool = MCP_TOOLS.find((t) => t.name === "query_affected");
       const validInput = { changedFiles: ["src/a.ts", "src/b.ts"] };
 
       expect((tool?.inputSchema.properties.changedFiles as { type: string }).type).toBe("array");
@@ -261,7 +265,7 @@ describe("Tool Input Validation", () => {
     });
 
     it("schema accepts optional maxDepth", () => {
-      const tool = MCP_TOOLS.find((t) => t.name === "get_affected");
+      const tool = MCP_TOOLS.find((t) => t.name === "query_affected");
       const validInput = { changedFiles: ["src/a.ts"], maxDepth: 5 };
 
       expect((tool?.inputSchema.properties.maxDepth as { type: string }).type).toBe("number");
@@ -269,9 +273,9 @@ describe("Tool Input Validation", () => {
     });
   });
 
-  describe("get_call_graph", () => {
+  describe("query_call_graph", () => {
     it("schema accepts direction values", () => {
-      const tool = MCP_TOOLS.find((t) => t.name === "get_call_graph");
+      const tool = MCP_TOOLS.find((t) => t.name === "query_call_graph");
       const directions = ["callers", "callees", "both"];
 
       expect(tool?.inputSchema.properties.direction).toBeDefined();
@@ -294,7 +298,7 @@ describe("Tool Input Validation", () => {
 
 describe("Tool Error Scenarios", () => {
   describe("SQL injection prevention", () => {
-    it("find_symbol escapes single quotes in name", () => {
+    it("query_symbol escapes single quotes in name", () => {
       // This tests the escaping pattern used in the server
       // Single quotes are escaped by doubling them in SQL
       const maliciousName = "'; DROP TABLE nodes; --";
@@ -306,7 +310,7 @@ describe("Tool Error Scenarios", () => {
       // because it's now a literal string containing two quotes
     });
 
-    it("get_file_symbols escapes single quotes in filePath", () => {
+    it("query_file escapes single quotes in filePath", () => {
       const maliciousPath = "'; DELETE FROM nodes; --";
       const escaped = maliciousPath.replace(/'/g, "''");
 

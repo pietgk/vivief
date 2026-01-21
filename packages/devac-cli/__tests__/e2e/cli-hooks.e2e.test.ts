@@ -1,21 +1,19 @@
 /**
- * CLI Hooks E2E Tests
+ * CLI E2E Tests
  *
- * End-to-end tests for CLI hook commands.
+ * End-to-end tests for CLI commands.
  * Tests actual CLI execution with real fixtures.
+ *
+ * Note: The old `validate` command tests have been removed as part of the
+ * v4.0 three-command reorganization. Validation is now available via:
+ * - `devac sync --validate` - Run validation after analysis
+ * - `devac status --changeset` - Check if changeset is needed
  */
 
 import { spawn } from "node:child_process";
 import * as path from "node:path";
 import { ValidationTestHarness } from "@pietgk/devac-core/test-harness";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-
-/** Helper to get package path with runtime assertion (satisfies biome) */
-function getPkgPath(packages: Record<string, string>, name: string): string {
-  const pkgPath = packages[name];
-  if (!pkgPath) throw new Error(`Package ${name} not found in workspace`);
-  return pkgPath;
-}
 
 /**
  * Execute a CLI command and capture output.
@@ -61,7 +59,7 @@ async function execCli(
   });
 }
 
-describe("CLI Hooks E2E", () => {
+describe("CLI E2E", () => {
   let harness: ValidationTestHarness;
   const fixturesPath = path.resolve(__dirname, "../../../fixtures-validation");
 
@@ -73,185 +71,7 @@ describe("CLI Hooks E2E", () => {
     await harness.cleanup();
   });
 
-  describe("devac validate --on-stop", () => {
-    test("outputs nothing for clean package with no changes", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: true,
-        createInitialCommit: true,
-      });
-
-      // Run validate with --on-stop on package with no changes
-      const result = await execCli(
-        [
-          "validate",
-          "--on-stop",
-          "--mode",
-          "quick",
-          "--package",
-          getPkgPath(workspace.packages, "pkg-clean"),
-        ],
-        workspace.rootDir
-      );
-
-      // Should be silent when no changes detected
-      expect(result.stdout.trim()).toBe("");
-    });
-
-    test("detects staged TypeScript errors and outputs hook JSON", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: true,
-        createInitialCommit: true,
-      });
-
-      // Add a file with TypeScript errors
-      const errorFilePath = path.join(
-        getPkgPath(workspace.packages, "pkg-clean"),
-        "src",
-        "error.ts"
-      );
-      await harness.writeFile(
-        errorFilePath,
-        `// TypeScript error: string not assignable to number
-const x: number = "not a number";
-export { x };
-`
-      );
-
-      // Stage the file
-      await workspace.git.stageFile(path.relative(workspace.rootDir, errorFilePath));
-
-      // Verify file is staged
-      const staged = await workspace.git.getStagedFiles();
-      expect(staged.some((f) => f.includes("error.ts"))).toBe(true);
-
-      // Run validate with --on-stop
-      // Note: This test validates the CLI command structure, actual typecheck
-      // execution depends on tsc being available and may timeout
-      const result = await execCli(
-        [
-          "validate",
-          "--on-stop",
-          "--mode",
-          "quick",
-          "--package",
-          getPkgPath(workspace.packages, "pkg-clean"),
-        ],
-        workspace.rootDir,
-        120000 // Longer timeout for actual typecheck
-      );
-
-      // If issues found, output should be valid hook JSON
-      if (result.stdout.trim()) {
-        const parseResult = harness.parseHookOutput(result.stdout);
-        if (parseResult.valid && parseResult.output) {
-          expect(parseResult.output.hookSpecificOutput.hookEventName).toBe("Stop");
-        }
-      }
-    });
-
-    test("skip-typecheck option prevents typecheck execution", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: true,
-        createInitialCommit: true,
-      });
-
-      // Add a file that would have errors
-      const errorFilePath = path.join(
-        getPkgPath(workspace.packages, "pkg-clean"),
-        "src",
-        "error.ts"
-      );
-      await harness.writeFile(
-        errorFilePath,
-        `export const x: number = "should be error but skipped";`
-      );
-      await workspace.git.stageFile(path.relative(workspace.rootDir, errorFilePath));
-
-      // Run validate with --skip-typecheck
-      const result = await execCli(
-        [
-          "validate",
-          "--on-stop",
-          "--mode",
-          "quick",
-          "--skip-typecheck",
-          "--package",
-          getPkgPath(workspace.packages, "pkg-clean"),
-        ],
-        workspace.rootDir
-      );
-
-      // With typecheck skipped and no lint errors, output should be empty
-      // (Note: lint might still run and find issues depending on config)
-      expect(result.code).toBe(0);
-    });
-  });
-
-  describe("devac validate basic", () => {
-    test("validate command runs without errors on clean package", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: false,
-      });
-
-      // Run validate in quick mode
-      const result = await execCli(
-        ["validate", "--mode", "quick", "--package", getPkgPath(workspace.packages, "pkg-clean")],
-        workspace.rootDir,
-        60000
-      );
-
-      // Should complete without error (may or may not find issues depending on tsc availability)
-      expect(result.code).not.toBe(null);
-    });
-
-    test("validate command accepts --mode quick option", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: false,
-      });
-
-      const result = await execCli(
-        ["validate", "--mode", "quick", "--package", getPkgPath(workspace.packages, "pkg-clean")],
-        workspace.rootDir
-      );
-
-      // Command should be recognized and not error due to invalid options
-      expect(result.stderr).not.toContain("unknown option");
-    });
-
-    test("validate command accepts --mode full option", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: false,
-      });
-
-      const result = await execCli(
-        ["validate", "--mode", "full", "--package", getPkgPath(workspace.packages, "pkg-clean")],
-        workspace.rootDir
-      );
-
-      // Command should be recognized
-      expect(result.stderr).not.toContain("unknown option");
-    });
-  });
-
   describe("CLI Help and Version", () => {
-    test("validate --help shows usage", async () => {
-      const workspace = await harness.createTempWorkspace({
-        fixtures: ["pkg-clean"],
-        initGit: false,
-      });
-
-      const result = await execCli(["validate", "--help"], workspace.rootDir);
-
-      expect(result.stdout).toContain("validate");
-      expect(result.stdout).toContain("--mode");
-    });
-
     test("devac --version outputs version", async () => {
       const workspace = await harness.createTempWorkspace({
         fixtures: ["pkg-clean"],
@@ -262,6 +82,74 @@ export { x };
 
       // Should output a version number
       expect(result.stdout).toMatch(/\d+\.\d+\.\d+/);
+    });
+
+    test("devac --help shows core commands", async () => {
+      const workspace = await harness.createTempWorkspace({
+        fixtures: ["pkg-clean"],
+        initGit: false,
+      });
+
+      const result = await execCli(["--help"], workspace.rootDir);
+
+      // Should show the three core commands
+      expect(result.stdout).toContain("sync");
+      expect(result.stdout).toContain("status");
+      expect(result.stdout).toContain("query");
+    });
+
+    test("devac sync --help shows options", async () => {
+      const workspace = await harness.createTempWorkspace({
+        fixtures: ["pkg-clean"],
+        initGit: false,
+      });
+
+      const result = await execCli(["sync", "--help"], workspace.rootDir);
+
+      expect(result.stdout).toContain("sync");
+      expect(result.stdout).toContain("--validate");
+    });
+
+    test("devac status --help shows options", async () => {
+      const workspace = await harness.createTempWorkspace({
+        fixtures: ["pkg-clean"],
+        initGit: false,
+      });
+
+      const result = await execCli(["status", "--help"], workspace.rootDir);
+
+      expect(result.stdout).toContain("status");
+      expect(result.stdout).toContain("--diagnostics");
+      expect(result.stdout).toContain("--doctor");
+    });
+
+    test("devac query --help shows subcommands", async () => {
+      const workspace = await harness.createTempWorkspace({
+        fixtures: ["pkg-clean"],
+        initGit: false,
+      });
+
+      const result = await execCli(["query", "--help"], workspace.rootDir);
+
+      expect(result.stdout).toContain("query");
+      expect(result.stdout).toContain("sql");
+      expect(result.stdout).toContain("symbol");
+      expect(result.stdout).toContain("deps");
+    });
+  });
+
+  describe("Default action", () => {
+    test("devac with no args shows status", async () => {
+      const workspace = await harness.createTempWorkspace({
+        fixtures: ["pkg-clean"],
+        initGit: false,
+      });
+
+      const result = await execCli([], workspace.rootDir);
+
+      // Should show status output, not help
+      expect(result.code).toBe(0);
+      expect(result.stdout).not.toContain("Usage: devac [options] [command]");
     });
   });
 });

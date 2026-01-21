@@ -126,8 +126,8 @@ export class DevacMCPServer {
     toolName: string,
     input: Record<string, unknown>
   ): Promise<MCPToolResult> {
-    // get_context doesn't require the data provider
-    if (toolName === "get_context") {
+    // query_context doesn't require the data provider
+    if (toolName === "query_context") {
       return await this.executeGetContext(input);
     }
 
@@ -137,69 +137,71 @@ export class DevacMCPServer {
 
     try {
       switch (toolName) {
-        case "find_symbol":
+        // Query tools
+        case "query_symbol":
           return await this.executeFindSymbol(input);
 
-        case "get_dependencies":
+        case "query_deps":
           return await this.executeGetDependencies(input);
 
-        case "get_dependents":
+        case "query_dependents":
           return await this.executeGetDependents(input);
 
-        case "get_file_symbols":
+        case "query_file":
           return await this.executeGetFileSymbols(input);
 
-        case "get_affected":
+        case "query_affected":
           return await this.executeGetAffected(input);
 
-        case "get_call_graph":
+        case "query_call_graph":
           return await this.executeGetCallGraph(input);
 
         case "query_sql":
           return await this.executeQuerySql(input);
 
-        case "get_schema":
+        case "query_schema":
           return await this.executeGetSchema();
 
-        case "list_repos":
+        case "query_repos":
           return await this.executeListRepos();
 
-        case "get_context":
+        case "query_context":
           return await this.executeGetContext(input);
 
-        case "get_workspace_status":
+        // Status tools
+        case "status":
           return await this.executeGetWorkspaceStatus(input);
 
-        case "get_validation_errors":
+        case "status_diagnostics":
           return await this.executeGetValidationErrors(input);
 
-        case "get_validation_summary":
+        case "status_diagnostics_summary":
           return await this.executeGetValidationSummary(input);
 
-        case "get_validation_counts":
+        case "status_diagnostics_counts":
           return await this.executeGetValidationCounts();
 
         // Unified Diagnostics tools
-        case "get_all_diagnostics":
+        case "status_all_diagnostics":
           return await this.executeGetAllDiagnostics(input);
 
-        case "get_diagnostics_summary":
+        case "status_all_diagnostics_summary":
           return await this.executeGetDiagnosticsSummary(input);
 
-        case "get_diagnostics_counts":
+        case "status_all_diagnostics_counts":
           return await this.executeGetDiagnosticsCounts();
 
-        // Effects, Rules, C4 tools (v3.0)
+        // Query: Effects, Rules, C4 tools (v3.0)
         case "query_effects":
           return await this.executeQueryEffects(input);
 
-        case "run_rules":
+        case "query_rules":
           return await this.executeRunRules(input);
 
-        case "list_rules":
+        case "query_rules_list":
           return await this.executeListRules(input);
 
-        case "generate_c4":
+        case "query_c4":
           return await this.executeGenerateC4(input);
 
         default:
