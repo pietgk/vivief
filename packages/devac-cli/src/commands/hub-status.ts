@@ -5,9 +5,8 @@
  * Based on spec Phase 4: Federation.
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import { type HubStatus, createHubClient } from "@pietgk/devac-core";
+import { checkHubPrerequisites } from "./shared/hub-prerequisites.js";
 
 /**
  * Hub status command options
@@ -37,23 +36,19 @@ export interface HubStatusResult {
 export async function hubStatus(options: HubStatusOptions): Promise<HubStatusResult> {
   const { hubDir } = options;
 
-  // Check if hub is initialized
-  const hubPath = path.join(hubDir, "central.duckdb");
-  const hubExists = await fs
-    .access(hubPath)
-    .then(() => true)
-    .catch(() => false);
-
-  if (!hubExists) {
+  // Check hub prerequisites using shared utility
+  // Use directHubDir since hubDir is already known
+  const prereq = await checkHubPrerequisites({ path: hubDir, directHubDir: true });
+  if (!prereq.ready) {
     return {
       success: false,
-      message: "Hub not initialized",
-      error: `Hub not initialized at ${hubDir}. Run 'devac sync' first.`,
+      message: prereq.error?.split("\n")[0] || "Hub not ready",
+      error: prereq.error,
     };
   }
 
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir });
+  const client = createHubClient({ hubDir: prereq.hubDir });
 
   try {
     const status = await client.getStatus();

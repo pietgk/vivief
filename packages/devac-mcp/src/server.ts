@@ -24,12 +24,18 @@ import {
   type GroupBy,
   type OutputLevel,
   type RepoContext,
+  checkQueryPrerequisites,
   discoverContext,
   getWorkspaceStatus,
 } from "@pietgk/devac-core";
 import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
-import type { MCPServerOptions, MCPServerStatus, MCPToolResult } from "./types.js";
+import type {
+  MCPReadinessMeta,
+  MCPServerOptions,
+  MCPServerStatus,
+  MCPToolResult,
+} from "./types.js";
 
 /**
  * Context cache entry
@@ -218,6 +224,44 @@ export class DevacMCPServer {
   }
 
   /**
+   * Get readiness metadata for inclusion in query results.
+   * Used to explain why queries return empty results.
+   */
+  private async getReadinessMeta(): Promise<MCPReadinessMeta | undefined> {
+    try {
+      const readiness = await checkQueryPrerequisites();
+      if (!readiness.ready) {
+        const blocker = readiness.blockers[0];
+        return {
+          ready: false,
+          state: readiness.state,
+          reason: blocker?.message || readiness.summary,
+          fix: blocker?.fixCommand,
+        };
+      }
+      return undefined; // Don't include metadata when ready
+    } catch {
+      return undefined; // Silently skip if check fails
+    }
+  }
+
+  /**
+   * Helper to include readiness info in results when data is empty.
+   */
+  private async withReadiness(
+    result: MCPToolResult,
+    checkEmpty: (data: unknown) => boolean = (data) => Array.isArray(data) && data.length === 0
+  ): Promise<MCPToolResult> {
+    if (result.success && checkEmpty(result.data)) {
+      const readiness = await this.getReadinessMeta();
+      if (readiness) {
+        return { ...result, readiness };
+      }
+    }
+    return result;
+  }
+
+  /**
    * Find symbol by name
    */
   private async executeFindSymbol(input: Record<string, unknown>): Promise<MCPToolResult> {
@@ -225,40 +269,64 @@ export class DevacMCPServer {
     const kind = input.kind as string | undefined;
 
     const result = await this.provider.findSymbol(name, kind);
-    return { success: true, data: result.rows };
+    return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get dependencies of a symbol
    */
   private async executeGetDependencies(input: Record<string, unknown>): Promise<MCPToolResult> {
-    const entityId = input.entityId as string;
+    if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
+      return {
+        success: false,
+        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+      };
+    }
+    const entityId = input.entityId;
     const result = await this.provider.getDependencies(entityId);
-    return { success: true, data: result.rows };
+    return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get dependents of a symbol
    */
   private async executeGetDependents(input: Record<string, unknown>): Promise<MCPToolResult> {
-    const entityId = input.entityId as string;
+    if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
+      return {
+        success: false,
+        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+      };
+    }
+    const entityId = input.entityId;
     const result = await this.provider.getDependents(entityId);
-    return { success: true, data: result.rows };
+    return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get all symbols in a file
    */
   private async executeGetFileSymbols(input: Record<string, unknown>): Promise<MCPToolResult> {
-    const filePath = input.filePath as string;
+    if (typeof input.filePath !== "string" || input.filePath.trim() === "") {
+      return {
+        success: false,
+        error: "Missing or invalid 'filePath' parameter. Expected a non-empty string.",
+      };
+    }
+    const filePath = input.filePath;
     const result = await this.provider.getFileSymbols(filePath);
-    return { success: true, data: result.rows };
+    return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get affected files from changes
    */
   private async executeGetAffected(input: Record<string, unknown>): Promise<MCPToolResult> {
+    if (!Array.isArray(input.changedFiles)) {
+      return {
+        success: false,
+        error: "Missing or invalid 'changedFiles' parameter. Expected an array of strings.",
+      };
+    }
     const changedFiles = input.changedFiles as string[];
     const maxDepth = (input.maxDepth as number) ?? 10;
 
@@ -270,7 +338,13 @@ export class DevacMCPServer {
    * Get call graph for a function
    */
   private async executeGetCallGraph(input: Record<string, unknown>): Promise<MCPToolResult> {
-    const entityId = input.entityId as string;
+    if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
+      return {
+        success: false,
+        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+      };
+    }
+    const entityId = input.entityId;
     const direction = (input.direction as "callers" | "callees" | "both") ?? "both";
     const maxDepth = (input.maxDepth as number) ?? 3;
 
@@ -282,7 +356,14 @@ export class DevacMCPServer {
    * Execute SQL query (SELECT only)
    */
   private async executeQuerySql(input: Record<string, unknown>): Promise<MCPToolResult> {
-    const sql = input.sql as string;
+    // Validate required parameter
+    if (typeof input.sql !== "string" || input.sql.trim() === "") {
+      return {
+        success: false,
+        error: "Missing or invalid 'sql' parameter. Expected a non-empty string.",
+      };
+    }
+    const sql = input.sql;
 
     // Safety check: only allow SELECT queries
     const trimmedSql = sql.trim().toLowerCase();
@@ -291,7 +372,7 @@ export class DevacMCPServer {
     }
 
     const result = await this.provider.querySql(sql);
-    return { success: true, data: result.rows };
+    return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**

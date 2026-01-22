@@ -7,8 +7,8 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import { createHubClient, discoverWorkspace, findWorkspaceDir } from "@pietgk/devac-core";
+import { checkHubPrerequisites } from "./shared/hub-prerequisites.js";
 
 /**
  * Hub register command options
@@ -170,18 +170,14 @@ export async function hubRegister(options: HubRegisterOptions): Promise<HubRegis
     };
   }
 
-  // Check if hub is initialized
-  const hubPath = path.join(hubDir, "central.duckdb");
-  const hubExists = await fs
-    .access(hubPath)
-    .then(() => true)
-    .catch(() => false);
-
-  if (!hubExists) {
+  // Check hub prerequisites using shared utility
+  // Use directHubDir since hubDir is already known
+  const prereq = await checkHubPrerequisites({ path: hubDir, directHubDir: true });
+  if (!prereq.ready) {
     return {
       success: false,
-      message: "Hub not initialized",
-      error: `Hub not initialized at ${hubDir}. Run 'devac sync' first.`,
+      message: prereq.error?.split("\n")[0] || "Hub not ready",
+      error: prereq.error,
     };
   }
 
@@ -196,9 +192,9 @@ export async function hubRegister(options: HubRegisterOptions): Promise<HubRegis
       };
     }
 
-    return registerAllRepos(hubDir, workspaceDir, onProgress, options.skipValidation);
+    return registerAllRepos(prereq.hubDir, workspaceDir, onProgress, options.skipValidation);
   }
 
   // Single repo registration
-  return registerSingleRepo(hubDir, repoPath, onProgress, options.skipValidation);
+  return registerSingleRepo(prereq.hubDir, repoPath, onProgress, options.skipValidation);
 }

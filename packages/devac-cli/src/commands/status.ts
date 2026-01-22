@@ -20,10 +20,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  type ReadinessOutput,
   type WorkspaceStatus,
   createHubClient,
   discoverContext,
   getCIStatusForContext,
+  getReadinessForStatus,
   getWorkspaceStatus,
   setGlobalLogLevel,
   syncCIStatusToHub,
@@ -191,6 +193,9 @@ export interface StatusResult {
 
   /** Seed status for repos (from devac-core) */
   seeds?: WorkspaceStatus;
+
+  /** Readiness status for sync/query commands */
+  readiness?: ReadinessOutput;
 
   /** Formatted output (for non-JSON) */
   formatted?: string;
@@ -583,6 +588,31 @@ function formatBriefByType(result: StatusResult, options: { seedsOnly: boolean }
     result.health.hubConnected ? colors.green("hub:connected") : colors.red("hub:disconnected")
   );
   lines.push(`  Health:       ${healthParts.join("  ")}`);
+
+  // Readiness (sync/query)
+  if (result.readiness) {
+    const syncStatus = result.readiness.sync.ready
+      ? colors.green("✓ ready")
+      : colors.red(`✗ ${result.readiness.sync.state}`);
+    const queryStatus = result.readiness.query.ready
+      ? colors.green("✓ ready")
+      : colors.red(`✗ ${result.readiness.query.state}`);
+    lines.push(`  Readiness:    sync: ${syncStatus}  query: ${queryStatus}`);
+
+    // Show blockers if not ready
+    if (!result.readiness.sync.ready && result.readiness.sync.blockers.length > 0) {
+      const blocker = result.readiness.sync.blockers[0];
+      if (blocker) {
+        lines.push(`                └─ sync: ${blocker.message}`);
+      }
+    }
+    if (!result.readiness.query.ready && result.readiness.query.blockers.length > 0) {
+      const blocker = result.readiness.query.blockers[0];
+      if (blocker) {
+        lines.push(`                └─ query: ${blocker.message}`);
+      }
+    }
+  }
 
   // Seed Status
   if (result.seeds && result.seeds.repos.length > 0) {
@@ -1268,6 +1298,13 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } catch (_error) {
       // Seed status detection failed - add hint to next steps
       result.next.push("Seed detection failed. Run 'devac sync' to analyze packages.");
+    }
+
+    // Get readiness status for sync/query commands
+    try {
+      result.readiness = await getReadinessForStatus(cwd);
+    } catch {
+      // Readiness check failed - non-critical, continue without
     }
 
     if (workspacePath) {

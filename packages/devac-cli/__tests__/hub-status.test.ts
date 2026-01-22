@@ -105,7 +105,9 @@ describe("hub status command", () => {
     const result = await hubStatus({ hubDir });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not initialized");
+    // Error message now describes the issue and suggests fix
+    expect(result.error).toContain("Hub database not found");
+    expect(result.error).toContain("devac sync");
   });
 
   it("shows cache size", async () => {

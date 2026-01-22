@@ -130,7 +130,7 @@ describe("status command", () => {
       // Create and register a repo within the workspace
       const testRepoPath = path.join(workspaceDir, "test-repo");
       await createMockRepo(testRepoPath);
-      await hubRegister({ hubDir, repoPath: testRepoPath });
+      await hubRegister({ hubDir, repoPath: testRepoPath, skipValidation: true });
 
       const result = await statusCommand({
         path: repoDir,

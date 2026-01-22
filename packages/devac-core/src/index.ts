@@ -568,6 +568,9 @@ export type {
 // Status (v4.0 - CLI/MCP unified types)
 export * from "./status/index.js";
 
+// Prerequisites (v4.0 - Unified prerequisite checking)
+export * from "./prerequisites/index.js";
+
 /**
  * DevAC Core Version
  */
