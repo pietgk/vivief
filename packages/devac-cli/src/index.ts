@@ -65,7 +65,8 @@ program.action(async () => {
   try {
     const result = await statusCommand({
       path: process.cwd(),
-      format: "oneline",
+      level: "summary",
+      groupBy: "type",
     });
     if (result.formatted) {
       console.log(result.formatted);
