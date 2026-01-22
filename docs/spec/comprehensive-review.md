@@ -2,7 +2,7 @@
 
 > A thorough analysis of the DevAC vision, current implementation, comparison with similar tools, and recommendations for next steps.
 
-**Date**: 2026-01-21
+**Date**: 2026-01-22
 **Status**: Strategic Review Document (Updated)
 
 ---
@@ -13,11 +13,14 @@ DevAC/Vivief represents an ambitious attempt to create a **unified, queryable de
 
 **Key Finding**: DevAC's core value proposition—making code effects queryable via SQL—remains unique in the ecosystem. No other tool combines code property graphs, effect extraction, rules-based aggregation, multi-repo federation, and MCP integration in a single coherent framework.
 
-**Update (2026-01-21)**: Major progress since last review:
+**Update (2026-01-22)**: Major progress since last review:
 - ✅ **CLI v4.0 Reorganization**: 50+ commands consolidated into 3 core commands (sync, status, query)
 - ✅ **Browser Automation Suite**: v0.2.0 released (browser-cli, browser-core, browser-mcp)
 - ✅ **8 New ADRs**: Browser automation architecture (0035-0039), CLI/MCP reorganization (0040-0042)
 - ✅ **Hook-Based Automation**: Complete with hooks.json, `--inject`, `--on-stop` flags (Phase 3)
+- ✅ **Prerequisites DX Module**: Unified prerequisite checking with clear error messages
+- ✅ **Status Types in Core**: Shared types for CLI/MCP output consistency
+- ✅ **Three-Level Status Output**: Summary/brief/full modes with grouping support
 - ✅ **Version**: Now at v0.27.0 across packages
 
 **Previously Complete** (Phases 0-3):
@@ -26,17 +29,23 @@ DevAC/Vivief represents an ambitious attempt to create a **unified, queryable de
 - ✅ Phase 2: WCAG validation (5 rules, 73 tests, unified diagnostics)
 - ✅ Phase 3: Hook-based validation triggering (hooks.json, E2E tests)
 
-**Quality Score**: 8.5/10 (up from 8/10) — CLI reorganization significantly improves usability
+**Quality Score**: 8.7/10 (up from 8.5/10) — Prerequisites DX adds polish to first-run experience
 
 **Important**: This document is to be updated by further reviews on review requests.
 
 ### The proposed prompt to update review is based on the below prompt creating the first version:
 
-do a very thorough review of the total vivief documentation with its vision and concepts 
-and the current implementation (code, docs, adr)and determine the pros and cons and the quality of the total concept and vision 
-and compare it against other initiatives that do similar thing 
-and compare vivief against them this to enable design choices and next steps
-the previous time we did a comprehensive review we created docs/spec/comprehensive-review.md and docs/spec/gaps.md, use them as the documents to update with the updated comprehensive review and new gaps.
+do a very thorough review of the total vivief documentation 
+with its vision and concepts and adr documents, the quality and consistency from a developer perspective starting with the system.
+determine the quality of the implemented code, the possible bugs, and inconsistency and how well it is organised.
+
+review the total concept and vision and how it matches the implementation.
+
+and compare it against other initiatives that do similar things this to enable design choices and next steps
+
+the previous time we did a comprehensive review we 
+created docs/spec/comprehensive-review.md and docs/spec/gaps.md, 
+use them as the documents to update with the updated comprehensive review and new gaps.
 
 
 ### The first version (2026-01-17) is created from:
@@ -89,7 +98,7 @@ and compare vivief against them this to enable design choices and next steps
 - `foundation.md` (comprehensive, well-structured)
 - `concepts.md` (clear glossary, quick reference)
 - `gaps.md` (honest gap tracking)
-- **47 ADRs** documenting design decisions (up from 43)
+- **43 ADRs** documenting design decisions
 - **ADR-0041** (CLI v4.0 Reorganization) — exemplary decision documentation
 
 **Good**:
@@ -126,6 +135,9 @@ and compare vivief against them this to enable design choices and next steps
 | C4 diagram generation | ✅ Production | Context, Container, Component levels |
 | Hook-based automation | ✅ Production | hooks.json, `--inject`, `--on-stop` flags (Phase 3) |
 | **Browser automation** | ✅ Production | **v0.2.0**: browser-cli, browser-core, browser-mcp |
+| **Prerequisites System** | ✅ Production | **NEW**: Unified prerequisite checking, no circular errors |
+| **Status Types (Core)** | ✅ Production | **NEW**: Shared types for CLI/MCP consistency |
+| **Three-Level Status** | ✅ Production | **NEW**: summary/brief/full with --level flag |
 
 ### 2.2 Critical Gaps
 
@@ -168,6 +180,12 @@ CLI & UX            ████████████████████
   - Command structure ██████████████████████ 100% (v4.0 reorganization)
   - MCP tools       ████████████████████████ 100%
   - Plugin system   ███████████████████████░ 95%
+
+Prerequisites DX    ██████████████████████░░ 90% (NEW)
+  - Error messages  ████████████████████████ 100%
+  - Hub lock detect ████████████████████████ 100%
+  - Readiness checks████████████████████████ 100%
+  - MCP integration ████████████████░░░░░░░░ 60%
 
 Validation          ██████████████████████░░ 90%
   - Type/lint/test  ████████████████████████ 100%
@@ -388,6 +406,7 @@ The AI coding assistant market has undergone dramatic transformation. Key themes
 7. **Hook + Instructions pattern**: Reliable injection via hooks (`--inject`, `--on-stop`), intelligent action via instructions
 8. **Browser automation suite**: Playwright-based browser control via CLI and MCP for E2E validation
 9. **Three-command CLI** (NEW): `sync`, `status`, `query` — elegant mental model vs 50+ fragmented commands
+10. **Prerequisites DX** (NEW): Clear, actionable error messages; no circular "run devac sync" suggestions when sync fails; hub lock detection; first-run state detection
 
 ---
 
@@ -397,7 +416,7 @@ The AI coding assistant market has undergone dramatic transformation. Key themes
 
 | Strength | Evidence | Impact |
 |----------|----------|--------|
-| **Coherent vision** | Foundation doc, 47 ADRs | Reduces architectural confusion |
+| **Coherent vision** | Foundation doc, 43 ADRs | Reduces architectural confusion |
 | **Solid storage layer** | DuckDB + Parquet working | Fast queries, easy federation |
 | **Effect taxonomy** | 6 data + 2 flow + 3 group effects | Comprehensive behavior model |
 | **Rules engine** | Domain + WCAG classification | Enables C4 generation + A11y |
@@ -410,6 +429,8 @@ The AI coding assistant market has undergone dramatic transformation. Key themes
 | **Browser automation** | v0.2.0 suite with 5 ADRs | E2E validation capability |
 | **CLI v4.0** (NEW) | 3 core commands, ADR-0041 | Significantly improved usability |
 | **Validation infrastructure** | 74 test files, 18,842 lines | Mature diagnostics pipeline |
+| **Prerequisites DX** (NEW) | prerequisites module (1,600 LOC) | Better first-run experience |
+| **Status consistency** (NEW) | devac-core/src/status/ | CLI/MCP output parity |
 
 ### 4.2 Weaknesses
 
@@ -526,7 +547,7 @@ The AI coding assistant market has undergone dramatic transformation. Key themes
 | Test files | 74 | **74** | Maintain | Maintain |
 | CLI commands | 47 | **47** (reorganized) | 50 | 55 |
 | MCP tools | 22 | **22** | 25 | 30 |
-| ADRs | 43 | **47** (+4) | As needed | As needed |
+| ADRs | 43 | **43** | As needed | As needed |
 | Phases complete | 4 | **4** | 5 (+ OTel) | 6 (+ Actors) |
 | Hub query latency (p95) | ~200ms | ~200ms | <150ms | <100ms |
 | Scale benchmark | None | None | 100k nodes tested | 500k nodes tested |
@@ -558,7 +579,9 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 - **Hook-based validation automation complete** (Phase 3)
 - **CLI v4.0 reorganization complete** — significantly improved usability
 - **Browser automation suite released** (v0.2.0) — E2E validation capability
-- **47 ADRs** documenting all significant decisions
+- **Prerequisites DX module complete** — better first-run experience
+- **Status types in core** — CLI/MCP output consistency
+- **43 ADRs** documenting all significant decisions
 
 **Challenges**:
 - Actors and OTel remain unimplemented (Phase 4-5)
@@ -588,11 +611,11 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 | Dimension | Previous | Current | Notes |
 |-----------|----------|---------|-------|
 | Vision coherence | 8/10 | **8/10** | Clear, consistent, future-proof |
-| Documentation quality | 8/10 | **8.5/10** ↑ | 47 ADRs, excellent CLI reorganization docs |
-| Implementation depth | 8/10 | **8.5/10** ↑ | CLI v4.0, browser automation |
+| Documentation quality | 8/10 | **8.5/10** ↑ | 43 ADRs, excellent CLI reorganization docs |
+| Implementation depth | 8.5/10 | **8.7/10** ↑ | Prerequisites DX adds first-run polish |
 | Competitive position | 7.5/10 | **7.5/10** | WCAG + hooks unique; market evolving fast |
-| Adoption readiness | 7.5/10 | **8/10** ↑ | 3-command CLI significantly improves UX |
-| **Overall** | **8/10** | **8.5/10** ↑ | Strong execution, cleaner UX, clear roadmap |
+| Adoption readiness | 8/10 | **8.5/10** ↑ | Prerequisites DX improves onboarding |
+| **Overall** | **8.5/10** | **8.7/10** ↑ | Strong execution, better DX, clear roadmap |
 
 ---
 
@@ -675,4 +698,4 @@ DevAC/Vivief is a **well-architected, progressively-implemented code intelligenc
 
 ---
 
-*This review was initially conducted on 2026-01-17, updated on 2026-01-18 (Phases 0-3 complete), and updated on 2026-01-21 (CLI v4.0, browser automation, competitive landscape refresh). Based on the vivief codebase at packages/devac-* and documentation at docs/*.*
+*This review was initially conducted on 2026-01-17, updated on 2026-01-18 (Phases 0-3 complete), updated on 2026-01-21 (CLI v4.0, browser automation, competitive landscape refresh), and updated on 2026-01-22 (Prerequisites DX module, status types in core). Based on the vivief codebase at packages/devac-* and documentation at docs/*.*

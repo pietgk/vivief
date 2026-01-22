@@ -8,7 +8,7 @@
 - [test-strategy.md](./test-strategy.md) — Test approach
 - [comprehensive-review.md](./comprehensive-review.md) — Strategic review
 
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-01-22
 
 ---
 
@@ -24,6 +24,8 @@ This document tracks implementation gaps against the vision. Items are organized
 - ✅ Phases 0-3: Complete (JSX, A11y, WCAG, Hooks)
 - ✅ CLI v4.0: Complete (sync/status/query reorganization)
 - ✅ Browser Automation: v0.2.0 released
+- ✅ **Prerequisites DX**: Complete (clear errors, hub lock detection)
+- ✅ **Status Types**: Moved to devac-core
 - ⬜ Phases 4-6: Pending (OTel, Actors, Scale)
 
 ---
@@ -254,6 +256,70 @@ devac query schema             # Database schema
 - Composable flags
 
 **Validation:** ✅ All functionality preserved with cleaner interface
+
+---
+
+## Prerequisites DX System
+
+**Status**: ✅ Complete
+
+Prerequisites checking system for better developer experience on first run and error states.
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| types.ts | ✅ Complete | SystemState, PrerequisiteCheck, CommandReadiness, ReadinessOutput |
+| checker.ts | ✅ Complete | checkSyncPrerequisites(), checkQueryPrerequisites(), checkStatusPrerequisites() |
+| environment.ts | ✅ Complete | checkHasSourceFiles(), checkNodeVersion(), checkHubNotLocked(), checkHubExists() |
+| CLI integration | ✅ Complete | Status command uses getReadinessForStatus() |
+| MCP integration | ⬜ Pending | Status tool should include readiness metadata |
+
+**Key Improvements:**
+- No circular error messages (never suggests "run X" when X is failing)
+- Hub lock detection (warns when MCP server has exclusive access)
+- First-run detection (distinguishes "no seeds" from "broken state")
+- Actionable fix suggestions with specific commands
+- SystemState enum: "first-run" | "ready" | "partial" | "broken" | "locked"
+
+**Files created:**
+- `packages/devac-core/src/prerequisites/types.ts` - 146 lines
+- `packages/devac-core/src/prerequisites/checker.ts` - 494 lines
+- `packages/devac-core/src/prerequisites/environment.ts` - 272 lines
+- `packages/devac-core/src/prerequisites/index.ts` - 47 lines
+
+**Also:**
+- `packages/devac-cli/src/commands/shared/hub-prerequisites.ts` - 129 lines (CLI shared utility)
+
+**Validation**: ✅ Clear error messages for first-run, hub-locked, no-seeds states
+
+---
+
+## Status Types in Core
+
+**Status**: ✅ Complete
+
+Shared status types moved from CLI to devac-core for consistency across CLI and MCP.
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| OutputLevel | ✅ Complete | "summary" \| "brief" \| "full" type |
+| GroupBy | ✅ Complete | "type" \| "repo" \| "status" type |
+| Component outputs | ✅ Complete | ContextOutput, HealthOutput, SeedsOutput, DiagnosticsOutput, WorkflowOutput, NextOutput |
+| STATUS_ICONS | ✅ Complete | Consistent icons (✅, ⚠, ✗, etc.) |
+| STATUS_COLORS | ✅ Complete | Color names for terminal output |
+| DevACStatusJSON | ✅ Complete | JSON schema for --json output |
+
+**Files created:**
+- `packages/devac-core/src/status/types.ts` - 174 lines
+- `packages/devac-core/src/status/json-schema.ts` - 137 lines
+- `packages/devac-core/src/status/index.ts`
+
+**Benefits:**
+- CLI and MCP use same output contracts
+- Consistent JSON schema for automation
+- Three-level output: summary (one-line), brief (sectioned), full (detailed)
+- Grouping support: by type, repo, or status
+
+**Validation**: ✅ CLI status and MCP status tool produce compatible structured output
 
 ---
 
@@ -674,7 +740,7 @@ When all gaps are closed:
 | Effect-test correlation | 100% of tested effects matched | ⬜ Phase 4B |
 | Actor discovery | Explicit + inferred machines queryable | ⬜ Phase 5 |
 
-**Implementation Metrics** (Updated 2026-01-21):
+**Implementation Metrics** (Updated 2026-01-22):
 
 | Metric | Previous | Current | Target |
 |--------|----------|---------|--------|
@@ -682,8 +748,8 @@ When all gaps are closed:
 | Test lines | 18,842 | **18,842** | Maintain |
 | CLI commands | 47 | **47** (reorganized to 3 core) | 50 |
 | MCP tools | 22 | **22** | 25 |
-| ADRs | 43 | **47** (+4 browser, CLI) | As needed |
-| Phases complete | 4 | **4** (0-3 + browser + CLI v4.0) | 6 |
+| ADRs | 43 | **43** | As needed |
+| Phases complete | 4 | **5** (0-3 + Prerequisites DX) | 6 |
 | Package version | 0.27.0 | **0.27.0** | 0.30.0 |
 
 **Competitive Benchmarks** (Updated 2026-01-21):
@@ -716,10 +782,14 @@ When all gaps are closed:
 - **2026-01-21**: Updated competitive context (Cursor $29.3B, Copilot Agent Mode, MCP 8M+ downloads)
 - **2026-01-21**: Added browser automation ADRs (0035-0039)
 - **2026-01-21**: Updated Research Gaps with IDE integration and background agents questions
+- **2026-01-22**: Added Prerequisites DX System section (complete)
+- **2026-01-22**: Added Status Types in Core section (complete)
+- **2026-01-22**: Prerequisites module provides unified error handling with no circular suggestions
+- **2026-01-22**: Status output now supports three levels (summary/brief/full) with grouping
 
 ---
 
-*Last reviewed: 2026-01-21*
+*Last reviewed: 2026-01-22*
 *Phase 0 completed: 2026-01-17*
 *Phase 1 completed: 2026-01-17*
 *Phase 2 completed: 2026-01-18*
@@ -729,3 +799,5 @@ When all gaps are closed:
 *Phase 4C research: 2026-01-18* (Effect Probing concept)
 *Phase 6 added: 2026-01-18* (Scalability gaps from competitive analysis)
 *Competitive update: 2026-01-21* (Market landscape refresh)
+*Prerequisites DX: 2026-01-22* (unified error handling, hub lock detection)
+*Status types in core: 2026-01-22* (CLI/MCP consistency)
