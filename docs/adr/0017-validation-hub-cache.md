@@ -11,7 +11,7 @@ DevAC Phase 2 adds validation support (type errors, lint issues, test results) t
 - Aggregated across repositories for workspace-level views
 - Enriched with CodeGraph context (affected symbols, callers)
 
-**Terminology note:** Validators produce **Diagnostics** (errors, warnings, or "all clear"). See [concepts.md](../vision/concepts.md) for the Three Pillars model.
+**Terminology note:** Validators produce **Diagnostics** (errors, warnings, or "all clear"). See [concepts.md](../vision/concepts.md) for the Four Pillars model.
 
 Validation data has different characteristics than code graph seeds:
 
@@ -132,7 +132,7 @@ Per-Repo Validation                 Central Hub
 
 ## References
 
-- [DevAC Concepts](../vision/concepts.md) - Three Pillars, Diagnostics terminology
+- [DevAC Concepts](../vision/concepts.md) - Four Pillars, Diagnostics terminology
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Original hub architecture
 - [ADR-0016: Workspace Module](0016-workspace-module.md) - Two-tier watching model
 - [ADR-0018: Unified Diagnostics Model](0018-unified-diagnostics-model.md) - Schema for unified diagnostics

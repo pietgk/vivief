@@ -8,7 +8,7 @@
  * - Work Activity: What's pending? (PRs, reviews)
  * - Next: What should I do?
  *
- * @see docs/vision/concepts.md for the Three Pillars model
+ * @see docs/vision/concepts.md for the Four Pillars model
  */
 
 import * as fs from "node:fs";

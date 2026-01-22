@@ -166,7 +166,7 @@ By Source:
 
 ## Command Aliases
 
-DevAC provides command aliases for improved discoverability and consistency with the Three Pillars model.
+DevAC provides command aliases for improved discoverability and consistency with the Four Pillars model.
 
 ### Extractor Aliases
 
