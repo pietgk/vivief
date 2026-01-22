@@ -565,6 +565,9 @@ export type {
   WorkspaceEffectsData,
 } from "./docs/index.js";
 
+// Status (v4.0 - CLI/MCP unified types)
+export * from "./status/index.js";
+
 /**
  * DevAC Core Version
  */

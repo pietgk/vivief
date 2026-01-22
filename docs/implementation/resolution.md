@@ -234,11 +234,11 @@ const factory = new SemanticResolverFactory({
 ### Basic Resolution
 
 ```bash
-# Analyze with semantic resolution
-devac analyze --resolve
+# Sync with semantic resolution (resolution runs automatically)
+devac sync
 
 # Verbose output
-devac analyze --resolve --verbose
+devac sync --verbose
 ```
 
 ### Watch Mode
@@ -246,7 +246,7 @@ devac analyze --resolve --verbose
 In watch mode, semantic resolution is debounced to avoid excessive re-resolution:
 
 ```bash
-devac watch --resolve
+devac sync --watch
 ```
 
 Resolution triggers after 5 seconds of file system stability.
@@ -569,7 +569,7 @@ WHERE edge_type = 'CALLS';
 
 ```bash
 # Enable verbose output
-devac analyze --resolve --verbose
+devac sync --verbose
 
 # Output includes:
 # - Export index build time

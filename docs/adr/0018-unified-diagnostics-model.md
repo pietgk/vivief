@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 With Phase 2 complete (validation errors in Hub), we identified an opportunity to unify all "things that need attention" into a single queryable concept.

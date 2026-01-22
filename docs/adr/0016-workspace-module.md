@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 DevAC supports multi-repo workflows through hub federation and worktree management. However, there was no unified orchestration layer for:

@@ -66,12 +66,12 @@ See diagnostics across all connected repositories in hub mode.
 
 Use DevAC CLI commands for diagnostics. CLI is preferred for lower context overhead.
 
-### `devac diagnostics`
+### `devac status --diagnostics`
 Get diagnostics overview across the workspace.
 ```bash
-devac diagnostics
-devac diagnostics --severity error
-devac diagnostics --file src/services/
+devac status --diagnostics
+devac status --diagnostics --severity error
+devac status --diagnostics --file src/services/
 ```
 
 ### `devac sync --validate`
@@ -93,14 +93,14 @@ devac query "SELECT file_path, COUNT(*) as error_count FROM diagnostics WHERE se
 **User:** "What needs fixing in the codebase?"
 
 **Response approach:**
-1. Use `devac diagnostics` for overview
+1. Use `devac status --diagnostics` for overview
 2. Highlight critical errors vs warnings
 3. Suggest priority order for fixes
 
 **User:** "Show me all TypeScript errors"
 
 **Response approach:**
-1. Use `devac diagnostics --severity error` filtered by type
+1. Use `devac status --diagnostics --severity error` filtered by type
 2. Group by file for easier navigation
 3. Show error messages with locations
 

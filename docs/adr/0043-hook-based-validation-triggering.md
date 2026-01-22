@@ -4,6 +4,8 @@
 
 Proposed
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 DevAC has comprehensive validation infrastructure (TypeScript, ESLint, tests, coverage, WCAG) but requires manual triggering. Users must explicitly run `devac validate` or ask Claude about diagnostics.

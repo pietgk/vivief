@@ -21,6 +21,8 @@ import {
   type DiagnosticsFilter,
   type DiagnosticsSeverity,
   type DiagnosticsSource,
+  type GroupBy,
+  type OutputLevel,
   type RepoContext,
   discoverContext,
   getWorkspaceStatus,
@@ -769,10 +771,22 @@ export class DevacMCPServer {
    */
   private async executeGetWorkspaceStatus(input: Record<string, unknown>): Promise<MCPToolResult> {
     const targetPath = (input.path as string) ?? process.cwd();
-    const full = (input.full as boolean) ?? false;
+    const level = (input.level as OutputLevel) ?? "brief";
+    const json = (input.json as boolean) ?? false;
+    const groupBy = (input.groupBy as GroupBy) ?? "type";
+
+    // Map level to full flag for backwards compatibility with getWorkspaceStatus
+    const full = level === "full";
 
     try {
       const status = await getWorkspaceStatus({ path: targetPath, full });
+
+      // If JSON format requested, return the raw status object
+      // (caller can format as DevACStatusJSON if needed)
+      if (json) {
+        return { success: true, data: { ...status, _meta: { level, groupBy } } };
+      }
+
       return { success: true, data: status };
     } catch (error) {
       return {

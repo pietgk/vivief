@@ -93,20 +93,20 @@ The central hub tracks registered repositories and enables cross-repo queries.
 
 ## Hub Commands
 
-### Register a Repository
+### Sync Repository (Automatic Registration)
 
 ```bash
-# From within the repository
-devac hub register
+# From within the repository - analyzes and auto-registers with hub
+devac sync
 
 # Or specify path
-devac hub register ~/code/repo-api
+devac sync --path ~/code/repo-api
 ```
 
 ### List Registered Repositories
 
 ```bash
-devac hub list
+devac query repos
 
 # Output:
 # ┌────────────────┬───────────────────────────┬────────────────┐
@@ -122,12 +122,12 @@ devac hub list
 
 ```bash
 # Find function across all repos
-devac hub query "SELECT * FROM nodes WHERE name = 'handleLogin'"
+devac query sql "SELECT * FROM nodes WHERE name = 'handleLogin'"
 
 # Find imports of a shared module
-devac hub query "
-  SELECT source_file_path, imported_symbol 
-  FROM external_refs 
+devac query sql "
+  SELECT source_file_path, imported_symbol
+  FROM external_refs
   WHERE module_specifier = '@shared/schema'
 "
 ```
@@ -135,7 +135,7 @@ devac hub query "
 ### Hub Status
 
 ```bash
-devac hub status
+devac status --hub
 
 # Output:
 # Central Hub: /path/to/workspace/.devac/
@@ -145,17 +145,11 @@ devac hub status
 # Last Refresh: 2025-01-15T10:30:00Z
 ```
 
-### Refresh Hub
+### Workspace Refresh
 
 ```bash
 # Rebuild cross-repo edge cache
-devac hub refresh
-```
-
-### Unregister Repository
-
-```bash
-devac hub unregister repo-name
+devac workspace refresh
 ```
 
 ## Cross-Repo Queries
@@ -286,35 +280,32 @@ CREATE TABLE cached_stats (
 # For a monorepo with multiple packages
 cd ~/code/monorepo
 
-# Analyze all packages
-devac analyze --all
-
-# Register with hub
-devac hub register
+# Analyze all packages (auto-registers with hub)
+devac sync
 ```
 
 ### Multi-Repo Setup
 
 ```bash
-# Register each repo
-cd ~/code/repo-api && devac hub register
-cd ~/code/repo-web && devac hub register
-cd ~/code/repo-mobile && devac hub register
+# Sync each repo (auto-registers with hub)
+cd ~/code/repo-api && devac sync
+cd ~/code/repo-web && devac sync
+cd ~/code/repo-mobile && devac sync
 
 # Query across all
-devac hub query "SELECT COUNT(*) FROM nodes GROUP BY split_part(entity_id, ':', 1)"
+devac query sql "SELECT COUNT(*) FROM nodes GROUP BY split_part(entity_id, ':', 1)"
 ```
 
 ### Keeping Hub in Sync
 
 ```bash
-# After major changes, refresh hub cache
-devac hub refresh
+# After major changes, refresh workspace
+devac workspace refresh
 
 # Or set up watch mode per repo
 # (In separate terminals)
-cd ~/code/repo-api && devac watch
-cd ~/code/repo-web && devac watch
+cd ~/code/repo-api && devac sync --watch
+cd ~/code/repo-web && devac sync --watch
 ```
 
 ## Performance Characteristics

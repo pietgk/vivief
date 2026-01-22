@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 We need to query across multiple repositories without copying data. In a typical organization:

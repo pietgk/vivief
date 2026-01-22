@@ -5,10 +5,11 @@ Run `devac status` to get a unified view of all Four Pillars.
 ## Command
 
 ```bash
-devac status          # Brief status (default)
-devac status --full   # Detailed status with all sections
-devac status --cached # Skip live CI fetch (faster, uses hub cache)
-devac status --sync   # Sync CI results to hub after gathering
+devac status              # Summary status (1-line, default)
+devac status --level brief # Sectioned output with key metrics
+devac status --level full # Detailed status with all sections
+devac status --cached     # Skip live CI fetch (faster, uses hub cache)
+devac status --sync       # Sync CI results to hub after gathering
 ```
 
 ## Output Sections
