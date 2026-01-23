@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-mcp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "DevAC MCP server for AI assistants",
   "type": "module",
   "publishConfig": {
