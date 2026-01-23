@@ -877,6 +877,16 @@ export class DevacMCPServer {
     }
   }
 
+  /** Callback for when shutdown is requested via IPC */
+  private shutdownCallback?: () => void;
+
+  /**
+   * Register a callback to be called when shutdown is requested via IPC
+   */
+  onShutdownRequested(callback: () => void): void {
+    this.shutdownCallback = callback;
+  }
+
   /**
    * Start the MCP server
    */
@@ -889,6 +899,18 @@ export class DevacMCPServer {
     });
 
     await this._provider.initialize();
+
+    // Wire up IPC shutdown callback if in hub mode with server ownership
+    if (this._provider.mode === "hub") {
+      const hubDataProvider = this._provider as import("./data-provider.js").HubDataProvider;
+      const hubServer = hubDataProvider.getHubServer();
+      if (hubServer) {
+        hubServer.onShutdownRequested(() => {
+          console.error("Shutdown requested via IPC");
+          this.shutdownCallback?.();
+        });
+      }
+    }
 
     // Start server with stdio transport
     const transport = new StdioServerTransport();

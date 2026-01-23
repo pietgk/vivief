@@ -71,6 +71,9 @@ async function main(): Promise<void> {
     process.exit(0);
   };
 
+  // Register shutdown callback for IPC shutdown requests
+  server.onShutdownRequested(() => shutdown("IPC_SHUTDOWN"));
+
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 

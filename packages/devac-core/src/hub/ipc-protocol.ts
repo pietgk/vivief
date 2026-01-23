@@ -14,11 +14,17 @@ import * as path from "node:path";
 /** Socket file name within hub directory */
 export const HUB_SOCKET_NAME = "mcp.sock";
 
+/** PID file name within hub directory */
+export const HUB_PID_NAME = "mcp.pid";
+
 /** Default timeout for IPC operations (ms) */
 export const IPC_TIMEOUT_MS = 30_000;
 
 /** Connection attempt timeout (ms) */
 export const IPC_CONNECT_TIMEOUT_MS = 100;
+
+/** IPC Protocol version for compatibility checking */
+export const IPC_PROTOCOL_VERSION = "1.0";
 
 // ─────────────────────────────────────────────────────────────
 // Method Types
@@ -26,6 +32,9 @@ export const IPC_CONNECT_TIMEOUT_MS = 100;
 
 /** Hub methods that can be invoked via IPC */
 export type HubMethod =
+  // Lifecycle operations
+  | "ping"
+  | "shutdown"
   // Write operations
   | "register"
   | "unregister"
@@ -58,6 +67,16 @@ export interface HubRequest {
   method: HubMethod;
   /** Method parameters */
   params: unknown;
+  /** Protocol version for compatibility check (optional for backward compat) */
+  protocolVersion?: string;
+}
+
+/** Response from ping method */
+export interface PingResponse {
+  /** Server package version (e.g., "1.1.0") */
+  serverVersion: string;
+  /** IPC protocol version (e.g., "1.0") */
+  protocolVersion: string;
 }
 
 /** IPC response from MCP to CLI */
@@ -95,6 +114,8 @@ export const HubErrorCode = {
   HUB_NOT_READY: -32000,
   /** Operation failed */
   OPERATION_FAILED: -32001,
+  /** Protocol version mismatch */
+  VERSION_MISMATCH: -32002,
 } as const;
 
 // ─────────────────────────────────────────────────────────────
@@ -106,6 +127,13 @@ export const HubErrorCode = {
  */
 export function getSocketPath(hubDir: string): string {
   return path.join(hubDir, HUB_SOCKET_NAME);
+}
+
+/**
+ * Get the PID file path for a given hub directory
+ */
+export function getPidPath(hubDir: string): string {
+  return path.join(hubDir, HUB_PID_NAME);
 }
 
 /**

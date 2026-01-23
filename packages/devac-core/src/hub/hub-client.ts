@@ -30,7 +30,10 @@ import {
   type HubRequest,
   type HubResponse,
   IPC_CONNECT_TIMEOUT_MS,
+  IPC_PROTOCOL_VERSION,
   IPC_TIMEOUT_MS,
+  type PingResponse,
+  getPidPath,
   getSocketPath,
 } from "./ipc-protocol.js";
 
@@ -76,12 +79,16 @@ export type HubLike = {
 export class HubClient {
   private hubDir: string;
   private socketPath: string;
+  private pidPath: string;
   private timeout: number;
   private skipValidation: boolean;
+  private versionChecked = false;
+  private serverVersion: string | null = null;
 
   constructor(options: HubClientOptions) {
     this.hubDir = options.hubDir;
     this.socketPath = getSocketPath(this.hubDir);
+    this.pidPath = getPidPath(this.hubDir);
     this.timeout = options.timeout ?? IPC_TIMEOUT_MS;
     this.skipValidation = options.skipValidation ?? false;
   }
@@ -122,6 +129,61 @@ export class HubClient {
   }
 
   /**
+   * Ping the MCP server and get version info
+   */
+  async ping(): Promise<PingResponse> {
+    return this.sendToMCP<PingResponse>("ping", {});
+  }
+
+  /**
+   * Check version compatibility with MCP server.
+   * Throws if versions are incompatible.
+   */
+  private async checkVersionIfNeeded(): Promise<void> {
+    if (this.versionChecked) {
+      return;
+    }
+
+    try {
+      const response = await this.ping();
+      this.serverVersion = response.serverVersion;
+      this.versionChecked = true;
+
+      // Check protocol version compatibility
+      if (response.protocolVersion !== IPC_PROTOCOL_VERSION) {
+        throw new Error(
+          `MCP server protocol version ${response.protocolVersion} incompatible with CLI protocol version ${IPC_PROTOCOL_VERSION}. Run 'devac mcp stop' to stop the old server, then retry your command.`
+        );
+      }
+    } catch (err) {
+      // If ping fails, reset version check state so we retry next time
+      this.versionChecked = false;
+      throw err;
+    }
+  }
+
+  /**
+   * Request MCP server to shut down gracefully
+   */
+  async shutdown(): Promise<{ success: boolean }> {
+    return this.sendToMCP<{ success: boolean }>("shutdown", {});
+  }
+
+  /**
+   * Get the PID of the MCP server from the PID file
+   * Returns null if PID file doesn't exist
+   */
+  async getMCPPid(): Promise<number | null> {
+    try {
+      const content = await fs.readFile(this.pidPath, "utf-8");
+      const pid = Number.parseInt(content.trim(), 10);
+      return Number.isNaN(pid) ? null : pid;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Send request to MCP via IPC socket
    */
   private async sendToMCP<T>(method: HubMethod, params: unknown): Promise<T> {
@@ -142,6 +204,7 @@ export class HubClient {
         id: crypto.randomUUID(),
         method,
         params,
+        protocolVersion: IPC_PROTOCOL_VERSION,
       };
 
       socket.on("connect", () => {
@@ -211,7 +274,24 @@ export class HubClient {
   }
 
   /**
-   * Route to MCP if running, otherwise direct to hub
+   * Check if an error is a connection/communication error vs application error.
+   * Connection errors trigger fallback, application errors are re-thrown.
+   */
+  private isConnectionError(message: string): boolean {
+    return (
+      message.includes("IPC connection error") ||
+      message.includes("IPC timeout") ||
+      message.includes("IPC connection closed") ||
+      message.includes("ECONNREFUSED") ||
+      message.includes("ENOENT") ||
+      message.includes("connect ENOENT")
+    );
+  }
+
+  /**
+   * Route to MCP if running, otherwise direct to hub.
+   * Falls back to direct hub access if IPC connection fails.
+   * Application errors from MCP are re-thrown, not caught.
    */
   private async dispatch<T>(
     method: HubMethod,
@@ -220,7 +300,24 @@ export class HubClient {
     options: { readOnly?: boolean } = {}
   ): Promise<T> {
     if (await this.isMCPRunning()) {
-      return this.sendToMCP<T>(method, params);
+      try {
+        // Check version compatibility on first IPC call
+        await this.checkVersionIfNeeded();
+        return await this.sendToMCP<T>(method, params);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // Don't fallback for version mismatch - that's a hard error
+        if (message.includes("incompatible")) {
+          throw err;
+        }
+        // Only fallback for connection/communication errors
+        // Application errors (error responses from MCP) should be re-thrown
+        if (!this.isConnectionError(message)) {
+          throw err;
+        }
+        // IPC connection failed - fall through to direct hub access
+        console.debug?.(`[HubClient] IPC failed, falling back to direct hub: ${message}`);
+      }
     }
     return this.sendToHub(hubOperation, options);
   }
