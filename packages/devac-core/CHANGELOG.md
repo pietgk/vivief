@@ -1,5 +1,15 @@
 # @pietgk/devac-core
 
+## 1.2.1
+
+### Patch Changes
+
+- ccab1f9: Fix MCP lock detection gap in status prerequisites
+
+  - Add `checkHubNotLocked()` to `checkStatusPrerequisites()` to match the behavior of `checkSyncPrerequisites()`
+  - MCP lock warning now appears in the Readiness section output rather than as a surprise logger warning from CentralHub fallback
+  - Add test coverage for prerequisites module (environment.test.ts, checker.test.ts)
+
 ## 1.2.0
 
 ### Minor Changes
