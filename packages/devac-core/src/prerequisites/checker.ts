@@ -281,6 +281,13 @@ export async function checkStatusPrerequisites(inputPath?: string): Promise<Comm
       message: "Context found",
       detail: workspaceDir ? `Workspace: ${workspaceDir}` : `Repository: ${gitRoot}`,
     });
+
+    // Check hub lock status (same as checkSyncPrerequisites)
+    const hubDir = path.join(workspaceDir || gitRoot || targetPath, ".devac");
+    const validation = await validateHubLocation(hubDir);
+    if (validation.valid) {
+      checks.push(await checkHubNotLocked(hubDir));
+    }
   } else {
     checks.push({
       id: "context_found",
