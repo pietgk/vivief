@@ -79,7 +79,7 @@ const fileResult = await orchestrator.analyzeFile({
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  CLI MODE                                                                   │
 │                                                                             │
-│  devac analyze                                                              │
+│  devac sync                                                                 │
 │       │                                                                     │
 │       ▼                                                                     │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                  │

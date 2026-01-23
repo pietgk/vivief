@@ -480,7 +480,7 @@ async function syncPackage(
 
   // Check if package has seeds
   if (!(await hasSeed(packagePath))) {
-    result.reason = "No seeds found - run 'devac analyze' first";
+    result.reason = "No seeds found - run 'devac sync' first";
     result.warnings.push(result.reason);
     result.success = true; // Not an error, just nothing to do
     return result;

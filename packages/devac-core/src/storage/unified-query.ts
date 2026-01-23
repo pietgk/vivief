@@ -94,14 +94,46 @@ export async function query<T = Record<string, unknown>>(
     const refPaths: string[] = [];
     const effectPaths: string[] = [];
 
+    // Track packages with missing seed files
+    const packagesWithMissingSeeds: string[] = [];
+
     for (const pkgPath of packagesQueried) {
       const seedPaths = getSeedPaths(pkgPath, branch);
       const parquetPaths = getParquetFilePaths(seedPaths.basePath);
 
-      if (await fileExists(parquetPaths.nodes)) nodePaths.push(parquetPaths.nodes);
-      if (await fileExists(parquetPaths.edges)) edgePaths.push(parquetPaths.edges);
-      if (await fileExists(parquetPaths.externalRefs)) refPaths.push(parquetPaths.externalRefs);
-      if (await fileExists(parquetPaths.effects)) effectPaths.push(parquetPaths.effects);
+      // Track which seed files exist for this package
+      const hasNodes = await fileExists(parquetPaths.nodes);
+      const hasEdges = await fileExists(parquetPaths.edges);
+      const hasRefs = await fileExists(parquetPaths.externalRefs);
+      const hasEffects = await fileExists(parquetPaths.effects);
+
+      // Add existing files to query paths
+      if (hasNodes) nodePaths.push(parquetPaths.nodes);
+      if (hasEdges) edgePaths.push(parquetPaths.edges);
+      if (hasRefs) refPaths.push(parquetPaths.externalRefs);
+      if (hasEffects) effectPaths.push(parquetPaths.effects);
+
+      // Track if package has no seed files at all
+      if (!hasNodes && !hasEdges && !hasRefs && !hasEffects) {
+        packagesWithMissingSeeds.push(pkgPath);
+      }
+    }
+
+    // Report packages without seeds (helps explain empty results)
+    if (packagesWithMissingSeeds.length > 0) {
+      const pkgNames = packagesWithMissingSeeds.map((p) => {
+        const parts = p.split("/");
+        return parts[parts.length - 1] || p;
+      });
+      if (packagesWithMissingSeeds.length === packagesQueried.length) {
+        warnings.push(
+          `No seed files found. Run 'devac sync' to analyze the codebase. Packages without seeds: ${pkgNames.join(", ")}`
+        );
+      } else {
+        warnings.push(
+          `${packagesWithMissingSeeds.length}/${packagesQueried.length} packages have no seeds: ${pkgNames.join(", ")}`
+        );
+      }
     }
 
     // Create views (single file or aggregate based on count)

@@ -121,7 +121,7 @@ The skill creates or updates `docs/package-explained.md` in the package director
 
 ## Notes
 
-- Requires DevAC analysis to be run on the package first (`devac analyze`)
+- Requires DevAC analysis to be run on the package first (`devac sync`)
 - Best used after `devac effects init` has discovered effect patterns
 - The generated documentation should be reviewed and refined by developers
 - Works well in conjunction with `/define-effects` skill

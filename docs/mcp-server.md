@@ -479,7 +479,7 @@ For implementation details, see [ADR-0024: Hub Single Writer Architecture](./adr
 Before using the MCP server, ensure your package has been analyzed:
 
 ```bash
-devac analyze /path/to/your/package
+devac sync --package /path/to/your/package
 ```
 
 This creates the seed files (`.devac/seed/`) that the MCP server queries.

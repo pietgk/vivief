@@ -155,13 +155,13 @@ Skills activate automatically based on your conversation:
 
 2. **Hub initialized** (for multi-repo features)
    ```bash
-   devac hub init
+   devac sync
    ```
 
 3. **Repositories analyzed**
    ```bash
    cd your-repo
-   devac analyze .
+   devac sync
    ```
 
 ---
@@ -172,20 +172,20 @@ Skills invoke CLI commands for all DevAC operations:
 
 ```bash
 # Code analysis
-devac find-symbol UserService
+devac query symbol UserService
 devac file-symbols src/auth/
 
 # Impact analysis
-devac affected src/core/auth.ts
-devac deps src/services/user.ts
+devac query affected src/core/auth.ts
+devac query deps src/services/user.ts
 
 # Diagnostics
-devac diagnostics
-devac diagnostics --severity error
+devac status --diagnostics
+devac status --diagnostics --severity error
 
 # Multi-repo
-devac hub status
-devac hub repos
+devac status --hub
+devac query repos
 
 # Effects documentation
 devac effects init -p <package>
@@ -249,7 +249,7 @@ An MCP server configuration is included for `devac-mcp`. MCP provides the same f
 
 **Check**:
 1. Is DevAC CLI installed? → `devac --version`
-2. Is the repository analyzed? → `devac hub status`
+2. Is the repository analyzed? → `devac status --hub`
 
 ### Plugin Not Loading
 

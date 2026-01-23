@@ -63,7 +63,7 @@ function getSuggestion(errorText: string): string | null {
   }
 
   if (lower.includes("no .devac/seed") || lower.includes("no seed")) {
-    return "Run 'devac analyze' in the repository first";
+    return "Run 'devac sync' in the repository first";
   }
 
   if (
@@ -75,7 +75,7 @@ function getSuggestion(errorText: string): string | null {
   }
 
   if (lower.includes("repository") && lower.includes("not found")) {
-    return "Check the repository ID with 'devac hub list'";
+    return "Check the repository ID with 'devac query repos'";
   }
 
   if (lower.includes("enoent") || lower.includes("does not exist")) {

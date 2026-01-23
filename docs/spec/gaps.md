@@ -6,8 +6,9 @@
 - [actors.md](../vision/actors.md) — Actor Model vision
 - [ui-effects.md](../vision/ui-effects.md) — UI Effects vision
 - [test-strategy.md](./test-strategy.md) — Test approach
+- [comprehensive-review.md](./comprehensive-review.md) — Strategic review
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-22
 
 ---
 
@@ -18,6 +19,14 @@ This document tracks implementation gaps against the vision. Items are organized
 - ⬜ Not started
 - 🔄 In progress
 - ✅ Complete
+
+**Current Status Summary**:
+- ✅ Phases 0-3: Complete (JSX, A11y, WCAG, Hooks)
+- ✅ CLI v4.0: Complete (sync/status/query reorganization)
+- ✅ Browser Automation: v0.2.0 released
+- ✅ **Prerequisites DX**: Complete (clear errors, hub lock detection)
+- ✅ **Status Types**: Moved to devac-core
+- ⬜ Phases 4-6: Pending (OTel, Actors, Scale)
 
 ---
 
@@ -205,6 +214,164 @@ Hook-based automation to make validation proactive rather than manual. This phas
 **Validation:** ✅ Hooks work with Claude Code:
 - UserPromptSubmit: `devac status --inject` outputs diagnostic counts on session start
 - Stop: `devac validate --on-stop --mode quick` runs validation on session end
+
+---
+
+## CLI v4.0 Reorganization
+
+**Status**: ✅ Complete
+
+**ADR:** @docs/adr/0041-cli-command-structure.md
+**ADR:** @docs/adr/0042-mcp-tool-naming-conventions.md
+
+Major reorganization of CLI from 50+ fragmented commands to 3 core commands.
+
+| Component | Old Commands | New Command |
+|-----------|--------------|-------------|
+| Analysis | `analyze`, `hub init/register/refresh` | `devac sync` |
+| Status | `diagnostics`, `doctor`, `status` | `devac status` |
+| Queries | `find-symbol`, `deps`, `dependents`, `affected`, `query` | `devac query <subcommand>` |
+
+**Query Subcommands (13 total):**
+```
+devac query sql <query>        # Raw SQL
+devac query symbol <name>      # Find symbols
+devac query deps <entity>      # Dependencies
+devac query dependents <entity> # Reverse dependencies
+devac query file <path>        # File symbols
+devac query call-graph <entity> # Call graph
+devac query affected <files>   # Impact analysis
+devac query effects            # Code effects
+devac query repos              # List repos
+devac query c4 [level]         # C4 diagrams
+devac query context            # Workspace context
+devac query rules              # Rules engine
+devac query schema             # Database schema
+```
+
+**Benefits:**
+- Simpler mental model: 3 verbs (sync, status, query)
+- Better discoverability via `--help`
+- Consistent command structure
+- Composable flags
+
+**Validation:** ✅ All functionality preserved with cleaner interface
+
+---
+
+## Prerequisites DX System
+
+**Status**: ✅ Complete
+
+Prerequisites checking system for better developer experience on first run and error states.
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| types.ts | ✅ Complete | SystemState, PrerequisiteCheck, CommandReadiness, ReadinessOutput |
+| checker.ts | ✅ Complete | checkSyncPrerequisites(), checkQueryPrerequisites(), checkStatusPrerequisites() |
+| environment.ts | ✅ Complete | checkHasSourceFiles(), checkNodeVersion(), checkHubNotLocked(), checkHubExists() |
+| CLI integration | ✅ Complete | Status command uses getReadinessForStatus() |
+| MCP integration | ⬜ Pending | Status tool should include readiness metadata |
+
+**Key Improvements:**
+- No circular error messages (never suggests "run X" when X is failing)
+- Hub lock detection (warns when MCP server has exclusive access)
+- First-run detection (distinguishes "no seeds" from "broken state")
+- Actionable fix suggestions with specific commands
+- SystemState enum: "first-run" | "ready" | "partial" | "broken" | "locked"
+
+**Files created:**
+- `packages/devac-core/src/prerequisites/types.ts` - 146 lines
+- `packages/devac-core/src/prerequisites/checker.ts` - 494 lines
+- `packages/devac-core/src/prerequisites/environment.ts` - 272 lines
+- `packages/devac-core/src/prerequisites/index.ts` - 47 lines
+
+**Also:**
+- `packages/devac-cli/src/commands/shared/hub-prerequisites.ts` - 129 lines (CLI shared utility)
+
+**Validation**: ✅ Clear error messages for first-run, hub-locked, no-seeds states
+
+---
+
+## Status Types in Core
+
+**Status**: ✅ Complete
+
+Shared status types moved from CLI to devac-core for consistency across CLI and MCP.
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| OutputLevel | ✅ Complete | "summary" \| "brief" \| "full" type |
+| GroupBy | ✅ Complete | "type" \| "repo" \| "status" type |
+| Component outputs | ✅ Complete | ContextOutput, HealthOutput, SeedsOutput, DiagnosticsOutput, WorkflowOutput, NextOutput |
+| STATUS_ICONS | ✅ Complete | Consistent icons (✅, ⚠, ✗, etc.) |
+| STATUS_COLORS | ✅ Complete | Color names for terminal output |
+| DevACStatusJSON | ✅ Complete | JSON schema for --json output |
+
+**Files created:**
+- `packages/devac-core/src/status/types.ts` - 174 lines
+- `packages/devac-core/src/status/json-schema.ts` - 137 lines
+- `packages/devac-core/src/status/index.ts`
+
+**Benefits:**
+- CLI and MCP use same output contracts
+- Consistent JSON schema for automation
+- Three-level output: summary (one-line), brief (sectioned), full (detailed)
+- Grouping support: by type, repo, or status
+
+**Validation**: ✅ CLI status and MCP status tool produce compatible structured output
+
+---
+
+## Browser Automation Integration
+
+**Status**: ✅ Released (v0.2.0)
+
+Browser automation suite released for E2E validation capabilities.
+
+**ADRs:**
+- ADR-0035: Browser Element Reference Hybrid Strategy
+- ADR-0036: Browser Session Management Singleton Pattern
+- ADR-0037: Browser MCP Tool Naming and Schema Conventions
+- ADR-0038: Browser Error Handling Strategy
+- ADR-0039: Browser Automation Test Strategy
+
+| Package | Status | Description |
+|---------|--------|-------------|
+| browser-cli | ✅ v0.2.0 | Browser automation CLI commands |
+| browser-core | ✅ v0.2.0 | Playwright wrapper with element refs |
+| browser-mcp | ✅ v0.2.0 | MCP server for browser control |
+
+**Browser CLI Commands:**
+```bash
+browser session start|stop|list
+browser navigate|reload|back|forward
+browser read [--selector] [--interactive-only] [--max-elements] [--json]
+browser click|type|fill|select|scroll|hover <ref> [options]
+browser screenshot [--full-page] [--selector]
+browser find [--selector|--text|--role|--name|--label|--placeholder|--test-id]
+browser eval <script>
+```
+
+**Element Reference Strategy (ADR-0035):**
+- Deterministic refs using hybrid strategy: testId → ariaLabel → role:name → fallback
+- Scoped to page state with version numbers
+- Human-readable format for AI agent understanding
+
+**Session Management (ADR-0036):**
+- Singleton SessionManager with resource limits (3 concurrent sessions, 5-min timeout)
+- Auto-cleanup on session end
+
+**Integration Gaps** (Future Work):
+
+| Gap | Description | Priority |
+|-----|-------------|----------|
+| ⬜ Validation integration | Connect browser tests to validation pipeline | Medium |
+| ⬜ A11y browser testing | Use browser for runtime WCAG validation | Medium |
+| ⬜ Visual regression | Screenshot comparison in validation | Low |
+| ⬜ Effect tracing in browser | Capture OTel spans from browser tests | Low |
+
+**Validation**: ✅ Browser automation commands available via CLI and MCP
 
 ---
 
@@ -487,36 +654,11 @@ pattern-not: |
 
 ---
 
-## Browser Automation Integration
-
-**Status**: ✅ Released (v0.2.0)
-
-Browser automation suite released for E2E validation capabilities.
-
-| Package | Status | Description |
-|---------|--------|-------------|
-| browser-cli | ✅ v0.2.0 | Browser automation CLI commands |
-| browser-core | ✅ v0.2.0 | Playwright wrapper with element refs |
-| browser-mcp | ✅ v0.2.0 | MCP server for browser control |
-
-**Integration Gaps** (Future Work):
-
-| Gap | Description | Priority |
-|-----|-------------|----------|
-| ⬜ Validation integration | Connect browser tests to validation pipeline | Medium |
-| ⬜ A11y browser testing | Use browser for runtime WCAG validation | Medium |
-| ⬜ Visual regression | Screenshot comparison in validation | Low |
-| ⬜ Effect tracing in browser | Capture OTel spans from browser tests | Low |
-
-**Validation**: Browser automation commands available via CLI and MCP
-
----
-
 ## Phase 6: Scalability & Competitive Parity
 
 **Status**: ⬜ Not started
 
-Gaps identified from expanded competitive analysis (2026-01-18):
+Gaps identified from expanded competitive analysis (2026-01-18, updated 2026-01-21):
 
 | Gap | Description | Priority | Competitive Context |
 |-----|-------------|----------|---------------------|
@@ -526,11 +668,19 @@ Gaps identified from expanded competitive analysis (2026-01-18):
 | ⬜ Embeddings exploration | Research vector search for semantic queries | Low | Cursor/Augment use RAG |
 | ⬜ IDE extension exploration | VSCode/Cursor extension feasibility | Low | Cursor/Windsurf have native IDE |
 
+**Competitive Context (Updated 2026-01-21)**:
+- **Cursor**: $29.3B valuation, background agents, custom Composer model
+- **Windsurf**: SWE-1.5 model (950 tokens/second), parallel agents
+- **Copilot**: Agent Mode + Skills system, cross-agent memory
+- **Devin**: $10.2B valuation, produces 25% of own PRs
+- **MCP**: 8M+ downloads, AAIF governance under Linux Foundation
+
 **Research needed:**
 - How does DuckDB perform with 1M+ rows in nodes table?
 - What's the memory footprint for 100k file analysis?
 - Should DevAC use embeddings alongside SQL, or stay SQL-pure?
 - Could MCP serve as indirect IDE integration?
+- Should DevAC target being a provider for Cursor/Copilot?
 
 **Validation**: Benchmark data vs Augment, Stack Graphs claims
 
@@ -551,7 +701,9 @@ Items requiring investigation before implementation:
 | Hook event patterns | Best practices for UserPromptSubmit/Stop hooks | ✅ Implemented (Phase 3) |
 | Session state management | How to track edited files across messages | ⬜ Future enhancement |
 | OTel effect correlation | Span attributes for code correlation | ✅ Researched (4C) |
-| Black-box + tracing | Effect validation without code changes | ✅ "Effect Probing" concept
+| Black-box + tracing | Effect validation without code changes | ✅ "Effect Probing" concept |
+| IDE integration strategy | MCP provider vs extension | ⬜ (see Phase 6) |
+| Background agents | Autonomous execution capability | ⬜ (competitors have this) |
 
 ---
 
@@ -561,9 +713,13 @@ Items requiring investigation before implementation:
 |-----|-------------|--------|
 | ✅ jsx-extraction.test.ts | Comprehensive tests demonstrating JSX parsing | Created |
 | ✅ phase-0-plan.md | Phase 0 implementation plan | Created |
+| ✅ ADR-0041 | CLI v4.0 reorganization | Complete |
+| ✅ ADR-0042 | MCP tool naming conventions | Complete |
+| ✅ Browser ADRs (0035-0039) | Browser automation architecture | Complete |
 | ⬜ handleJSXElement refactoring | Split into smaller helper methods | Low priority |
 | ⬜ actor-discovery.md | Implementation guide for Actor discovery | Not created |
 | ⬜ Storybook integration guide | How to set up OTel with Storybook | Not created |
+| ⬜ IDE integration guide | How to use DevAC with Cursor/Copilot | Not created |
 
 ---
 
@@ -579,22 +735,24 @@ When all gaps are closed:
 | Hook automation active | Plugin has working hooks | ✅ Complete (Phase 3) |
 | Auto-injection working | Diagnostic status injected on issues | ✅ Complete (Phase 3) |
 | Browser automation | E2E validation capability | ✅ Complete (v0.2.0) |
+| CLI reorganized | 3 core commands | ✅ Complete (v4.0) |
 | Effect Probing concept | Research and design | ✅ Research complete (Phase 4C) |
 | Effect-test correlation | 100% of tested effects matched | ⬜ Phase 4B |
 | Actor discovery | Explicit + inferred machines queryable | ⬜ Phase 5 |
 
-**Implementation Metrics** (Updated 2026-01-18):
+**Implementation Metrics** (Updated 2026-01-22):
 
 | Metric | Previous | Current | Target |
 |--------|----------|---------|--------|
-| Test files | - | **74** | Maintain |
-| Test lines | - | **18,842** | Maintain |
-| CLI commands | 40+ | **47** | 50 |
-| MCP tools | 21 | **22** | 25 |
-| ADRs | 34 | **43** | As needed |
-| Phases complete | 2 | **4** (0-3 + browser) | 6 |
+| Test files | 74 | **74** | Maintain |
+| Test lines | 18,842 | **18,842** | Maintain |
+| CLI commands | 47 | **47** (reorganized to 3 core) | 50 |
+| MCP tools | 22 | **22** | 25 |
+| ADRs | 43 | **43** | As needed |
+| Phases complete | 4 | **5** (0-3 + Prerequisites DX) | 6 |
+| Package version | 0.27.0 | **0.27.0** | 0.30.0 |
 
-**Competitive Benchmarks** (Updated 2026-01-18):
+**Competitive Benchmarks** (Updated 2026-01-21):
 
 | Metric | DevAC Current | Competitor Reference | Target |
 |--------|---------------|---------------------|--------|
@@ -603,6 +761,7 @@ When all gaps are closed:
 | Language count | 3 (TS, Python, C#) | Aider: 40+ | 5 (add Go, Rust) |
 | Query latency p95 | ~200ms | Unknown | <100ms |
 | Memory per 10k nodes | Unknown | Unknown | <100MB |
+| CLI command count | 3 core + utilities | Cursor: N/A | Maintain simplicity |
 
 ---
 
@@ -611,22 +770,34 @@ When all gaps are closed:
 - This document should be updated as implementation progresses
 - New gaps discovered during implementation should be added here
 - Consider splitting into separate tracking issues as phases begin
-- **2026-01-18**: Added Phase 3 (Hook-Based Validation Triggering) from vision document analysis
-- **2026-01-18**: Added Phase 6 (Scalability & Competitive Parity) based on expanded competitive analysis
-- **2026-01-18**: Added competitive benchmarks to Success Metrics
-- **2026-01-18**: Phase 3 marked COMPLETE (hooks.json, `--inject`, `--on-stop` implemented)
+- **2026-01-17**: Phase 0 marked COMPLETE (JSX extraction)
+- **2026-01-17**: Phase 1 marked COMPLETE (A11y attributes)
+- **2026-01-18**: Phase 2 marked COMPLETE (WCAG validation)
+- **2026-01-18**: Phase 3 marked COMPLETE (Hook-based validation triggering)
 - **2026-01-18**: Added Phase 4C (Effect Probing) — novel concept from black-box + OTel research
-- **2026-01-18**: Added Phase 5C research findings (state machine inference, sequence matching, OTel correlation)
+- **2026-01-18**: Added Phase 5C research findings (state machine inference, sequence matching)
+- **2026-01-18**: Added Phase 6 (Scalability & Competitive Parity)
 - **2026-01-18**: Added Browser Automation Integration section (v0.2.0 released)
-- **2026-01-18**: Updated Research Gaps with completed research topics
+- **2026-01-21**: Added CLI v4.0 Reorganization section (ADR-0041, ADR-0042)
+- **2026-01-21**: Updated competitive context (Cursor $29.3B, Copilot Agent Mode, MCP 8M+ downloads)
+- **2026-01-21**: Added browser automation ADRs (0035-0039)
+- **2026-01-21**: Updated Research Gaps with IDE integration and background agents questions
+- **2026-01-22**: Added Prerequisites DX System section (complete)
+- **2026-01-22**: Added Status Types in Core section (complete)
+- **2026-01-22**: Prerequisites module provides unified error handling with no circular suggestions
+- **2026-01-22**: Status output now supports three levels (summary/brief/full) with grouping
 
 ---
 
-*Last reviewed: 2026-01-18*
+*Last reviewed: 2026-01-22*
 *Phase 0 completed: 2026-01-17*
 *Phase 1 completed: 2026-01-17*
 *Phase 2 completed: 2026-01-18*
-*Phase 3 completed: 2026-01-18* (Hook-based validation triggering — hooks.json, --inject, --on-stop)
-*Phase 4C added: 2026-01-18* (Effect Probing concept from research)
-*Phase 6 added: 2026-01-18* (Scalability gaps from competitive analysis)
+*Phase 3 completed: 2026-01-18* (Hook-based validation triggering)
+*CLI v4.0 completed: 2026-01-21* (sync/status/query reorganization)
 *Browser automation: 2026-01-18* (v0.2.0 released)
+*Phase 4C research: 2026-01-18* (Effect Probing concept)
+*Phase 6 added: 2026-01-18* (Scalability gaps from competitive analysis)
+*Competitive update: 2026-01-21* (Market landscape refresh)
+*Prerequisites DX: 2026-01-22* (unified error handling, hub lock detection)
+*Status types in core: 2026-01-22* (CLI/MCP consistency)

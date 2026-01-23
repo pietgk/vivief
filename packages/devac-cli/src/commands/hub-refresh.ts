@@ -5,9 +5,8 @@
  * Based on spec Phase 4: Federation.
  */
 
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import { type RefreshResult, createHubClient } from "@pietgk/devac-core";
+import { checkHubPrerequisites } from "./shared/hub-prerequisites.js";
 
 /**
  * Hub refresh command options
@@ -49,27 +48,23 @@ export interface HubRefreshResult {
 export async function hubRefresh(options: HubRefreshOptions): Promise<HubRefreshResult> {
   const { hubDir, repoId } = options;
 
-  // Check if hub is initialized
-  const hubPath = path.join(hubDir, "central.duckdb");
-  const hubExists = await fs
-    .access(hubPath)
-    .then(() => true)
-    .catch(() => false);
-
-  if (!hubExists) {
+  // Check hub prerequisites using shared utility
+  // Use directHubDir since hubDir is already known
+  const prereq = await checkHubPrerequisites({ path: hubDir, directHubDir: true });
+  if (!prereq.ready) {
     return {
       success: false,
       reposRefreshed: 0,
       packagesUpdated: 0,
       edgesUpdated: 0,
       errors: [],
-      message: "Hub not initialized",
-      error: `Hub not initialized at ${hubDir}. Run 'devac hub init' first.`,
+      message: prereq.error?.split("\n")[0] || "Hub not ready",
+      error: prereq.error,
     };
   }
 
   // Use HubClient (delegates to MCP if running, otherwise direct access)
-  const client = createHubClient({ hubDir, skipValidation: options.skipValidation });
+  const client = createHubClient({ hubDir: prereq.hubDir, skipValidation: options.skipValidation });
 
   try {
     const result: RefreshResult = await client.refresh(repoId);

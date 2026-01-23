@@ -166,22 +166,22 @@ By Source:
 
 ## Command Aliases
 
-DevAC provides command aliases for improved discoverability and consistency with the Three Pillars model.
+DevAC provides command aliases for improved discoverability and consistency with the Four Pillars model.
 
 ### Extractor Aliases
 
 ```bash
-devac extract                    # Alias for: devac analyze
-devac extract --package ./pkg    # Alias for: devac analyze --package ./pkg
-devac extract --force            # Alias for: devac analyze --force
+devac extract                    # Alias for: devac sync
+devac extract --package ./pkg    # Alias for: devac sync --package ./pkg
+devac extract --force            # Alias for: devac sync --force
 ```
 
 ### Validator Aliases
 
 ```bash
-devac check                      # Alias for: devac validate
-devac check --quick              # Alias for: devac validate --quick
-devac check --full               # Alias for: devac validate --full
+devac check                      # Alias for: devac sync --validate
+devac check --quick              # Alias for: devac sync --validate --quick
+devac check --full               # Alias for: devac sync --validate --full
 ```
 
 ### Workspace Alias
@@ -203,12 +203,12 @@ devac ws mcp                     # Alias for: devac workspace mcp
 
 ## Package Commands
 
-### devac analyze
+### devac sync
 
-Parse source files and generate seed Parquet files.
+Analyze source files and generate seed Parquet files. This is the primary command for analysis.
 
 ```bash
-devac analyze [options]
+devac sync [options]
 
 Options:
   --package <path>    Analyze specific package (default: current directory)
@@ -216,13 +216,18 @@ Options:
   --if-changed        Only analyze if source files changed (hash-based)
   --force             Force full re-analysis, ignore cache
   --structural-only   Skip semantic resolution pass
+  --watch             Watch for changes and update incrementally
+  --validate          Run validation after analysis
+  --clean             Remove all seed files first
 
 Examples:
-  devac analyze                        # Analyze current package
-  devac analyze --package ./packages/auth
-  devac analyze --all                  # Analyze entire monorepo
-  devac analyze --if-changed           # Smart incremental
-  devac analyze --force                # Full regeneration
+  devac sync                           # Analyze current package
+  devac sync --package ./packages/auth
+  devac sync --all                     # Analyze entire monorepo
+  devac sync --if-changed              # Smart incremental
+  devac sync --force                   # Full regeneration
+  devac sync --watch                   # Watch mode
+  devac sync --validate                # Analyze + validate
 ```
 
 **Output:**
@@ -237,37 +242,46 @@ Examples:
 
 ### devac query
 
-Run DuckDB SQL queries against seed files.
+Query subcommands for exploring the code graph.
 
 ```bash
-devac query "<sql>" [options]
+devac query <subcommand> [options]
 
-Options:
-  --package <path>    Query specific package
-  --format <format>   Output format: table (default), json, csv
-  --output <file>     Write output to file
+Subcommands:
+  sql <query>         Run SQL query against seeds
+  symbol <name>       Find symbols by name
+  deps <entity-id>    Get dependencies
+  dependents <id>     Get reverse dependencies
+  affected <files>    Find affected files
+  repos               List registered repositories
 
 Examples:
-  devac query "SELECT * FROM nodes LIMIT 10"
-  devac query "SELECT name FROM nodes WHERE kind='function'" --format json
-  devac query "SELECT * FROM edges" --output edges.csv --format csv
+  devac query sql "SELECT * FROM nodes LIMIT 10"
+  devac query sql "SELECT name FROM nodes WHERE kind='function'" --format json
+  devac query symbol handleLogin
+  devac query deps myrepo:pkg:function:abc123
+  devac query affected src/api/user.ts
+  devac query repos
 ```
 
-### devac watch
+### devac sync --watch
 
 Watch for file changes and update seeds incrementally.
 
 ```bash
-devac watch [options]
+devac sync --watch [options]
 
 Options:
   --package <path>    Watch specific package
   --validate          Run validation on changes
+  --verbose           Verbose output
+  --debounce <ms>     Custom debounce interval
 
 Examples:
-  devac watch                          # Watch current package
-  devac watch --package ./packages/auth
-  devac watch --validate               # Watch + validate
+  devac sync --watch                              # Watch current package
+  devac sync --watch --package ./packages/auth
+  devac sync --watch --validate                   # Watch + validate
+  devac sync --watch --verbose                    # Verbose output
 ```
 
 **Output:**
@@ -279,12 +293,12 @@ Examples:
 ^C Stopping watch...
 ```
 
-### devac verify
+### devac status --seeds
 
 Check seed file integrity.
 
 ```bash
-devac verify [options]
+devac status --seeds [options]
 
 Options:
   --package <path>    Verify specific package
@@ -305,12 +319,12 @@ Checks:
   Orphans: 0
 ```
 
-### devac clean
+### devac sync --clean
 
-Remove all seed files (forces regeneration on next analyze).
+Remove all seed files and regenerate.
 
 ```bash
-devac clean [options]
+devac sync --clean [options]
 
 Options:
   --package <path>    Clean specific package
@@ -318,9 +332,9 @@ Options:
   --dry-run           Show what would be deleted
 
 Examples:
-  devac clean                          # Clean current package
-  devac clean --all                    # Clean entire repo
-  devac clean --dry-run                # Preview
+  devac sync --clean                   # Clean and regenerate current package
+  devac sync --clean --all             # Clean entire repo
+  devac sync --clean --dry-run         # Preview
 ```
 
 ## Validation Commands
@@ -386,12 +400,12 @@ Examples:
 
 ## Code Graph Commands
 
-### devac find-symbol
+### devac query symbol
 
 Find symbols by name.
 
 ```bash
-devac find-symbol <name> [options]
+devac query symbol <name> [options]
 
 Options:
   -p, --package <path>    Query single package only (otherwise queries all repos)
@@ -400,18 +414,18 @@ Options:
   --pretty                Human-readable output
 
 Examples:
-  devac find-symbol handleLogin                # Search all repos
-  devac find-symbol User --kind class          # Filter by kind
-  devac find-symbol login -p ./my-pkg          # Search single package
-  devac find-symbol login --pretty             # Human-readable output
+  devac query symbol handleLogin               # Search all repos
+  devac query symbol User --kind class         # Filter by kind
+  devac query symbol login -p ./my-pkg         # Search single package
+  devac query symbol login --pretty            # Human-readable output
 ```
 
-### devac deps
+### devac query deps
 
 Get dependencies (outgoing edges) for an entity. Queries all repos by default.
 
 ```bash
-devac deps <entity-id> [options]
+devac query deps <entity-id> [options]
 
 Options:
   -p, --package <path>    Query single package only (otherwise queries all repos)
@@ -420,17 +434,17 @@ Options:
   --pretty                Human-readable output
 
 Examples:
-  devac deps myrepo:pkg:function:abc123        # Get dependencies (all repos)
-  devac deps entity-id --edge-type CALLS       # Filter by edge type
-  devac deps entity-id -p ./my-pkg             # Single package query
+  devac query deps myrepo:pkg:function:abc123  # Get dependencies (all repos)
+  devac query deps entity-id --edge-type CALLS # Filter by edge type
+  devac query deps entity-id -p ./my-pkg       # Single package query
 ```
 
-### devac dependents
+### devac query dependents
 
 Get dependents (incoming edges) for an entity. Queries all repos by default.
 
 ```bash
-devac dependents <entity-id> [options]
+devac query dependents <entity-id> [options]
 
 Options:
   -p, --package <path>    Query single package only (otherwise queries all repos)
@@ -439,9 +453,9 @@ Options:
   --pretty                Human-readable output
 
 Examples:
-  devac dependents entity-id                   # Who uses this? (all repos)
-  devac dependents entity-id --edge-type IMPORTS
-  devac dependents entity-id -p ./my-pkg       # Single package query
+  devac query dependents entity-id             # Who uses this? (all repos)
+  devac query dependents entity-id --edge-type IMPORTS
+  devac query dependents entity-id -p ./my-pkg # Single package query
 ```
 
 ### devac file-symbols
@@ -556,12 +570,12 @@ Examples:
   devac hub unregister repo-api
 ```
 
-### devac hub list
+### devac query repos
 
 List available repositories (auto-discovers repos with seeds).
 
 ```bash
-devac hub list
+devac query repos
 
 Output:
 ┌────────────────┬───────────────────────────┬────────────────┐
@@ -572,27 +586,27 @@ Output:
 └────────────────┴───────────────────────────┴────────────────┘
 ```
 
-### devac hub query
+### devac query sql
 
 Query across all repos with seeds (auto-discovered).
 
 ```bash
-devac hub query "<sql>" [options]
+devac query sql "<sql>" [options]
 
 Options:
   --format <format>   Output format: table (default), json, csv
 
 Examples:
-  devac hub query "SELECT * FROM nodes WHERE name = 'handleLogin'"
-  devac hub query "SELECT DISTINCT module_specifier FROM external_refs"
+  devac query sql "SELECT * FROM nodes WHERE name = 'handleLogin'"
+  devac query sql "SELECT DISTINCT module_specifier FROM external_refs"
 ```
 
-### devac hub status
+### devac status --hub
 
 Show hub status and statistics.
 
 ```bash
-devac hub status
+devac status --hub
 
 Output:
 Central Hub: /path/to/workspace/.devac/
@@ -602,31 +616,13 @@ Total Nodes: 45,231
 Last Refresh: 2025-01-15T10:30:00Z
 ```
 
-### devac hub refresh
+### Hub Initialization (Automatic)
 
-Rebuild cross-repo edge cache.
-
-```bash
-devac hub refresh
-
-Output:
-Refreshing hub cache...
-  Scanning 3 repositories...
-  Computing cross-repo edges...
-✓ Hub refreshed
-  Cross-repo edges: 234
-  Time: 4.2s
-```
-
-### devac hub init
-
-Initialize the central hub (first-time setup).
+The central hub is automatically initialized when running `devac sync`. No separate initialization step is required.
 
 ```bash
-devac hub init [options]
-
-Options:
-  --path <path>       Hub location (default: auto-detected from workspace)
+# Hub is initialized automatically during sync
+devac sync
 ```
 
 ### devac hub sync
@@ -749,12 +745,12 @@ Examples:
 
 ## Integrated Validation Commands
 
-### devac validate
+### devac sync --validate
 
 Run validation on affected files.
 
 ```bash
-devac validate [options]
+devac sync --validate [options]
 
 Options:
   --quick             Quick mode: changed + direct importers (1 hop)
@@ -767,11 +763,11 @@ Options:
   --repo-id <id>      Repository ID for hub push (required with --push-to-hub)
 
 Examples:
-  devac validate --quick               # Fast validation
-  devac validate --full                # Thorough validation
-  devac validate --push-to-hub --repo-id myorg/myrepo
+  devac sync --validate --quick        # Fast validation
+  devac sync --validate --full         # Thorough validation
+  devac sync --validate --push-to-hub --repo-id myorg/myrepo
                                        # Push results to hub for LLM queries
-  devac validate --skip-lint           # Skip linting, run typecheck only
+  devac sync --validate --skip-lint    # Skip linting, run typecheck only
 ```
 
 **Hub Integration:**
@@ -780,26 +776,26 @@ When using `--push-to-hub`, validation results are stored in the central hub's D
 
 ```bash
 # Push validation errors to hub
-devac validate --push-to-hub --repo-id github.com/org/repo
+devac sync --validate --push-to-hub --repo-id github.com/org/repo
 
 # Query errors via MCP
 # (get_validation_errors, get_validation_summary, get_validation_counts)
 ```
 
-### devac affected
+### devac query affected
 
 Show files affected by recent changes.
 
 ```bash
-devac affected [options]
+devac query affected <files> [options]
 
 Options:
   --since <ref>       Git ref to compare against (default: HEAD~1)
   --package <path>    Scope to specific package
 
 Examples:
-  devac affected
-  devac affected --since main
+  devac query affected src/api/user.ts
+  devac query affected --since main
 ```
 
 ## Workspace Commands
@@ -1701,12 +1697,12 @@ External Systems
 
 Diagnose and fix common issues with the DevAC CLI/MCP setup.
 
-### devac doctor
+### devac status --doctor
 
 Check system health and optionally fix issues.
 
 ```bash
-devac doctor [options]
+devac status --doctor [options]
 
 Options:
   --fix               Execute fixes (default: dry-run only)
@@ -1714,10 +1710,10 @@ Options:
   --verbose           Show additional details
 
 Examples:
-  devac doctor                    # Check health (dry-run)
-  devac doctor --fix              # Execute fixes automatically
-  devac doctor --json             # JSON output for scripting
-  devac doctor --verbose          # Show additional details
+  devac status --doctor           # Check health (dry-run)
+  devac status --doctor --fix     # Execute fixes automatically
+  devac status --doctor --json    # JSON output for scripting
+  devac status --doctor --verbose # Show additional details
 ```
 
 **Checks Performed:**
@@ -1767,7 +1763,7 @@ Run with --fix to apply fixes
 When issues are found, running with `--fix` will automatically execute repair commands:
 
 ```bash
-devac doctor --fix
+devac status --doctor --fix
 
 # Example output with fixes:
 CLI Installation

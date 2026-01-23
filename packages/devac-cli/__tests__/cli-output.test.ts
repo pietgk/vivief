@@ -72,7 +72,7 @@ describe("cli-output utilities", () => {
 
       expect(errorSpy).toHaveBeenCalledWith("");
       expect(errorSpy).toHaveBeenCalledWith(
-        "  Suggestion: Run 'devac analyze' in the repository first"
+        "  Suggestion: Run 'devac sync' in the repository first"
       );
     });
 
@@ -90,7 +90,7 @@ describe("cli-output utilities", () => {
 
       expect(errorSpy).toHaveBeenCalledWith("");
       expect(errorSpy).toHaveBeenCalledWith(
-        "  Suggestion: Check the repository ID with 'devac hub list'"
+        "  Suggestion: Check the repository ID with 'devac query repos'"
       );
     });
 

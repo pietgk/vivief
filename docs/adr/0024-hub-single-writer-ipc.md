@@ -4,6 +4,8 @@
 
 Accepted
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 DuckDB does not support concurrent read-write access from multiple processes. When the MCP server (`devac-mcp`) is running with a read-write connection to the central hub (`central.duckdb`), CLI commands like `devac hub register` fail with:
@@ -206,11 +208,11 @@ MCP Stop:
 ```bash
 # With MCP running
 devac-mcp &
-devac hub register ./my-repo  # Uses IPC
+devac sync  # Uses IPC to register repo with hub
 
 # Without MCP
 pkill devac-mcp
-devac hub register ./my-repo  # Falls back to direct access
+devac sync  # Falls back to direct access
 ```
 
 ## References

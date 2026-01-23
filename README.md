@@ -66,16 +66,16 @@ devac-worktree --version
 
 ```bash
 # Analyze a package
-devac analyze --package ./my-project
+devac sync --package ./my-project
 
 # Query the code graph
-devac query "SELECT name, kind FROM nodes WHERE kind = 'function'"
+devac query sql "SELECT name, kind FROM nodes WHERE kind = 'function'"
 
 # Watch for changes
-devac watch --package ./my-project
+devac sync --package ./my-project --watch
 
 # Find affected files
-devac affected src/api/user.ts src/models/user.ts
+devac query affected src/api/user.ts src/models/user.ts
 ```
 
 ## Packages
@@ -93,67 +93,67 @@ devac affected src/api/user.ts src/models/user.ts
 
 ```bash
 # Analyze a package
-devac analyze -p ./my-package
+devac sync -p ./my-package
 
 # Analyze only if files changed
-devac analyze -p ./my-package --if-changed
+devac sync -p ./my-package --if-changed
 
 # Force full reanalysis
-devac analyze -p ./my-package --force
+devac sync -p ./my-package --force
 ```
 
 ### Querying
 
 ```bash
 # JSON output (default)
-devac query "SELECT * FROM nodes LIMIT 10"
+devac query sql "SELECT * FROM nodes LIMIT 10"
 
 # CSV output
-devac query "SELECT name, kind FROM nodes" --format csv
+devac query sql "SELECT name, kind FROM nodes" --format csv
 
 # Table output
-devac query "SELECT name, kind FROM nodes" --format table
+devac query sql "SELECT name, kind FROM nodes" --format table
 ```
 
 ### Watch Mode
 
 ```bash
 # Watch with verbose output
-devac watch -p ./my-package --verbose
+devac sync -p ./my-package --watch --verbose
 
 # Custom debounce interval
-devac watch -p ./my-package --debounce 200
+devac sync -p ./my-package --watch --debounce 200
 ```
 
 ### Hub Commands (Federation)
 
 ```bash
-# Initialize central hub
-devac hub init
+# Sync and initialize central hub (automatic)
+devac sync
 
 # List available repositories (auto-discovers repos with seeds)
-devac hub list
+devac query repos
 
 # Check hub status
-devac hub status
+devac status --hub
 
 # Refresh manifests
-devac hub refresh
+devac sync
 ```
 
-**Note:** Repositories with `.devac/seed/` directories are automatically discovered and available for hub queries. Explicit registration via `devac hub register` is optional.
+**Note:** Repositories with `.devac/seed/` directories are automatically discovered and available for hub queries. The hub is automatically initialized when running `devac sync`.
 
 ### Diagnostics
 
 ```bash
 # Check system health
-devac doctor
+devac status --doctor
 
 # Fix issues automatically
-devac doctor --fix
+devac status --doctor --fix
 
 # JSON output for scripting
-devac doctor --json
+devac status --doctor --json
 ```
 
 ### Context Discovery
@@ -165,7 +165,7 @@ DevAC can automatically discover related repositories in a parent directory work
 devac context
 
 # Query across all repos in context
-devac context query "SELECT name, kind FROM nodes WHERE kind = 'function'"
+devac query sql "SELECT name, kind FROM nodes WHERE kind = 'function'"
 
 # Check CI status for all PRs in context
 devac context ci
@@ -232,7 +232,7 @@ devac workspace init
 2. `devac workspace watch` monitors seed files → refreshes hub
 3. Hub enables cross-repo queries via MCP or CLI
 
-> **Note:** Repos must have seeds (run `devac analyze` or `devac watch` first) before `devac workspace watch` can detect changes.
+> **Note:** Repos must have seeds (run `devac sync` first) before `devac workspace watch` can detect changes.
 
 ### Workspace Repository Commands
 

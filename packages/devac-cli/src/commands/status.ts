@@ -4,25 +4,36 @@
  * Shows unified status across all DevAC pillars:
  * - Context: Where am I? What issue?
  * - DevAC Health: Is DevAC running? (watch, hub, mcp)
+ * - Seeds: Code analysis status
  * - Code Diagnostics: Is code healthy? (errors, lint, tests, coverage)
  * - Work Activity: What's pending? (PRs, reviews)
  * - Next: What should I do?
  *
- * @see docs/vision/concepts.md for the Three Pillars model
+ * Output Levels:
+ * - summary (default): 1-line quick health check
+ * - brief: Sectioned output with key metrics
+ * - full: Detailed per-repo/per-item information
+ *
+ * @see docs/vision/concepts.md for the Four Pillars model
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  type ReadinessOutput,
   type WorkspaceStatus,
   createHubClient,
   discoverContext,
   getCIStatusForContext,
+  getReadinessForStatus,
   getWorkspaceStatus,
   setGlobalLogLevel,
   syncCIStatusToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { colorIcon, colors, header, setColorsEnabled } from "../utils/colors.js";
+import type { DevACStatusJSON, GroupBy, OutputLevel } from "./status-types.js";
+import { STATUS_ICONS } from "./status-types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auto-discovered Workspace Types
@@ -42,8 +53,8 @@ export interface StatusOptions {
   /** Path to check status from (defaults to cwd) */
   path: string;
 
-  /** Output format: "oneline" | "brief" | "full" */
-  format: "oneline" | "brief" | "full";
+  /** Output level: "summary" | "brief" | "full" */
+  level: OutputLevel;
 
   /** Output as JSON */
   json?: boolean;
@@ -59,6 +70,15 @@ export interface StatusOptions {
 
   /** Hook injection mode - output hook-compatible JSON for Claude Code hooks */
   inject?: boolean;
+
+  /** Grouping mode for output */
+  groupBy: GroupBy;
+
+  /** Disable colors */
+  noColor?: boolean;
+
+  /** Suppress non-essential logging */
+  quiet?: boolean;
 
   // ────────────────────────────────────────────────────────────────────────────
   // Phase 2 additions: Focused status flags (v4.0 reorganization)
@@ -173,6 +193,9 @@ export interface StatusResult {
 
   /** Seed status for repos (from devac-core) */
   seeds?: WorkspaceStatus;
+
+  /** Readiness status for sync/query commands */
+  readiness?: ReadinessOutput;
 
   /** Formatted output (for non-JSON) */
   formatted?: string;
@@ -355,64 +378,191 @@ function formatWorkspaceContext(repos: DiscoveredRepo[]): string {
   return lines.join("\n");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Component Formatters - Summary Level
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Format one-liner status
+ * Format context for summary output.
+ * Example: "vivief:cli-v4" or "vivief-gh123"
  */
-function formatOneLine(result: StatusResult): string {
-  const parts: string[] = [];
-
-  // Context
+function formatContextSummary(result: StatusResult): string {
   if (result.context.issueId) {
-    parts.push(`${result.context.repoName}-${result.context.issueId}`);
-  } else if (result.context.repoName) {
-    parts.push(result.context.repoName);
-  } else if (result.context.isWorkspace) {
-    parts.push("workspace");
-  } else {
-    parts.push(path.basename(result.context.cwd));
+    return `${result.context.repoName}-${result.context.issueId}`;
   }
-
-  // Diagnostics
-  const diagParts: string[] = [];
-  if (result.diagnostics.errors > 0) {
-    diagParts.push(`errors:${result.diagnostics.errors}`);
+  if (result.context.repoName && result.context.branch) {
+    return `${result.context.repoName}:${result.context.branch}`;
   }
-  if (result.diagnostics.warnings > 0) {
-    diagParts.push(`warnings:${result.diagnostics.warnings}`);
+  if (result.context.repoName) {
+    return result.context.repoName;
   }
-  if (diagParts.length === 0) {
-    diagParts.push("ok");
+  if (result.context.isWorkspace) {
+    return "workspace";
   }
-  parts.push(diagParts.join(" "));
-
-  // Health indicators
-  const healthParts: string[] = [];
-  if (result.health.hubConnected) {
-    healthParts.push("hub:ok");
-  }
-  if (result.health.watchActive) {
-    healthParts.push("watch:active");
-  }
-  if (healthParts.length > 0) {
-    parts.push(healthParts.join(" "));
-  }
-
-  // Next action
-  const nextAction = result.next[0];
-  if (nextAction) {
-    parts.push(`next:${nextAction.toLowerCase().replace(/\s+/g, "-")}`);
-  }
-
-  return parts.join("  ");
+  return path.basename(result.context.cwd);
 }
 
 /**
- * Format brief status
+ * Format health for summary output.
+ * Example: "hub:ok" | "hub:!" | "watch:active"
  */
-function formatBrief(result: StatusResult, seedsOnly = false): string {
+function formatHealthSummary(result: StatusResult): string {
+  const parts: string[] = [];
+  if (result.health.hubConnected) {
+    parts.push("hub:ok");
+  } else {
+    parts.push(colors.red("hub:!"));
+  }
+  if (result.health.watchActive) {
+    parts.push("watch:on");
+  }
+  return parts.join(" ");
+}
+
+/**
+ * Format seeds for summary output.
+ * Example: "22r/145p" (repos/packages)
+ */
+function formatSeedsSummary(result: StatusResult): string {
+  if (!result.seeds) {
+    return "no-seeds";
+  }
+  const { summary } = result.seeds;
+  return `${summary.reposWithSeeds}r/${summary.packagesAnalyzed}p`;
+}
+
+/**
+ * Format diagnostics for summary output.
+ * Example: "ok" | "5e" | "5e/3w"
+ */
+function formatDiagnosticsSummary(result: StatusResult): string {
+  const { errors, warnings } = result.diagnostics;
+  if (errors === 0 && warnings === 0) {
+    return colors.green("ok");
+  }
+  const parts: string[] = [];
+  if (errors > 0) {
+    parts.push(colors.red(`${errors}e`));
+  }
+  if (warnings > 0) {
+    parts.push(colors.yellow(`${warnings}w`));
+  }
+  return parts.join("/");
+}
+
+/**
+ * Format workflow for summary output.
+ * Example: "5✓1✗1⏳" or "ok" or "1✗"
+ */
+function formatWorkflowSummary(result: StatusResult): string {
+  if (!result.workflow?.available) {
+    return colors.dim("ci:?");
+  }
+  const { summary } = result.workflow;
+  if (summary.total === 0) {
+    return colors.dim("ci:none");
+  }
+
+  const parts: string[] = [];
+  if (summary.passing > 0) {
+    parts.push(colors.green(`${summary.passing}${STATUS_ICONS.passing}`));
+  }
+  if (summary.failing > 0) {
+    parts.push(colors.red(`${summary.failing}${STATUS_ICONS.failing}`));
+  }
+  if (summary.pending > 0) {
+    parts.push(colors.yellow(`${summary.pending}${STATUS_ICONS.pending}`));
+  }
+  if (parts.length === 0) {
+    return colors.green("ok");
+  }
+  return parts.join("");
+}
+
+/**
+ * Format next for summary output.
+ * Example: "fix-ci" | "sync" | "ok"
+ */
+function formatNextSummary(result: StatusResult): string {
+  const nextAction = result.next[0];
+  if (!nextAction || nextAction.includes("All clear")) {
+    return colors.green("ok");
+  }
+  // Convert to kebab-case identifier
+  return nextAction
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 20);
+}
+
+/**
+ * Format complete summary (1-liner) output.
+ */
+function formatSummary(result: StatusResult): string {
+  const parts: string[] = [];
+
+  // Context
+  parts.push(formatContextSummary(result));
+
+  // Seeds
+  parts.push(formatSeedsSummary(result));
+
+  // Diagnostics
+  parts.push(formatDiagnosticsSummary(result));
+
+  // Workflow
+  parts.push(formatWorkflowSummary(result));
+
+  // Health
+  parts.push(formatHealthSummary(result));
+
+  // Next
+  const next = formatNextSummary(result);
+  if (next !== "ok") {
+    parts.push(`next:${next}`);
+  }
+
+  return `devac: ${parts.join("  ")}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component Formatters - Brief Level
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get workflow icon with color
+ */
+function getWorkflowIcon(status: "passing" | "failing" | "pending" | "no-pr" | "unknown"): string {
+  const icon = STATUS_ICONS[status === "no-pr" ? "noPr" : status] ?? "?";
+  // Map status to colorIcon's expected type
+  const colorStatus = status === "no-pr" || status === "unknown" ? "none" : status;
+  return colorIcon(icon, colorStatus);
+}
+
+/**
+ * Format brief status (sectioned output)
+ */
+function formatBrief(
+  result: StatusResult,
+  options: { seedsOnly: boolean; groupBy: GroupBy }
+): string {
+  if (options.groupBy === "repo") {
+    return formatBriefByRepo(result, options);
+  }
+  if (options.groupBy === "status") {
+    return formatBriefByStatus(result, options);
+  }
+  return formatBriefByType(result, options);
+}
+
+/**
+ * Format brief output grouped by type (default)
+ */
+function formatBriefByType(result: StatusResult, options: { seedsOnly: boolean }): string {
   const lines: string[] = [];
 
-  lines.push("DevAC Status");
+  lines.push(colors.bold("DevAC Status"));
 
   // Context
   let contextStr = result.context.cwd;
@@ -431,97 +581,103 @@ function formatBrief(result: StatusResult, seedsOnly = false): string {
 
   // DevAC Health
   const healthParts: string[] = [];
-  healthParts.push(result.health.watchActive ? "watch:active" : "watch:inactive");
-  healthParts.push(result.health.hubConnected ? "hub:connected" : "hub:disconnected");
-  lines.push(`  DevAC Health: ${healthParts.join("  ")}`);
+  healthParts.push(
+    result.health.watchActive ? colors.green("watch:active") : colors.dim("watch:inactive")
+  );
+  healthParts.push(
+    result.health.hubConnected ? colors.green("hub:connected") : colors.red("hub:disconnected")
+  );
+  lines.push(`  Health:       ${healthParts.join("  ")}`);
 
-  // Seed Status (new section)
-  if (result.seeds && result.seeds.repos.length > 0) {
-    lines.push("");
-    lines.push("  Seeds:");
-    for (const repo of result.seeds.repos) {
-      const { summary } = repo.seedStatus;
-      const analyzed = summary.base + summary.both;
-      const total = summary.total;
+  // Readiness (sync/query)
+  if (result.readiness) {
+    const syncStatus = result.readiness.sync.ready
+      ? colors.green("✓ ready")
+      : colors.red(`✗ ${result.readiness.sync.state}`);
+    const queryStatus = result.readiness.query.ready
+      ? colors.green("✓ ready")
+      : colors.red(`✗ ${result.readiness.query.state}`);
+    lines.push(`  Readiness:    sync: ${syncStatus}  query: ${queryStatus}`);
 
-      let statusStr: string;
-      if (total === 0) {
-        statusStr = "no packages";
-      } else if (analyzed === total) {
-        statusStr = `${analyzed} package${analyzed !== 1 ? "s" : ""} analyzed`;
-      } else if (analyzed === 0) {
-        statusStr = "not analyzed";
-      } else {
-        statusStr = `${analyzed}/${total} analyzed`;
+    // Show blockers if not ready
+    if (!result.readiness.sync.ready && result.readiness.sync.blockers.length > 0) {
+      const blocker = result.readiness.sync.blockers[0];
+      if (blocker) {
+        lines.push(`                └─ sync: ${blocker.message}`);
       }
+    }
+    if (!result.readiness.query.ready && result.readiness.query.blockers.length > 0) {
+      const blocker = result.readiness.query.blockers[0];
+      if (blocker) {
+        lines.push(`                └─ query: ${blocker.message}`);
+      }
+    }
+  }
 
-      const hubStr = repo.hubStatus === "registered" ? " (registered)" : "";
-      const repoName = repo.name.padEnd(20);
-      lines.push(`    ${repoName}${hubStr}: ${statusStr}`);
+  // Seed Status
+  if (result.seeds && result.seeds.repos.length > 0) {
+    const { summary } = result.seeds;
+    const analyzed = summary.packagesAnalyzed;
+    const total = analyzed + summary.packagesNeedAnalysis;
+    const seedStr =
+      total > 0
+        ? `${summary.reposWithSeeds} repos, ${analyzed}/${total} packages analyzed`
+        : `${summary.reposWithSeeds} repos`;
+    lines.push(`  Seeds:        ${seedStr}`);
+
+    // List repos needing analysis
+    const pendingRepos = result.seeds.repos.filter((r) =>
+      r.seedStatus.packages.some((p) => p.state === "none")
+    );
+    if (pendingRepos.length > 0 && pendingRepos.length <= 3) {
+      for (const repo of pendingRepos) {
+        lines.push(`    ${colors.yellow("○")} ${repo.name} (needs sync)`);
+      }
+    } else if (pendingRepos.length > 3) {
+      lines.push(`    ${colors.yellow("○")} ${pendingRepos.length} repos need sync`);
     }
   }
 
   // Skip diagnostics if --seeds-only
-  if (!seedsOnly) {
+  if (!options.seedsOnly) {
     // Diagnostics
-    const diagParts: string[] = [];
-    if (
-      result.diagnostics.bySource.tsc.errors > 0 ||
-      result.diagnostics.bySource.tsc.warnings > 0
-    ) {
-      diagParts.push(
-        `tsc:${result.diagnostics.bySource.tsc.errors}e/${result.diagnostics.bySource.tsc.warnings}w`
-      );
+    const { errors, warnings } = result.diagnostics;
+    let diagStr: string;
+    if (errors === 0 && warnings === 0) {
+      diagStr = colors.green("all clear");
+    } else {
+      const parts: string[] = [];
+      if (errors > 0) parts.push(colors.red(`${errors} errors`));
+      if (warnings > 0) parts.push(colors.yellow(`${warnings} warnings`));
+      diagStr = parts.join(", ");
     }
-    if (
-      result.diagnostics.bySource.eslint.errors > 0 ||
-      result.diagnostics.bySource.eslint.warnings > 0
-    ) {
-      diagParts.push(
-        `lint:${result.diagnostics.bySource.eslint.errors}e/${result.diagnostics.bySource.eslint.warnings}w`
-      );
-    }
-    if (
-      result.diagnostics.bySource.test.errors > 0 ||
-      result.diagnostics.bySource.test.warnings > 0
-    ) {
-      diagParts.push(`test:${result.diagnostics.bySource.test.errors > 0 ? "failing" : "ok"}`);
-    }
-    if (diagParts.length === 0) {
-      diagParts.push("all clear");
-    }
-    lines.push(`  Diagnostics:  ${diagParts.join("  ")}`);
-
-    // Activity
-    if (result.activity.openPRs > 0 || result.activity.pendingReviews > 0) {
-      const activityParts: string[] = [];
-      if (result.activity.openPRs > 0) {
-        activityParts.push(`prs:${result.activity.openPRs}`);
-      }
-      if (result.activity.pendingReviews > 0) {
-        activityParts.push(`reviews:${result.activity.pendingReviews}`);
-      }
-      lines.push(`  Activity:     ${activityParts.join("  ")}`);
-    }
+    lines.push(`  Diagnostics:  ${diagStr}`);
 
     // Workflow (CI/GitHub) - live status
     if (result.workflow) {
-      lines.push("");
-      lines.push("  Workflow:");
+      const { summary } = result.workflow;
       if (!result.workflow.available) {
-        lines.push(`    ⚠️  ${result.workflow.error ?? "CI status unavailable"}`);
-      } else if (result.workflow.statuses.length === 0) {
-        lines.push("    No repos with CI status");
+        lines.push(`  Workflow:     ${colors.yellow("unavailable")}`);
+      } else if (summary.total === 0) {
+        lines.push(`  Workflow:     ${colors.dim("no repos")}`);
       } else {
-        for (const status of result.workflow.statuses) {
+        const workflowParts: string[] = [];
+        if (summary.passing > 0) workflowParts.push(colors.green(`${summary.passing} passing`));
+        if (summary.failing > 0) workflowParts.push(colors.red(`${summary.failing} failing`));
+        if (summary.pending > 0) workflowParts.push(colors.yellow(`${summary.pending} pending`));
+        lines.push(`  Workflow:     ${workflowParts.join(", ")}`);
+
+        // Show failing/pending repos
+        const problemRepos = result.workflow.statuses.filter(
+          (s) => s.status === "failing" || s.status === "pending"
+        );
+        for (const status of problemRepos.slice(0, 5)) {
           const icon = getWorkflowIcon(status.status);
           const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
-          lines.push(`    ${icon} ${status.repo.padEnd(18)} ${prInfo}`);
+          lines.push(`    ${icon} ${status.repo} ${prInfo}`);
         }
-        // Summary line
-        const { summary } = result.workflow;
-        if (summary.failing > 0) {
-          lines.push(`    Summary: ${summary.failing} failing, ${summary.passing} passing`);
+        if (problemRepos.length > 5) {
+          lines.push(`    ${colors.dim(`... and ${problemRepos.length - 5} more`)}`);
         }
       }
     }
@@ -529,43 +685,168 @@ function formatBrief(result: StatusResult, seedsOnly = false): string {
 
   // Next
   if (result.next.length > 0) {
-    lines.push(`  Next:         ${result.next[0]}`);
+    const nextAction = result.next[0];
+    if (nextAction && !nextAction.includes("All clear")) {
+      lines.push(`  Next:         ${nextAction}`);
+    }
   }
 
   return lines.join("\n");
 }
 
 /**
- * Get icon for workflow/CI status
+ * Format brief output grouped by repo
  */
-function getWorkflowIcon(status: "passing" | "failing" | "pending" | "no-pr" | "unknown"): string {
-  switch (status) {
-    case "passing":
-      return "✓";
-    case "failing":
-      return "✗";
-    case "pending":
-      return "⏳";
-    case "no-pr":
-      return "○";
-    case "unknown":
-      return "?";
+function formatBriefByRepo(result: StatusResult, _options: { seedsOnly: boolean }): string {
+  const lines: string[] = [];
+
+  lines.push(colors.bold("DevAC Status (by repo)"));
+  lines.push("");
+
+  if (!result.seeds || result.seeds.repos.length === 0) {
+    lines.push(colors.dim("  No repos discovered"));
+    return lines.join("\n");
+  }
+
+  for (const repo of result.seeds.repos) {
+    const { summary } = repo.seedStatus;
+    const analyzed = summary.base + summary.both;
+    const total = summary.total;
+
+    // Repo name with branch if it's current repo
+    let repoLine = `  ${colors.bold(repo.name)}`;
+    if (repo.name === result.context.repoName && result.context.branch) {
+      repoLine += ` (${result.context.branch})`;
+    }
+    lines.push(repoLine);
+
+    // Seeds
+    const seedStr = total > 0 ? `${analyzed}/${total} analyzed` : "no packages";
+    lines.push(`    Seeds: ${seedStr}`);
+
+    // CI status for this repo
+    const repoWorkflow = result.workflow?.statuses.find((s) => s.repo === repo.name);
+    if (repoWorkflow) {
+      const icon = getWorkflowIcon(repoWorkflow.status);
+      const prInfo = repoWorkflow.prNumber ? `PR #${repoWorkflow.prNumber}` : "no PR";
+      lines.push(`    CI: ${icon} ${prInfo}`);
+    } else {
+      lines.push(`    CI: ${colors.dim("○ no PR")}`);
+    }
+
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Format brief output grouped by status
+ */
+function formatBriefByStatus(result: StatusResult, _options: { seedsOnly: boolean }): string {
+  const lines: string[] = [];
+
+  lines.push(colors.bold("DevAC Status (by status)"));
+  lines.push("");
+
+  if (!result.workflow?.available || result.workflow.statuses.length === 0) {
+    lines.push(colors.dim("  No CI status available"));
+    return lines.join("\n");
+  }
+
+  const byStatus = {
+    failing: result.workflow.statuses.filter((s) => s.status === "failing"),
+    pending: result.workflow.statuses.filter((s) => s.status === "pending"),
+    passing: result.workflow.statuses.filter((s) => s.status === "passing"),
+    none: result.workflow.statuses.filter((s) => s.status === "no-pr"),
+  };
+
+  // Failing
+  if (byStatus.failing.length > 0) {
+    lines.push(`  ${colors.red(`${STATUS_ICONS.failing} Failing (${byStatus.failing.length})`)}`);
+    for (const status of byStatus.failing) {
+      const prInfo = status.prNumber ? `PR #${status.prNumber}` : "";
+      lines.push(`    ${status.repo} ${prInfo}`);
+    }
+    lines.push("");
+  }
+
+  // Pending
+  if (byStatus.pending.length > 0) {
+    lines.push(
+      `  ${colors.yellow(`${STATUS_ICONS.pending} Pending (${byStatus.pending.length})`)}`
+    );
+    for (const status of byStatus.pending) {
+      const prInfo = status.prNumber ? `PR #${status.prNumber}` : "";
+      lines.push(`    ${status.repo} ${prInfo}`);
+    }
+    lines.push("");
+  }
+
+  // Passing
+  if (byStatus.passing.length > 0) {
+    lines.push(`  ${colors.green(`${STATUS_ICONS.passing} Passing (${byStatus.passing.length})`)}`);
+    for (const status of byStatus.passing.slice(0, 5)) {
+      const prInfo = status.prNumber ? `PR #${status.prNumber}` : "";
+      lines.push(`    ${status.repo} ${prInfo}`);
+    }
+    if (byStatus.passing.length > 5) {
+      lines.push(`    ${colors.dim(`... and ${byStatus.passing.length - 5} more`)}`);
+    }
+    lines.push("");
+  }
+
+  // No PR
+  if (byStatus.none.length > 0) {
+    lines.push(`  ${colors.dim(`${STATUS_ICONS.noPr} No PR (${byStatus.none.length})`)}`);
+    const names = byStatus.none
+      .slice(0, 5)
+      .map((s) => s.repo)
+      .join(", ");
+    lines.push(`    ${names}${byStatus.none.length > 5 ? ", ..." : ""}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component Formatters - Full Level
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Format seed state for display
+ */
+function formatSeedState(state: string): string {
+  switch (state) {
+    case "none":
+      return colors.red("none ");
+    case "base":
+      return colors.yellow("base ");
+    case "delta":
+      return colors.yellow("delta");
+    case "both":
+      return colors.green("both ");
+    default:
+      return state.padEnd(5);
   }
 }
 
 /**
  * Format full status
  */
-function formatFull(result: StatusResult, seedsOnly = false): string {
+function formatFull(
+  result: StatusResult,
+  options: { seedsOnly: boolean; groupBy: GroupBy }
+): string {
   const lines: string[] = [];
 
-  lines.push("DevAC Full Status Report");
-  lines.push("═".repeat(50));
+  lines.push(colors.bold("DevAC Full Status Report"));
+  lines.push(colors.dim("═".repeat(50)));
   lines.push("");
 
   // CONTEXT
-  lines.push("CONTEXT");
-  lines.push("─".repeat(30));
+  lines.push(header("CONTEXT"));
   lines.push(`  Path:       ${result.context.cwd}`);
   if (result.context.workspacePath) {
     lines.push(`  Workspace:  ${result.context.workspacePath}`);
@@ -587,31 +868,31 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
   lines.push("");
 
   // DEVAC HEALTH
-  lines.push("DEVAC HEALTH");
-  lines.push("─".repeat(30));
-  lines.push(`  Watch:      ${result.health.watchActive ? "Active" : "Inactive"}`);
+  lines.push(header("HEALTH"));
+  lines.push(
+    `  Watch:      ${result.health.watchActive ? colors.green("Active") : colors.dim("Inactive")}`
+  );
   lines.push(
     `  Hub:        ${
-      result.health.hubConnected ? "Connected" : "Disconnected"
+      result.health.hubConnected ? colors.green("Connected") : colors.red("Disconnected")
     }${result.health.hubPath ? ` (${result.health.hubPath})` : ""}`
   );
   lines.push(`  Repos:      ${result.health.reposRegistered} registered`);
   lines.push("");
 
-  // SEED STATUS (new section)
+  // SEED STATUS
   if (result.seeds && result.seeds.repos.length > 0) {
-    lines.push("SEED STATUS");
-    lines.push("─".repeat(50));
+    lines.push(header("SEEDS"));
 
     for (const repo of result.seeds.repos) {
       const hubStr =
         repo.hubStatus === "registered"
-          ? "(registered)"
+          ? colors.green("(registered)")
           : repo.hubStatus === "pending"
-            ? "(pending)"
-            : "(unregistered)";
+            ? colors.yellow("(pending)")
+            : colors.dim("(unregistered)");
 
-      lines.push(`${repo.name} ${hubStr}`);
+      lines.push(`${colors.bold(repo.name)} ${hubStr}`);
 
       if (repo.seedStatus.packages.length === 0) {
         lines.push("  No packages detected");
@@ -623,7 +904,7 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
           let details = "";
           if (pkg.state === "none") {
             const relativePath = path.relative(result.seeds.workspacePath, pkg.packagePath);
-            details = `run: devac analyze -p ${relativePath}`;
+            details = colors.dim(`run: devac sync -p ${relativePath}`);
           } else if (pkg.state === "both" && pkg.deltaLastModified) {
             const branchDate = pkg.deltaLastModified.split("T")[0];
             details = `base: ${dateStr}, delta: ${branchDate}`;
@@ -640,8 +921,7 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
     }
 
     // Summary
-    lines.push("SEED SUMMARY");
-    lines.push("─".repeat(30));
+    lines.push(header("SEED SUMMARY"));
     lines.push(`  Repositories:       ${result.seeds.summary.totalRepos}`);
     lines.push(`  With seeds:         ${result.seeds.summary.reposWithSeeds}`);
     lines.push(`  Registered in hub:  ${result.seeds.summary.reposRegistered}`);
@@ -651,15 +931,14 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
   }
 
   // Skip diagnostics if --seeds-only
-  if (!seedsOnly) {
+  if (!options.seedsOnly) {
     // DIAGNOSTICS
-    lines.push("DIAGNOSTICS");
-    lines.push("─".repeat(30));
+    lines.push(header("DIAGNOSTICS"));
     if (result.diagnostics.errors === 0 && result.diagnostics.warnings === 0) {
-      lines.push("  ✓ All clear - no issues found");
+      lines.push(`  ${colors.green("✓")} All clear - no issues found`);
     } else {
       lines.push(
-        `  Total:      ${result.diagnostics.errors} errors, ${result.diagnostics.warnings} warnings`
+        `  Total:      ${colors.red(`${result.diagnostics.errors} errors`)}, ${colors.yellow(`${result.diagnostics.warnings} warnings`)}`
       );
       lines.push("");
       if (
@@ -695,8 +974,7 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
       result.activity.pendingReviews > 0 ||
       result.activity.openIssues > 0
     ) {
-      lines.push("ACTIVITY (cached)");
-      lines.push("─".repeat(30));
+      lines.push(header("ACTIVITY (cached)"));
       if (result.activity.openPRs > 0) {
         lines.push(`  Open PRs:       ${result.activity.openPRs}`);
       }
@@ -711,34 +989,61 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
 
     // WORKFLOW (CI/GitHub) - live status
     if (result.workflow) {
-      lines.push("WORKFLOW (CI/GitHub)");
-      lines.push("─".repeat(45));
+      lines.push(header("WORKFLOW (CI/GitHub)"));
       if (!result.workflow.available) {
-        lines.push(`  ⚠️  ${result.workflow.error ?? "CI status unavailable"}`);
+        lines.push(`  ${colors.yellow("⚠️")}  ${result.workflow.error ?? "CI status unavailable"}`);
       } else if (result.workflow.statuses.length === 0) {
         lines.push("  No repos with CI status");
       } else {
-        for (const status of result.workflow.statuses) {
-          const icon = getWorkflowIcon(status.status);
-          const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
-          let line = `  ${icon} ${status.repo.padEnd(20)} ${prInfo}`;
-          if (status.prTitle) {
-            // Truncate long titles
-            const maxLen = 40;
-            const title =
-              status.prTitle.length > maxLen
-                ? `${status.prTitle.substring(0, maxLen)}...`
-                : status.prTitle;
-            line += ` - ${title}`;
+        // Group by status if requested
+        if (options.groupBy === "status") {
+          const byStatus = {
+            failing: result.workflow.statuses.filter((s) => s.status === "failing"),
+            pending: result.workflow.statuses.filter((s) => s.status === "pending"),
+            passing: result.workflow.statuses.filter((s) => s.status === "passing"),
+            none: result.workflow.statuses.filter((s) => s.status === "no-pr"),
+          };
+
+          for (const [statusName, statuses] of Object.entries(byStatus)) {
+            if (statuses.length === 0) continue;
+            lines.push(`  ${statusName.charAt(0).toUpperCase() + statusName.slice(1)}:`);
+            for (const status of statuses) {
+              const icon = getWorkflowIcon(status.status);
+              const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
+              let line = `    ${icon} ${status.repo.padEnd(20)} ${prInfo}`;
+              if (status.prTitle) {
+                const maxLen = 40;
+                const title =
+                  status.prTitle.length > maxLen
+                    ? `${status.prTitle.substring(0, maxLen)}...`
+                    : status.prTitle;
+                line += ` - ${title}`;
+              }
+              lines.push(line);
+            }
           }
-          lines.push(line);
+        } else {
+          for (const status of result.workflow.statuses) {
+            const icon = getWorkflowIcon(status.status);
+            const prInfo = status.prNumber ? `PR #${status.prNumber}` : "no PR";
+            let line = `  ${icon} ${status.repo.padEnd(20)} ${prInfo}`;
+            if (status.prTitle) {
+              const maxLen = 40;
+              const title =
+                status.prTitle.length > maxLen
+                  ? `${status.prTitle.substring(0, maxLen)}...`
+                  : status.prTitle;
+              line += ` - ${title}`;
+            }
+            lines.push(line);
+          }
         }
         lines.push("");
         // Summary
         const { summary } = result.workflow;
         lines.push(
-          `  Summary: ${summary.passing} passing, ${summary.failing} failing, ` +
-            `${summary.pending} pending, ${summary.noPr} no PR`
+          `  Summary: ${colors.green(`${summary.passing} passing`)}, ${colors.red(`${summary.failing} failing`)}, ` +
+            `${colors.yellow(`${summary.pending} pending`)}, ${colors.dim(`${summary.noPr} no PR`)}`
         );
       }
       lines.push("");
@@ -747,8 +1052,7 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
 
   // NEXT STEPS
   if (result.next.length > 0) {
-    lines.push("NEXT STEPS");
-    lines.push("─".repeat(30));
+    lines.push(header("NEXT STEPS"));
     result.next.forEach((step, i) => {
       lines.push(`  ${i + 1}. ${step}`);
     });
@@ -758,22 +1062,131 @@ function formatFull(result: StatusResult, seedsOnly = false): string {
   return lines.join("\n");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// JSON Output
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Format seed state for display
+ * Format complete JSON output for LLMs.
  */
-function formatSeedState(state: string): string {
-  switch (state) {
-    case "none":
-      return "none ";
-    case "base":
-      return "base ";
-    case "delta":
-      return "delta";
-    case "both":
-      return "both ";
-    default:
-      return state.padEnd(5);
+function formatJSON(result: StatusResult): DevACStatusJSON {
+  // Build seeds data
+  const seedsData: DevACStatusJSON["seeds"] = {
+    summary: {
+      totalRepos: result.seeds?.summary.totalRepos ?? 0,
+      reposWithSeeds: result.seeds?.summary.reposWithSeeds ?? 0,
+      packagesAnalyzed: result.seeds?.summary.packagesAnalyzed ?? 0,
+      packagesPending: result.seeds?.summary.packagesNeedAnalysis ?? 0,
+    },
+    repos: [],
+  };
+
+  if (result.seeds) {
+    seedsData.repos = result.seeds.repos.map((repo) => ({
+      name: repo.name,
+      path: repo.path,
+      packagesAnalyzed: repo.seedStatus.summary.base + repo.seedStatus.summary.both,
+      packagesTotal: repo.seedStatus.summary.total,
+      hasBaseSeeds: repo.seedStatus.summary.base > 0 || repo.seedStatus.summary.both > 0,
+      hasDeltaSeeds: repo.seedStatus.summary.delta > 0 || repo.seedStatus.summary.both > 0,
+    }));
   }
+
+  // Build workflow data
+  const workflowData: DevACStatusJSON["workflow"] = {
+    summary: {
+      passing: result.workflow?.summary.passing ?? 0,
+      failing: result.workflow?.summary.failing ?? 0,
+      pending: result.workflow?.summary.pending ?? 0,
+      noPR: result.workflow?.summary.noPr ?? 0,
+    },
+    repos: [],
+  };
+
+  if (result.workflow?.statuses) {
+    workflowData.repos = result.workflow.statuses.map((status) => ({
+      name: status.repo,
+      status:
+        status.status === "no-pr"
+          ? ("none" as const)
+          : status.status === "unknown"
+            ? ("none" as const)
+            : status.status,
+      prNumber: status.prNumber,
+      prTitle: status.prTitle,
+    }));
+  }
+
+  // Build next steps
+  const nextData: DevACStatusJSON["next"] = {
+    primary: formatNextSummary(result),
+    steps: result.next.map((step, i) => ({
+      priority: i + 1,
+      action: step,
+      reason: "",
+    })),
+  };
+
+  return {
+    version: "1.0",
+    timestamp: new Date().toISOString(),
+    context: {
+      path: result.context.cwd,
+      workspace: result.context.workspacePath ?? result.context.cwd,
+      repo: result.context.repoName ?? path.basename(result.context.cwd),
+      branch: result.context.branch ?? "unknown",
+      issueId: result.context.issueId,
+      isWorktree: !!result.context.issueId,
+    },
+    health: {
+      watch: {
+        active: result.health.watchActive,
+      },
+      hub: {
+        connected: result.health.hubConnected,
+        reposRegistered: result.health.reposRegistered,
+        path: result.health.hubPath,
+      },
+      mcp: {
+        running: false, // TODO: detect MCP status
+      },
+    },
+    seeds: seedsData,
+    diagnostics: {
+      summary: {
+        errors: result.diagnostics.errors,
+        warnings: result.diagnostics.warnings,
+        suggestions: 0,
+      },
+      bySource: {
+        tsc:
+          result.diagnostics.bySource.tsc.errors > 0 || result.diagnostics.bySource.tsc.warnings > 0
+            ? {
+                errors: result.diagnostics.bySource.tsc.errors,
+                warnings: result.diagnostics.bySource.tsc.warnings,
+              }
+            : undefined,
+        eslint:
+          result.diagnostics.bySource.eslint.errors > 0 ||
+          result.diagnostics.bySource.eslint.warnings > 0
+            ? {
+                errors: result.diagnostics.bySource.eslint.errors,
+                warnings: result.diagnostics.bySource.eslint.warnings,
+              }
+            : undefined,
+        test:
+          result.diagnostics.bySource.test.errors > 0
+            ? { failures: result.diagnostics.bySource.test.errors, passed: 0 }
+            : undefined,
+        coverage:
+          result.diagnostics.bySource.coverage.warnings > 0
+            ? { belowThreshold: result.diagnostics.bySource.coverage.warnings }
+            : undefined,
+      },
+    },
+    workflow: workflowData,
+    next: nextData,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -787,6 +1200,11 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
   // In inject mode, silence all logging to ensure clean JSON output
   if (options.inject) {
     setGlobalLogLevel("silent");
+  }
+
+  // Handle --no-color
+  if (options.noColor) {
+    setColorsEnabled(false);
   }
 
   const cwd = path.resolve(options.path);
@@ -880,6 +1298,13 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } catch (_error) {
       // Seed status detection failed - add hint to next steps
       result.next.push("Seed detection failed. Run 'devac sync' to analyze packages.");
+    }
+
+    // Get readiness status for sync/query commands
+    try {
+      result.readiness = await getReadinessForStatus(cwd);
+    } catch {
+      // Readiness check failed - non-critical, continue without
     }
 
     if (workspacePath) {
@@ -1083,7 +1508,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
     } else if (result.diagnostics.warnings > 0) {
       result.next.push(`Address ${result.diagnostics.warnings} warnings`);
     } else if (!result.health.hubConnected) {
-      result.next.push("Initialize hub: devac hub init, then devac sync");
+      result.next.push("Initialize hub: devac sync");
     } else if (!result.health.watchActive) {
       result.next.push("Start watch: devac workspace watch");
     } else if (result.next.length === 0) {
@@ -1092,15 +1517,15 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
 
     // Format output based on requested format
     if (!options.json) {
-      switch (options.format) {
-        case "oneline":
-          result.formatted = formatOneLine(result);
+      switch (options.level) {
+        case "summary":
+          result.formatted = formatSummary(result);
           break;
         case "brief":
-          result.formatted = formatBrief(result, seedsOnly);
+          result.formatted = formatBrief(result, { seedsOnly, groupBy: options.groupBy });
           break;
         case "full":
-          result.formatted = formatFull(result, seedsOnly);
+          result.formatted = formatFull(result, { seedsOnly, groupBy: options.groupBy });
           break;
       }
     }
@@ -1123,9 +1548,16 @@ export function registerStatusCommand(program: Command): void {
     .command("status")
     .description("Show DevAC status (context, health, seeds, diagnostics, workflow, next steps)")
     .option("-p, --path <path>", "Path to check status from", process.cwd())
-    .option("--brief", "Show brief summary (default)")
-    .option("--full", "Show full detailed status")
-    .option("--json", "Output as JSON")
+    // Output levels (mutually exclusive)
+    .option("--summary", "Show one-line summary (default for humans)")
+    .option("--brief", "Show sectioned summary")
+    .option("--full", "Show detailed status")
+    .option("--json", "Output structured JSON (for LLMs/automation)")
+    // Modifiers
+    .option("--group-by <type>", "Group output by: repo, type, status (default: type)", "type")
+    .option("--no-color", "Disable colored output")
+    .option("--quiet", "Suppress non-essential logging")
+    // Legacy options
     .option("--seeds-only", "Show only seed status (skip diagnostics)")
     .option("--cached", "Skip live CI fetch, use hub cache only (faster)")
     .option("--sync", "Sync CI results to hub after gathering")
@@ -1240,21 +1672,34 @@ export function registerStatusCommand(program: Command): void {
       }
 
       // Default: standard status command
-      let format: "oneline" | "brief" | "full" = "brief";
+      // Determine output level (mutually exclusive flags)
+      let level: OutputLevel = "summary"; // Default to summary
       if (options.full) {
-        format = "full";
+        level = "full";
+      } else if (options.brief) {
+        level = "brief";
       }
+
       // --seeds without --verify shows seed status only
       const seedsOnly = options.seedsOnly || options.seeds;
 
+      // Validate groupBy
+      const validGroupBy = ["type", "repo", "status"];
+      const groupBy = validGroupBy.includes(options.groupBy)
+        ? (options.groupBy as GroupBy)
+        : "type";
+
       const result = await statusCommand({
         path: options.path,
-        format,
+        level,
         json: options.json,
         seedsOnly,
         cached: options.cached,
         sync: options.sync,
         inject: options.inject,
+        groupBy,
+        noColor: !options.color, // Commander negates --no-color to options.color = false
+        quiet: options.quiet,
       });
 
       // In inject mode, output is already handled in statusCommand
@@ -1264,9 +1709,9 @@ export function registerStatusCommand(program: Command): void {
 
       if (result.success) {
         if (options.json) {
-          // Remove formatted field for JSON output
-          const { formatted, ...jsonResult } = result;
-          console.log(JSON.stringify(jsonResult, null, 2));
+          // Full JSON output for LLMs
+          const jsonOutput = formatJSON(result);
+          console.log(JSON.stringify(jsonOutput, null, 2));
         } else {
           console.log(result.formatted);
         }

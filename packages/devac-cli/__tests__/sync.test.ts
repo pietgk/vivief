@@ -97,19 +97,23 @@ describe("sync command", () => {
     expect(result.message).toContain("Not in a workspace");
   });
 
-  it("fails if hub is not initialized", async () => {
+  it("succeeds and creates hub if not initialized", async () => {
     // Create a repo to make it a valid workspace
     await createMockRepo(path.join(workspaceDir, "repo1"), {
       gitRemote: "git@github.com:test/repo1.git",
       hasSeeds: true,
     });
 
+    const progress: string[] = [];
     const result = await syncCommand({
       path: workspaceDir,
+      onProgress: (msg) => progress.push(msg),
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("Hub not initialized");
+    // Sync now proceeds even without existing hub (no longer circular error)
+    expect(result.success).toBe(true);
+    // Progress should indicate first run
+    expect(progress.some((p) => p.toLowerCase().includes("first run"))).toBe(true);
   });
 
   it("dry run reports what would be done", async () => {

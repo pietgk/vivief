@@ -22,7 +22,7 @@ npm install -g @pietgk/devac-cli
 
 The central hub stores cross-repository data for federated queries:
 ```bash
-devac hub init
+devac sync
 ```
 
 This creates `~/.devac/central.duckdb` if it doesn't exist.
@@ -73,7 +73,7 @@ After changing mode, **restart Claude Code** to load the hooks.
 
 Generate seed data for the current repository:
 ```bash
-devac analyze .
+devac sync
 ```
 
 **Note:** Repositories with seeds are automatically discovered and available for hub queries - no explicit registration needed.
@@ -83,7 +83,7 @@ devac analyze .
 Check that everything is working:
 ```bash
 # Check hub status
-devac hub status
+devac status --hub
 
 # Test status injection (should show diagnostic counts if any issues exist)
 devac status --inject
@@ -113,7 +113,7 @@ ls -la ~/.claude/plugins/cache/vivief/devac/*/hooks/hooks.json
 1. Use `get_diagnostics_summary(groupBy: "file")` to see affected files
 2. Use `get_all_diagnostics(severity: ["error"])` for details
 3. Fix errors - continue until all are resolved ("solve until none")
-4. Run `devac validate --mode quick` to verify fixes
+4. Run `devac sync --validate --mode quick` to verify fixes
 
 ### Available Commands
 
@@ -169,12 +169,12 @@ If you're a DevAC contributor and changes aren't reflected:
 
 1. Ensure repository has been analyzed:
    ```bash
-   devac analyze .
+   devac sync
    ```
 
 2. Run validation to populate diagnostics:
    ```bash
-   devac validate --mode full
+   devac sync --validate --mode full
    ```
 
 ---

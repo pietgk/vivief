@@ -69,7 +69,7 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
         success: false,
         message: "No repositories with seeds found",
         error:
-          "No repositories with seed data found in workspace. Run 'devac analyze' in a repository first.",
+          "No repositories with seed data found in workspace. Run 'devac sync' in a repository first.",
       };
     }
 
@@ -106,7 +106,7 @@ export async function hubQueryCommand(options: HubQueryOptions): Promise<HubQuer
         success: false,
         message: "No packages with seeds found",
         error:
-          "Registered repositories have no seed data. Run 'devac analyze' in each repository first.",
+          "Registered repositories have no seed data. Run 'devac sync' in each repository first.",
       };
     }
 

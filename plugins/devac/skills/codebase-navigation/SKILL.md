@@ -31,11 +31,11 @@ Find files by patterns, symbols they contain, or relationships.
 
 Use DevAC CLI commands for codebase navigation. CLI is preferred for lower context overhead.
 
-### `devac find-symbol`
+### `devac query symbol`
 Locate symbol definitions by name.
 ```bash
-devac find-symbol handleAuthentication
-devac find-symbol UserService --kind class
+devac query symbol handleAuthentication
+devac query symbol UserService --kind class
 ```
 
 ### `devac file-symbols`
@@ -45,11 +45,11 @@ devac file-symbols src/auth/index.ts
 devac file-symbols src/services/
 ```
 
-### `devac hub repos`
+### `devac query repos`
 See all repositories connected to the hub.
 ```bash
-devac hub repos
-devac hub status
+devac query repos
+devac status --hub
 ```
 
 ### `devac query`
@@ -63,7 +63,7 @@ devac query "SELECT file_path, name, kind FROM symbols WHERE file_path LIKE '%/a
 **User:** "Where is the UserService defined?"
 
 **Response approach:**
-1. Use `devac find-symbol UserService` to locate it
+1. Use `devac query symbol UserService` to locate it
 2. Return the exact file path and line number
 3. Optionally show the class structure
 
@@ -118,6 +118,6 @@ ORDER BY file_path, line
 ## Notes
 
 - Navigation is instant with indexed Seeds database
-- Stale indexes may miss recent changes - run `devac analyze` to update
+- Stale indexes may miss recent changes - run `devac sync` to update
 - Works best with well-named, conventional code
 - CLI and MCP share the same devac-core implementation and return identical results

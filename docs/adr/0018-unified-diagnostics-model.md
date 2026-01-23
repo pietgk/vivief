@@ -4,11 +4,13 @@
 
 Accepted
 
+> **Note:** CLI commands in this ADR have been reorganized in v4.0. See `docs/cli-reference.md` for current commands.
+
 ## Context
 
 With Phase 2 complete (validation errors in Hub), we identified an opportunity to unify all "things that need attention" into a single queryable concept.
 
-**Terminology note:** In DevAC's Three Pillars model (see [concepts.md](../vision/concepts.md)), **Validators** produce **Diagnostics**. The unified diagnostics model extends this concept to include workflow items (CI, issues, PR reviews). The `category` field provides granular classification: `compilation`, `linting`, `testing`, `ci-check`, `task`, `feedback`, `code-review`.
+**Terminology note:** In DevAC's Four Pillars model (see [concepts.md](../vision/concepts.md)), **Validators** produce **Diagnostics**. The unified diagnostics model extends this concept to include workflow items (CI, issues, PR reviews). The `category` field provides granular classification: `compilation`, `linting`, `testing`, `ci-check`, `task`, `feedback`, `code-review`.
 
 | Source | Example | Storage Before |
 |--------|---------|----------------|
@@ -252,7 +254,7 @@ WHERE file_path LIKE '%auth.ts%';
 
 ## References
 
-- [DevAC Concepts](../vision/concepts.md) - Three Pillars, Diagnostics terminology
+- [DevAC Concepts](../vision/concepts.md) - Four Pillars, Diagnostics terminology
 - [Validation & Diagnostics](../vision/validation.md) - Unified diagnostics vision
 - [ADR-0017: Validation Hub Cache](0017-validation-hub-cache.md) - Original validation storage design
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub architecture

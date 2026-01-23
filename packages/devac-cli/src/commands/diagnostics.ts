@@ -3,7 +3,7 @@
  *
  * Top-level command to query all diagnostics from the hub.
  *
- * @see docs/vision/concepts.md for the Three Pillars model
+ * @see docs/vision/concepts.md for the Four Pillars model
  */
 
 import type { Command } from "commander";

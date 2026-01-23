@@ -469,7 +469,7 @@ export async function discoverAllPackages(rootPath: string): Promise<DiscoveryRe
     return true;
   });
 
-  logger.info(`Discovered ${dedupedPackages.length} total packages in ${rootPath}`);
+  logger.debug(`Discovered ${dedupedPackages.length} total packages in ${rootPath}`);
 
   return {
     packages: dedupedPackages,

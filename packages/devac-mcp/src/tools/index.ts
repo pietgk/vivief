@@ -160,9 +160,20 @@ export const MCP_TOOLS: MCPTool[] = [
           type: "string",
           description: "Path to check (defaults to current working directory)",
         },
-        full: {
+        level: {
+          type: "string",
+          enum: ["summary", "brief", "full"],
+          description:
+            "Output detail level: summary (1-line), brief (sectioned), full (detailed). Default: brief",
+        },
+        json: {
           type: "boolean",
-          description: "Include per-package details (default: false)",
+          description: "Return DevACStatusJSON format for structured consumption",
+        },
+        groupBy: {
+          type: "string",
+          enum: ["type", "repo", "status"],
+          description: "Grouping mode for output",
         },
       },
       required: [],

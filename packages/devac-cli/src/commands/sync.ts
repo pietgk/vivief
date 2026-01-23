@@ -143,18 +143,17 @@ export async function syncCommand(options: SyncOptions): Promise<SyncResult> {
     );
   }
 
-  // Step 2: Check hub is initialized
+  // Step 2: Set up hub client
+  // Note: Hub may not exist on first run - this is expected.
+  // The hub will be created automatically during repo registration.
   const hubDir = path.join(workspaceDir, ".devac");
   const client = createHubClient({ hubDir });
 
   try {
-    // This will throw if hub is not initialized
     await client.getStatus();
   } catch {
-    return createErrorResult(
-      ["Hub not initialized"],
-      "Hub not initialized. Run 'devac hub init' first."
-    );
+    // Hub doesn't exist yet - will be created during registration
+    onProgress?.("Hub will be created during sync (first run).");
   }
 
   // Step 3: Get workspace status

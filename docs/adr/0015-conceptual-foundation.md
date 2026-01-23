@@ -36,7 +36,7 @@ This pattern models everything as immutable effects flowing through handlers:
 
 ### Key Concepts Established
 
-1. **Three Pillars**: Infra (DevAC Health), Validators (Diagnostics), Extractors (Seeds). See [concepts.md](../vision/concepts.md).
+1. **Four Pillars**: Infra (DevAC Health), Extractors (Seeds), Validators (Diagnostics), Effects (Domain Mappings). See [concepts.md](../vision/concepts.md).
 
 2. **Three Pipelines**: Vision→View (human), Question→Answer (collaborative), Query→Data (system)
 
@@ -86,7 +86,7 @@ This separation ensures the conceptual foundation remains stable while implement
 
 ## References
 
-- [DevAC Concepts](../vision/concepts.md) - Quick reference for terminology and Three Pillars
+- [DevAC Concepts](../vision/concepts.md) - Quick reference for terminology and Four Pillars
 - [Conceptual Foundation Document](../vision/foundation.md)
 - [VVE System v2.0](../archive/foundation-v2.md) - Effect taxonomy source
 - [Linters as Rules](mindler/packages/architecture/specs/335-linters-as-rules.md) - Executable specs concept

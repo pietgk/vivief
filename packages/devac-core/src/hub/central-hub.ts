@@ -9,6 +9,9 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Database } from "duckdb-async";
 import { computeStringHash } from "../utils/hash.js";
+import { createLogger } from "../utils/logger.js";
+
+const logger = createLogger({ prefix: "[CentralHub]" });
 import {
   discoverWorkspaceRepos,
   isWorkspaceDirectory,
@@ -226,6 +229,10 @@ export class CentralHub {
     } catch (err) {
       // If write mode failed due to lock, auto-fallback to read-only
       if (!readOnly && this.isLockError(err)) {
+        logger.warn(
+          "Hub is locked by another process (likely MCP server). " +
+            "Falling back to read-only mode. Write operations will be skipped."
+        );
         await this.storage.init({ readOnly: true });
         this._readOnlyMode = true;
       } else {
@@ -264,7 +271,7 @@ export class CentralHub {
     const hasSeed = await this.repoHasSeeds(repoPath);
     if (!hasSeed) {
       throw new Error(
-        `Repository at ${repoPath} has no .devac/seed/ directory. Run 'devac analyze' first.`
+        `Repository at ${repoPath} has no .devac/seed/ directory. Run 'devac sync' first.`
       );
     }
 
@@ -625,14 +632,16 @@ export class CentralHub {
     // Execute query with views created for seed tables
     const db = await Database.create(":memory:");
     try {
-      // Create views for each table type (silently ignore if no files)
+      // Create views for each table type
+      // Log warnings if view creation fails (helps debug empty results)
       if (nodePaths.length > 0) {
         try {
           await db.run(
             `CREATE OR REPLACE VIEW nodes AS SELECT * FROM read_parquet([${nodePaths.join(", ")}], union_by_name=true, filename=true)`
           );
-        } catch {
-          // Some files may not exist or have schema issues
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(`Failed to create nodes view (${nodePaths.length} files): ${msg}`);
         }
       }
 
@@ -641,8 +650,9 @@ export class CentralHub {
           await db.run(
             `CREATE OR REPLACE VIEW edges AS SELECT * FROM read_parquet([${edgePaths.join(", ")}], union_by_name=true, filename=true)`
           );
-        } catch {
-          // Some files may not exist or have schema issues
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(`Failed to create edges view (${edgePaths.length} files): ${msg}`);
         }
       }
 
@@ -651,8 +661,9 @@ export class CentralHub {
           await db.run(
             `CREATE OR REPLACE VIEW external_refs AS SELECT * FROM read_parquet([${refPaths.join(", ")}], union_by_name=true, filename=true)`
           );
-        } catch {
-          // Some files may not exist or have schema issues
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.warn(`Failed to create external_refs view (${refPaths.length} files): ${msg}`);
         }
       }
 
@@ -661,8 +672,10 @@ export class CentralHub {
           await db.run(
             `CREATE OR REPLACE VIEW effects AS SELECT * FROM read_parquet([${effectsPaths.join(", ")}], union_by_name=true, filename=true)`
           );
-        } catch {
-          // Effects files may not exist yet - this is expected until parsers emit effects
+        } catch (err) {
+          // Effects are expected to be missing until analysis generates them
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.debug(`Effects view not created (may not exist yet): ${msg}`);
         }
       }
 

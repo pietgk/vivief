@@ -88,10 +88,10 @@ Navigate to your project and run the analysis:
 cd ~/ws/your-project
 
 # Analyze the entire project
-devac analyze
+devac sync
 
 # Or analyze a specific package in a monorepo
-devac analyze --package ./packages/api
+devac sync --package ./packages/api
 ```
 
 **Expected output:**
@@ -124,7 +124,7 @@ external_refs.parquet
 For continuous updates as you code:
 
 ```bash
-devac watch
+devac sync --watch
 ```
 
 This monitors file changes and updates the analysis in real-time.
@@ -307,7 +307,7 @@ Run the analysis first:
 
 ```bash
 cd ~/ws/your-project
-devac analyze
+devac sync
 ```
 
 ### MCP server not connecting
@@ -325,10 +325,10 @@ For large codebases:
 
 ```bash
 # Analyze incrementally (only changed files)
-devac analyze --if-changed
+devac sync --if-changed
 
 # Use watch mode for continuous updates
-devac watch
+devac sync --watch
 ```
 
 ## Next Steps

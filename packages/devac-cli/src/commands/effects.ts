@@ -190,7 +190,7 @@ export async function effectsCommand(
           success: true,
           output: options.json
             ? formatOutput({ effects: [], count: 0 }, { json: true })
-            : "No packages with effects found in registered repos (run 'devac analyze' first)",
+            : "No packages with effects found in registered repos (run 'devac sync' first)",
           count: 0,
           timeMs: Date.now() - startTime,
           effects: [],
@@ -331,7 +331,7 @@ export async function effectsSummaryCommand(
           success: true,
           output: options.json
             ? formatOutput({ summary: [], total: 0 }, { json: true })
-            : "No packages with effects found in registered repos (run 'devac analyze' first)",
+            : "No packages with effects found in registered repos (run 'devac sync' first)",
           timeMs: Date.now() - startTime,
           summary: [],
         };
@@ -1392,7 +1392,7 @@ export async function effectsSyncCommand(options: EffectsSyncOptions): Promise<E
           `  - Retrieve operations: ${mappings.filter((m) => m.effectType === "Retrieve").length}`,
           `  - External calls: ${mappings.filter((m) => m.effectType === "Send").length}`,
           "",
-          "The effect mappings will be used during the next 'devac analyze' run.",
+          "The effect mappings will be used during the next 'devac sync' run.",
         ].join("\n");
 
     return {

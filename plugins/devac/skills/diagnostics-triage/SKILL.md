@@ -66,20 +66,20 @@ See diagnostics across all connected repositories in hub mode.
 
 Use DevAC CLI commands for diagnostics. CLI is preferred for lower context overhead.
 
-### `devac diagnostics`
+### `devac status --diagnostics`
 Get diagnostics overview across the workspace.
 ```bash
-devac diagnostics
-devac diagnostics --severity error
-devac diagnostics --file src/services/
+devac status --diagnostics
+devac status --diagnostics --severity error
+devac status --diagnostics --file src/services/
 ```
 
-### `devac validate`
+### `devac sync --validate`
 Run validators and refresh diagnostics.
 ```bash
-devac validate
-devac validate --type typescript
-devac validate --type eslint
+devac sync --validate
+devac sync --validate --type typescript
+devac sync --validate --type eslint
 ```
 
 ### `devac query`
@@ -93,14 +93,14 @@ devac query "SELECT file_path, COUNT(*) as error_count FROM diagnostics WHERE se
 **User:** "What needs fixing in the codebase?"
 
 **Response approach:**
-1. Use `devac diagnostics` for overview
+1. Use `devac status --diagnostics` for overview
 2. Highlight critical errors vs warnings
 3. Suggest priority order for fixes
 
 **User:** "Show me all TypeScript errors"
 
 **Response approach:**
-1. Use `devac diagnostics --severity error` filtered by type
+1. Use `devac status --diagnostics --severity error` filtered by type
 2. Group by file for easier navigation
 3. Show error messages with locations
 
@@ -169,7 +169,7 @@ LIMIT 10
 ## Notes
 
 - Diagnostics are refreshed when validators run
-- Run `devac validate` to update diagnostics
+- Run `devac sync --validate` to update diagnostics
 - Some issues may be auto-fixable - look for --fix options
 - Consider adding suppression comments for intentional violations
 - CLI and MCP share the same devac-core implementation and return identical results

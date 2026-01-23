@@ -16,12 +16,29 @@ export interface MCPTool {
 }
 
 /**
+ * Readiness metadata for query results.
+ * Included when queries return empty/no data to explain why.
+ */
+export interface MCPReadinessMeta {
+  /** Whether the query can proceed */
+  ready: boolean;
+  /** Current system state */
+  state: "first-run" | "ready" | "partial" | "broken" | "locked";
+  /** Human-readable explanation */
+  reason?: string;
+  /** Suggested fix command */
+  fix?: string;
+}
+
+/**
  * MCP Tool result
  */
 export interface MCPToolResult {
   success: boolean;
   data?: unknown;
   error?: string;
+  /** Readiness metadata - included when results are empty to explain why */
+  readiness?: MCPReadinessMeta;
 }
 
 /**

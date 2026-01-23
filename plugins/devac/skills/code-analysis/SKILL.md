@@ -27,11 +27,11 @@ Get an overview of how code is organized within files and across the project.
 
 Use DevAC CLI commands for code analysis. CLI is preferred for lower context overhead.
 
-### `devac find-symbol`
+### `devac query symbol`
 Find symbols by name across all indexed repositories.
 ```bash
-devac find-symbol UserService
-devac find-symbol --kind class Controller
+devac query symbol UserService
+devac query symbol --kind class Controller
 ```
 
 ### `devac file-symbols`
@@ -88,7 +88,7 @@ ORDER BY name
 
 ## Notes
 
-- Requires DevAC hub to be initialized (`devac hub init`)
-- Repository must be analyzed (`devac analyze .`)
+- Requires DevAC hub to be initialized (`devac sync`)
+- Repository must be analyzed (`devac sync`)
 - Works across all repositories connected to the hub
 - CLI and MCP share the same devac-core implementation and return identical results

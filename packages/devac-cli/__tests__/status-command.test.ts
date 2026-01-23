@@ -41,7 +41,8 @@ describe("status command", () => {
     it("detects current working directory", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -54,7 +55,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -69,7 +71,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -83,7 +86,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: worktreeDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -97,7 +101,8 @@ describe("status command", () => {
     it("detects hub as not connected when not initialized", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -110,7 +115,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -124,11 +130,12 @@ describe("status command", () => {
       // Create and register a repo within the workspace
       const testRepoPath = path.join(workspaceDir, "test-repo");
       await createMockRepo(testRepoPath);
-      await hubRegister({ hubDir, repoPath: testRepoPath });
+      await hubRegister({ hubDir, repoPath: testRepoPath, skipValidation: true });
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -142,7 +149,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -155,7 +163,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -167,7 +176,8 @@ describe("status command", () => {
     it("returns zero counts when no diagnostics", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -178,7 +188,8 @@ describe("status command", () => {
     it("aggregates diagnostics by source", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -194,7 +205,8 @@ describe("status command", () => {
     it("returns zero counts when no activity data", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -208,11 +220,12 @@ describe("status command", () => {
     it("suggests initializing hub when not connected", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
-      expect(result.next).toContainEqual(expect.stringContaining("hub init"));
+      expect(result.next).toContainEqual(expect.stringContaining("devac sync"));
     });
 
     it("suggests starting watch when hub connected but watch inactive", async () => {
@@ -220,7 +233,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -231,23 +245,25 @@ describe("status command", () => {
   });
 
   describe("output formats", () => {
-    it("returns formatted output for oneline format", async () => {
+    it("returns formatted output for summary format", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "oneline",
+        level: "summary",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
       expect(result.formatted).toBeDefined();
       expect(typeof result.formatted).toBe("string");
-      // One-liner should be relatively short
+      // Summary should be relatively short
       expect(result.formatted?.split("\n").length).toBeLessThanOrEqual(3);
     });
 
     it("returns formatted output for brief format", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -258,7 +274,8 @@ describe("status command", () => {
     it("returns formatted output for full format", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "full",
+        level: "full",
+        groupBy: "type",
       });
 
       expect(result.success).toBe(true);
@@ -269,7 +286,8 @@ describe("status command", () => {
     it("returns JSON-compatible result when json option set", async () => {
       const result = await statusCommand({
         path: repoDir,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
         json: true,
       });
 
@@ -289,7 +307,8 @@ describe("status command", () => {
     it("handles non-existent path gracefully", async () => {
       const result = await statusCommand({
         path: path.join(tempDir, "non-existent"),
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       // Should still succeed but with limited info
@@ -302,7 +321,8 @@ describe("status command", () => {
 
       const result = await statusCommand({
         path: problematicPath,
-        format: "brief",
+        level: "brief",
+        groupBy: "type",
       });
 
       // Should handle gracefully (may succeed with limited info or fail cleanly)

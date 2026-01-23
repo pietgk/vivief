@@ -2,7 +2,140 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+
+## devac status improve determnistic part
+
+when running
+  ╰─➤  devac
+  [PackageManager] Discovered 3 total packages in /Users/grop/ws/CodeGraph {}
+  [PackageManager] Discovered 4 total packages in /Users/grop/ws/app {}
+  [PackageManager] Discovered 4 total packages in /Users/grop/ws/app-3934-architecture-documentation-create {}
+  [PackageManager] Discovered 4 total packages in /Users/grop/ws/app-3938-upgrade-husky-to {}
+  [PackageManager] Discovered 1 total packages in /Users/grop/ws/aws_infra_map_neo4j {}
+  [PackageManager] Discovered 1 total packages in /Users/grop/ws/contentful-monorepo {}
+  [PackageManager] Discovered 7 total packages in /Users/grop/ws/frontend-monorepo {}
+  [PackageManager] Discovered 3 total packages in /Users/grop/ws/likec4 {}
+  [PackageManager] Discovered 5 total packages in /Users/grop/ws/living-architecture {}
+  [PackageManager] Discovered 6 total packages in /Users/grop/ws/mindler {}
+  [PackageManager] Discovered 36 total packages in /Users/grop/ws/monorepo-3.0 {}
+  [PackageManager] Discovered 22 total packages in /Users/grop/ws/npm-private-packages {}
+  [PackageManager] Discovered 1 total packages in /Users/grop/ws/public-website-3 {}
+  [PackageManager] Discovered 14 total packages in /Users/grop/ws/vivief {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-148-mcp-tools-broken {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-161-improve-domaineffects- {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-165-fix-systemic-ipc {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-172-fix-package-discovery {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-175-make-start-issue {}
+  [PackageManager] Discovered 10 total packages in /Users/grop/ws/vivief-179-devac-worktree-silent-failure {}
+  [PackageManager] Discovered 14 total packages in /Users/grop/ws/vivief-183-devac-worktree-fix-git-crypt {}
+  [PackageManager] Discovered 0 total packages in /Users/grop/ws/workspace {}
+  workspace  ok  next:sync-workspace:-devac-sync
+  the default logging is to much so what are the options that make this better
+  1 option would be to summarize the package manager into the summary line and only log this extensively when using verbose options
+
+  devac status gives:
+  DevAC Status
+  Context:      /Users/grop/ws/vivief
+  DevAC Health: watch:inactive  hub:disconnected
+
+  Seeds:
+  CodeGraph           : 3 packages analyzed
+  app                 : 3/4 analyzed
+  app-3934-architecture-documentation-create: 3/4 analyzed
+  app-3938-upgrade-husky-to: 3/4 analyzed
+  aws_infra_map_neo4j : not analyzed
+  contentful-monorepo : 1 package analyzed
+  frontend-monorepo   : 7 packages analyzed
+  likec4              : 3 packages analyzed
+  living-architecture : 5 packages analyzed
+  mindler             : 6 packages analyzed
+  monorepo-3.0        : 36 packages analyzed
+  npm-private-packages: 20/22 analyzed
+  public-website-3    : 1 package analyzed
+  vivief              : 12/14 analyzed
+  vivief-148-mcp-tools-broken: 7/10 analyzed
+  vivief-161-improve-domaineffects-: 7/10 analyzed
+  vivief-165-fix-systemic-ipc: 7/10 analyzed
+  vivief-172-fix-package-discovery: 7/10 analyzed
+  vivief-175-make-start-issue: 7/10 analyzed
+  vivief-179-devac-worktree-silent-failure: 7/10 analyzed
+  vivief-183-devac-worktree-fix-git-crypt: not analyzed
+  workspace           : no packages
+  Diagnostics:  all clear
+
+  Workflow:
+  ○ CodeGraph          no PR
+  ○ app                no PR
+  ✓ app-3934-architecture-documentation-create PR #3939
+  ✗ app-3938-upgrade-husky-to PR #3940
+  ○ aws_infra_map_neo4j no PR
+  ○ contentful-monorepo no PR
+  ○ frontend-monorepo  no PR
+  ○ likec4             no PR
+  ○ living-architecture no PR
+  ? mindler            no PR
+  ○ monorepo-3.0       no PR
+  ○ npm-private-packages no PR
+  ○ public-website-3   no PR
+  ⏳ vivief             PR #210
+  ✓ vivief-148-mcp-tools-broken PR #159
+  ✓ vivief-161-improve-domaineffects- PR #162
+  ✓ vivief-165-fix-systemic-ipc PR #170
+  ✓ vivief-172-fix-package-discovery PR #173
+  ✓ vivief-175-make-start-issue PR #177
+  ✓ vivief-179-devac-worktree-silent-failure PR #180
+  ○ vivief-183-devac-worktree-fix-git-crypt no PR
+  ○ workspace          no PR
+  Summary: 1 failing, 7 passing
+  Next:         Sync workspace: devac sync
+
+  asking you with the command /devac:devac-status i get a nice:
+
+  DevAC Status Summary
+
+  Current Context:
+  - Path: /Users/grop/ws/vivief
+  - Branch: cli-three-command-reorganization
+
+  DevAC Health:
+  - Watch: Inactive
+  - Hub: Disconnected (0 repos registered)
+
+  Seeds:
+  - 22 repositories discovered
+  - 19 have seeds, 145 packages analyzed, 40 pending
+  - All vivief packages (main) have both base and delta seeds
+
+  Diagnostics:
+  - All clear - no type errors, lint issues, or test failures
+
+  CI/Workflow:
+  - vivief PR #210: Pending (CI still running)
+  - app-3938-upgrade-husky-to PR #3940: Failing
+  - 5 passing, 1 failing, 1 pending, 12 without PRs
+
+  Suggested Next Steps:
+  1. Run devac sync to initialize the hub
+  2. Fix CI failures in app-3938-upgrade-husky-to
+  3. Wait for vivief PR #210 CI to complete
+
+  i want to plan how to make devac status closer to the result that oyu create from it.
+
+  this as a main concept of vivief devac is to use you (claude) to improve the deterministic part if the command to improve consistence and reliability
+  
+
+
+
 Its in no way presenting the prompt used, they can be ramblings to set the context in my mind and ask claude to organise them into usefull prompts.
+
+
+
+## validation delivering diagnostics for fixing and determining the root cause why we got this specific diagnostic so we can avoid that it happens again
+
+
+
+
+
 
 can you do a very thorough check where th test chect to handle a bug
 

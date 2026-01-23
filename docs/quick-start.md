@@ -87,10 +87,10 @@ DevAC Status
 
 ```bash
 # Run initial analysis
-devac analyze
+devac sync
 
 # Or specify a package path
-devac analyze --package ./packages/auth
+devac sync --package ./packages/auth
 ```
 
 **Output:**
@@ -107,17 +107,17 @@ devac analyze --package ./packages/auth
 
 ```bash
 # Find all exported functions
-devac query "SELECT name, file_path FROM nodes WHERE kind='function' AND is_exported=true"
+devac query sql "SELECT name, file_path FROM nodes WHERE kind='function' AND is_exported=true"
 
 # Find who imports a specific module
-devac query "SELECT source_file_path, imported_symbol FROM external_refs WHERE module_specifier LIKE '%react%'"
+devac query sql "SELECT source_file_path, imported_symbol FROM external_refs WHERE module_specifier LIKE '%react%'"
 ```
 
 ### 4. Watch for Changes
 
 ```bash
 # Start watch mode - seeds update automatically on file save
-devac watch
+devac sync --watch
 ```
 
 **Output:**
@@ -152,15 +152,16 @@ your-project/
 |---------|-------------|
 | `devac` | Show brief status (default action) |
 | `devac status` | Show status (supports `--brief`, `--full`, `--json`) |
-| `devac analyze` | Parse and generate seeds |
-| `devac analyze --if-changed` | Only re-analyze changed files |
-| `devac analyze --force` | Force full re-analysis |
 | `devac sync` | Analyze packages and register repos with hub |
-| `devac query "<sql>"` | Run DuckDB SQL query |
-| `devac watch` | Watch for file changes |
-| `devac diagnostics` | Query all diagnostics from hub |
-| `devac verify` | Check seed integrity |
-| `devac clean` | Remove all seeds |
+| `devac sync --if-changed` | Only re-analyze changed files |
+| `devac sync --force` | Force full re-analysis |
+| `devac sync --watch` | Watch for file changes |
+| `devac sync --validate` | Analyze and run validation |
+| `devac query sql "<sql>"` | Run DuckDB SQL query |
+| `devac query repos` | List available repositories |
+| `devac status --diagnostics` | Query all diagnostics |
+| `devac status --seeds` | Check seed integrity |
+| `devac status --doctor` | Check system health |
 
 > **Tip:** Use `devac ws` as a shorthand for `devac workspace` commands (e.g., `devac ws status`).
 
@@ -176,24 +177,21 @@ For projects with multiple repositories in a parent directory:
 └── api-ghapi-123-auth/  ← Worktree for issue #123
 ```
 
-### Step 1: Initialize Hub and Sync Workspace
+### Step 1: Sync Workspace
 
 ```bash
 # From parent directory
 cd ~/ws
 
-# Initialize hub (one-time)
-devac hub init
-
-# Sync all repos - analyzes packages needing seeds
+# Sync all repos - analyzes packages needing seeds, initializes hub automatically
 devac sync
 ```
 
-This discovers all repos in the workspace, analyzes packages that don't have seeds yet, and makes them available for hub queries.
+This discovers all repos in the workspace, analyzes packages that don't have seeds yet, initializes the hub, and makes repos available for queries.
 
 **Alternative approaches:**
-- `devac analyze` in each repo individually
-- `devac watch` per repo for continuous updates
+- `devac sync` in each repo individually
+- `devac sync --watch` per repo for continuous updates
 
 ### Step 2: Check Workspace Status
 
@@ -239,10 +237,10 @@ devac workspace watch
 
 ```bash
 # Find function across all repos with seeds (auto-discovered)
-devac hub query "SELECT * FROM nodes WHERE name='handleLogin'"
+devac query sql "SELECT * FROM nodes WHERE name='handleLogin'"
 
 # View available repos (auto-discovers repos with seeds)
-devac hub list
+devac query repos
 ```
 
 ### Workflow Summary
@@ -250,12 +248,12 @@ devac hub list
 | Task | Command | Run From |
 |------|---------|----------|
 | Check status | `devac` or `devac status` | Anywhere |
-| Analyze single repo | `devac analyze` | Inside repo |
-| Watch single repo | `devac watch` | Inside repo |
+| Analyze single repo | `devac sync` | Inside repo |
+| Watch single repo | `devac sync --watch` | Inside repo |
 | Check workspace status | `devac ws status` | Parent directory |
 | Watch workspace (seeds→hub) | `devac ws watch` | Parent directory |
-| Query across repos | `devac hub query "..."` | Anywhere |
-| View diagnostics | `devac diagnostics` | Anywhere |
+| Query across repos | `devac query sql "..."` | Anywhere |
+| View diagnostics | `devac status --diagnostics` | Anywhere |
 
 > **Note:** `devac ws` is a shorthand for `devac workspace`.
 
@@ -327,20 +325,20 @@ WHERE e.edge_type = 'CALLS'
 
 ```bash
 # Verify integrity
-devac verify
+devac status --seeds
 
 # If issues found, regenerate
-devac analyze --force
+devac sync --force
 ```
 
 ### Watch mode not detecting changes
 
 ```bash
 # Check if file extensions are supported
-devac analyze --list-extensions
+devac sync --list-extensions
 
 # Restart watch with verbose logging
-DEBUG=devac:watcher devac watch
+DEBUG=devac:watcher devac sync --watch
 ```
 
 ### Query returns no results
@@ -350,10 +348,10 @@ DEBUG=devac:watcher devac watch
 ls -la .devac/seed/base/
 
 # Check node count
-devac query "SELECT COUNT(*) FROM nodes"
+devac query sql "SELECT COUNT(*) FROM nodes"
 
 # Verify file was analyzed
-devac query "SELECT DISTINCT file_path FROM nodes"
+devac query sql "SELECT DISTINCT file_path FROM nodes"
 ```
 
 ---

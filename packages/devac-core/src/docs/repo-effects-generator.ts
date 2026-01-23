@@ -433,7 +433,7 @@ export function generateEmptyRepoEffectsDoc(
     `- **Repository:** ${repoName}`,
     `- **Last Updated:** ${date}`,
     "",
-    "_No effects detected. Run `devac analyze` on packages first._",
+    "_No effects detected. Run `devac sync` on packages first._",
     "",
   ];
 

@@ -31,18 +31,18 @@ Before making changes, understand the blast radius.
 
 Use DevAC CLI commands for impact analysis. CLI is preferred for lower context overhead.
 
-### `devac affected`
+### `devac query affected`
 Get files that would be affected by changes to a specific file.
 ```bash
-devac affected src/core/auth.ts
-devac affected src/services/user.ts --depth 2
+devac query affected src/core/auth.ts
+devac query affected src/services/user.ts --depth 2
 ```
 
-### `devac deps`
+### `devac query deps`
 Get dependencies of a specific file or symbol.
 ```bash
-devac deps src/services/user.ts
-devac deps src/core/auth.ts --direction both
+devac query deps src/services/user.ts
+devac query deps src/core/auth.ts --direction both
 ```
 
 ### `devac call-graph`
@@ -63,21 +63,21 @@ devac query "SELECT DISTINCT callee_symbol, callee_file FROM calls WHERE caller_
 **User:** "What will be affected if I change the UserService class?"
 
 **Response approach:**
-1. Use `devac affected src/services/user.ts` to find impacted files
+1. Use `devac query affected src/services/user.ts` to find impacted files
 2. Use `devac call-graph UserService` to show function-level impact
 3. Present a summary of the blast radius with risk assessment
 
 **User:** "Show me the call graph for the login function"
 
 **Response approach:**
-1. Use `devac find-symbol login` to locate the function
+1. Use `devac query symbol login` to locate the function
 2. Use `devac call-graph login --depth 3`
 3. Visualize the call chain (callers and callees)
 
 **User:** "What are the dependencies of the payment module?"
 
 **Response approach:**
-1. Use `devac deps src/payment/` on payment module files
+1. Use `devac query deps src/payment/` on payment module files
 2. Categorize into internal vs external dependencies
 3. Highlight any circular dependencies
 
@@ -109,7 +109,7 @@ WHERE caller_file = 'src/core/auth.ts'
 
 ## Notes
 
-- Impact analysis is most accurate after recent `devac analyze`
+- Impact analysis is most accurate after recent `devac sync`
 - Consider running analysis before major refactoring
 - Cross-repo impact is available when using hub mode
 - Large blast radius may indicate tight coupling
