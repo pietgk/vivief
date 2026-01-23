@@ -20,7 +20,9 @@ vi.mock("../../src/hub/ipc-protocol.js", () => ({
     HUB_NOT_READY: "HUB_NOT_READY",
     OPERATION_FAILED: "OPERATION_FAILED",
   },
+  IPC_PROTOCOL_VERSION: "1.0",
   getSocketPath: vi.fn((hubDir: string) => `${hubDir}/hub.sock`),
+  getPidPath: vi.fn((hubDir: string) => `${hubDir}/mcp.pid`),
   createErrorResponse: vi.fn((id, code, message) => ({
     id,
     error: { code, message },
@@ -95,6 +97,7 @@ describe("HubServer", () => {
     mockFs.chmod.mockResolvedValue(undefined);
     mockFs.access.mockRejectedValue({ code: "ENOENT" }); // Socket doesn't exist
     mockFs.unlink.mockResolvedValue(undefined);
+    mockFs.writeFile.mockResolvedValue(undefined);
 
     mockNet.createServer.mockReturnValue(mockServer as unknown as net.Server);
     mockNet.createConnection.mockImplementation(() => {

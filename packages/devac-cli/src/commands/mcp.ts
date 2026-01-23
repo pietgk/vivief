@@ -12,8 +12,10 @@ import {
   DuckDBPool,
   SeedReader,
   type SymbolAffectedAnalyzer,
+  createHubClient,
   createSymbolAffectedAnalyzer,
   executeWithRecovery,
+  findWorkspaceHubDir,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
 
@@ -59,6 +61,23 @@ export interface MCPCommandOptions {
   action: "start" | "stop";
   /** Transport type (default: stdio) */
   transport?: "stdio";
+}
+
+/**
+ * Options for mcp stop command
+ */
+export interface MCPStopOptions {
+  /** Force kill using PID file if IPC shutdown fails */
+  force?: boolean;
+}
+
+/**
+ * Result from mcp stop command
+ */
+export interface MCPStopResult {
+  success: boolean;
+  method?: "ipc" | "pid" | "none";
+  error?: string;
 }
 
 /**
@@ -362,18 +381,97 @@ export async function mcpCommand(options: MCPCommandOptions): Promise<MCPCommand
 }
 
 /**
+ * Stop a running MCP server
+ */
+export async function mcpStopCommand(options: MCPStopOptions = {}): Promise<MCPStopResult> {
+  // Find the workspace hub directory
+  const hubDir = await findWorkspaceHubDir();
+  if (!hubDir) {
+    return {
+      success: false,
+      error: "Could not find workspace hub directory. Are you in a DevAC workspace?",
+    };
+  }
+
+  const client = createHubClient({ hubDir });
+
+  // First try IPC shutdown
+  if (await client.isMCPRunning()) {
+    try {
+      await client.shutdown();
+      // Wait a moment for server to stop
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify it's stopped
+      if (!(await client.isMCPRunning())) {
+        return { success: true, method: "ipc" };
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`IPC shutdown failed: ${message}`);
+      // Fall through to PID fallback if --force
+    }
+  }
+
+  // If --force, try PID file fallback
+  if (options.force) {
+    const pid = await client.getMCPPid();
+    if (pid) {
+      try {
+        process.kill(pid, "SIGTERM");
+        // Wait for process to die
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Check if still running
+        try {
+          process.kill(pid, 0); // Check if process exists
+          // Still running, try SIGKILL
+          process.kill(pid, "SIGKILL");
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch {
+          // Process doesn't exist anymore
+        }
+
+        return { success: true, method: "pid" };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return {
+          success: false,
+          method: "pid",
+          error: `Failed to kill process ${pid}: ${message}`,
+        };
+      }
+    }
+  }
+
+  // Check if MCP is even running
+  if (!(await client.isMCPRunning())) {
+    return { success: true, method: "none" };
+  }
+
+  return {
+    success: false,
+    error: "Failed to stop MCP server. Try 'devac mcp stop --force' to force kill.",
+  };
+}
+
+/**
  * Register the mcp command with the CLI program
  */
 export function registerMcpCommand(program: Command): void {
-  program
+  const mcpCmd = program
     .command("mcp")
+    .description("MCP server management for AI assistant integration");
+
+  // Start subcommand (default action when running 'devac mcp')
+  mcpCmd
+    .command("start", { isDefault: true })
     .description("Start MCP server for AI assistant integration")
     .option("-p, --package <path>", "Package path", process.cwd())
-    .option("-a, --action <action>", "Action (start, stop)", "start")
     .action(async (options) => {
       const result = await mcpCommand({
         packagePath: path.resolve(options.package),
-        action: options.action,
+        action: "start",
       });
 
       if (result.success) {
@@ -397,6 +495,60 @@ export function registerMcpCommand(program: Command): void {
       } else {
         console.error(`✗ MCP failed: ${result.error}`);
         process.exit(1);
+      }
+    });
+
+  // Stop subcommand
+  mcpCmd
+    .command("stop")
+    .description("Stop the running MCP server")
+    .option("-f, --force", "Force kill using PID if IPC shutdown fails")
+    .action(async (options) => {
+      const result = await mcpStopCommand({ force: options.force });
+
+      if (result.success) {
+        switch (result.method) {
+          case "ipc":
+            console.log("✓ MCP server stopped gracefully via IPC");
+            break;
+          case "pid":
+            console.log("✓ MCP server stopped via SIGTERM");
+            break;
+          case "none":
+            console.log("✓ MCP server was not running");
+            break;
+        }
+      } else {
+        console.error(`✗ ${result.error}`);
+        process.exit(1);
+      }
+    });
+
+  // Status subcommand
+  mcpCmd
+    .command("status")
+    .description("Check if MCP server is running")
+    .action(async () => {
+      const hubDir = await findWorkspaceHubDir();
+      if (!hubDir) {
+        console.log("Not in a DevAC workspace");
+        return;
+      }
+
+      const client = createHubClient({ hubDir });
+      const running = await client.isMCPRunning();
+
+      if (running) {
+        console.log("✓ MCP server is running");
+        try {
+          const pingResponse = await client.ping();
+          console.log(`  Version: ${pingResponse.serverVersion}`);
+          console.log(`  Protocol: ${pingResponse.protocolVersion}`);
+        } catch {
+          console.log("  (version info unavailable)");
+        }
+      } else {
+        console.log("✗ MCP server is not running");
       }
     });
 }

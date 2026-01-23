@@ -13,10 +13,16 @@ import {
   type HubMethod,
   type HubRequest,
   type HubResponse,
+  IPC_PROTOCOL_VERSION,
+  type PingResponse,
   createErrorResponse,
   createSuccessResponse,
+  getPidPath,
   getSocketPath,
 } from "./ipc-protocol.js";
+
+// Get version from package.json at runtime
+const SERVER_VERSION = "1.0.0"; // TODO: Read from package.json
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -44,15 +50,19 @@ export class HubServer {
   private server: net.Server | null = null;
   private hub: CentralHub | null = null;
   private socketPath: string;
+  private pidPath: string;
   private hubDir: string;
   private log: (message: string) => void;
   private events: HubServerEvents;
   private clientCounter = 0;
   private activeClients = new Set<string>();
+  private shutdownRequested = false;
+  private shutdownCallback?: () => void;
 
   constructor(options: HubServerOptions, events: HubServerEvents = {}) {
     this.hubDir = options.hubDir;
     this.socketPath = getSocketPath(options.hubDir);
+    this.pidPath = getPidPath(options.hubDir);
     this.log = options.onLog ?? (() => {});
     this.events = events;
   }
@@ -84,6 +94,17 @@ export class HubServer {
 
     // Set socket permissions (owner only)
     await fs.chmod(this.socketPath, 0o600);
+
+    // Write PID file for shutdown fallback
+    await fs.writeFile(this.pidPath, String(process.pid), "utf-8");
+    this.log(`PID file written: ${this.pidPath}`);
+  }
+
+  /**
+   * Register a callback to be called when shutdown is requested via IPC
+   */
+  onShutdownRequested(callback: () => void): void {
+    this.shutdownCallback = callback;
   }
 
   /**
@@ -114,7 +135,25 @@ export class HubServer {
     // Remove socket file
     await this.cleanupSocket();
 
+    // Remove PID file
+    await this.cleanupPidFile();
+
     this.log("Hub server stopped");
+  }
+
+  /**
+   * Clean up PID file
+   */
+  private async cleanupPidFile(): Promise<void> {
+    try {
+      await fs.unlink(this.pidPath);
+      this.log(`PID file removed: ${this.pidPath}`);
+    } catch (err) {
+      // Ignore ENOENT (file doesn't exist)
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        this.log(`Failed to remove PID file: ${err}`);
+      }
+    }
   }
 
   /**
@@ -252,6 +291,25 @@ export class HubServer {
   }
 
   private async dispatch(method: HubMethod, params: unknown): Promise<unknown> {
+    // Lifecycle methods don't require hub
+    if (method === "ping") {
+      const response: PingResponse = {
+        serverVersion: SERVER_VERSION,
+        protocolVersion: IPC_PROTOCOL_VERSION,
+      };
+      return response;
+    }
+
+    if (method === "shutdown") {
+      this.log("Shutdown requested via IPC");
+      this.shutdownRequested = true;
+      // Call the shutdown callback asynchronously to allow response to be sent
+      if (this.shutdownCallback) {
+        setImmediate(() => this.shutdownCallback?.());
+      }
+      return { success: true };
+    }
+
     if (!this.hub) {
       throw new Error("Hub not initialized");
     }

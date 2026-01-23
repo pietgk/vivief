@@ -55,13 +55,17 @@ export {
 // IPC Protocol
 export {
   HUB_SOCKET_NAME,
+  HUB_PID_NAME,
   IPC_TIMEOUT_MS,
   IPC_CONNECT_TIMEOUT_MS,
+  IPC_PROTOCOL_VERSION,
   getSocketPath,
+  getPidPath,
   type HubMethod,
   type HubRequest,
   type HubResponse,
   type HubError,
+  type PingResponse,
   HubErrorCode,
 } from "./ipc-protocol.js";
 

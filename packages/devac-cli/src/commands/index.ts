@@ -72,13 +72,15 @@ export type {
   AffectedCommandOptions,
   AffectedCommandResult,
 } from "./affected.js";
-export { mcpCommand } from "./mcp.js";
+export { mcpCommand, mcpStopCommand } from "./mcp.js";
 export type {
   MCPCommandOptions,
   MCPCommandResult,
   MCPController,
   MCPTool,
   MCPToolResult,
+  MCPStopOptions,
+  MCPStopResult,
 } from "./mcp.js";
 
 // Context command

@@ -82,7 +82,8 @@ describe("HubClient", () => {
 
   describe("dispatch routing", () => {
     /**
-     * Helper to create a mock MCP server that responds to IPC requests
+     * Helper to create a mock MCP server that responds to IPC requests.
+     * Automatically handles ping requests for version negotiation.
      */
     async function createMockMCPServer(
       onRequest: (request: HubRequest) => HubResponse<unknown>
@@ -91,15 +92,28 @@ describe("HubClient", () => {
         let buffer = "";
         socket.on("data", (data) => {
           buffer += data.toString();
-          const newlineIndex = buffer.indexOf("\n");
-          if (newlineIndex !== -1) {
+          for (
+            let newlineIndex = buffer.indexOf("\n");
+            newlineIndex !== -1;
+            newlineIndex = buffer.indexOf("\n")
+          ) {
             const message = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
 
             try {
               const request = JSON.parse(message) as HubRequest;
-              const response = onRequest(request);
-              socket.write(`${JSON.stringify(response)}\n`);
+              // Handle ping requests automatically (version negotiation)
+              if (request.method === "ping") {
+                socket.write(
+                  `${JSON.stringify({
+                    id: request.id,
+                    result: { serverVersion: "1.0.0", protocolVersion: "1.0" },
+                  })}\n`
+                );
+              } else {
+                const response = onRequest(request);
+                socket.write(`${JSON.stringify(response)}\n`);
+              }
             } catch {
               socket.write(
                 `${JSON.stringify({
@@ -263,7 +277,7 @@ describe("HubClient", () => {
   });
 
   describe("timeout handling", () => {
-    it("times out when MCP does not respond", async () => {
+    it("falls back to direct hub when MCP times out", async () => {
       // Initialize hub
       const hub = createCentralHub({ hubDir });
       await hub.init({ skipValidation: true });
@@ -283,7 +297,10 @@ describe("HubClient", () => {
           skipValidation: true,
         });
 
-        await expect(client.query("SELECT 1")).rejects.toThrow(/timeout/i);
+        // With the new fallback logic, IPC timeout causes fallback to direct hub
+        // The query should succeed via direct hub access
+        const result = await client.query("SELECT 1 as test");
+        expect(result.rows).toEqual([{ test: 1 }]);
       } finally {
         server.close();
       }
@@ -303,13 +320,26 @@ describe("HubClient", () => {
         let buffer = "";
         socket.on("data", (data) => {
           buffer += data.toString();
-          const newlineIndex = buffer.indexOf("\n");
-          if (newlineIndex !== -1) {
+          for (
+            let newlineIndex = buffer.indexOf("\n");
+            newlineIndex !== -1;
+            newlineIndex = buffer.indexOf("\n")
+          ) {
             const message = buffer.slice(0, newlineIndex);
             buffer = buffer.slice(newlineIndex + 1);
             const request = JSON.parse(message) as HubRequest;
-            receivedRequests.push(request);
-            socket.write(`${JSON.stringify({ id: request.id, result: undefined })}\n`);
+            // Handle ping requests automatically (version negotiation)
+            if (request.method === "ping") {
+              socket.write(
+                `${JSON.stringify({
+                  id: request.id,
+                  result: { serverVersion: "1.0.0", protocolVersion: "1.0" },
+                })}\n`
+              );
+            } else {
+              receivedRequests.push(request);
+              socket.write(`${JSON.stringify({ id: request.id, result: undefined })}\n`);
+            }
           }
         });
       });
