@@ -571,6 +571,9 @@ export * from "./status/index.js";
 // Prerequisites (v4.0 - Unified prerequisite checking)
 export * from "./prerequisites/index.js";
 
+// URI (ADR-0044 - Unified Addressing Scheme)
+export * from "./uri/index.js";
+
 /**
  * DevAC Core Version
  */

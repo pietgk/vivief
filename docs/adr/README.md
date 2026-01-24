@@ -44,6 +44,16 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0032](0032-hub-location-validation.md) | Hub Location Validation | Accepted | 2026-01 |
 | [0033](0033-calls-edge-resolution.md) | CALLS Edge Resolution for Call Graph Queries | Accepted | 2026-01 |
 | [0034](0034-extends-edge-resolution.md) | EXTENDS Edge Resolution for Inheritance Queries | Accepted | 2026-01 |
+| [0035](0035-browser-element-ref-strategy.md) | Browser Element Reference Hybrid Strategy | Accepted | 2026-01 |
+| [0036](0036-browser-session-management.md) | Browser Session Management Singleton Pattern | Accepted | 2026-01 |
+| [0037](0037-browser-mcp-tool-conventions.md) | Browser MCP Tool Naming and Schema Conventions | Accepted | 2026-01 |
+| [0038](0038-browser-error-handling.md) | Browser Error Handling Strategy | Accepted | 2026-01 |
+| [0039](0039-browser-test-strategy.md) | Browser Automation Test Strategy | Accepted | 2026-01 |
+| [0040](0040-version-ts-generation.md) | Version.ts Generation Pattern | Accepted | 2026-01 |
+| [0041](0041-cli-command-structure.md) | CLI Command Structure (v4.0 Reorganization) | Accepted | 2026-01 |
+| [0042](0042-mcp-tool-naming-conventions.md) | MCP Tool Naming Conventions | Accepted | 2026-01 |
+| [0043](0043-hook-based-validation-triggering.md) | Hook-Based Validation Triggering | Accepted | 2026-01 |
+| [0044](0044-unified-addressing-scheme.md) | Unified Addressing Scheme for DevAC | Accepted | 2026-01 |
 
 ## Creating a New ADR
 
