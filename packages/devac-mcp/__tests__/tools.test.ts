@@ -296,6 +296,69 @@ describe("Tool Input Validation", () => {
   });
 });
 
+describe("URI Support in Tools", () => {
+  describe("tool descriptions mention URI support", () => {
+    it("query_deps mentions devac:// URI support", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_deps");
+      const entityIdProp = tool?.inputSchema.properties.entityId as { description: string };
+      expect(entityIdProp.description).toContain("devac://");
+    });
+
+    it("query_dependents mentions devac:// URI support", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_dependents");
+      const entityIdProp = tool?.inputSchema.properties.entityId as { description: string };
+      expect(entityIdProp.description).toContain("devac://");
+    });
+
+    it("query_file mentions devac:// URI support", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_file");
+      const filePathProp = tool?.inputSchema.properties.filePath as { description: string };
+      expect(filePathProp.description).toContain("devac://");
+    });
+
+    it("query_affected mentions devac:// URI support", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_affected");
+      const changedFilesProp = tool?.inputSchema.properties.changedFiles as { description: string };
+      expect(changedFilesProp.description).toContain("devac://");
+    });
+
+    it("query_call_graph mentions devac:// URI support", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_call_graph");
+      const entityIdProp = tool?.inputSchema.properties.entityId as { description: string };
+      expect(entityIdProp.description).toContain("devac://");
+    });
+
+    it("query_effects mentions devac:// URI support for file parameter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+      const fileProp = tool?.inputSchema.properties.file as { description: string };
+      expect(fileProp.description).toContain("devac://");
+    });
+
+    it("query_effects mentions devac:// URI support for entity parameter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+      const entityProp = tool?.inputSchema.properties.entity as { description: string };
+      expect(entityProp.description).toContain("devac://");
+    });
+  });
+
+  describe("tool descriptions include examples", () => {
+    it("query_file includes URI example", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_file");
+      const filePathProp = tool?.inputSchema.properties.filePath as { description: string };
+      expect(filePathProp.description).toMatch(/devac:\/\/\w+\/\w+/);
+    });
+
+    it("query_deps includes both entity ID and URI examples", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_deps");
+      const entityIdProp = tool?.inputSchema.properties.entityId as { description: string };
+      // Should have legacy entity ID format
+      expect(entityIdProp.description).toMatch(/repo:pkg:kind:hash/);
+      // Should have URI format
+      expect(entityIdProp.description).toMatch(/devac:\/\//);
+    });
+  });
+});
+
 describe("Tool Error Scenarios", () => {
   describe("SQL injection prevention", () => {
     it("query_symbol escapes single quotes in name", () => {

@@ -27,6 +27,8 @@ import {
   checkQueryPrerequisites,
   discoverContext,
   getWorkspaceStatus,
+  isCanonicalURI,
+  parseCanonicalURI,
 } from "@pietgk/devac-core";
 import { type DataProvider, createDataProvider } from "./data-provider.js";
 import { MCP_TOOLS } from "./tools/index.js";
@@ -47,6 +49,44 @@ interface CachedContext {
 
 /** Context cache TTL in milliseconds (30 seconds) */
 const CONTEXT_CACHE_TTL = 30_000;
+
+/**
+ * Resolve a file path or devac:// URI to a file path
+ *
+ * Supports both legacy file paths and devac:// URIs for backwards compatibility.
+ * If the input is a URI, extracts the file path portion.
+ *
+ * @param input - File path or devac:// URI
+ * @returns Resolved file path
+ */
+function resolveToFilePath(input: string): string {
+  if (isCanonicalURI(input)) {
+    const { uri } = parseCanonicalURI(input);
+    // Combine package path + file path
+    if (uri.file) {
+      return uri.package === "." ? uri.file : `${uri.package}/${uri.file}`;
+    }
+    // Package-only URI
+    return uri.package;
+  }
+  return input;
+}
+
+/**
+ * Resolve an entity ID or devac:// URI to an entity identifier
+ *
+ * Supports both legacy entity IDs and devac:// URIs for backwards compatibility.
+ * For Phase 2, URIs are passed through - full resolution via symbol index is Phase 3+.
+ *
+ * @param input - Entity ID or devac:// URI
+ * @returns Resolved entity identifier
+ */
+function resolveToEntityId(input: string): string {
+  // For Phase 2, we pass through URIs as-is
+  // Full URI -> entity ID resolution requires symbol index (Phase 3+)
+  // The data provider will handle both formats
+  return input;
+}
 
 /**
  * DevAC MCP Server
@@ -274,60 +314,73 @@ export class DevacMCPServer {
 
   /**
    * Get dependencies of a symbol
+   *
+   * Accepts both entity IDs and devac:// URIs for backwards compatibility.
    */
   private async executeGetDependencies(input: Record<string, unknown>): Promise<MCPToolResult> {
     if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
       return {
         success: false,
-        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+        error:
+          "Missing or invalid 'entityId' parameter. Expected a non-empty string or devac:// URI.",
       };
     }
-    const entityId = input.entityId;
+    const entityId = resolveToEntityId(input.entityId);
     const result = await this.provider.getDependencies(entityId);
     return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get dependents of a symbol
+   *
+   * Accepts both entity IDs and devac:// URIs for backwards compatibility.
    */
   private async executeGetDependents(input: Record<string, unknown>): Promise<MCPToolResult> {
     if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
       return {
         success: false,
-        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+        error:
+          "Missing or invalid 'entityId' parameter. Expected a non-empty string or devac:// URI.",
       };
     }
-    const entityId = input.entityId;
+    const entityId = resolveToEntityId(input.entityId);
     const result = await this.provider.getDependents(entityId);
     return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get all symbols in a file
+   *
+   * Accepts both file paths and devac:// URIs for backwards compatibility.
    */
   private async executeGetFileSymbols(input: Record<string, unknown>): Promise<MCPToolResult> {
     if (typeof input.filePath !== "string" || input.filePath.trim() === "") {
       return {
         success: false,
-        error: "Missing or invalid 'filePath' parameter. Expected a non-empty string.",
+        error:
+          "Missing or invalid 'filePath' parameter. Expected a non-empty string or devac:// URI.",
       };
     }
-    const filePath = input.filePath;
+    const filePath = resolveToFilePath(input.filePath);
     const result = await this.provider.getFileSymbols(filePath);
     return this.withReadiness({ success: true, data: result.rows });
   }
 
   /**
    * Get affected files from changes
+   *
+   * Accepts both file paths and devac:// URIs for backwards compatibility.
    */
   private async executeGetAffected(input: Record<string, unknown>): Promise<MCPToolResult> {
     if (!Array.isArray(input.changedFiles)) {
       return {
         success: false,
-        error: "Missing or invalid 'changedFiles' parameter. Expected an array of strings.",
+        error:
+          "Missing or invalid 'changedFiles' parameter. Expected an array of file paths or devac:// URIs.",
       };
     }
-    const changedFiles = input.changedFiles as string[];
+    // Resolve each entry - supports both file paths and URIs
+    const changedFiles = (input.changedFiles as string[]).map(resolveToFilePath);
     const maxDepth = (input.maxDepth as number) ?? 10;
 
     const result = await this.provider.getAffected(changedFiles, maxDepth);
@@ -336,15 +389,18 @@ export class DevacMCPServer {
 
   /**
    * Get call graph for a function
+   *
+   * Accepts both entity IDs and devac:// URIs for backwards compatibility.
    */
   private async executeGetCallGraph(input: Record<string, unknown>): Promise<MCPToolResult> {
     if (typeof input.entityId !== "string" || input.entityId.trim() === "") {
       return {
         success: false,
-        error: "Missing or invalid 'entityId' parameter. Expected a non-empty string.",
+        error:
+          "Missing or invalid 'entityId' parameter. Expected a non-empty string or devac:// URI.",
       };
     }
-    const entityId = input.entityId;
+    const entityId = resolveToEntityId(input.entityId);
     const direction = (input.direction as "callers" | "callees" | "both") ?? "both";
     const maxDepth = (input.maxDepth as number) ?? 3;
 
@@ -699,13 +755,19 @@ export class DevacMCPServer {
 
   /**
    * Query code effects from seeds
+   *
+   * Accepts both file paths and devac:// URIs for backwards compatibility.
    */
   private async executeQueryEffects(input: Record<string, unknown>): Promise<MCPToolResult> {
     try {
+      // Resolve file and entity parameters if they are URIs
+      const fileInput = input.file as string | undefined;
+      const entityInput = input.entity as string | undefined;
+
       const filter = {
         type: input.type as string | undefined,
-        file: input.file as string | undefined,
-        entity: input.entity as string | undefined,
+        file: fileInput ? resolveToFilePath(fileInput) : undefined,
+        entity: entityInput ? resolveToEntityId(entityInput) : undefined,
         externalOnly: input.externalOnly as boolean | undefined,
         asyncOnly: input.asyncOnly as boolean | undefined,
         limit: input.limit as number | undefined,

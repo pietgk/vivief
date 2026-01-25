@@ -526,6 +526,43 @@ All packages use Vitest with this structure:
 3. **Avoid duplicates** - Check if functionality is already tested
 4. **Follow existing patterns** - Match mock setup, assertions style
 
+## Critical Safety Rules
+
+### Never Use sed on Git Config (macOS)
+
+**NEVER use `sed -i ''` to edit `.git/config` on macOS.** BSD sed behaves differently than GNU sed and can **empty the entire file** if the pattern doesn't match exactly.
+
+```bash
+# DANGEROUS - can destroy .git/config:
+sed -i '' 's/bare = true/bare = false/' .git/config  # DON'T DO THIS
+
+# SAFE - always use git config commands:
+git config core.bare false
+git config core.repositoryformatversion 0
+git config core.filemode true
+```
+
+If `.git/config` gets corrupted, restore with:
+```bash
+git config core.repositoryformatversion 0
+git config core.filemode true
+git config core.bare false
+git config core.logallrefupdates true
+git config core.ignorecase true
+git config core.precomposeunicode true
+git remote add origin <url>
+```
+
+### Never Overwrite Plan Files Without Permission
+
+When in plan mode with an existing plan file:
+1. **Always read the existing plan first** to check if it has valuable content
+2. **Ask permission before overwriting** if the existing plan is for a different task
+3. **Save existing content to a new file** before replacing with different content
+4. Plan files can contain hours of research and design work - treat them as valuable artifacts
+
+---
+
 ## Troubleshooting
 
 ### DuckDB Issues
