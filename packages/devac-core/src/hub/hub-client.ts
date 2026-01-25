@@ -137,7 +137,8 @@ export class HubClient {
 
   /**
    * Check version compatibility with MCP server.
-   * Throws if versions are incompatible.
+   * If versions are incompatible, auto-stops the outdated MCP and throws
+   * a connection error to trigger fallback to direct hub access.
    */
   private async checkVersionIfNeeded(): Promise<void> {
     if (this.versionChecked) {
@@ -151,9 +152,32 @@ export class HubClient {
 
       // Check protocol version compatibility
       if (response.protocolVersion !== IPC_PROTOCOL_VERSION) {
-        throw new Error(
-          `MCP server protocol version ${response.protocolVersion} incompatible with CLI protocol version ${IPC_PROTOCOL_VERSION}. Run 'devac mcp stop' to stop the old server, then retry your command.`
+        console.debug?.(
+          `[HubClient] MCP protocol version mismatch (server: ${response.protocolVersion}, client: ${IPC_PROTOCOL_VERSION}). Auto-stopping...`
         );
+
+        // Try to gracefully stop the outdated MCP
+        try {
+          await this.shutdown();
+          // Wait for shutdown to complete
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch {
+          // Shutdown failed, try PID fallback
+          const pid = await this.getMCPPid();
+          if (pid) {
+            try {
+              process.kill(pid, "SIGTERM");
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            } catch {
+              // PID kill failed too - proceed anyway
+            }
+          }
+        }
+
+        // Reset state so we don't try IPC again this session
+        this.versionChecked = false;
+        // Throw a connection error so dispatch() falls back to direct hub
+        throw new Error("IPC connection closed - MCP version mismatch auto-stopped");
       }
     } catch (err) {
       // If ping fails, reset version check state so we retry next time
@@ -284,7 +308,13 @@ export class HubClient {
       message.includes("IPC connection closed") ||
       message.includes("ECONNREFUSED") ||
       message.includes("ENOENT") ||
-      message.includes("connect ENOENT")
+      message.includes("connect ENOENT") ||
+      // Version mismatch auto-stopped - treat as connection error to enable fallback
+      message.includes("version mismatch auto-stopped") ||
+      // Hub lock errors - enable fallback to read-only direct access
+      message.includes("locked") ||
+      message.includes("Conflicting lock") ||
+      message.includes("lock on file")
     );
   }
 
@@ -306,10 +336,6 @@ export class HubClient {
         return await this.sendToMCP<T>(method, params);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        // Don't fallback for version mismatch - that's a hard error
-        if (message.includes("incompatible")) {
-          throw err;
-        }
         // Only fallback for connection/communication errors
         // Application errors (error responses from MCP) should be re-thrown
         if (!this.isConnectionError(message)) {
