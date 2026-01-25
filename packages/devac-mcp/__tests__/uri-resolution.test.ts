@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
  */
 function resolveToFilePath(input: string): string {
   if (isCanonicalURI(input)) {
-    const uri = parseCanonicalURI(input);
+    const { uri } = parseCanonicalURI(input);
     if (uri.file) {
       return uri.package === "." ? uri.file : `${uri.package}/${uri.file}`;
     }
@@ -55,42 +55,42 @@ describe("resolveToFilePath", () => {
 
   describe("devac:// URI resolution", () => {
     it("resolves URI with root package to file path", () => {
-      const uri = "devac://ws/repo/./src/index.ts";
+      const uri = "devac://repo/./src/index.ts";
       expect(resolveToFilePath(uri)).toBe("src/index.ts");
     });
 
     it("resolves URI with package path to combined path", () => {
-      const uri = "devac://ws/repo/packages/core/src/auth.ts";
+      const uri = "devac://repo/packages/core/src/auth.ts";
       expect(resolveToFilePath(uri)).toBe("packages/core/src/auth.ts");
     });
 
     it("resolves URI with nested package path", () => {
-      const uri = "devac://mindlercare/app/packages/web/client/src/App.tsx";
+      const uri = "devac://app/packages/web/client/src/App.tsx";
       expect(resolveToFilePath(uri)).toBe("packages/web/client/src/App.tsx");
     });
 
-    it("resolves URI with version tag", () => {
-      const uri = "devac://ws/repo@main/packages/core/src/index.ts";
+    it("resolves URI with version query param", () => {
+      const uri = "devac://repo/packages/core/src/index.ts?version=main";
       expect(resolveToFilePath(uri)).toBe("packages/core/src/index.ts");
     });
 
     it("resolves package-only URI to package path", () => {
-      const uri = "devac://ws/repo/packages/core";
+      const uri = "devac://repo/packages/core";
       expect(resolveToFilePath(uri)).toBe("packages/core");
     });
 
     it("ignores symbol fragment when resolving to file path", () => {
-      const uri = "devac://ws/repo/packages/core/src/auth.ts#AuthService.login()";
+      const uri = "devac://repo/packages/core/src/auth.ts#AuthService.login()";
       expect(resolveToFilePath(uri)).toBe("packages/core/src/auth.ts");
     });
 
-    it("ignores location fragment when resolving to file path", () => {
-      const uri = "devac://ws/repo/packages/core/src/auth.ts#L45";
+    it("ignores location query params when resolving to file path", () => {
+      const uri = "devac://repo/packages/core/src/auth.ts?line=45";
       expect(resolveToFilePath(uri)).toBe("packages/core/src/auth.ts");
     });
 
-    it("ignores both symbol and location fragments", () => {
-      const uri = "devac://ws/repo/packages/core/src/auth.ts#AuthService#L45";
+    it("ignores both symbol and location params", () => {
+      const uri = "devac://repo/packages/core/src/auth.ts#AuthService?line=45";
       expect(resolveToFilePath(uri)).toBe("packages/core/src/auth.ts");
     });
   });

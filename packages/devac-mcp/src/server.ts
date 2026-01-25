@@ -61,7 +61,7 @@ const CONTEXT_CACHE_TTL = 30_000;
  */
 function resolveToFilePath(input: string): string {
   if (isCanonicalURI(input)) {
-    const uri = parseCanonicalURI(input);
+    const { uri } = parseCanonicalURI(input);
     // Combine package path + file path
     if (uri.file) {
       return uri.package === "." ? uri.file : `${uri.package}/${uri.file}`;
