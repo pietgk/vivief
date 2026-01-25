@@ -383,7 +383,7 @@ describe("URI Formatter", () => {
       });
 
       expect(uri.repo).toBe("app");
-      expect(uri.symbol?.segments[0].name).toBe("login");
+      expect(uri.symbol?.segments[0]?.name).toBe("login");
     });
   });
 
