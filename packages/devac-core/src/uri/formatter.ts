@@ -9,14 +9,7 @@
  * - Version and position as query params
  */
 
-import type {
-  CanonicalURI,
-  EntityID,
-  Location,
-  SymbolPath,
-  SymbolSegment,
-  URIQueryParams,
-} from "./types.js";
+import type { CanonicalURI, EntityID, SymbolPath, SymbolSegment, URIQueryParams } from "./types.js";
 import { ENTITY_ID_SEPARATOR, ROOT_PACKAGE, URI_SCHEME } from "./types.js";
 
 /**
@@ -152,34 +145,6 @@ export function formatSymbolSegment(segment: SymbolSegment): string {
       result += segment.params.join(",");
     }
     result += ")";
-  }
-
-  return result;
-}
-
-/**
- * Format a location to string (legacy format for compatibility)
- *
- * @example
- * ```typescript
- * formatLocation({ line: 10 });                    // "L10"
- * formatLocation({ line: 10, column: 5 });         // "L10:C5"
- * formatLocation({ line: 10, endLine: 20 });       // "L10-L20"
- * formatLocation({ line: 10, column: 5, endLine: 20, endColumn: 10 });  // "L10:C5-L20:C10"
- * ```
- */
-export function formatLocation(loc: Location): string {
-  let result = `L${loc.line}`;
-
-  if (loc.column !== undefined) {
-    result += `:C${loc.column}`;
-  }
-
-  if (loc.endLine !== undefined) {
-    result += `-L${loc.endLine}`;
-    if (loc.endColumn !== undefined) {
-      result += `:C${loc.endColumn}`;
-    }
   }
 
   return result;

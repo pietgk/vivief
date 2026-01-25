@@ -216,22 +216,6 @@ export interface URIContext {
 }
 
 /**
- * Result of parsing a URI string (legacy compatibility)
- *
- * @deprecated Use ParsedURI instead
- */
-export interface ParsedURIResult {
-  /** The parsed canonical URI */
-  uri: CanonicalURI;
-
-  /** Whether the original was a full canonical URI or relative ref */
-  wasRelative: boolean;
-
-  /** The original input string */
-  original: string;
-}
-
-/**
  * Symbol index entry for URI resolution
  *
  * Used to resolve human-readable URIs to stable entity IDs.

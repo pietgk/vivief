@@ -131,6 +131,31 @@ devac://app/packages/core/src/auth.ts#AuthService?version=main&line=45&col=10
 | `()` | Method/function call | `.login()` |
 | Chained | Nested symbols | `#AuthService.login()` |
 
+### Overload Disambiguation
+
+For languages with function/method overloading (TypeScript, Java, C#), argument types can be included in parentheses to disambiguate between overloads:
+
+```
+#AuthService.login(string,string)    # login(username: string, password: string)
+#AuthService.login(OAuth2Token)      # login(token: OAuth2Token)
+#Array.from(Iterable)                # from<T>(iterable: Iterable<T>)
+#Array.from(Iterable,Function)       # from<T,U>(iterable: Iterable<T>, mapFn: (v: T) => U)
+```
+
+**Format:** `methodName(Type1,Type2,...)`
+
+| Component | Description |
+|-----------|-------------|
+| `methodName` | The method or function name |
+| `()` | Parentheses indicate a callable |
+| `Type1,Type2` | Comma-separated type names (no spaces) |
+
+**Notes:**
+- Empty parentheses `()` match any callable (no disambiguation)
+- Type names should match the source language's type syntax
+- Generics are simplified to their base type (e.g., `Array<string>` → `Array`)
+- Optional: implementation may fall back to first match if disambiguation fails
+
 ### Entity ID Format
 
 ```

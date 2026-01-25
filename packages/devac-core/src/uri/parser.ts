@@ -14,14 +14,7 @@
  * - Location moved to query params (?line=45&col=10 instead of #L45:C10)
  */
 
-import type {
-  EntityID,
-  Location,
-  ParsedURI,
-  SymbolPath,
-  SymbolSegment,
-  URIQueryParams,
-} from "./types.js";
+import type { EntityID, ParsedURI, SymbolPath, SymbolSegment, URIQueryParams } from "./types.js";
 import { ENTITY_ID_SEPARATOR, ROOT_PACKAGE, URI_SCHEME } from "./types.js";
 
 /**
@@ -328,88 +321,6 @@ export function parseSymbolPath(path: string): SymbolPath {
 }
 
 /**
- * Parse a location string (for legacy support)
- *
- * Formats:
- * - L10 - line only
- * - L10:C5 - line and column
- * - L10-L20 or L10-20 - line range
- * - L10:C5-L20:C10 - full range
- *
- * Note: In the new format, locations are in query params.
- * This function is kept for backwards compatibility.
- *
- * @example
- * ```typescript
- * parseLocation("L10");        // { line: 10 }
- * parseLocation("L10:C5");     // { line: 10, column: 5 }
- * parseLocation("L10-L20");    // { line: 10, endLine: 20 }
- * parseLocation("L10:C5-L20:C10"); // { line: 10, column: 5, endLine: 20, endColumn: 10 }
- * ```
- */
-export function parseLocation(loc: string): Location {
-  // Remove leading L if present
-  const s = loc.startsWith("L") ? loc.slice(1) : loc;
-
-  // Check for range
-  const rangeSep = s.indexOf("-");
-  if (rangeSep !== -1) {
-    const start = s.slice(0, rangeSep);
-    let end = s.slice(rangeSep + 1);
-
-    // End might have L prefix
-    if (end.startsWith("L")) {
-      end = end.slice(1);
-    }
-
-    const startLoc = parseLocationPart(start);
-    const endLoc = parseLocationPart(end);
-
-    return {
-      line: startLoc.line,
-      column: startLoc.column,
-      endLine: endLoc.line,
-      endColumn: endLoc.column,
-    };
-  }
-
-  // Single location
-  return parseLocationPart(s);
-}
-
-/**
- * Parse a single location part (line or line:column)
- */
-function parseLocationPart(s: string): { line: number; column?: number } {
-  const colonIndex = s.indexOf(":");
-  if (colonIndex !== -1) {
-    // Line and column
-    let colStr = s.slice(colonIndex + 1);
-    // Remove C prefix if present
-    if (colStr.startsWith("C")) {
-      colStr = colStr.slice(1);
-    }
-
-    const line = Number.parseInt(s.slice(0, colonIndex), 10);
-    const column = Number.parseInt(colStr, 10);
-
-    if (Number.isNaN(line) || Number.isNaN(column)) {
-      throw new URIParseError("Invalid location format", s);
-    }
-
-    return { line, column };
-  }
-
-  // Line only
-  const line = Number.parseInt(s, 10);
-  if (Number.isNaN(line)) {
-    throw new URIParseError("Invalid line number", s);
-  }
-
-  return { line };
-}
-
-/**
  * Check if a string is a canonical DevAC URI
  */
 export function isCanonicalURI(s: string): boolean {
@@ -480,32 +391,4 @@ export function detectReferenceType(
   }
 
   return { type: "unknown", input: s };
-}
-
-/**
- * Convert URIQueryParams to Location (for backwards compatibility)
- */
-export function queryParamsToLocation(params: URIQueryParams): Location | undefined {
-  if (params.line === undefined) {
-    return undefined;
-  }
-
-  return {
-    line: params.line,
-    column: params.col,
-    endLine: params.endLine,
-    endColumn: params.endCol,
-  };
-}
-
-/**
- * Convert Location to URIQueryParams (for backwards compatibility)
- */
-export function locationToQueryParams(loc: Location): URIQueryParams {
-  return {
-    line: loc.line,
-    col: loc.column,
-    endLine: loc.endLine,
-    endCol: loc.endColumn,
-  };
 }

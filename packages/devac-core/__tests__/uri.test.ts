@@ -3,8 +3,6 @@ import {
   // Types
   type CanonicalURI,
   type EntityID,
-  // Resolver
-  InMemorySymbolIndex,
   // Constants
   ROOT_PACKAGE,
   type SymbolPath,
@@ -19,24 +17,21 @@ import {
   // Formatter
   formatCanonicalURI,
   formatEntityID,
-  formatLocation,
   formatQueryParams,
   formatSymbolPath,
   getParentURI,
   getRefSpecificity,
-  locationToQueryParams,
   // Parser
   parseCanonicalURI,
   parseEntityID,
-  parseLocation,
   parseQueryParams,
   parseSymbolPath,
-  queryParamsToLocation,
   // Relative
   resolveRelativeRef,
   toRelativeRef,
   urisEqual,
 } from "../src/uri/index.js";
+import { InMemorySymbolIndex } from "./helpers/InMemorySymbolIndex.js";
 
 describe("URI Parser", () => {
   describe("parseCanonicalURI", () => {
@@ -207,53 +202,6 @@ describe("URI Parser", () => {
     });
   });
 
-  describe("parseLocation", () => {
-    it("should parse line only", () => {
-      expect(parseLocation("L10")).toEqual({ line: 10 });
-      expect(parseLocation("10")).toEqual({ line: 10 });
-    });
-
-    it("should parse line and column", () => {
-      expect(parseLocation("L10:C5")).toEqual({ line: 10, column: 5 });
-      expect(parseLocation("L10:5")).toEqual({ line: 10, column: 5 });
-    });
-
-    it("should parse line range", () => {
-      expect(parseLocation("L10-L20")).toEqual({ line: 10, endLine: 20 });
-      expect(parseLocation("L10-20")).toEqual({ line: 10, endLine: 20 });
-    });
-
-    it("should parse full range", () => {
-      expect(parseLocation("L10:C5-L20:C15")).toEqual({
-        line: 10,
-        column: 5,
-        endLine: 20,
-        endColumn: 15,
-      });
-    });
-  });
-
-  describe("queryParamsToLocation", () => {
-    it("should convert query params to location", () => {
-      const params: URIQueryParams = { line: 10, col: 5, endLine: 20, endCol: 15 };
-      const location = queryParamsToLocation(params);
-      expect(location).toEqual({ line: 10, column: 5, endLine: 20, endColumn: 15 });
-    });
-
-    it("should return undefined when no line", () => {
-      const params: URIQueryParams = { version: "main" };
-      expect(queryParamsToLocation(params)).toBeUndefined();
-    });
-  });
-
-  describe("locationToQueryParams", () => {
-    it("should convert location to query params", () => {
-      const location = { line: 10, column: 5, endLine: 20, endColumn: 15 };
-      const params = locationToQueryParams(location);
-      expect(params).toEqual({ line: 10, col: 5, endLine: 20, endCol: 15 });
-    });
-  });
-
   describe("detectReferenceType", () => {
     it("should detect canonical URIs", () => {
       const result = detectReferenceType("devac://app/packages/core");
@@ -354,20 +302,6 @@ describe("URI Formatter", () => {
       };
 
       expect(formatSymbolPath(path)).toBe("#AuthService.login(string,string)");
-    });
-  });
-
-  describe("formatLocation", () => {
-    it("should format location with line only", () => {
-      expect(formatLocation({ line: 10 })).toBe("L10");
-    });
-
-    it("should format location with column", () => {
-      expect(formatLocation({ line: 10, column: 5 })).toBe("L10:C5");
-    });
-
-    it("should format location range", () => {
-      expect(formatLocation({ line: 10, endLine: 20 })).toBe("L10-L20");
     });
   });
 
