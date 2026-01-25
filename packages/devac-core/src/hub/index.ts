@@ -79,3 +79,14 @@ export {
 
 // Hub Client (for CLI)
 export { HubClient, createHubClient, type HubClientOptions, type HubLike } from "./hub-client.js";
+
+// Health Check
+export {
+  runHealthCheck,
+  applyHealthFixes,
+  type HealthCheckResult,
+  type HealthCheckOptions,
+  type HealthIssue,
+  type HealthIssueFix,
+  type HealthIssueType,
+} from "./health-check.js";

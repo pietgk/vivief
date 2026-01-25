@@ -7,7 +7,7 @@
  * and querying seed data.
  */
 
-import { setGlobalLogLevel } from "@pietgk/devac-core";
+import { runHealthCheck, setGlobalLogLevel } from "@pietgk/devac-core";
 import { Command } from "commander";
 import {
   registerMcpCommand,
@@ -16,6 +16,12 @@ import {
   registerSyncCommand,
   registerWorkflowCommand,
 } from "./commands/index.js";
+import {
+  applyFixesWithProgress,
+  promptForRecovery,
+  warnNonInteractive,
+} from "./utils/recovery-prompt.js";
+import { findWorkspaceHubDir } from "./utils/workspace-discovery.js";
 import { VERSION } from "./version.js";
 
 const program = new Command();
@@ -26,12 +32,47 @@ program
   .version(VERSION)
   .option("--verbose", "Enable verbose logging (shows debug messages)")
   .option("--debug", "Enable debug logging (maximum verbosity)")
-  .hook("preAction", (thisCommand) => {
+  .option("--heal", "Auto-fix health issues without prompting")
+  .option("--skip-health", "Skip health check entirely")
+  .hook("preAction", async (thisCommand) => {
     const opts = thisCommand.optsWithGlobals();
+
+    // Set log level
     if (opts.debug) {
       setGlobalLogLevel("debug");
     } else if (opts.verbose) {
       setGlobalLogLevel("verbose");
+    }
+
+    // Skip health check if requested
+    if (opts.skipHealth) {
+      return;
+    }
+
+    // Try to find the hub directory
+    const hubDir = await findWorkspaceHubDir();
+    if (!hubDir) {
+      // Not in a workspace - skip health check
+      return;
+    }
+
+    // Run health check
+    const health = await runHealthCheck({ hubDir });
+
+    if (!health.healthy) {
+      if (opts.heal) {
+        // Auto-fix mode: apply fixes without prompting
+        await applyFixesWithProgress(health.issues);
+      } else if (process.stdin.isTTY && process.stderr.isTTY) {
+        // Interactive mode: prompt user
+        const shouldFix = await promptForRecovery(health.issues);
+        if (shouldFix) {
+          await applyFixesWithProgress(health.issues);
+        }
+      } else {
+        // Non-interactive mode: warn and continue
+        warnNonInteractive(health.issues);
+      }
     }
   });
 
