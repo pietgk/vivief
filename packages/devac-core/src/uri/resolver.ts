@@ -14,6 +14,8 @@
  * - URIs are lookup keys that resolve TO Entity IDs
  */
 
+import { formatCanonicalURI, formatEntityID } from "./formatter.js";
+import { parseCanonicalURI, parseEntityID } from "./parser.js";
 import type {
   CanonicalURI,
   EntityID,
@@ -22,8 +24,6 @@ import type {
   SymbolPath,
   URIContext,
 } from "./types.js";
-import { formatCanonicalURI, formatEntityID, getQualifiedName } from "./formatter.js";
-import { parseCanonicalURI, parseEntityID, parseSymbolPath } from "./parser.js";
 import { KIND_TO_SEGMENT, METHOD_KINDS, ROOT_PACKAGE, type URISymbolKind } from "./types.js";
 
 /**
@@ -149,9 +149,7 @@ export class InMemorySymbolIndex implements SymbolIndex {
       return this.byName.get(pattern) || [];
     }
 
-    const regex = new RegExp(
-      "^" + pattern.replace(/\*/g, ".*") + "$"
-    );
+    const regex = new RegExp(`^${pattern.replace(/\*/g, ".*")}$`);
 
     const results: SymbolIndexEntry[] = [];
     for (const [name, entries] of this.byName) {

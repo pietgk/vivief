@@ -15,7 +15,6 @@
  */
 
 import type {
-  CanonicalURI,
   EntityID,
   Location,
   ParsedURI,
@@ -188,16 +187,16 @@ export function parseQueryParams(queryString: string): URIQueryParams {
         params.version = decodedValue;
         break;
       case "line":
-        params.line = parseInt(decodedValue, 10);
+        params.line = Number.parseInt(decodedValue, 10);
         break;
       case "col":
-        params.col = parseInt(decodedValue, 10);
+        params.col = Number.parseInt(decodedValue, 10);
         break;
       case "endLine":
-        params.endLine = parseInt(decodedValue, 10);
+        params.endLine = Number.parseInt(decodedValue, 10);
         break;
       case "endCol":
-        params.endCol = parseInt(decodedValue, 10);
+        params.endCol = Number.parseInt(decodedValue, 10);
         break;
     }
   }
@@ -350,7 +349,7 @@ export function parseSymbolPath(path: string): SymbolPath {
  */
 export function parseLocation(loc: string): Location {
   // Remove leading L if present
-  let s = loc.startsWith("L") ? loc.slice(1) : loc;
+  const s = loc.startsWith("L") ? loc.slice(1) : loc;
 
   // Check for range
   const rangeSep = s.indexOf("-");
@@ -391,10 +390,10 @@ function parseLocationPart(s: string): { line: number; column?: number } {
       colStr = colStr.slice(1);
     }
 
-    const line = parseInt(s.slice(0, colonIndex), 10);
-    const column = parseInt(colStr, 10);
+    const line = Number.parseInt(s.slice(0, colonIndex), 10);
+    const column = Number.parseInt(colStr, 10);
 
-    if (isNaN(line) || isNaN(column)) {
+    if (Number.isNaN(line) || Number.isNaN(column)) {
       throw new URIParseError("Invalid location format", s);
     }
 
@@ -402,8 +401,8 @@ function parseLocationPart(s: string): { line: number; column?: number } {
   }
 
   // Line only
-  const line = parseInt(s, 10);
-  if (isNaN(line)) {
+  const line = Number.parseInt(s, 10);
+  if (Number.isNaN(line)) {
     throw new URIParseError("Invalid line number", s);
   }
 
@@ -451,7 +450,11 @@ export function isSymbolPath(s: string): boolean {
  */
 export function detectReferenceType(
   s: string
-): { type: "canonical"; result: ParsedURI } | { type: "entity"; id: EntityID } | { type: "symbol"; path: SymbolPath } | { type: "unknown"; input: string } {
+):
+  | { type: "canonical"; result: ParsedURI }
+  | { type: "entity"; id: EntityID }
+  | { type: "symbol"; path: SymbolPath }
+  | { type: "unknown"; input: string } {
   if (isCanonicalURI(s)) {
     try {
       return { type: "canonical", result: parseCanonicalURI(s) };

@@ -12,9 +12,9 @@
  * Use full URIs for cross-file references.
  */
 
-import type { CanonicalURI, SymbolPath, URIContext } from "./types.js";
 import { formatCanonicalURI } from "./formatter.js";
-import { parseCanonicalURI, parseSymbolPath, URIParseError } from "./parser.js";
+import { URIParseError, parseCanonicalURI, parseSymbolPath } from "./parser.js";
+import type { CanonicalURI, SymbolPath, URIContext } from "./types.js";
 import { URI_SCHEME } from "./types.js";
 
 /**
@@ -154,7 +154,9 @@ function formatSymbolPathRef(path: SymbolPath): string {
  */
 export function isRelativeRef(ref: string): boolean {
   // Only same-file refs are considered relative
-  return ref.startsWith("#") || (ref.startsWith(".") && !ref.startsWith("./") && !ref.startsWith(".."));
+  return (
+    ref.startsWith("#") || (ref.startsWith(".") && !ref.startsWith("./") && !ref.startsWith(".."))
+  );
 }
 
 /**
@@ -171,7 +173,10 @@ export function getRefSpecificity(ref: string): number {
     return 2; // Fully qualified
   }
 
-  if (ref.startsWith("#") || (ref.startsWith(".") && !ref.startsWith("./") && !ref.startsWith(".."))) {
+  if (
+    ref.startsWith("#") ||
+    (ref.startsWith(".") && !ref.startsWith("./") && !ref.startsWith(".."))
+  ) {
     return 1; // Symbol only (same-file)
   }
 

@@ -353,8 +353,4 @@ export const KIND_TO_SEGMENT: Record<URISymbolKind, "type" | "term"> = {
 /**
  * Kinds that are methods (have parentheses)
  */
-export const METHOD_KINDS: Set<URISymbolKind> = new Set([
-  "function",
-  "method",
-  "hook",
-]);
+export const METHOD_KINDS: Set<URISymbolKind> = new Set(["function", "method", "hook"]);

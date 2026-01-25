@@ -3,44 +3,39 @@ import {
   // Types
   type CanonicalURI,
   type EntityID,
-  type SymbolPath,
-  type URIContext,
-  type URIQueryParams,
+  // Resolver
+  InMemorySymbolIndex,
   // Constants
   ROOT_PACKAGE,
-  URI_SCHEME,
-  // Parser
-  parseCanonicalURI,
-  parseEntityID,
-  parseSymbolPath,
-  parseLocation,
-  parseQueryParams,
-  isCanonicalURI,
-  isEntityID,
-  detectReferenceType,
-  queryParamsToLocation,
-  locationToQueryParams,
+  type SymbolPath,
+  type URIContext,
   URIParseError,
+  type URIQueryParams,
+  URI_SCHEME,
+  buildURIFromNode,
+  createCanonicalURI,
+  createSymbolIndexEntry,
+  detectReferenceType,
   // Formatter
   formatCanonicalURI,
   formatEntityID,
-  formatSymbolPath,
   formatLocation,
   formatQueryParams,
-  createCanonicalURI,
-  createEntityID,
-  buildURIFromNode,
-  getQualifiedName,
-  // Resolver
-  InMemorySymbolIndex,
-  createSymbolIndexEntry,
-  urisEqual,
-  entityIdsEqual,
+  formatSymbolPath,
   getParentURI,
+  getRefSpecificity,
+  locationToQueryParams,
+  // Parser
+  parseCanonicalURI,
+  parseEntityID,
+  parseLocation,
+  parseQueryParams,
+  parseSymbolPath,
+  queryParamsToLocation,
   // Relative
   resolveRelativeRef,
   toRelativeRef,
-  getRefSpecificity,
+  urisEqual,
 } from "../src/uri/index.js";
 
 describe("URI Parser", () => {
@@ -653,7 +648,8 @@ describe("Relative References", () => {
 
 describe("Round-trip tests", () => {
   it("should round-trip canonical URIs", () => {
-    const original = "devac://app/packages/core/src/auth.ts#AuthService.login(string,string)?version=main&line=45&col=10";
+    const original =
+      "devac://app/packages/core/src/auth.ts#AuthService.login(string,string)?version=main&line=45&col=10";
     const parsed = parseCanonicalURI(original);
     const formatted = formatCanonicalURI(parsed.uri, parsed.params);
 
