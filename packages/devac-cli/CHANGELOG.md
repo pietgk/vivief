@@ -1,5 +1,12 @@
 # @pietgk/devac-cli
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [25dba08]
+  - @pietgk/devac-core@2.0.0
+
 ## 1.2.1
 
 ### Patch Changes
