@@ -5,6 +5,7 @@ import {
   type EntityID,
   type SymbolPath,
   type URIContext,
+  type URIQueryParams,
   // Constants
   ROOT_PACKAGE,
   URI_SCHEME,
@@ -13,15 +14,19 @@ import {
   parseEntityID,
   parseSymbolPath,
   parseLocation,
+  parseQueryParams,
   isCanonicalURI,
   isEntityID,
   detectReferenceType,
+  queryParamsToLocation,
+  locationToQueryParams,
   URIParseError,
   // Formatter
   formatCanonicalURI,
   formatEntityID,
   formatSymbolPath,
   formatLocation,
+  formatQueryParams,
   createCanonicalURI,
   createEntityID,
   buildURIFromNode,
@@ -40,72 +45,86 @@ import {
 
 describe("URI Parser", () => {
   describe("parseCanonicalURI", () => {
-    it("should parse a full canonical URI", () => {
-      const uri = parseCanonicalURI(
-        "devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService.login()#L45"
+    it("should parse a full canonical URI with query params", () => {
+      const result = parseCanonicalURI(
+        "devac://app/packages/core/src/auth.ts#AuthService.login()?version=main&line=45"
       );
 
-      expect(uri.workspace).toBe("mindlercare");
-      expect(uri.repo).toBe("app");
-      expect(uri.version).toBe("main");
-      expect(uri.package).toBe("packages/core");
-      expect(uri.file).toBe("src/auth.ts");
-      expect(uri.symbol).toBeDefined();
-      expect(uri.symbol?.segments).toHaveLength(2);
-      expect(uri.symbol?.segments[0]).toEqual({
+      expect(result.uri.repo).toBe("app");
+      expect(result.uri.package).toBe("packages/core");
+      expect(result.uri.file).toBe("src/auth.ts");
+      expect(result.uri.symbol).toBeDefined();
+      expect(result.uri.symbol?.segments).toHaveLength(2);
+      expect(result.uri.symbol?.segments[0]).toEqual({
         kind: "type",
         name: "AuthService",
         isMethod: false,
         params: undefined,
       });
-      expect(uri.symbol?.segments[1]).toEqual({
+      expect(result.uri.symbol?.segments[1]).toEqual({
         kind: "term",
         name: "login",
         isMethod: true,
         params: undefined,
       });
-      expect(uri.location).toEqual({ line: 45 });
+      expect(result.params?.version).toBe("main");
+      expect(result.params?.line).toBe(45);
     });
 
-    it("should parse a workspace-only URI", () => {
-      const uri = parseCanonicalURI("devac://mindlercare");
+    it("should parse a repo-only URI", () => {
+      const result = parseCanonicalURI("devac://app");
 
-      expect(uri.workspace).toBe("mindlercare");
-      expect(uri.repo).toBe("");
-      expect(uri.package).toBe(ROOT_PACKAGE);
-    });
-
-    it("should parse a repo URI with version", () => {
-      const uri = parseCanonicalURI("devac://mindlercare/app@v2.1.0");
-
-      expect(uri.workspace).toBe("mindlercare");
-      expect(uri.repo).toBe("app");
-      expect(uri.version).toBe("v2.1.0");
-      expect(uri.package).toBe(ROOT_PACKAGE);
+      expect(result.uri.repo).toBe("app");
+      expect(result.uri.package).toBe(ROOT_PACKAGE);
+      expect(result.uri.file).toBeUndefined();
+      expect(result.params).toBeUndefined();
     });
 
     it("should parse URI with root package marker", () => {
-      const uri = parseCanonicalURI("devac://mindlercare/app@main/./src/App.tsx");
+      const result = parseCanonicalURI("devac://app/./src/App.tsx");
 
-      expect(uri.package).toBe(ROOT_PACKAGE);
-      expect(uri.file).toBe("src/App.tsx");
+      expect(result.uri.repo).toBe("app");
+      expect(result.uri.package).toBe(ROOT_PACKAGE);
+      expect(result.uri.file).toBe("src/App.tsx");
     });
 
-    it("should parse URI with location range", () => {
-      const uri = parseCanonicalURI(
-        "devac://mindlercare/app@main/./src/auth.ts#AuthService#L10:C5-L20:C15"
+    it("should parse URI with all query params", () => {
+      const result = parseCanonicalURI(
+        "devac://app/./src/auth.ts#AuthService?version=main&line=10&col=5&endLine=20&endCol=15"
       );
 
-      expect(uri.location).toEqual({
+      expect(result.params).toEqual({
+        version: "main",
         line: 10,
-        column: 5,
+        col: 5,
         endLine: 20,
-        endColumn: 15,
+        endCol: 15,
       });
     });
 
     it("should throw on invalid URI scheme", () => {
       expect(() => parseCanonicalURI("http://example.com")).toThrow(URIParseError);
+    });
+  });
+
+  describe("parseQueryParams", () => {
+    it("should parse query parameters", () => {
+      const params = parseQueryParams("version=main&line=45&col=10");
+      expect(params).toEqual({
+        version: "main",
+        line: 45,
+        col: 10,
+      });
+    });
+
+    it("should handle URL-encoded values", () => {
+      const params = parseQueryParams("version=feature%2Ftest");
+      expect(params.version).toBe("feature/test");
+    });
+
+    it("should handle empty query string", () => {
+      const params = parseQueryParams("");
+      expect(params).toEqual({});
     });
   });
 
@@ -219,20 +238,36 @@ describe("URI Parser", () => {
     });
   });
 
+  describe("queryParamsToLocation", () => {
+    it("should convert query params to location", () => {
+      const params: URIQueryParams = { line: 10, col: 5, endLine: 20, endCol: 15 };
+      const location = queryParamsToLocation(params);
+      expect(location).toEqual({ line: 10, column: 5, endLine: 20, endColumn: 15 });
+    });
+
+    it("should return undefined when no line", () => {
+      const params: URIQueryParams = { version: "main" };
+      expect(queryParamsToLocation(params)).toBeUndefined();
+    });
+  });
+
+  describe("locationToQueryParams", () => {
+    it("should convert location to query params", () => {
+      const location = { line: 10, column: 5, endLine: 20, endColumn: 15 };
+      const params = locationToQueryParams(location);
+      expect(params).toEqual({ line: 10, col: 5, endLine: 20, endCol: 15 });
+    });
+  });
+
   describe("detectReferenceType", () => {
     it("should detect canonical URIs", () => {
-      const result = detectReferenceType("devac://mindlercare/app");
+      const result = detectReferenceType("devac://app/packages/core");
       expect(result.type).toBe("canonical");
     });
 
     it("should detect entity IDs", () => {
       const result = detectReferenceType("app:pkg:class:hash");
       expect(result.type).toBe("entity");
-    });
-
-    it("should detect relative refs", () => {
-      const result = detectReferenceType("./file.ts");
-      expect(result.type).toBe("relative");
     });
 
     it("should detect symbol paths", () => {
@@ -244,11 +279,9 @@ describe("URI Parser", () => {
 
 describe("URI Formatter", () => {
   describe("formatCanonicalURI", () => {
-    it("should format a full URI", () => {
+    it("should format a full URI with query params", () => {
       const uri: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: "packages/core",
         file: "src/auth.ts",
         symbol: {
@@ -257,34 +290,49 @@ describe("URI Formatter", () => {
             { kind: "term", name: "login", isMethod: true },
           ],
         },
-        location: { line: 45 },
       };
 
-      expect(formatCanonicalURI(uri)).toBe(
-        "devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService.login()#L45"
+      const params: URIQueryParams = { version: "main", line: 45 };
+
+      expect(formatCanonicalURI(uri, params)).toBe(
+        "devac://app/packages/core/src/auth.ts#AuthService.login()?version=main&line=45"
       );
     });
 
-    it("should format workspace-only URI", () => {
+    it("should format repo-only URI", () => {
       const uri: CanonicalURI = {
-        workspace: "mindlercare",
-        repo: "",
+        repo: "app",
         package: ROOT_PACKAGE,
       };
 
-      expect(formatCanonicalURI(uri)).toBe("devac://mindlercare");
+      expect(formatCanonicalURI(uri)).toBe("devac://app");
     });
 
     it("should format URI with root package", () => {
       const uri: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: ROOT_PACKAGE,
         file: "src/App.tsx",
       };
 
-      expect(formatCanonicalURI(uri)).toBe("devac://mindlercare/app@main/./src/App.tsx");
+      expect(formatCanonicalURI(uri)).toBe("devac://app/./src/App.tsx");
+    });
+  });
+
+  describe("formatQueryParams", () => {
+    it("should format query params", () => {
+      const params: URIQueryParams = { version: "main", line: 45, col: 10 };
+      expect(formatQueryParams(params)).toBe("version=main&line=45&col=10");
+    });
+
+    it("should URL-encode version", () => {
+      const params: URIQueryParams = { version: "feature/test" };
+      expect(formatQueryParams(params)).toBe("version=feature%2Ftest");
+    });
+
+    it("should return empty string for empty params", () => {
+      const params: URIQueryParams = {};
+      expect(formatQueryParams(params)).toBe("");
     });
   });
 
@@ -331,42 +379,36 @@ describe("URI Formatter", () => {
   describe("createCanonicalURI", () => {
     it("should create a URI with convenience function", () => {
       const uri = createCanonicalURI({
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: "packages/core",
         file: "src/auth.ts",
         symbolName: "login",
         symbolKind: "term",
         isMethod: true,
-        line: 45,
       });
 
-      expect(uri.workspace).toBe("mindlercare");
+      expect(uri.repo).toBe("app");
       expect(uri.symbol?.segments[0].name).toBe("login");
-      expect(uri.location?.line).toBe(45);
     });
   });
 
   describe("buildURIFromNode", () => {
-    it("should build URI from node data", () => {
+    it("should build URI from node data with version and line", () => {
       const uri = buildURIFromNode({
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: "packages/core",
         filePath: "src/auth.ts",
         name: "AuthService",
         kind: "class",
         startLine: 10,
+        version: "main",
       });
 
-      expect(uri).toBe("devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService#L10");
+      expect(uri).toBe("devac://app/packages/core/src/auth.ts#AuthService?version=main&line=10");
     });
 
     it("should build URI from qualified name", () => {
       const uri = buildURIFromNode({
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         filePath: "src/auth.ts",
@@ -375,7 +417,7 @@ describe("URI Formatter", () => {
         kind: "method",
       });
 
-      expect(uri).toBe("devac://mindlercare/app/packages/core/src/auth.ts#AuthService.login()");
+      expect(uri).toBe("devac://app/packages/core/src/auth.ts#AuthService.login()");
     });
   });
 });
@@ -386,7 +428,6 @@ describe("URI Resolver", () => {
       const index = new InMemorySymbolIndex();
 
       const entry = createSymbolIndexEntry({
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         filePath: "src/auth.ts",
@@ -406,7 +447,7 @@ describe("URI Resolver", () => {
       // Resolve by entity ID
       const uri = index.getURI(entry.entityId);
       expect(uri).toBeDefined();
-      expect(uri?.workspace).toBe("mindlercare");
+      expect(uri?.repo).toBe("app");
     });
 
     it("should find symbols by name", () => {
@@ -414,7 +455,6 @@ describe("URI Resolver", () => {
 
       index.add(
         createSymbolIndexEntry({
-          workspace: "mindlercare",
           repo: "app",
           package: "packages/core",
           filePath: "src/auth.ts",
@@ -427,7 +467,6 @@ describe("URI Resolver", () => {
 
       index.add(
         createSymbolIndexEntry({
-          workspace: "mindlercare",
           repo: "app",
           package: "packages/core",
           filePath: "src/auth.ts",
@@ -451,7 +490,6 @@ describe("URI Resolver", () => {
       const index = new InMemorySymbolIndex();
 
       const entry1 = createSymbolIndexEntry({
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         filePath: "src/auth.ts",
@@ -462,7 +500,6 @@ describe("URI Resolver", () => {
       });
 
       const entry2 = createSymbolIndexEntry({
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         filePath: "src/auth.ts",
@@ -483,7 +520,6 @@ describe("URI Resolver", () => {
   describe("urisEqual", () => {
     it("should compare URIs correctly", () => {
       const uri1: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         file: "src/auth.ts",
@@ -491,16 +527,13 @@ describe("URI Resolver", () => {
       };
 
       const uri2: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         file: "src/auth.ts",
         symbol: { segments: [{ kind: "type", name: "AuthService" }] },
-        location: { line: 10 }, // Location difference ignored
       };
 
       const uri3: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         file: "src/auth.ts",
@@ -515,7 +548,6 @@ describe("URI Resolver", () => {
   describe("getParentURI", () => {
     it("should get parent URIs", () => {
       const symbolUri: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
         package: "packages/core",
         file: "src/auth.ts",
@@ -534,11 +566,7 @@ describe("URI Resolver", () => {
       expect(repoUri?.repo).toBe("app");
       expect(repoUri?.package).toBe(ROOT_PACKAGE);
 
-      const workspaceUri = getParentURI(repoUri!);
-      expect(workspaceUri?.workspace).toBe("mindlercare");
-      expect(workspaceUri?.repo).toBe("");
-
-      const noParent = getParentURI(workspaceUri!);
+      const noParent = getParentURI(repoUri!);
       expect(noParent).toBeNull();
     });
   });
@@ -546,9 +574,7 @@ describe("URI Resolver", () => {
 
 describe("Relative References", () => {
   const context: URIContext = {
-    workspace: "mindlercare",
     repo: "app",
-    version: "main",
     package: "packages/core",
     file: "src/auth.ts",
   };
@@ -557,36 +583,30 @@ describe("Relative References", () => {
     it("should resolve symbol-only reference", () => {
       const uri = resolveRelativeRef("#AuthService.login()", context);
 
-      expect(uri.workspace).toBe("mindlercare");
       expect(uri.repo).toBe("app");
       expect(uri.package).toBe("packages/core");
       expect(uri.file).toBe("src/auth.ts");
       expect(uri.symbol?.segments).toHaveLength(2);
     });
 
-    it("should resolve relative file path", () => {
-      const uri = resolveRelativeRef("./user.ts#UserService", context);
-
-      expect(uri.file).toBe("src/user.ts");
-      expect(uri.symbol?.segments[0].name).toBe("UserService");
-    });
-
     it("should resolve canonical URI unchanged", () => {
-      const canonical = "devac://mindlercare/other@v1.0.0/./src/file.ts";
+      const canonical = "devac://other/./src/file.ts?version=v1.0.0";
       const uri = resolveRelativeRef(canonical, context);
 
-      expect(uri.workspace).toBe("mindlercare");
       expect(uri.repo).toBe("other");
-      expect(uri.version).toBe("v1.0.0");
+      expect(uri.file).toBe("src/file.ts");
+    });
+
+    it("should throw on cross-file relative refs", () => {
+      expect(() => resolveRelativeRef("./user.ts#UserService", context)).toThrow(URIParseError);
+      expect(() => resolveRelativeRef("../other/file.ts", context)).toThrow(URIParseError);
     });
   });
 
   describe("toRelativeRef", () => {
     it("should return symbol-only for same file", () => {
       const uri: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: "packages/core",
         file: "src/auth.ts",
         symbol: { segments: [{ kind: "type", name: "AuthService" }] },
@@ -596,24 +616,22 @@ describe("Relative References", () => {
       expect(ref).toBe("#AuthService");
     });
 
-    it("should return relative path for different file", () => {
+    it("should return full URI for different file", () => {
       const uri: CanonicalURI = {
-        workspace: "mindlercare",
         repo: "app",
-        version: "main",
         package: "packages/core",
         file: "src/user.ts",
         symbol: { segments: [{ kind: "type", name: "UserService" }] },
       };
 
       const ref = toRelativeRef(uri, context);
-      expect(ref).toBe("./user.ts#UserService");
+      expect(ref.startsWith(URI_SCHEME)).toBe(true);
+      expect(ref).toBe("devac://app/packages/core/src/user.ts#UserService");
     });
 
-    it("should return full URI for different workspace", () => {
+    it("should return full URI for different repo", () => {
       const uri: CanonicalURI = {
-        workspace: "other",
-        repo: "app",
+        repo: "other",
         package: "packages/core",
         file: "src/auth.ts",
       };
@@ -625,11 +643,9 @@ describe("Relative References", () => {
 
   describe("getRefSpecificity", () => {
     it("should return correct specificity levels", () => {
-      expect(getRefSpecificity("devac://ws/repo/./file")).toBe(5);
-      expect(getRefSpecificity("repo@version/pkg/file")).toBe(4);
-      expect(getRefSpecificity("pkg/file")).toBe(3);
-      expect(getRefSpecificity("./file")).toBe(2);
+      expect(getRefSpecificity("devac://app/./file")).toBe(2);
       expect(getRefSpecificity("#Symbol")).toBe(1);
+      expect(getRefSpecificity(".term()")).toBe(1);
       expect(getRefSpecificity("unknown")).toBe(0);
     });
   });
@@ -637,9 +653,9 @@ describe("Relative References", () => {
 
 describe("Round-trip tests", () => {
   it("should round-trip canonical URIs", () => {
-    const original = "devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService.login(string,string)#L45:C10";
+    const original = "devac://app/packages/core/src/auth.ts#AuthService.login(string,string)?version=main&line=45&col=10";
     const parsed = parseCanonicalURI(original);
-    const formatted = formatCanonicalURI(parsed);
+    const formatted = formatCanonicalURI(parsed.uri, parsed.params);
 
     expect(formatted).toBe(original);
   });

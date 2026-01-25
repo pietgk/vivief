@@ -3,19 +3,25 @@
  *
  * Parses DevAC URIs, symbol paths, and entity IDs.
  *
- * Supports:
- * - Canonical URIs: devac://workspace/repo@version/package/file#Symbol#L10:C5
+ * New Format (ADR-0044 revision):
+ * - Canonical URIs: devac://repo/package/file#Symbol.path?version=main&line=45
  * - Entity IDs: repo:package:kind:hash
  * - Symbol paths: #Class.method(), .function()
- * - Locations: #L10, #L10:C5, #L10-L20
+ *
+ * Key changes from old format:
+ * - No workspace in URI (inferred from context)
+ * - Version moved to query param (?version=main instead of @main)
+ * - Location moved to query params (?line=45&col=10 instead of #L45:C10)
  */
 
 import type {
   CanonicalURI,
   EntityID,
   Location,
+  ParsedURI,
   SymbolPath,
   SymbolSegment,
+  URIQueryParams,
 } from "./types.js";
 import { ENTITY_ID_SEPARATOR, ROOT_PACKAGE, URI_SCHEME } from "./types.js";
 
@@ -36,23 +42,23 @@ export class URIParseError extends Error {
 /**
  * Parse a canonical DevAC URI
  *
- * Format: devac://workspace/repo[@version]/package/file[#symbol][#location]
+ * Format: devac://repo/package/file[#symbol][?params]
  *
  * @example
  * ```typescript
- * const uri = parseCanonicalURI("devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService.login()#L45");
+ * const result = parseCanonicalURI("devac://app/packages/core/src/auth.ts#AuthService.login()?version=main&line=45");
  * // {
- * //   workspace: "mindlercare",
- * //   repo: "app",
- * //   version: "main",
- * //   package: "packages/core",
- * //   file: "src/auth.ts",
- * //   symbol: { segments: [...] },
- * //   location: { line: 45 }
+ * //   uri: {
+ * //     repo: "app",
+ * //     package: "packages/core",
+ * //     file: "src/auth.ts",
+ * //     symbol: { segments: [...] },
+ * //   },
+ * //   params: { version: "main", line: 45 }
  * // }
  * ```
  */
-export function parseCanonicalURI(uri: string): CanonicalURI {
+export function parseCanonicalURI(uri: string): ParsedURI {
   if (!uri.startsWith(URI_SCHEME)) {
     throw new URIParseError(`URI must start with ${URI_SCHEME}`, uri);
   }
@@ -60,16 +66,16 @@ export function parseCanonicalURI(uri: string): CanonicalURI {
   // Remove scheme
   let remaining = uri.slice(URI_SCHEME.length);
 
-  // Extract location fragment if present (last #L... pattern)
-  // Handles formats: #L10, #L10:C5, #L10:5, #L10-L20, #L10:C5-L20:C15
-  let location: Location | undefined;
-  const locationMatch = remaining.match(/#(L\d+(?::C?\d+)?(?:-L?\d+(?::C?\d+)?)?)$/);
-  if (locationMatch && locationMatch[1]) {
-    location = parseLocation(locationMatch[1]);
-    remaining = remaining.slice(0, -locationMatch[0].length);
+  // Extract query params if present
+  let params: URIQueryParams | undefined;
+  const queryIndex = remaining.indexOf("?");
+  if (queryIndex !== -1) {
+    const queryString = remaining.slice(queryIndex + 1);
+    params = parseQueryParams(queryString);
+    remaining = remaining.slice(0, queryIndex);
   }
 
-  // Extract symbol path if present (first # that's not a location)
+  // Extract symbol path if present (# that's not at the start)
   let symbol: SymbolPath | undefined;
   const symbolIndex = remaining.indexOf("#");
   if (symbolIndex !== -1) {
@@ -82,30 +88,18 @@ export function parseCanonicalURI(uri: string): CanonicalURI {
   const parts = remaining.split("/").filter((p) => p.length > 0);
 
   if (parts.length < 1) {
-    throw new URIParseError("URI must have at least a workspace", uri);
+    throw new URIParseError("URI must have at least a repo", uri);
   }
 
-  // First part is workspace
-  const workspace = parts[0]!;
+  // First part is repo
+  const repo = parts[0]!;
 
   if (parts.length < 2) {
-    // Workspace-only URI
-    return { workspace, repo: "", package: ROOT_PACKAGE };
-  }
-
-  // Second part is repo[@version]
-  let repo = parts[1]!;
-  let version: string | undefined;
-
-  const atIndex = repo.indexOf("@");
-  if (atIndex !== -1) {
-    version = repo.slice(atIndex + 1);
-    repo = repo.slice(0, atIndex);
-  }
-
-  if (parts.length < 3) {
-    // Repo-level URI
-    return { workspace, repo, version, package: ROOT_PACKAGE };
+    // Repo-only URI
+    return {
+      uri: { repo, package: ROOT_PACKAGE },
+      params,
+    };
   }
 
   // Find where package ends and file begins
@@ -114,12 +108,12 @@ export function parseCanonicalURI(uri: string): CanonicalURI {
   let packagePath = ROOT_PACKAGE;
   let file: string | undefined;
 
-  // Skip workspace and repo
-  const pathParts = parts.slice(2);
+  // Skip repo
+  const pathParts = parts.slice(1);
 
   const firstPathPart = pathParts[0];
   if (pathParts.length > 0 && firstPathPart === ROOT_PACKAGE) {
-    // Explicit root package: devac://ws/repo/./src/file.ts
+    // Explicit root package: devac://repo/./src/file.ts
     packagePath = ROOT_PACKAGE;
     if (pathParts.length > 1) {
       file = pathParts.slice(1).join("/");
@@ -162,14 +156,53 @@ export function parseCanonicalURI(uri: string): CanonicalURI {
   }
 
   return {
-    workspace,
-    repo,
-    version,
-    package: packagePath,
-    file,
-    symbol,
-    location,
+    uri: {
+      repo,
+      package: packagePath,
+      file,
+      symbol,
+    },
+    params,
   };
+}
+
+/**
+ * Parse query parameters from a URI
+ *
+ * Supports: version, line, col, endLine, endCol
+ */
+export function parseQueryParams(queryString: string): URIQueryParams {
+  const params: URIQueryParams = {};
+
+  // Use simple parsing (URLSearchParams not available in all Node versions)
+  const pairs = queryString.split("&");
+  for (const pair of pairs) {
+    const [key, value] = pair.split("=");
+    if (!key || value === undefined) continue;
+
+    const decodedKey = decodeURIComponent(key);
+    const decodedValue = decodeURIComponent(value);
+
+    switch (decodedKey) {
+      case "version":
+        params.version = decodedValue;
+        break;
+      case "line":
+        params.line = parseInt(decodedValue, 10);
+        break;
+      case "col":
+        params.col = parseInt(decodedValue, 10);
+        break;
+      case "endLine":
+        params.endLine = parseInt(decodedValue, 10);
+        break;
+      case "endCol":
+        params.endCol = parseInt(decodedValue, 10);
+        break;
+    }
+  }
+
+  return params;
 }
 
 /**
@@ -296,13 +329,16 @@ export function parseSymbolPath(path: string): SymbolPath {
 }
 
 /**
- * Parse a location string
+ * Parse a location string (for legacy support)
  *
  * Formats:
  * - L10 - line only
  * - L10:C5 - line and column
  * - L10-L20 or L10-20 - line range
  * - L10:C5-L20:C10 - full range
+ *
+ * Note: In the new format, locations are in query params.
+ * This function is kept for backwards compatibility.
  *
  * @example
  * ```typescript
@@ -394,10 +430,11 @@ export function isEntityID(s: string): boolean {
 }
 
 /**
- * Check if a string is a relative reference
+ * Check if a string is a relative reference (same-file only)
  */
 export function isRelativeRef(s: string): boolean {
-  return s.startsWith("#") || s.startsWith("./") || s.startsWith("../");
+  // Only same-file refs are supported (#Symbol or .term())
+  return s.startsWith("#") || (s.startsWith(".") && !s.startsWith("./") && !s.startsWith(".."));
 }
 
 /**
@@ -414,10 +451,10 @@ export function isSymbolPath(s: string): boolean {
  */
 export function detectReferenceType(
   s: string
-): { type: "canonical"; uri: CanonicalURI } | { type: "entity"; id: EntityID } | { type: "relative"; ref: string } | { type: "symbol"; path: SymbolPath } | { type: "unknown"; input: string } {
+): { type: "canonical"; result: ParsedURI } | { type: "entity"; id: EntityID } | { type: "symbol"; path: SymbolPath } | { type: "unknown"; input: string } {
   if (isCanonicalURI(s)) {
     try {
-      return { type: "canonical", uri: parseCanonicalURI(s) };
+      return { type: "canonical", result: parseCanonicalURI(s) };
     } catch {
       return { type: "unknown", input: s };
     }
@@ -431,10 +468,6 @@ export function detectReferenceType(
     }
   }
 
-  if (s.startsWith("./") || s.startsWith("../")) {
-    return { type: "relative", ref: s };
-  }
-
   if (isSymbolPath(s)) {
     try {
       return { type: "symbol", path: parseSymbolPath(s) };
@@ -444,4 +477,32 @@ export function detectReferenceType(
   }
 
   return { type: "unknown", input: s };
+}
+
+/**
+ * Convert URIQueryParams to Location (for backwards compatibility)
+ */
+export function queryParamsToLocation(params: URIQueryParams): Location | undefined {
+  if (params.line === undefined) {
+    return undefined;
+  }
+
+  return {
+    line: params.line,
+    column: params.col,
+    endLine: params.endLine,
+    endColumn: params.endCol,
+  };
+}
+
+/**
+ * Convert Location to URIQueryParams (for backwards compatibility)
+ */
+export function locationToQueryParams(loc: Location): URIQueryParams {
+  return {
+    line: loc.line,
+    col: loc.column,
+    endLine: loc.endLine,
+    endCol: loc.endColumn,
+  };
 }

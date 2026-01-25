@@ -2,6 +2,11 @@
  * URI Formatter
  *
  * Formats DevAC URIs, symbol paths, and entity IDs to strings.
+ *
+ * New Format (ADR-0044 revision):
+ * - devac://repo/package/file#Symbol?version=main&line=45
+ * - No workspace (inferred from context)
+ * - Version and position as query params
  */
 
 import type {
@@ -10,6 +15,7 @@ import type {
   Location,
   SymbolPath,
   SymbolSegment,
+  URIQueryParams,
 } from "./types.js";
 import { ENTITY_ID_SEPARATOR, ROOT_PACKAGE, URI_SCHEME } from "./types.js";
 
@@ -19,32 +25,19 @@ import { ENTITY_ID_SEPARATOR, ROOT_PACKAGE, URI_SCHEME } from "./types.js";
  * @example
  * ```typescript
  * formatCanonicalURI({
- *   workspace: "mindlercare",
  *   repo: "app",
- *   version: "main",
  *   package: "packages/core",
  *   file: "src/auth.ts",
  *   symbol: { segments: [{ kind: "type", name: "AuthService" }] },
- *   location: { line: 45 }
- * });
- * // "devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService#L45"
+ * }, { version: "main", line: 45 });
+ * // "devac://app/packages/core/src/auth.ts#AuthService?version=main&line=45"
  * ```
  */
-export function formatCanonicalURI(uri: CanonicalURI): string {
+export function formatCanonicalURI(uri: CanonicalURI, params?: URIQueryParams): string {
   const parts: string[] = [URI_SCHEME];
 
-  // Workspace
-  parts.push(uri.workspace);
-
-  // Repo with optional version
-  if (uri.repo) {
-    parts.push("/");
-    parts.push(uri.repo);
-    if (uri.version) {
-      parts.push("@");
-      parts.push(uri.version);
-    }
-  }
+  // Repo
+  parts.push(uri.repo);
 
   // Package
   if (uri.package && uri.package !== ROOT_PACKAGE) {
@@ -67,13 +60,47 @@ export function formatCanonicalURI(uri: CanonicalURI): string {
     parts.push(formatSymbolPath(uri.symbol));
   }
 
-  // Location
-  if (uri.location) {
-    parts.push("#");
-    parts.push(formatLocation(uri.location));
+  // Query params
+  if (params) {
+    const queryString = formatQueryParams(params);
+    if (queryString) {
+      parts.push("?");
+      parts.push(queryString);
+    }
   }
 
   return parts.join("");
+}
+
+/**
+ * Format query parameters to string
+ *
+ * @example
+ * ```typescript
+ * formatQueryParams({ version: "main", line: 45 });
+ * // "version=main&line=45"
+ * ```
+ */
+export function formatQueryParams(params: URIQueryParams): string {
+  const pairs: string[] = [];
+
+  if (params.version !== undefined) {
+    pairs.push(`version=${encodeURIComponent(params.version)}`);
+  }
+  if (params.line !== undefined) {
+    pairs.push(`line=${params.line}`);
+  }
+  if (params.col !== undefined) {
+    pairs.push(`col=${params.col}`);
+  }
+  if (params.endLine !== undefined) {
+    pairs.push(`endLine=${params.endLine}`);
+  }
+  if (params.endCol !== undefined) {
+    pairs.push(`endCol=${params.endCol}`);
+  }
+
+  return pairs.join("&");
 }
 
 /**
@@ -131,7 +158,7 @@ export function formatSymbolSegment(segment: SymbolSegment): string {
 }
 
 /**
- * Format a location to string
+ * Format a location to string (legacy format for compatibility)
  *
  * @example
  * ```typescript
@@ -164,27 +191,18 @@ export function formatLocation(loc: Location): string {
  * Convenience function that validates inputs and constructs a URI.
  */
 export function createCanonicalURI(params: {
-  workspace: string;
-  repo?: string;
-  version?: string;
+  repo: string;
   package?: string;
   file?: string;
   symbolName?: string;
   symbolKind?: "type" | "term";
   isMethod?: boolean;
   params?: string[];
-  line?: number;
-  column?: number;
 }): CanonicalURI {
   const uri: CanonicalURI = {
-    workspace: params.workspace,
-    repo: params.repo || "",
+    repo: params.repo,
     package: params.package || ROOT_PACKAGE,
   };
-
-  if (params.version) {
-    uri.version = params.version;
-  }
 
   if (params.file) {
     uri.file = params.file;
@@ -201,13 +219,6 @@ export function createCanonicalURI(params: {
         },
       ],
     };
-  }
-
-  if (params.line !== undefined) {
-    uri.location = { line: params.line };
-    if (params.column !== undefined) {
-      uri.location.column = params.column;
-    }
   }
 
   return uri;
@@ -296,20 +307,17 @@ export function getQualifiedName(path: SymbolPath): string {
  * This is a convenience function to create URIs from existing node data.
  */
 export function buildURIFromNode(params: {
-  workspace: string;
   repo: string;
-  version?: string;
   package: string;
   filePath: string;
   name: string;
   kind: string;
   qualifiedName?: string;
   startLine?: number;
+  version?: string;
 }): string {
   const uri: CanonicalURI = {
-    workspace: params.workspace,
     repo: params.repo,
-    version: params.version,
     package: params.package,
     file: params.filePath,
   };
@@ -344,9 +352,14 @@ export function buildURIFromNode(params: {
     uri.symbol = { segments };
   }
 
+  // Build query params for version and line
+  const queryParams: URIQueryParams = {};
+  if (params.version) {
+    queryParams.version = params.version;
+  }
   if (params.startLine !== undefined) {
-    uri.location = { line: params.startLine };
+    queryParams.line = params.startLine;
   }
 
-  return formatCanonicalURI(uri);
+  return formatCanonicalURI(uri, Object.keys(queryParams).length > 0 ? queryParams : undefined);
 }

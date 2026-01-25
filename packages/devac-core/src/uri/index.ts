@@ -1,12 +1,12 @@
 /**
  * URI Module - Unified Addressing Scheme for DevAC
  *
- * This module provides a consistent way to reference code artifacts:
- * - Canonical URIs: Human-readable `devac://workspace/repo@version/package/file#Symbol`
- * - Entity IDs: Stable internal `repo:package:kind:hash`
- * - Relative refs: Context-dependent shorthand `#Symbol`, `./file#Symbol`
+ * Single Identity Model (ADR-0044):
+ * - Entity ID is THE identity (repo:package:kind:hash)
+ * - Canonical URIs are lookup keys that resolve to Entity IDs
+ * - Relative refs are same-file only (#Symbol)
  *
- * See ADR-0044 for design rationale.
+ * URI Format: devac://repo/package/file#Symbol?version=main&line=45
  *
  * @example
  * ```typescript
@@ -18,18 +18,19 @@
  * } from "@pietgk/devac-core/uri";
  *
  * // Parse a full URI
- * const uri = parseCanonicalURI("devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService.login()");
+ * const { uri, params } = parseCanonicalURI(
+ *   "devac://app/packages/core/src/auth.ts#AuthService.login()?version=main&line=45"
+ * );
  *
  * // Format back to string
- * const str = formatCanonicalURI(uri);
+ * const str = formatCanonicalURI(uri, params);
  *
- * // Resolve relative reference
- * const context = { workspace: "mindlercare", repo: "app", package: "packages/core", file: "src/user.ts" };
- * const resolved = resolveRelativeRef("./auth.ts#AuthService", context);
+ * // Resolve same-file relative reference
+ * const context = { repo: "app", package: "packages/core", file: "src/user.ts" };
+ * const resolved = resolveRelativeRef("#UserService", context);
  *
- * // Convert to shortest relative form
+ * // Convert to shortest relative form (same-file only)
  * const relative = toRelativeRef(uri, context);
- * // "../auth.ts#AuthService"
  * ```
  *
  * @module
@@ -40,9 +41,11 @@ export type {
   CanonicalURI,
   EntityID,
   Location,
+  ParsedURI,
   ParsedURIResult,
   SymbolIndex,
   SymbolIndexEntry,
+  URIQueryParams,
   URISymbolKind,
   SymbolPath,
   SymbolSegment,
@@ -64,10 +67,13 @@ export {
   isEntityID,
   isRelativeRef as isRelativeRefString,
   isSymbolPath,
+  locationToQueryParams,
   parseCanonicalURI,
   parseEntityID,
   parseLocation,
+  parseQueryParams,
   parseSymbolPath,
+  queryParamsToLocation,
   URIParseError,
 } from "./parser.js";
 
@@ -81,6 +87,7 @@ export {
   formatCanonicalURI,
   formatEntityID,
   formatLocation,
+  formatQueryParams,
   formatSymbolPath,
   formatSymbolSegment,
   getQualifiedName,

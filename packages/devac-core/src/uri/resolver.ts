@@ -2,12 +2,16 @@
  * URI Resolver
  *
  * Handles resolution between:
- * - Canonical URIs (human-readable)
- * - Entity IDs (stable internal)
+ * - Canonical URIs (human-readable lookup keys)
+ * - Entity IDs (stable internal identity)
  *
  * The resolver uses a symbol index to perform lookups.
  * This file provides the interface and utilities; actual index
  * implementation is in the storage layer.
+ *
+ * Single Identity Model (ADR-0044):
+ * - Entity ID is THE identity
+ * - URIs are lookup keys that resolve TO Entity IDs
  */
 
 import type {
@@ -28,9 +32,7 @@ import { KIND_TO_SEGMENT, METHOD_KINDS, ROOT_PACKAGE, type URISymbolKind } from 
  * This is used during analysis to build the symbol index.
  */
 export function createSymbolIndexEntry(params: {
-  workspace: string;
   repo: string;
-  version?: string;
   package: string;
   filePath: string;
   name: string;
@@ -57,9 +59,7 @@ export function createSymbolIndexEntry(params: {
   }
 
   const uri: CanonicalURI = {
-    workspace: params.workspace,
     repo: params.repo,
-    version: params.version,
     package: params.package,
     file: params.filePath,
     symbol: { segments },
@@ -190,7 +190,7 @@ export class InMemorySymbolIndex implements SymbolIndex {
   }
 
   private getFileKey(uri: CanonicalURI): string {
-    return `${uri.workspace}/${uri.repo}/${uri.package}/${uri.file || ""}`;
+    return `${uri.repo}/${uri.package}/${uri.file || ""}`;
   }
 }
 
@@ -201,7 +201,7 @@ export class InMemorySymbolIndex implements SymbolIndex {
  */
 export function resolveURIToEntityID(uri: string, index: SymbolIndex): string | null {
   const parsed = parseCanonicalURI(uri);
-  const entityId = index.resolveURI(parsed);
+  const entityId = index.resolveURI(parsed.uri);
   return entityId ? formatEntityID(entityId) : null;
 }
 
@@ -219,11 +219,9 @@ export function getURIFromEntityID(entityId: string, index: SymbolIndex): string
 /**
  * Compare two URIs for equality
  *
- * Compares workspace, repo, package, file, and symbol path.
- * Ignores location and version differences.
+ * Compares repo, package, file, and symbol path.
  */
 export function urisEqual(a: CanonicalURI, b: CanonicalURI): boolean {
-  if (a.workspace !== b.workspace) return false;
   if (a.repo !== b.repo) return false;
   if (a.package !== b.package) return false;
   if (a.file !== b.file) return false;
@@ -273,12 +271,11 @@ export function entityIdsEqual(a: EntityID, b: EntityID): boolean {
 /**
  * Check if a URI matches a context
  *
- * Returns true if the URI is within the same workspace, repo, or package
+ * Returns true if the URI is within the same repo or package
  * as the context, depending on how specific the context is.
  */
 export function uriMatchesContext(uri: CanonicalURI, context: URIContext): boolean {
-  if (uri.workspace !== context.workspace) return false;
-  if (context.repo && uri.repo !== context.repo) return false;
+  if (uri.repo !== context.repo) return false;
   if (context.package && uri.package !== context.package) return false;
   if (context.file && uri.file !== context.file) return false;
   return true;
@@ -287,15 +284,13 @@ export function uriMatchesContext(uri: CanonicalURI, context: URIContext): boole
 /**
  * Extract the parent URI from a URI
  *
- * File URI → Package URI → Repo URI → Workspace URI
+ * File URI → Package URI → Repo URI
  */
 export function getParentURI(uri: CanonicalURI): CanonicalURI | null {
   if (uri.symbol) {
     // Symbol → File
     return {
-      workspace: uri.workspace,
       repo: uri.repo,
-      version: uri.version,
       package: uri.package,
       file: uri.file,
     };
@@ -304,9 +299,7 @@ export function getParentURI(uri: CanonicalURI): CanonicalURI | null {
   if (uri.file) {
     // File → Package
     return {
-      workspace: uri.workspace,
       repo: uri.repo,
-      version: uri.version,
       package: uri.package,
     };
   }
@@ -314,32 +307,20 @@ export function getParentURI(uri: CanonicalURI): CanonicalURI | null {
   if (uri.package !== ROOT_PACKAGE) {
     // Package → Repo
     return {
-      workspace: uri.workspace,
       repo: uri.repo,
-      version: uri.version,
       package: ROOT_PACKAGE,
     };
   }
 
-  if (uri.repo) {
-    // Repo → Workspace
-    return {
-      workspace: uri.workspace,
-      repo: "",
-      package: ROOT_PACKAGE,
-    };
-  }
-
-  // Workspace has no parent
+  // Repo has no parent
   return null;
 }
 
 /**
- * Get the depth of a URI (number of levels from workspace)
+ * Get the depth of a URI (number of levels from repo)
  */
 export function getURIDepth(uri: CanonicalURI): number {
-  let depth = 1; // workspace
-  if (uri.repo) depth++;
+  let depth = 1; // repo
   if (uri.package !== ROOT_PACKAGE) depth++;
   if (uri.file) depth++;
   if (uri.symbol) depth++;
@@ -354,16 +335,12 @@ export function buildURIFromParts(
   parts: {
     file?: string;
     symbol?: SymbolPath;
-    line?: number;
   }
 ): CanonicalURI {
   return {
-    workspace: context.workspace,
     repo: context.repo,
-    version: context.version,
     package: context.package,
     file: parts.file || context.file,
     symbol: parts.symbol,
-    location: parts.line ? { line: parts.line } : undefined,
   };
 }

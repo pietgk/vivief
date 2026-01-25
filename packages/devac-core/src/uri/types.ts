@@ -3,40 +3,36 @@
  *
  * Based on ADR-0044: Unified Addressing Scheme for DevAC
  *
- * Three reference types:
- * - CanonicalURI: Human-readable `devac://workspace/repo@version/package/file#Symbol`
- * - EntityID: Stable internal `repo:package:kind:hash`
- * - RelativeRef: Context-dependent shorthand `#Symbol`, `./file#Symbol`
+ * Single Identity Model:
+ * - EntityID: The stable internal identity (repo:package:kind:hash)
+ * - CanonicalURI: Human-readable lookup key that resolves to EntityID
+ * - RelativeRef: Context-dependent shorthand (#Symbol)
+ *
+ * URIs are NOT identities - they are lookup keys. Entity IDs are the only identity.
  */
 
 /**
- * Canonical URI - the human-readable address for a code artifact
+ * Canonical URI - the human-readable lookup key for a code artifact
  *
- * Format: devac://workspace/repo@version/package/file#Symbol.path()#L10:C5
+ * Format: devac://repo/package/file#Symbol.path
+ *
+ * Note: This is a LOOKUP KEY, not an identity. It resolves to an EntityID
+ * via the symbol index. Renames may change the URI but not the EntityID.
  *
  * @example
  * ```typescript
  * const uri: CanonicalURI = {
- *   workspace: "mindlercare",
  *   repo: "app",
- *   version: "main",
  *   package: "packages/core",
  *   file: "src/auth.ts",
  *   symbol: { segments: [{ kind: "type", name: "AuthService" }] },
- *   location: { line: 45, column: 10 }
  * };
- * // devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService#L45:C10
+ * // devac://app/packages/core/src/auth.ts#AuthService
  * ```
  */
 export interface CanonicalURI {
-  /** Workspace name (from workspace repo, e.g., "mindlercare") */
-  workspace: string;
-
   /** Repository name */
   repo: string;
-
-  /** Version tag, branch, or commit SHA (optional, defaults to HEAD) */
-  version?: string;
 
   /** Package path within repo ("." for root package) */
   package: string;
@@ -46,9 +42,52 @@ export interface CanonicalURI {
 
   /** SCIP-style symbol path (optional for file-level references) */
   symbol?: SymbolPath;
+}
 
-  /** Line/column position for navigation (optional) */
-  location?: Location;
+/**
+ * Query parameters for URI - used for filtering and navigation
+ *
+ * These are NOT part of identity. Version filters to a specific branch/tag,
+ * and line/col provide navigation hints.
+ *
+ * @example
+ * ```typescript
+ * const params: URIQueryParams = {
+ *   version: "main",
+ *   line: 45,
+ *   col: 10,
+ * };
+ * // ?version=main&line=45&col=10
+ * ```
+ */
+export interface URIQueryParams {
+  /** Version filter (branch, tag, or commit SHA) */
+  version?: string;
+
+  /** Line number for navigation (1-based) */
+  line?: number;
+
+  /** Column number for navigation (0-based) */
+  col?: number;
+
+  /** End line for ranges */
+  endLine?: number;
+
+  /** End column for ranges */
+  endCol?: number;
+}
+
+/**
+ * Parsed URI result - combines the canonical URI with query parameters
+ *
+ * This is the full result of parsing a URI string.
+ */
+export interface ParsedURI {
+  /** The parsed canonical URI (identity-relevant parts) */
+  uri: CanonicalURI;
+
+  /** Query parameters (filters and navigation hints) */
+  params?: URIQueryParams;
 }
 
 /**
@@ -56,10 +95,11 @@ export interface CanonicalURI {
  *
  * Format: repo:package:kind:hash
  *
- * This ID is:
- * - Stable across renames (hash-based)
- * - Used in parquet storage
- * - Used in edge relationships
+ * This is THE identity of a code artifact. It:
+ * - Is stable across renames (hash-based)
+ * - Is used in parquet storage
+ * - Is used in edge relationships
+ * - Never changes for the lifetime of the entity
  *
  * @example
  * ```typescript
@@ -138,6 +178,8 @@ export interface SymbolSegment {
  *
  * Used for navigation, not identity. The same symbol may be referenced
  * with different locations for jump-to-definition vs show-all-usages.
+ *
+ * Note: In the new URI format, locations are in query params, not the URI itself.
  */
 export interface Location {
   /** 1-based line number */
@@ -156,31 +198,27 @@ export interface Location {
 /**
  * Context for resolving relative references
  *
- * When parsing a relative ref like `#Symbol` or `./file#Symbol`,
- * we need to know the current workspace, repo, package, and file
- * to resolve it to a canonical URI.
+ * When parsing a relative ref like `#Symbol`, we need to know the current
+ * repo, package, and file to resolve it to a canonical URI.
+ *
+ * Note: Only same-file relative refs are supported (#Symbol).
+ * Cross-file refs must use full URIs.
  */
 export interface URIContext {
-  /** Current workspace name */
-  workspace: string;
-
   /** Current repository name */
   repo: string;
-
-  /** Current version/branch (optional) */
-  version?: string;
 
   /** Current package path */
   package: string;
 
-  /** Current file path (for file-relative refs) */
+  /** Current file path (required for symbol-only refs) */
   file?: string;
 }
 
 /**
- * Result of parsing a URI string
+ * Result of parsing a URI string (legacy compatibility)
  *
- * Includes the parsed URI and metadata about what type was parsed.
+ * @deprecated Use ParsedURI instead
  */
 export interface ParsedURIResult {
   /** The parsed canonical URI */
@@ -202,7 +240,7 @@ export interface SymbolIndexEntry {
   /** Canonical URI of the symbol */
   uri: CanonicalURI;
 
-  /** Entity ID for stable reference */
+  /** Entity ID for stable reference (THE identity) */
   entityId: EntityID;
 
   /** Symbol display name */
