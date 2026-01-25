@@ -1,5 +1,12 @@
 # @pietgk/devac-mcp
 
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [fdc7093]
+  - @pietgk/devac-core@2.0.1
+
 ## 2.0.0
 
 ### Patch Changes
