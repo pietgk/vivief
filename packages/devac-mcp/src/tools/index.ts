@@ -31,7 +31,11 @@ export const MCP_TOOLS: MCPTool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        entityId: { type: "string", description: "Entity ID of the symbol" },
+        entityId: {
+          type: "string",
+          description:
+            "Entity ID or devac:// URI of the symbol (e.g., 'repo:pkg:kind:hash' or 'devac://ws/repo/pkg/file#Symbol')",
+        },
         maxDepth: { type: "number", description: "Maximum traversal depth" },
       },
       required: ["entityId"],
@@ -43,7 +47,11 @@ export const MCP_TOOLS: MCPTool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        entityId: { type: "string", description: "Entity ID of the symbol" },
+        entityId: {
+          type: "string",
+          description:
+            "Entity ID or devac:// URI of the symbol (e.g., 'repo:pkg:kind:hash' or 'devac://ws/repo/pkg/file#Symbol')",
+        },
         maxDepth: { type: "number", description: "Maximum traversal depth" },
       },
       required: ["entityId"],
@@ -55,7 +63,11 @@ export const MCP_TOOLS: MCPTool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        filePath: { type: "string", description: "Path to the file" },
+        filePath: {
+          type: "string",
+          description:
+            "File path or devac:// URI (e.g., 'src/index.ts' or 'devac://ws/repo/pkg/src/index.ts')",
+        },
       },
       required: ["filePath"],
     },
@@ -69,7 +81,8 @@ export const MCP_TOOLS: MCPTool[] = [
         changedFiles: {
           type: "array",
           items: { type: "string" },
-          description: "List of changed file paths",
+          description:
+            "List of changed file paths or devac:// URIs (e.g., ['src/index.ts'] or ['devac://ws/repo/pkg/src/index.ts'])",
         },
         maxDepth: { type: "number", description: "Maximum traversal depth" },
       },
@@ -82,7 +95,11 @@ export const MCP_TOOLS: MCPTool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        entityId: { type: "string", description: "Entity ID of the function" },
+        entityId: {
+          type: "string",
+          description:
+            "Entity ID or devac:// URI of the function (e.g., 'repo:pkg:function:hash' or 'devac://ws/repo/pkg/file#function()')",
+        },
         direction: {
           type: "string",
           enum: ["callers", "callees", "both"],
@@ -345,11 +362,13 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         file: {
           type: "string",
-          description: "Filter by file path (partial match)",
+          description:
+            "Filter by file path or devac:// URI (partial match, e.g., 'src/auth' or 'devac://ws/repo/pkg/src/auth.ts')",
         },
         entity: {
           type: "string",
-          description: "Filter by source entity ID",
+          description:
+            "Filter by source entity ID or devac:// URI (e.g., 'repo:pkg:function:hash' or 'devac://ws/repo/pkg/file#function()')",
         },
         externalOnly: {
           type: "boolean",
