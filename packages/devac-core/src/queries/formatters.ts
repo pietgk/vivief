@@ -18,6 +18,26 @@ import type {
 } from "./types.js";
 
 // ============================================================================
+// Path Enrichment Utilities
+// ============================================================================
+
+/**
+ * Extract repo name from entity_id (format: repo:package:kind:hash)
+ */
+function extractRepoFromEntityId(entityId: string): string {
+  const firstColon = entityId.indexOf(":");
+  return firstColon > 0 ? entityId.substring(0, firstColon) : "";
+}
+
+/**
+ * Create workspace-relative file path by prepending repo name
+ */
+function toWorkspacePath(entityId: string, filePath: string): string {
+  const repo = extractRepoFromEntityId(entityId);
+  return repo ? `${repo}/${filePath}` : filePath;
+}
+
+// ============================================================================
 // Node/Symbol Formatters
 // ============================================================================
 
@@ -29,7 +49,7 @@ export function formatNodeSummary(node: ParsedNode): SymbolSummary {
     entityId: node.entity_id,
     name: node.name,
     kind: node.kind,
-    file: node.file_path,
+    file: toWorkspacePath(node.entity_id, node.file_path),
     line: node.start_line,
     exported: node.is_exported,
   };
@@ -44,7 +64,7 @@ export function formatNodeDetail(node: ParsedNode): SymbolDetail {
     name: node.name,
     qualifiedName: node.qualified_name,
     kind: node.kind,
-    file: node.file_path,
+    file: toWorkspacePath(node.entity_id, node.file_path),
     startLine: node.start_line,
     endLine: node.end_line,
     startColumn: node.start_column,
@@ -129,7 +149,7 @@ export function formatEdgeSummary(
     edgeType: edge.edge_type,
     sourceName: sourceNode?.name,
     targetName: targetNode?.name,
-    sourceFile: edge.source_file_path,
+    sourceFile: toWorkspacePath(edge.source_entity_id, edge.source_file_path),
     sourceLine: edge.source_line,
   };
 }
@@ -142,7 +162,7 @@ export function formatEdgeDetail(edge: ParsedEdge): EdgeDetail {
     sourceEntityId: edge.source_entity_id,
     targetEntityId: edge.target_entity_id,
     edgeType: edge.edge_type,
-    sourceFilePath: edge.source_file_path,
+    sourceFilePath: toWorkspacePath(edge.source_entity_id, edge.source_file_path),
     sourceLine: edge.source_line,
     sourceColumn: edge.source_column,
     properties: edge.properties ?? {},
