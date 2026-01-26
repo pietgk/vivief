@@ -281,7 +281,7 @@ export function runService(): void {
       // Extract entityId (camelCase - API format)
       const symbols = findResult.data as Record<string, unknown>[];
       expect(symbols[0]).toHaveProperty("entityId");
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await depsCommand({
@@ -303,7 +303,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await depsCommand({
@@ -347,7 +347,7 @@ export function runService(): void {
 
       const symbols = findResult.data as Record<string, unknown>[];
       expect(symbols[0]).toHaveProperty("entityId");
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await dependentsCommand({
@@ -368,7 +368,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await dependentsCommand({
@@ -411,7 +411,7 @@ export function runService(): void {
 
       const symbols = findResult.data as Record<string, unknown>[];
       expect(symbols[0]).toHaveProperty("entityId");
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
@@ -434,7 +434,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
@@ -456,7 +456,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
@@ -478,7 +478,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
       expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
@@ -500,7 +500,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
 
       const result = await callGraphCommand({
         entityId,
@@ -522,7 +522,7 @@ export function runService(): void {
       expect(findResult.count).toBeGreaterThan(0);
 
       const symbols = findResult.data as Record<string, unknown>[];
-      const entityId = symbols[0].entityId as string;
+      const entityId = symbols[0]!.entityId as string;
 
       const result = await callGraphCommand({
         entityId,
