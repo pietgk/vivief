@@ -4,7 +4,6 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { execa } from "execa";
 import { isClaudeInstalled, launchClaude, writeIssueContext } from "../claude.js";
 import { hasNodeModules, installDependencies } from "../deps.js";
 import { createPR, fetchIssue, generateBranchName, generateShortDescription } from "../github.js";
@@ -15,7 +14,12 @@ import {
   findWorkspace,
   getGitHubRepoFromRemote,
 } from "../workspace.js";
-import { addWorktreeToState, checkWorktreeStatus, findWorktreeForIssue } from "../worktree.js";
+import {
+  addWorktreeToState,
+  checkWorktreeStatus,
+  createWorktree,
+  findWorktreeForIssue,
+} from "../worktree.js";
 
 /**
  * Check if the repository has uncommitted changes that would cause worktree issues
@@ -62,7 +66,7 @@ async function createWorktreeInSiblingRepo(
   siblingRepoPath: string,
   issueNumber: number,
   issueTitle: string,
-  options: { verbose?: boolean; skipInstall?: boolean }
+  options: { verbose?: boolean; skipInstall?: boolean; baseBranch?: string }
 ): Promise<AlsoWorktreeResult> {
   const repoName = path.basename(siblingRepoPath);
 
@@ -85,14 +89,12 @@ async function createWorktreeInSiblingRepo(
       console.log(`Creating worktree for ${repoName} at ${worktreePath}`);
     }
 
-    // Fetch latest and create worktree (run git from within the sibling repo)
-    await execa("git", ["fetch", "origin", "main:main"], {
-      cwd: siblingRepoPath,
-      reject: false,
-    });
-
-    await execa("git", ["worktree", "add", "-b", branch, worktreePath, "main"], {
-      cwd: siblingRepoPath,
+    // Create worktree with auto-detected branch and git-crypt support
+    await createWorktree({
+      branch,
+      worktreePath,
+      baseBranch: options.baseBranch,
+      repoPath: siblingRepoPath,
     });
 
     // Install dependencies if needed
@@ -147,6 +149,8 @@ export interface StartOptions {
   also?: string[];
   /** Create worktrees in these repos (when in parent directory) */
   repos?: string[];
+  /** Base branch to create worktree from (auto-detected if not specified) */
+  baseBranch?: string;
 }
 
 /**
@@ -232,6 +236,7 @@ async function startFromParentDirectory(
     const result = await createWorktreeInSiblingRepo(repoPath, issueNumber, issue.title, {
       verbose,
       skipInstall,
+      baseBranch: options.baseBranch,
     });
     results.push(result);
 
@@ -435,15 +440,11 @@ async function startFromWorkspace(options: StartOptions): Promise<StartResult> {
 
   // Create the worktree (need to run git from the repo directory)
   try {
-    // Fetch latest from remote
-    await execa("git", ["fetch", "origin", "main:main"], {
-      cwd: repoPath,
-      reject: false,
-    });
-
-    // Create worktree with new branch
-    await execa("git", ["worktree", "add", "-b", branch, worktreePath, "main"], {
-      cwd: repoPath,
+    await createWorktree({
+      branch,
+      worktreePath,
+      baseBranch: options.baseBranch,
+      repoPath,
     });
   } catch (error) {
     return {
