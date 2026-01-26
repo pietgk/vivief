@@ -574,6 +574,9 @@ export * from "./prerequisites/index.js";
 // URI (ADR-0044 - Unified Addressing Scheme)
 export * from "./uri/index.js";
 
+// Queries (v4.0 - Shared Query Layer for CLI and MCP)
+export * from "./queries/index.js";
+
 /**
  * DevAC Core Version
  */
