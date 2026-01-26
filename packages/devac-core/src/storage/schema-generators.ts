@@ -53,9 +53,13 @@ function inferDuckDBType(zodType: z.ZodTypeAny): {
       sqlDefault = `'${JSON.stringify(defaultVal)}'`;
     }
 
+    // If default value is null, the column should be nullable
+    // Otherwise, having a default means the column shouldn't be null
+    const isNullable = defaultVal === null || inner.nullable;
+
     return {
       type: inner.type,
-      nullable: false, // Default implies not null
+      nullable: isNullable,
       hasDefault: true,
       defaultValue: sqlDefault,
     };

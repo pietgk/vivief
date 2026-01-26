@@ -50,11 +50,12 @@ describe("Query Context", () => {
 
       // Create minimal parquet files using DuckDB
       await executeWithRecovery(pool, async (conn) => {
-        // Create nodes parquet
+        // Create nodes parquet - use native arrays (not JSON casts)
         await conn.run(`
           CREATE TABLE temp_nodes AS
           SELECT 'test:pkg:function:abc123' as entity_id,
                  'testFunc' as name,
+                 'testFunc' as qualified_name,
                  'function' as kind,
                  'test.ts' as file_path,
                  1 as start_line,
@@ -70,8 +71,8 @@ describe("Query Context", () => {
                  false as is_abstract,
                  NULL as type_signature,
                  NULL as documentation,
-                 '[]'::JSON as decorators,
-                 '[]'::JSON as type_parameters,
+                 []::VARCHAR[] as decorators,
+                 []::VARCHAR[] as type_parameters,
                  '{}'::JSON as properties,
                  'hash123' as source_file_hash,
                  'base' as branch,

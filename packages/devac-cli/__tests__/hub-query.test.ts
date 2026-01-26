@@ -57,19 +57,19 @@ describe("hub query command", () => {
 
     // Create real parquet files using DuckDB
     await executeWithRecovery(pool, async (conn) => {
-      // Create nodes parquet
+      // Create nodes parquet - use native arrays (VARCHAR[]) for array columns
       if (nodes.length > 0) {
         const nodeValues = nodes
           .map(
             (n) =>
-              `('${n.entity_id}', '${n.name}', '${n.kind}', 'src/test.ts', 1, 10, 0, 50, false, false, 'public', false, false, false, false, NULL, NULL, '[]'::JSON, '[]'::JSON, '{}'::JSON, 'hash123', 'base', false, current_timestamp)`
+              `('${n.entity_id}', '${n.name}', '${n.name}', '${n.kind}', 'src/test.ts', 1, 10, 0, 50, false, false, 'public', false, false, false, false, NULL, NULL, []::VARCHAR[], []::VARCHAR[], '{}'::JSON, 'hash123', 'base', false, current_timestamp)`
           )
           .join(", ");
 
         await conn.run(`
           CREATE TABLE temp_nodes AS
           SELECT * FROM (VALUES ${nodeValues}) AS t(
-            entity_id, name, kind, file_path, start_line, end_line, start_column, end_column,
+            entity_id, name, qualified_name, kind, file_path, start_line, end_line, start_column, end_column,
             is_exported, is_default_export, visibility, is_async, is_generator, is_static, is_abstract,
             type_signature, documentation, decorators, type_parameters, properties,
             source_file_hash, branch, is_deleted, updated_at

@@ -45,7 +45,7 @@ async function writeSeedData(
   await executeWithRecovery(pool, async (conn) => {
     await initializeSchemas(conn);
 
-    // Insert nodes
+    // Insert nodes - use DuckDB array literals for array columns
     if (data.nodes && data.nodes.length > 0) {
       for (const node of data.nodes) {
         await conn.run(
@@ -56,7 +56,7 @@ async function writeSeedData(
             is_async, is_generator, is_static, is_abstract,
             type_signature, documentation, decorators, type_parameters,
             properties, source_file_hash, branch, is_deleted, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, [], [], '{}', ?, ?, ?, ?)`,
           node.entity_id,
           node.name,
           node.name, // qualified_name
@@ -75,9 +75,7 @@ async function writeSeedData(
           false, // is_abstract
           null, // type_signature
           null, // documentation
-          "[]", // decorators
-          "[]", // type_parameters
-          "{}", // properties
+          // decorators, type_parameters, properties embedded in SQL
           "abc123", // source_file_hash
           "base", // branch
           false, // is_deleted
@@ -87,7 +85,7 @@ async function writeSeedData(
       await conn.run(getCopyToParquet("nodes", path.join(seedPath, "nodes.parquet")));
     }
 
-    // Insert edges
+    // Insert edges - use JSON literal for properties
     if (data.edges && data.edges.length > 0) {
       for (const edge of data.edges) {
         await conn.run(
@@ -95,14 +93,14 @@ async function writeSeedData(
             source_entity_id, target_entity_id, edge_type,
             source_file_path, source_line, source_column,
             properties, source_file_hash, branch, is_deleted, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?, ?, ?)`,
           edge.source_entity_id,
           edge.target_entity_id,
           edge.edge_type,
           "index.ts", // source_file_path
           1, // source_line
           0, // source_column
-          "{}", // properties
+          // properties embedded in SQL
           "abc123", // source_file_hash
           "base", // branch
           false, // is_deleted
