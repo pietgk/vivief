@@ -87,7 +87,7 @@ export interface HubResponse<T = unknown> {
 
 Unix socket server that runs within the MCP process:
 
-- Creates socket at `~/.devac/mcp.sock`
+- Creates socket at `{workspace}/.devac/mcp.sock`
 - Handles incoming IPC requests from CLI
 - Routes requests to CentralHub methods
 - Returns JSON-encoded responses
@@ -113,7 +113,7 @@ class HubClient {
 
 ### Socket Protocol
 
-- **Location**: `~/.devac/mcp.sock` (Unix socket)
+- **Location**: `{workspace}/.devac/mcp.sock` (Unix socket)
 - **Format**: Newline-delimited JSON
 - **Timeout**: 30 seconds for operations, 100ms for connection probe
 - **Permissions**: `0o600` (owner only)

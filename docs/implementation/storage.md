@@ -392,7 +392,7 @@ DuckDB does not support concurrent read-write access from multiple processes. Wh
 │  ───────────────────                                                        │
 │  ┌─────────┐     ┌───────────────┐     ┌─────────────────┐                 │
 │  │   CLI   │ ──► │ Unix Socket   │ ──► │   MCP Server    │                 │
-│  │ Command │     │ ~/.devac/     │     │  (Hub Owner)    │                 │
+│  │ Command │     │ {workspace}/  │     │  (Hub Owner)    │                 │
 │  └─────────┘     │ mcp.sock      │     │  ┌───────────┐  │                 │
 │                  └───────────────┘     │  │ CentralHub│  │                 │
 │                                        │  │ (RW mode) │  │                 │
@@ -456,7 +456,7 @@ const errors = await client.getValidationErrors({ severity: "error" });
 
 | Property | Value |
 |----------|-------|
-| Location | `~/.devac/mcp.sock` |
+| Location | `{workspace}/.devac/mcp.sock` |
 | Format | Newline-delimited JSON |
 | Permissions | `0o600` (owner only) |
 | Operation timeout | 30 seconds |

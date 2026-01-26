@@ -779,7 +779,7 @@ When using `--push-to-hub`, validation results are stored in the central hub's D
 devac sync --validate --push-to-hub --repo-id github.com/org/repo
 
 # Query errors via MCP
-# (get_validation_errors, get_validation_summary, get_validation_counts)
+# (status_diagnostics, status_diagnostics_summary, status_diagnostics_counts)
 ```
 
 ### devac query affected
@@ -1045,10 +1045,10 @@ Examples:
 ```
 
 **MCP Tools Available:**
-- Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
-- Context discovery: `get_context`, `list_repos`
-- Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
-- Unified diagnostics: `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts`
+- Code analysis: `query_symbol`, `query_deps`, `query_dependents`, `query_file`, `query_affected`, `query_call_graph`, `query_sql`
+- Context discovery: `query_context`, `query_repos`
+- Validation: `status_diagnostics`, `status_diagnostics_summary`, `status_diagnostics_counts`
+- Unified diagnostics: `status_all_diagnostics`, `status_all_diagnostics_summary`, `status_all_diagnostics_counts`
 
 ## Context Commands
 
@@ -1797,14 +1797,14 @@ Examples:
 
 | Mode | Description |
 |------|-------------|
-| Hub (default) | Queries across all registered repos via central hub. Use `get_context`, `query_sql`, `list_repos`, validation tools, and unified feedback tools. |
+| Hub (default) | Queries across all registered repos via central hub. Use `query_context`, `query_sql`, `query_repos`, validation tools, and unified feedback tools. |
 | Package | Queries a single package. Useful for isolated analysis. Use `--package` to enable. |
 
 **MCP Tools Available:**
-- Code analysis: `find_symbol`, `get_dependencies`, `get_dependents`, `get_file_symbols`, `get_affected`, `get_call_graph`, `query_sql`
-- Context discovery: `get_context`, `list_repos`
-- Validation: `get_validation_errors`, `get_validation_summary`, `get_validation_counts`
-- Unified diagnostics: `get_all_diagnostics`, `get_diagnostics_summary`, `get_diagnostics_counts`
+- Code analysis: `query_symbol`, `query_deps`, `query_dependents`, `query_file`, `query_affected`, `query_call_graph`, `query_sql`
+- Context discovery: `query_context`, `query_repos`
+- Validation: `status_diagnostics`, `status_diagnostics_summary`, `status_diagnostics_counts`
+- Unified diagnostics: `status_all_diagnostics`, `status_all_diagnostics_summary`, `status_all_diagnostics_counts`
 
 See [MCP Server documentation](./mcp-server.md) for full tool reference.
 
