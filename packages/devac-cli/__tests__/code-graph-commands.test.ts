@@ -1,7 +1,8 @@
 /**
  * Code Graph CLI Command Tests
  *
- * Tests for find-symbol, deps, dependents, file-symbols, and call-graph commands.
+ * Tests for symbol query, deps, dependents, file-symbols, and call-graph commands.
+ * These are proper integration tests that validate each step of the pipeline.
  */
 
 import * as fs from "node:fs/promises";
@@ -14,7 +15,7 @@ import { callGraphCommand } from "../src/commands/call-graph.js";
 import { dependentsCommand } from "../src/commands/dependents.js";
 import { depsCommand } from "../src/commands/deps.js";
 import { fileSymbolsCommand } from "../src/commands/file-symbols.js";
-import { findSymbolCommand } from "../src/commands/find-symbol.js";
+import { symbolQueryCommand } from "../src/commands/query/symbol.js";
 
 describe("Code Graph Commands", () => {
   let tempDir: string;
@@ -91,143 +92,116 @@ export function runService(): void {
 `
     );
 
-    // Analyze the package to generate seeds
-    await analyzeCommand({
+    // Analyze the package to generate seeds - VALIDATE SUCCESS
+    const analyzeResult = await analyzeCommand({
       packagePath: tempDir,
       repoName: "test-repo",
       branch: "main",
     });
+
+    // Assert analysis succeeded - no silent skips!
+    expect(analyzeResult.success).toBe(true);
   });
 
   afterEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  describe("find-symbol command", () => {
-    it("finds symbols by name", async () => {
-      const result = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+  describe("symbol query command", () => {
+    it("finds symbols by exact name", async () => {
+      const result = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
-
-      // Seeds may not be available in all environments
-      if (!result.success) {
-        console.log("Skipping find-symbol test - seeds not available");
-        expect(result).toBeDefined();
-        return;
-      }
 
       expect(result.success).toBe(true);
       expect(result.count).toBeGreaterThan(0);
-      expect(result.symbols).toBeDefined();
+
+      // Validate field structure - API returns camelCase
+      const symbols = result.data as Record<string, unknown>[];
+      expect(symbols).toBeDefined();
+      expect(symbols.length).toBeGreaterThan(0);
+      expect(symbols[0]).toHaveProperty("entityId");
+      expect(symbols[0]).toHaveProperty("name", "helper");
     });
 
-    it("finds symbols with partial name match", async () => {
-      const result = await findSymbolCommand({
-        name: "format",
-        packagePath: tempDir,
+    it("finds symbols with wildcard match", async () => {
+      const result = await symbolQueryCommand("format*", {
+        package: tempDir,
       });
 
-      // Seeds may not be available in all environments
-      if (!result.success) {
-        console.log("Skipping find-symbol partial test - seeds not available");
-        expect(result).toBeDefined();
-        return;
-      }
-
       expect(result.success).toBe(true);
+      // Should match formatName
       expect(result.count).toBeGreaterThan(0);
+
+      const symbols = result.data as Record<string, unknown>[];
+      expect(symbols).toBeDefined();
+      expect(symbols.some((s) => (s.name as string).startsWith("format"))).toBe(true);
     });
 
     it("filters by kind", async () => {
-      const result = await findSymbolCommand({
-        name: "DataService",
+      const result = await symbolQueryCommand("DataService", {
         kind: "class",
-        packagePath: tempDir,
+        package: tempDir,
       });
 
-      // Seeds may not be available in all environments
-      if (!result.success) {
-        console.log("Skipping find-symbol filter test - seeds not available");
-        expect(result).toBeDefined();
-        return;
-      }
-
       expect(result.success).toBe(true);
+
       if (result.count > 0) {
-        // If found, verify it's a class
-        expect(result.symbols?.[0]).toBeDefined();
+        const symbols = result.data as Record<string, unknown>[];
+        expect(symbols[0]).toHaveProperty("entityId");
+        expect(symbols[0]).toHaveProperty("kind", "class");
       }
     });
 
     it("returns empty when symbol not found", async () => {
-      const result = await findSymbolCommand({
-        name: "nonexistentSymbol",
-        packagePath: tempDir,
+      const result = await symbolQueryCommand("nonexistentSymbol", {
+        package: tempDir,
       });
-
-      // Seeds may not be available in all environments
-      if (!result.success) {
-        console.log("Skipping find-symbol not found test - seeds not available");
-        expect(result).toBeDefined();
-        return;
-      }
 
       expect(result.success).toBe(true);
       expect(result.count).toBe(0);
     });
 
     it("respects limit option", async () => {
-      const result = await findSymbolCommand({
-        name: "",
-        packagePath: tempDir,
-        limit: 2,
+      const result = await symbolQueryCommand("", {
+        package: tempDir,
+        limit: "2",
       });
-
-      // Seeds may not be available in all environments
-      if (!result.success) {
-        console.log("Skipping find-symbol limit test - seeds not available");
-        expect(result).toBeDefined();
-        return;
-      }
 
       expect(result.success).toBe(true);
       expect(result.count).toBeLessThanOrEqual(2);
     });
 
-    it("outputs JSON by default", async () => {
-      const result = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+    it("outputs JSON when requested", async () => {
+      const result = await symbolQueryCommand("helper", {
+        package: tempDir,
+        json: true,
       });
 
-      // Output should exist even if no symbols found
+      expect(result.success).toBe(true);
       expect(result.output).toBeDefined();
-      if (result.success) {
-        expect(result.output).toContain("{");
-        expect(() => JSON.parse(result.output)).not.toThrow();
-      }
+      expect(result.output).toContain("{");
+      expect(() => JSON.parse(result.output)).not.toThrow();
     });
 
     it("outputs pretty format by default", async () => {
-      const result = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+      const result = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
 
-      // May fail if seeds aren't available
-      expect(result).toBeDefined();
-      expect(result.output.length).toBeGreaterThanOrEqual(0);
+      expect(result.success).toBe(true);
+      expect(result.output).toBeDefined();
+      expect(result.output.length).toBeGreaterThan(0);
     });
 
-    it("fails gracefully for invalid package path", async () => {
-      const result = await findSymbolCommand({
-        name: "helper",
-        packagePath: "/nonexistent/path",
+    it("returns empty for invalid package path", async () => {
+      const result = await symbolQueryCommand("helper", {
+        package: "/nonexistent/path",
       });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // With hub mode, invalid paths return empty results rather than errors
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(0);
     });
   });
 
@@ -238,16 +212,13 @@ export function runService(): void {
         packagePath: tempDir,
       });
 
-      // Analysis may not produce seeds in all environments
-      if (!result.success || result.count === 0) {
-        console.log("Skipping file-symbols test - no seeds available");
-        expect(result).toBeDefined();
-        return;
-      }
-
       expect(result.success).toBe(true);
       expect(result.count).toBeGreaterThan(0);
       expect(result.symbols).toBeDefined();
+
+      // Validate field structure - API returns camelCase
+      const symbols = result.symbols as Record<string, unknown>[];
+      expect(symbols[0]).toHaveProperty("entityId");
     });
 
     it("filters by kind", async () => {
@@ -257,15 +228,12 @@ export function runService(): void {
         packagePath: tempDir,
       });
 
-      // Analysis may not produce seeds in all environments
-      if (!result.success) {
-        console.log("Skipping file-symbols filter test - no seeds available");
-        expect(result).toBeDefined();
-        return;
-      }
-
       expect(result.success).toBe(true);
       // Should find DataService class
+      if (result.count > 0) {
+        const symbols = result.symbols as Record<string, unknown>[];
+        expect(symbols[0]).toHaveProperty("kind", "class");
+      }
     });
 
     it("returns empty for nonexistent file", async () => {
@@ -295,6 +263,7 @@ export function runService(): void {
         json: true,
       });
 
+      expect(result.success).toBe(true);
       expect(result.output).toContain("{");
     });
   });
@@ -302,19 +271,18 @@ export function runService(): void {
   describe("deps command", () => {
     it("returns dependencies for an entity", async () => {
       // First find a symbol to get its entity ID
-      const findResult = await findSymbolCommand({
-        name: "processData",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("processData", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work (analysis may have failed)
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping deps test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      // Extract entityId (camelCase - API format)
+      const symbols = findResult.data as Record<string, unknown>[];
+      expect(symbols[0]).toHaveProperty("entityId");
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await depsCommand({
         entityId,
@@ -327,19 +295,16 @@ export function runService(): void {
     });
 
     it("filters by edge type", async () => {
-      const findResult = await findSymbolCommand({
-        name: "processData",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("processData", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping deps filter test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await depsCommand({
         entityId,
@@ -373,19 +338,17 @@ export function runService(): void {
   describe("dependents command", () => {
     it("returns dependents for an entity", async () => {
       // Find helper function which is called by processData
-      const findResult = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping dependents test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      expect(symbols[0]).toHaveProperty("entityId");
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await dependentsCommand({
         entityId,
@@ -397,19 +360,16 @@ export function runService(): void {
     });
 
     it("filters by edge type", async () => {
-      const findResult = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping dependents filter test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await dependentsCommand({
         entityId,
@@ -442,19 +402,17 @@ export function runService(): void {
 
   describe("call-graph command", () => {
     it("returns call graph for a function", async () => {
-      const findResult = await findSymbolCommand({
-        name: "processData",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("processData", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping call-graph test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      expect(symbols[0]).toHaveProperty("entityId");
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
         entityId,
@@ -468,19 +426,16 @@ export function runService(): void {
     });
 
     it("returns only callers when direction is callers", async () => {
-      const findResult = await findSymbolCommand({
-        name: "helper",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping call-graph callers test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
         entityId,
@@ -493,19 +448,16 @@ export function runService(): void {
     });
 
     it("returns only callees when direction is callees", async () => {
-      const findResult = await findSymbolCommand({
-        name: "processData",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("processData", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping call-graph callees test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
         entityId,
@@ -518,19 +470,16 @@ export function runService(): void {
     });
 
     it("respects max depth", async () => {
-      const findResult = await findSymbolCommand({
-        name: "main",
-        packagePath: tempDir,
+      const findResult = await symbolQueryCommand("main", {
+        package: tempDir,
       });
 
-      // Skip if find didn't work
-      if (!findResult.success || findResult.count === 0) {
-        console.log("Skipping call-graph depth test - no symbols found");
-        return;
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
 
-      const symbol = findResult.symbols?.[0] as Record<string, unknown>;
-      const entityId = (symbol.entityId || symbol.entity_id) as string;
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+      expect(entityId).toBeTruthy();
 
       const result = await callGraphCommand({
         entityId,
@@ -542,29 +491,47 @@ export function runService(): void {
       expect(result.success).toBe(true);
     });
 
-    it("outputs JSON by default", async () => {
-      const result = await callGraphCommand({
-        entityId: "test-entity",
-        direction: "both",
-        packagePath: tempDir,
+    it("outputs JSON when requested", async () => {
+      const findResult = await symbolQueryCommand("helper", {
+        package: tempDir,
       });
 
-      // May fail if seeds aren't available, but output should exist
-      expect(result.output).toBeDefined();
-      if (result.success) {
-        expect(result.output).toContain("{");
-      }
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
+
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+
+      const result = await callGraphCommand({
+        entityId,
+        direction: "both",
+        packagePath: tempDir,
+        json: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain("{");
     });
 
     it("outputs pretty format by default", async () => {
+      const findResult = await symbolQueryCommand("helper", {
+        package: tempDir,
+      });
+
+      expect(findResult.success).toBe(true);
+      expect(findResult.count).toBeGreaterThan(0);
+
+      const symbols = findResult.data as Record<string, unknown>[];
+      const entityId = symbols[0]!.entityId as string;
+
       const result = await callGraphCommand({
-        entityId: "test-entity",
+        entityId,
         direction: "both",
         packagePath: tempDir,
       });
 
-      // May fail if seeds aren't available
-      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
+      expect(result.output).toBeDefined();
     });
   });
 });

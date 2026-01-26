@@ -681,6 +681,11 @@ export class SeedWriter {
    * Insert a node into the DuckDB table
    */
   private async insertNode(conn: Connection, node: ParsedNode): Promise<void> {
+    // Build arrays as DuckDB literals (not JSON strings)
+    const decoratorsLiteral = this.toDuckDBArray(node.decorators);
+    const typeParamsLiteral = this.toDuckDBArray(node.type_parameters);
+    const propertiesJson = JSON.stringify(node.properties).replace(/'/g, "''");
+
     const sql = `
       INSERT INTO nodes (
         entity_id, name, qualified_name, kind, file_path,
@@ -689,7 +694,7 @@ export class SeedWriter {
         is_async, is_generator, is_static, is_abstract,
         type_signature, documentation, decorators, type_parameters,
         properties, source_file_hash, branch, is_deleted, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${decoratorsLiteral}, ${typeParamsLiteral}, '${propertiesJson}', ?, ?, ?, ?)
     `;
 
     await conn.run(
@@ -712,9 +717,6 @@ export class SeedWriter {
       node.is_abstract,
       node.type_signature,
       node.documentation,
-      JSON.stringify(node.decorators),
-      JSON.stringify(node.type_parameters),
-      JSON.stringify(node.properties),
       node.source_file_hash,
       node.branch,
       node.is_deleted,
@@ -726,12 +728,15 @@ export class SeedWriter {
    * Insert an edge into the DuckDB table
    */
   private async insertEdge(conn: Connection, edge: ParsedEdge): Promise<void> {
+    // Handle properties as JSON (escaped for SQL)
+    const propertiesJson = JSON.stringify(edge.properties).replace(/'/g, "''");
+
     const sql = `
       INSERT INTO edges (
         source_entity_id, target_entity_id, edge_type,
         source_file_path, source_line, source_column,
         properties, source_file_hash, branch, is_deleted, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, '${propertiesJson}', ?, ?, ?, ?)
     `;
 
     await conn.run(
@@ -742,7 +747,6 @@ export class SeedWriter {
       edge.source_file_path,
       edge.source_line,
       edge.source_column,
-      JSON.stringify(edge.properties),
       edge.source_file_hash,
       edge.branch,
       edge.is_deleted,
@@ -1060,6 +1064,19 @@ export class SeedWriter {
         )})`
       );
       for (const node of nodes) {
+        // Handle arrays from DuckDB (convert back to literals for re-insertion)
+        const decorators = Array.isArray(node.decorators) ? node.decorators : [];
+        const typeParams = Array.isArray(node.type_parameters) ? node.type_parameters : [];
+        const decoratorsLiteral = this.toDuckDBArray(decorators as unknown[]);
+        const typeParamsLiteral = this.toDuckDBArray(typeParams as unknown[]);
+
+        // Handle properties - could be object or JSON string from DuckDB
+        const propertiesValue =
+          typeof node.properties === "string"
+            ? node.properties
+            : JSON.stringify(node.properties ?? {});
+        const propertiesJson = propertiesValue.replace(/'/g, "''");
+
         await conn.run(
           `
           INSERT INTO nodes (
@@ -1069,7 +1086,7 @@ export class SeedWriter {
             is_async, is_generator, is_static, is_abstract,
             type_signature, documentation, decorators, type_parameters,
             properties, source_file_hash, branch, is_deleted, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${decoratorsLiteral}, ${typeParamsLiteral}, '${propertiesJson}', ?, ?, ?, ?)
         `,
           node.entity_id,
           node.name,
@@ -1089,9 +1106,6 @@ export class SeedWriter {
           node.is_abstract,
           node.type_signature,
           node.documentation,
-          node.decorators,
-          node.type_parameters,
-          node.properties,
           node.source_file_hash,
           branch,
           true,
@@ -1108,13 +1122,20 @@ export class SeedWriter {
         )})`
       );
       for (const edge of edges) {
+        // Handle properties - could be object or JSON string from DuckDB
+        const propertiesValue =
+          typeof edge.properties === "string"
+            ? edge.properties
+            : JSON.stringify(edge.properties ?? {});
+        const propertiesJson = propertiesValue.replace(/'/g, "''");
+
         await conn.run(
           `
           INSERT INTO edges (
             source_entity_id, target_entity_id, edge_type,
             source_file_path, source_line, source_column,
             properties, source_file_hash, branch, is_deleted, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, '${propertiesJson}', ?, ?, ?, ?)
         `,
           edge.source_entity_id,
           edge.target_entity_id,
@@ -1122,7 +1143,6 @@ export class SeedWriter {
           edge.source_file_path,
           edge.source_line,
           edge.source_column,
-          edge.properties,
           edge.source_file_hash,
           branch,
           true,
@@ -1333,6 +1353,17 @@ export class SeedWriter {
    * Insert node from raw DuckDB row
    */
   private async insertNodeFromRow(conn: Connection, row: Record<string, unknown>): Promise<void> {
+    // Handle arrays from DuckDB (convert back to literals for re-insertion)
+    const decorators = Array.isArray(row.decorators) ? row.decorators : [];
+    const typeParams = Array.isArray(row.type_parameters) ? row.type_parameters : [];
+    const decoratorsLiteral = this.toDuckDBArray(decorators as unknown[]);
+    const typeParamsLiteral = this.toDuckDBArray(typeParams as unknown[]);
+
+    // Handle properties - could be object or JSON string from DuckDB
+    const propertiesValue =
+      typeof row.properties === "string" ? row.properties : JSON.stringify(row.properties ?? {});
+    const propertiesJson = propertiesValue.replace(/'/g, "''");
+
     const sql = `
       INSERT INTO nodes (
         entity_id, name, qualified_name, kind, file_path,
@@ -1341,7 +1372,7 @@ export class SeedWriter {
         is_async, is_generator, is_static, is_abstract,
         type_signature, documentation, decorators, type_parameters,
         properties, source_file_hash, branch, is_deleted, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${decoratorsLiteral}, ${typeParamsLiteral}, '${propertiesJson}', ?, ?, ?, ?)
     `;
 
     await conn.run(
@@ -1364,9 +1395,6 @@ export class SeedWriter {
       row.is_abstract,
       row.type_signature,
       row.documentation,
-      row.decorators,
-      row.type_parameters,
-      row.properties,
       row.source_file_hash,
       row.branch,
       row.is_deleted,
@@ -1378,12 +1406,17 @@ export class SeedWriter {
    * Insert edge from raw DuckDB row
    */
   private async insertEdgeFromRow(conn: Connection, row: Record<string, unknown>): Promise<void> {
+    // Handle properties - could be object or JSON string from DuckDB
+    const propertiesValue =
+      typeof row.properties === "string" ? row.properties : JSON.stringify(row.properties ?? {});
+    const propertiesJson = propertiesValue.replace(/'/g, "''");
+
     const sql = `
       INSERT INTO edges (
         source_entity_id, target_entity_id, edge_type,
         source_file_path, source_line, source_column,
         properties, source_file_hash, branch, is_deleted, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, '${propertiesJson}', ?, ?, ?, ?)
     `;
 
     await conn.run(
@@ -1394,7 +1427,6 @@ export class SeedWriter {
       row.source_file_path,
       row.source_line,
       row.source_column,
-      row.properties,
       row.source_file_hash,
       row.branch,
       row.is_deleted,
@@ -1446,6 +1478,29 @@ export class SeedWriter {
    */
   private toSqlList(items: string[]): string {
     return items.map((item) => `'${item.replace(/'/g, "''")}'`).join(", ");
+  }
+
+  /**
+   * Convert JavaScript array to DuckDB array literal syntax
+   * Produces: ['item1', 'item2'] instead of '["item1", "item2"]'
+   */
+  private toDuckDBArray(arr: unknown[]): string {
+    if (!arr || arr.length === 0) {
+      return "[]";
+    }
+    const items = arr.map((v) => {
+      if (v === null || v === undefined) {
+        return "NULL";
+      }
+      if (typeof v === "string") {
+        return `'${v.replace(/'/g, "''")}'`;
+      }
+      if (typeof v === "number" || typeof v === "boolean") {
+        return String(v);
+      }
+      return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+    });
+    return `[${items.join(", ")}]`;
   }
 }
 

@@ -30,7 +30,6 @@ export { registerTypecheckCommand } from "./typecheck.js";
 export { registerLintCommand } from "./lint.js";
 export { registerTestCommand } from "./test-cmd.js";
 export { registerCoverageCommand } from "./coverage.js";
-export { registerFindSymbolCommand } from "./find-symbol.js";
 export { registerDepsCommand } from "./deps.js";
 export { registerDependentsCommand } from "./dependents.js";
 export { registerFileSymbolsCommand } from "./file-symbols.js";
@@ -200,8 +199,6 @@ export type {
 } from "./coverage.js";
 
 // Code graph commands
-export { findSymbolCommand } from "./find-symbol.js";
-export type { FindSymbolOptions, FindSymbolResult } from "./find-symbol.js";
 export { depsCommand } from "./deps.js";
 export type { DepsCommandOptions, DepsCommandResult } from "./deps.js";
 export { dependentsCommand } from "./dependents.js";

@@ -76,7 +76,7 @@ function formatCallGraph(
       for (const caller of callers) {
         const c = caller as Record<string, unknown>;
         const name = c.name || c.entity_id || c.source_entity_id || "unknown";
-        const file = c.source_file || "";
+        const file = c.file_path || "";
         const kind = c.kind || "";
         const depth = c.depth !== undefined ? ` [depth: ${c.depth}]` : "";
         lines.push(`  ${name} (${kind}) - ${file}${depth}`);
@@ -93,7 +93,7 @@ function formatCallGraph(
       for (const callee of callees) {
         const c = callee as Record<string, unknown>;
         const name = c.name || c.entity_id || c.target_entity_id || "unknown";
-        const file = c.source_file || "";
+        const file = c.file_path || "";
         const kind = c.kind || "";
         const depth = c.depth !== undefined ? ` [depth: ${c.depth}]` : "";
         lines.push(`  ${name} (${kind}) - ${file}${depth}`);
@@ -160,13 +160,13 @@ export async function callGraphCommand(
             cc.depth,
             n.name,
             n.kind,
-            n.source_file
+            n.file_path
           FROM caller_chain cc
           JOIN nodes n ON cc.source_entity_id = n.entity_id
           ORDER BY cc.depth, n.name
           LIMIT ${limit}
         `;
-        const result = await seedReader.querySeeds(sql);
+        const result = await seedReader.queryWithViews(sql);
         callers = result.rows;
       }
 
@@ -201,13 +201,13 @@ export async function callGraphCommand(
             cc.depth,
             n.name,
             n.kind,
-            n.source_file
+            n.file_path
           FROM call_chain cc
           JOIN nodes n ON cc.target_entity_id = n.entity_id
           ORDER BY cc.depth, n.name
           LIMIT ${limit}
         `;
-        const result = await seedReader.querySeeds(sql);
+        const result = await seedReader.queryWithViews(sql);
         callees = result.rows;
       }
     } else {
@@ -262,7 +262,7 @@ export async function callGraphCommand(
             cc.depth,
             n.name,
             n.kind,
-            n.source_file
+            n.file_path
           FROM caller_chain cc
           JOIN {nodes} n ON cc.source_entity_id = n.entity_id
           ORDER BY cc.depth, n.name
@@ -303,7 +303,7 @@ export async function callGraphCommand(
             cc.depth,
             n.name,
             n.kind,
-            n.source_file
+            n.file_path
           FROM call_chain cc
           JOIN {nodes} n ON cc.target_entity_id = n.entity_id
           ORDER BY cc.depth, n.name

@@ -81,7 +81,7 @@ export async function depsCommand(options: DepsCommandOptions): Promise<DepsComm
         if (options.limit) {
           sql += ` LIMIT ${options.limit}`;
         }
-        result = await seedReader.querySeeds(sql);
+        result = await seedReader.queryWithViews(sql);
       } else {
         // Use optimized getEdgesBySource
         const edges = await seedReader.getEdgesBySource(options.entityId);

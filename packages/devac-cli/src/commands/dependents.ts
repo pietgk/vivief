@@ -83,7 +83,7 @@ export async function dependentsCommand(
         if (options.limit) {
           sql += ` LIMIT ${options.limit}`;
         }
-        result = await seedReader.querySeeds(sql);
+        result = await seedReader.queryWithViews(sql);
       } else {
         // Use optimized getEdgesByTarget
         const edges = await seedReader.getEdgesByTarget(options.entityId);

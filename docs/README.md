@@ -90,7 +90,7 @@ DevAC is a **file-based, federated code analysis system** that replaces traditio
 
 ## Version
 
-- **Current Version**: 0.19.0
+- **Current Version**: 2.2.0
 - **Status**: Active Development
 - **Last Updated**: January 2026
 

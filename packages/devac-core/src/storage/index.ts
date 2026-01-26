@@ -28,7 +28,55 @@ export {
   getCopyToParquet,
   getReadFromParquet,
   getUnifiedQuery,
+  // Column names derived from Zod schemas
+  NODES_COLUMNS,
+  EDGES_COLUMNS,
+  EXTERNAL_REFS_COLUMNS,
 } from "./parquet-schemas.js";
+
+// Schema generators (Zod to SQL/Parquet)
+export {
+  zodToCreateTable,
+  zodToColumnNames,
+  zodToInsertSQL,
+  zodToValuesRow,
+  getColumnMetadata,
+  validateData,
+  safeValidateData,
+} from "./schema-generators.js";
+export type { ColumnMetadata } from "./schema-generators.js";
+
+// Zod schemas (single source of truth)
+export {
+  // Node schema
+  NodeSchema,
+  NodeKindSchema,
+  VisibilitySchema,
+  TestNodeSchema,
+  createNodeFromTestData,
+  // Edge schema
+  EdgeSchema,
+  EdgeTypeSchema,
+  TestEdgeSchema,
+  createEdgeFromTestData,
+  // External ref schema
+  ExternalRefSchema,
+  ImportStyleSchema,
+  TestExternalRefSchema,
+  createExternalRefFromTestData,
+} from "./schemas/index.js";
+export type {
+  Node,
+  NodeKind,
+  Visibility,
+  TestNode,
+  Edge,
+  EdgeType,
+  TestEdge,
+  ExternalRef,
+  ImportStyle,
+  TestExternalRef,
+} from "./schemas/index.js";
 
 // File locking
 export {

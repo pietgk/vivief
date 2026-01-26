@@ -57,9 +57,9 @@ await server.stop();
 
 ## Available Tools
 
-The MCP server exposes 15 tools for code analysis, context discovery, validation, and unified feedback:
+The MCP server exposes 21 tools for code analysis, context discovery, validation, and unified feedback:
 
-### find_symbol
+### query_symbol
 
 Find symbols (functions, classes, etc.) by name.
 
@@ -70,7 +70,7 @@ Find symbols (functions, classes, etc.) by name.
 **Example:**
 ```json
 {
-  "name": "find_symbol",
+  "name": "query_symbol",
   "arguments": {
     "name": "UserService",
     "kind": "class"
@@ -78,7 +78,7 @@ Find symbols (functions, classes, etc.) by name.
 }
 ```
 
-### get_dependencies
+### query_deps
 
 Get all symbols that the specified entity depends on.
 
@@ -88,14 +88,14 @@ Get all symbols that the specified entity depends on.
 **Example:**
 ```json
 {
-  "name": "get_dependencies",
+  "name": "query_deps",
   "arguments": {
     "entityId": "pkg:class:UserService"
   }
 }
 ```
 
-### get_dependents
+### query_dependents
 
 Get all symbols that depend on the specified entity.
 
@@ -105,14 +105,14 @@ Get all symbols that depend on the specified entity.
 **Example:**
 ```json
 {
-  "name": "get_dependents",
+  "name": "query_dependents",
   "arguments": {
     "entityId": "pkg:function:validateUser"
   }
 }
 ```
 
-### get_file_symbols
+### query_file
 
 Get all symbols defined in a specific file.
 
@@ -122,14 +122,14 @@ Get all symbols defined in a specific file.
 **Example:**
 ```json
 {
-  "name": "get_file_symbols",
+  "name": "query_file",
   "arguments": {
     "filePath": "src/services/user.ts"
   }
 }
 ```
 
-### get_affected
+### query_affected
 
 Analyze which files and symbols are affected by changes to specified files.
 
@@ -140,7 +140,7 @@ Analyze which files and symbols are affected by changes to specified files.
 **Example:**
 ```json
 {
-  "name": "get_affected",
+  "name": "query_affected",
   "arguments": {
     "changedFiles": ["src/models/user.ts", "src/utils/validation.ts"],
     "maxDepth": 5
@@ -148,7 +148,7 @@ Analyze which files and symbols are affected by changes to specified files.
 }
 ```
 
-### get_call_graph
+### query_call_graph
 
 Get the call graph for a function or method.
 
@@ -160,7 +160,7 @@ Get the call graph for a function or method.
 **Example:**
 ```json
 {
-  "name": "get_call_graph",
+  "name": "query_call_graph",
   "arguments": {
     "entityId": "pkg:method:UserService.createUser",
     "direction": "callees",
@@ -188,7 +188,98 @@ Execute a custom SQL query against the code graph (SELECT only).
 
 **Security Note:** Only SELECT queries are allowed. INSERT, UPDATE, DELETE, DROP, and other modifying queries are rejected.
 
-### get_context
+### query_schema
+
+Get the schema of the code graph tables (nodes, edges, external_refs).
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "query_schema",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns table schemas including column names, types, and descriptions.
+
+### query_effects
+
+Query side effects and I/O operations in the codebase.
+
+**Parameters:**
+- `entityId` (string, optional): Filter by entity ID
+- `kind` (string, optional): Filter by effect kind (e.g., "network", "file", "database")
+
+**Example:**
+```json
+{
+  "name": "query_effects",
+  "arguments": {
+    "kind": "database"
+  }
+}
+```
+
+### query_rules
+
+Run the rules engine to validate code against defined rules.
+
+**Parameters:**
+- `ruleId` (string, optional): Run a specific rule by ID
+- `file` (string, optional): Filter to specific file
+
+**Example:**
+```json
+{
+  "name": "query_rules",
+  "arguments": {
+    "ruleId": "no-unused-exports"
+  }
+}
+```
+
+### query_rules_list
+
+List all available rules in the rules engine.
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "query_rules_list",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns an array of rules with their IDs, descriptions, and categories.
+
+### query_c4
+
+Generate C4 architecture diagrams from the code graph.
+
+**Parameters:**
+- `level` (string, optional): C4 level ("context", "container", "component", "code")
+- `focus` (string, optional): Entity ID to focus on
+
+**Example:**
+```json
+{
+  "name": "query_c4",
+  "arguments": {
+    "level": "component",
+    "focus": "pkg:class:UserService"
+  }
+}
+```
+
+### query_context
 
 Discover the current working context including sibling repositories and issue worktrees. Uses intelligent caching with automatic refresh.
 
@@ -200,7 +291,7 @@ Discover the current working context including sibling repositories and issue wo
 **Example:**
 ```json
 {
-  "name": "get_context",
+  "name": "query_context",
   "arguments": {
     "path": "/Users/dev/projects/api-123-auth",
     "checkSeeds": true
@@ -215,7 +306,7 @@ Discover the current working context including sibling repositories and issue wo
 - Related worktrees for the same issue
 - Main repos associated with worktrees
 
-### list_repos
+### query_repos
 
 List all repositories registered with the central hub (hub mode only).
 
@@ -225,7 +316,7 @@ List all repositories registered with the central hub (hub mode only).
 **Example:**
 ```json
 {
-  "name": "list_repos",
+  "name": "query_repos",
   "arguments": {}
 }
 ```
@@ -233,7 +324,25 @@ List all repositories registered with the central hub (hub mode only).
 **Response:**
 Returns an array of registered repositories with their paths and package information.
 
-### get_validation_errors
+### status
+
+Get the overall workspace status including seed health, repo registration, and diagnostics summary.
+
+**Parameters:**
+- None
+
+**Example:**
+```json
+{
+  "name": "status",
+  "arguments": {}
+}
+```
+
+**Response:**
+Returns workspace status including registered repos, seed health, and diagnostic counts.
+
+### status_diagnostics
 
 Get validation errors (type errors, lint issues, test failures) from the hub cache. Only available in hub mode.
 
@@ -247,7 +356,7 @@ Get validation errors (type errors, lint issues, test failures) from the hub cac
 **Example:**
 ```json
 {
-  "name": "get_validation_errors",
+  "name": "status_diagnostics",
   "arguments": {
     "severity": "error",
     "source": "tsc",
@@ -259,7 +368,7 @@ Get validation errors (type errors, lint issues, test failures) from the hub cac
 **Response:**
 Returns an array of validation errors with file, line, column, message, severity, source, and code.
 
-### get_validation_summary
+### status_diagnostics_summary
 
 Get a summary of validation errors grouped by repository, file, source, or severity. Only available in hub mode.
 
@@ -269,7 +378,7 @@ Get a summary of validation errors grouped by repository, file, source, or sever
 **Example:**
 ```json
 {
-  "name": "get_validation_summary",
+  "name": "status_diagnostics_summary",
   "arguments": {
     "groupBy": "source"
   }
@@ -279,7 +388,7 @@ Get a summary of validation errors grouped by repository, file, source, or sever
 **Response:**
 Returns grouped counts like `{ "tsc": 15, "eslint": 3, "test": 0 }`.
 
-### get_validation_counts
+### status_diagnostics_counts
 
 Get total counts of validation errors and warnings across all repositories. Only available in hub mode.
 
@@ -289,7 +398,7 @@ Get total counts of validation errors and warnings across all repositories. Only
 **Example:**
 ```json
 {
-  "name": "get_validation_counts",
+  "name": "status_diagnostics_counts",
   "arguments": {}
 }
 ```
@@ -297,7 +406,7 @@ Get total counts of validation errors and warnings across all repositories. Only
 **Response:**
 Returns `{ "errors": 18, "warnings": 7 }`.
 
-### get_all_diagnostics
+### status_all_diagnostics
 
 Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) from a unified view. Use this to answer "What do I need to fix?" across all diagnostics types. Only available in hub mode.
 
@@ -313,7 +422,7 @@ Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) 
 **Example:**
 ```json
 {
-  "name": "get_all_diagnostics",
+  "name": "status_all_diagnostics",
   "arguments": {
     "severity": ["error", "critical"],
     "source": ["tsc", "eslint"],
@@ -322,7 +431,7 @@ Get all diagnostics (validation errors, CI failures, GitHub issues, PR reviews) 
 }
 ```
 
-### get_diagnostics_summary
+### status_all_diagnostics_summary
 
 Get a summary of all diagnostics grouped by source, severity, category, or repository. Only available in hub mode.
 
@@ -332,7 +441,7 @@ Get a summary of all diagnostics grouped by source, severity, category, or repos
 **Example:**
 ```json
 {
-  "name": "get_diagnostics_summary",
+  "name": "status_all_diagnostics_summary",
   "arguments": {
     "groupBy": "category"
   }
@@ -342,7 +451,7 @@ Get a summary of all diagnostics grouped by source, severity, category, or repos
 **Response:**
 Returns grouped counts like `{ "compilation": 5, "linting": 3, "testing": 2 }`.
 
-### get_diagnostics_counts
+### status_all_diagnostics_counts
 
 Get total counts of diagnostics by severity level. Only available in hub mode.
 
@@ -352,7 +461,7 @@ Get total counts of diagnostics by severity level. Only available in hub mode.
 **Example:**
 ```json
 {
-  "name": "get_diagnostics_counts",
+  "name": "status_all_diagnostics_counts",
   "arguments": {}
 }
 ```
@@ -452,7 +561,7 @@ In hub mode, the MCP server owns the central hub database (`~/.devac/central.duc
 
 When the MCP server starts in hub mode:
 
-1. **Creates IPC Socket**: Unix socket at `~/.devac/mcp.sock`
+1. **Creates IPC Socket**: Unix socket at `{workspace}/.devac/mcp.sock`
 2. **Opens Hub Exclusively**: Read-write access to `central.duckdb`
 3. **Handles CLI Commands**: Routes CLI requests via IPC
 

@@ -127,11 +127,15 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
     // Compute relative package path for entity ID generation
     const relativePackagePath = await computeRelativePackagePath(options.packagePath);
 
+    // Resolve symlinks in packageRoot to match what glob returns for file paths
+    // On macOS, /var is symlinked to /private/var, causing path mismatches
+    const realPackageRoot = await fs.realpath(path.resolve(options.packagePath));
+
     const config = {
       ...DEFAULT_PARSER_CONFIG,
       repoName: options.repoName,
       packagePath: relativePackagePath,
-      packageRoot: path.resolve(options.packagePath),
+      packageRoot: realPackageRoot,
       branch: options.branch,
     };
 

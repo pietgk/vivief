@@ -29,6 +29,32 @@ export {
   getCopyToParquet,
   getReadFromParquet,
   getUnifiedQuery,
+  // Column names derived from Zod schemas
+  NODES_COLUMNS,
+  EDGES_COLUMNS,
+  EXTERNAL_REFS_COLUMNS,
+  // Schema generators (Zod to SQL/Parquet)
+  zodToCreateTable,
+  zodToColumnNames,
+  zodToInsertSQL,
+  zodToValuesRow,
+  getColumnMetadata,
+  validateData,
+  safeValidateData,
+  // Zod schemas (single source of truth)
+  NodeSchema,
+  NodeKindSchema,
+  VisibilitySchema,
+  TestNodeSchema,
+  createNodeFromTestData,
+  EdgeSchema,
+  EdgeTypeSchema,
+  TestEdgeSchema,
+  createEdgeFromTestData,
+  ExternalRefSchema,
+  ImportStyleSchema,
+  TestExternalRefSchema,
+  createExternalRefFromTestData,
   acquireLock,
   releaseLock,
   isLockStale,
@@ -81,6 +107,19 @@ export type {
   EffectFilter,
   EffectReadResult,
   EffectStatistics,
+  // Schema generator types
+  ColumnMetadata,
+  // Zod schema types (single source of truth)
+  Node,
+  NodeKind,
+  Visibility,
+  TestNode,
+  Edge,
+  EdgeType,
+  TestEdge,
+  ExternalRef,
+  ImportStyle,
+  TestExternalRef,
 } from "./storage/index.js";
 
 // Analyzer (excludes generateScopeHash which conflicts with utils)
@@ -573,6 +612,9 @@ export * from "./prerequisites/index.js";
 
 // URI (ADR-0044 - Unified Addressing Scheme)
 export * from "./uri/index.js";
+
+// Queries (v4.0 - Shared Query Layer for CLI and MCP)
+export * from "./queries/index.js";
 
 /**
  * DevAC Core Version
