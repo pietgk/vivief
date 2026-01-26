@@ -2,16 +2,16 @@
  * File Symbols Command Implementation
  *
  * Gets all symbols defined in a specific file.
- * Based on MCP get_file_symbols tool.
+ * Uses the shared query layer for consistent behavior with other commands.
  */
 
 import * as path from "node:path";
 import {
   DuckDBPool,
-  type QueryResult,
+  type SymbolFileParams,
   createHubClient,
-  createSeedReader,
-  queryMultiplePackages,
+  createQueryContext,
+  symbolFile,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
 import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
@@ -64,44 +64,20 @@ export async function fileSymbolsCommand(
     pool = new DuckDBPool({ memoryLimit: "256MB" });
     await pool.initialize();
 
-    let result: QueryResult<unknown>;
+    // Get package paths for query context
+    let packages: string[];
 
     if (options.packagePath) {
-      // Package mode: query single package (only when explicitly requested)
-      const pkgPath = path.resolve(options.packagePath);
-      const seedReader = createSeedReader(pool, pkgPath);
-
-      if (options.kind || options.limit) {
-        // Use SQL query for filtering
-        let sql = `SELECT * FROM nodes WHERE source_file = '${options.filePath.replace(
-          /'/g,
-          "''"
-        )}'`;
-        if (options.kind) {
-          sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
-        }
-        if (options.limit) {
-          sql += ` LIMIT ${options.limit}`;
-        }
-        result = await seedReader.querySeeds(sql);
-      } else {
-        // Use optimized getNodesByFile
-        const nodes = await seedReader.getNodesByFile(options.filePath);
-        result = {
-          rows: nodes as unknown[],
-          rowCount: nodes.length,
-          timeMs: 0,
-        };
-      }
+      // Package mode: single package
+      packages = [path.resolve(options.packagePath)];
     } else {
-      // Hub mode (default): query all registered repos
+      // Hub mode (default): all registered repos
       const hubDir = await getWorkspaceHubDir();
       const client = createHubClient({ hubDir });
-
       const repos = await client.listRepos();
-      const packagePaths = repos.map((r) => r.localPath);
+      packages = repos.map((r) => r.localPath);
 
-      if (packagePaths.length === 0) {
+      if (packages.length === 0) {
         return {
           success: true,
           output: options.json
@@ -112,31 +88,33 @@ export async function fileSymbolsCommand(
           symbols: [],
         };
       }
-
-      let sql = `SELECT * FROM {nodes} WHERE source_file = '${options.filePath.replace(
-        /'/g,
-        "''"
-      )}'`;
-      if (options.kind) {
-        sql += ` AND kind = '${options.kind.replace(/'/g, "''")}'`;
-      }
-      if (options.limit) {
-        sql += ` LIMIT ${options.limit}`;
-      }
-
-      result = await queryMultiplePackages(pool, packagePaths, sql);
     }
 
-    const symbols = result.rows as unknown[];
+    // Create query context (same as symbol query)
+    const ctx = createQueryContext({ pool, packages });
+
+    // Map CLI options to shared params
+    const params: SymbolFileParams = {
+      file: options.filePath,
+      kind: options.kind as SymbolFileParams["kind"],
+      level: "summary",
+      limit: options.limit ?? 100,
+    };
+
+    // Execute shared query
+    const result = await symbolFile(ctx, params);
+
+    // Format output
+    const symbols = result.data as unknown[];
     const output = options.json
-      ? formatOutput({ symbols, count: symbols.length }, { json: true })
+      ? formatOutput({ symbols, count: result.total }, { json: true })
       : formatSymbols(symbols, { json: false });
 
     return {
       success: true,
       output,
-      count: symbols.length,
-      timeMs: Date.now() - startTime,
+      count: result.total,
+      timeMs: result.queryTimeMs,
       symbols,
     };
   } catch (error) {
