@@ -3,90 +3,46 @@
  *
  * SQL CREATE TABLE statements for DuckDB to define Parquet schemas.
  * Based on DevAC v2.0 spec Sections 4.1, 4.2, 4.3.
+ *
+ * IMPORTANT: Node, Edge, and ExternalRef schemas are now derived from Zod schemas
+ * in ./schemas/*.schema.ts. Those Zod schemas are the SINGLE SOURCE OF TRUTH.
  */
 
 import type { Connection } from "duckdb-async";
+import { zodToColumnNames, zodToCreateTable } from "./schema-generators.js";
+import { EdgeSchema, ExternalRefSchema, NodeSchema } from "./schemas/index.js";
 
 /**
- * Nodes table schema
- * Stores all code symbols (functions, classes, variables, etc.)
+ * Nodes table schema - GENERATED from Zod
+ * @see ./schemas/node.schema.ts for the source of truth
  */
-export const NODES_SCHEMA = `
-CREATE TABLE IF NOT EXISTS nodes (
-  entity_id VARCHAR NOT NULL,
-  name VARCHAR NOT NULL,
-  qualified_name VARCHAR NOT NULL,
-  kind VARCHAR NOT NULL,
-  file_path VARCHAR NOT NULL,
-  start_line INTEGER NOT NULL,
-  end_line INTEGER NOT NULL,
-  start_column INTEGER NOT NULL,
-  end_column INTEGER NOT NULL,
-  is_exported BOOLEAN NOT NULL DEFAULT false,
-  is_default_export BOOLEAN NOT NULL DEFAULT false,
-  visibility VARCHAR NOT NULL DEFAULT 'public',
-  is_async BOOLEAN NOT NULL DEFAULT false,
-  is_generator BOOLEAN NOT NULL DEFAULT false,
-  is_static BOOLEAN NOT NULL DEFAULT false,
-  is_abstract BOOLEAN NOT NULL DEFAULT false,
-  type_signature VARCHAR,
-  documentation VARCHAR,
-  decorators VARCHAR[] NOT NULL DEFAULT [],
-  type_parameters VARCHAR[] NOT NULL DEFAULT [],
-  properties JSON NOT NULL DEFAULT '{}',
-  source_file_hash VARCHAR NOT NULL,
-  branch VARCHAR NOT NULL DEFAULT 'base',
-  is_deleted BOOLEAN NOT NULL DEFAULT false,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (entity_id, branch)
-)
-`;
+export const NODES_SCHEMA = zodToCreateTable(NodeSchema, "nodes", {
+  primaryKey: ["entity_id", "branch"],
+  ifNotExists: true,
+});
 
 /**
- * Edges table schema
- * Stores relationships between nodes (calls, contains, extends, etc.)
+ * Edges table schema - GENERATED from Zod
+ * @see ./schemas/edge.schema.ts for the source of truth
  */
-export const EDGES_SCHEMA = `
-CREATE TABLE IF NOT EXISTS edges (
-  source_entity_id VARCHAR NOT NULL,
-  target_entity_id VARCHAR NOT NULL,
-  edge_type VARCHAR NOT NULL,
-  source_file_path VARCHAR NOT NULL,
-  source_line INTEGER NOT NULL,
-  source_column INTEGER NOT NULL,
-  properties JSON NOT NULL DEFAULT '{}',
-  source_file_hash VARCHAR NOT NULL,
-  branch VARCHAR NOT NULL DEFAULT 'base',
-  is_deleted BOOLEAN NOT NULL DEFAULT false,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
-`;
+export const EDGES_SCHEMA = zodToCreateTable(EdgeSchema, "edges", {
+  ifNotExists: true,
+});
 
 /**
- * External references table schema
- * Stores unresolved imports to be resolved in semantic pass
+ * External references table schema - GENERATED from Zod
+ * @see ./schemas/external-ref.schema.ts for the source of truth
  */
-export const EXTERNAL_REFS_SCHEMA = `
-CREATE TABLE IF NOT EXISTS external_refs (
-  source_entity_id VARCHAR NOT NULL,
-  module_specifier VARCHAR NOT NULL,
-  imported_symbol VARCHAR NOT NULL,
-  local_alias VARCHAR,
-  import_style VARCHAR NOT NULL DEFAULT 'named',
-  is_type_only BOOLEAN NOT NULL DEFAULT false,
-  source_file_path VARCHAR NOT NULL,
-  source_line INTEGER NOT NULL,
-  source_column INTEGER NOT NULL,
-  target_entity_id VARCHAR,
-  is_resolved BOOLEAN NOT NULL DEFAULT false,
-  is_reexport BOOLEAN NOT NULL DEFAULT false,
-  export_alias VARCHAR,
-  source_file_hash VARCHAR NOT NULL,
-  branch VARCHAR NOT NULL DEFAULT 'base',
-  is_deleted BOOLEAN NOT NULL DEFAULT false,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
-`;
+export const EXTERNAL_REFS_SCHEMA = zodToCreateTable(ExternalRefSchema, "external_refs", {
+  ifNotExists: true,
+});
+
+/**
+ * Column names in schema order - useful for INSERT statements
+ */
+export const NODES_COLUMNS = zodToColumnNames(NodeSchema);
+export const EDGES_COLUMNS = zodToColumnNames(EdgeSchema);
+export const EXTERNAL_REFS_COLUMNS = zodToColumnNames(ExternalRefSchema);
 
 /**
  * Effects table schema (v3.0 foundation)
