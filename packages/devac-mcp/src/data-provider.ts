@@ -670,7 +670,7 @@ export class HubDataProvider implements DataProvider {
     const client = createHubClient({ hubDir: this.hubDir });
     if (await client.isMCPRunning()) {
       // Client mode: delegate hub operations to existing server
-      console.error("MCP server already running, using client mode");
+      console.error("[MCP] Backend detected, running in client mode");
       this._hubClient = client;
       this._isClientMode = true;
     } else {
@@ -736,7 +736,7 @@ export class HubDataProvider implements DataProvider {
   private async promoteToServer(): Promise<void> {
     if (!this._isClientMode) return; // Already a server
 
-    console.error("Owner MCP shutdown detected, promoting to server mode...");
+    console.error("[MCP] Backend disconnected, promoting to server mode...");
 
     // Close client connection
     this._hubClient = null;
@@ -746,10 +746,12 @@ export class HubDataProvider implements DataProvider {
       this._hubServer = createHubServer({ hubDir: this.hubDir });
       await this._hubServer.start();
       this._isClientMode = false;
-      console.error("Successfully promoted to server mode");
+      console.error("[MCP] Successfully promoted to server mode");
     } catch {
       // Another client may have won the race - stay in client mode and retry
-      console.error("Promotion failed (another client may have promoted), staying in client mode");
+      console.error(
+        "[MCP] Promotion failed (another process may have promoted), staying in client mode"
+      );
       this._hubClient = createHubClient({ hubDir: this.hubDir });
     }
   }

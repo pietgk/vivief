@@ -207,6 +207,87 @@ When MCP is not running, CLI commands fall back to direct database access. This 
 
 See [ADR-0024](../../docs/adr/0024-hub-single-writer-ipc.md) for implementation details.
 
+## Multi-Session Proxy Architecture
+
+When multiple Claude Code sessions connect to the same workspace, the MCP server uses a transparent stdio-to-IPC proxy architecture that enables concurrent access without conflicts.
+
+### How It Works
+
+Each Claude Code session spawns its own `devac-mcp` process with stdio transport. The MCP server automatically detects whether a backend HubServer is already running:
+
+1. **First Session (Server Mode)**: Starts the HubServer with exclusive database access
+2. **Additional Sessions (Client Mode)**: Detect the existing backend and delegate hub operations via IPC
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              Workspace                                   │
+│                                                                          │
+│  ┌───────────────┐     ┌───────────────┐     ┌───────────────┐          │
+│  │ Claude Code #1│     │ Claude Code #2│     │ Claude Code #3│          │
+│  └───────┬───────┘     └───────┬───────┘     └───────┬───────┘          │
+│          │ stdio               │ stdio               │ stdio            │
+│          ▼                     ▼                     ▼                   │
+│  ┌───────────────┐     ┌───────────────┐     ┌───────────────┐          │
+│  │  devac-mcp    │     │  devac-mcp    │     │  devac-mcp    │          │
+│  │(server mode)  │     │(client mode)  │     │(client mode)  │          │
+│  │               │     │               │     │               │          │
+│  │  HubServer    │◄────│  HubClient    │     │  HubClient    │          │
+│  │     │         │     │       │       │     │       │       │          │
+│  │     ▼         │     └───────┼───────┘     └───────┼───────┘          │
+│  │ CentralHub    │             │                     │                   │
+│  │     │         │◄────────────┴─────────────────────┘                   │
+│  │     ▼         │              IPC (~/.devac/mcp.sock)                  │
+│  │ central.duckdb│                                                       │
+│  └───────────────┘                                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Client Mode Auto-Detection
+
+When `devac-mcp` starts, it checks if a HubServer is already running:
+
+```typescript
+// Pseudo-code from HubDataProvider.initialize()
+const client = createHubClient({ hubDir });
+if (await client.isMCPRunning()) {
+  // Client mode: delegate hub operations to existing server
+  this._hubClient = client;
+  this._isClientMode = true;
+} else {
+  // Server mode: start our own HubServer
+  this._hubServer = createHubServer({ hubDir });
+  await this._hubServer.start();
+}
+```
+
+### Request Isolation
+
+Each Claude session has complete isolation:
+- **Separate stdio pairs**: Each session has its own stdin/stdout to Claude
+- **Independent client instances**: Each MCP process has its own HubClient
+- **Shared backend**: All clients connect to the same HubServer via IPC
+
+This means multiple Claude sessions can query the code graph simultaneously without interference.
+
+### Auto-Promotion
+
+When the backend HubServer shuts down (e.g., the first Claude session ends), client-mode MCP processes automatically attempt to promote to server mode:
+
+1. **Detection**: First failed IPC request triggers connection error detection
+2. **Promotion attempt**: Client tries to start its own HubServer
+3. **Race handling**: If another client wins the race, stays in client mode
+
+This ensures continuous service even when the original server exits.
+
+### Connection Error Patterns
+
+The following error patterns trigger auto-promotion:
+- `ECONNREFUSED` - Socket connection refused
+- `ENOENT` - Socket file doesn't exist
+- `IPC timeout` - Request timed out
+
+Regular application errors (e.g., "Query failed") do not trigger promotion.
+
 ## Related Packages
 
 - [@pietgk/devac-core](../devac-core) - Core analysis library
