@@ -1,5 +1,16 @@
 # @pietgk/devac-mcp
 
+## 2.3.1
+
+### Patch Changes
+
+- bdb727b: Add proxy mode tests and improve error messages for multi-session scenarios
+
+  - Add comprehensive tests for stdio-to-IPC proxy architecture
+  - Improve error messages for mode transitions with `[MCP]` prefix
+  - Document multi-session proxy architecture in README
+  - @pietgk/devac-core@2.3.1
+
 ## 2.3.0
 
 ### Patch Changes
