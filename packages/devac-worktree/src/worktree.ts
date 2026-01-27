@@ -16,6 +16,87 @@ export async function getRepoRoot(): Promise<string> {
 }
 
 /**
+ * Detect the default branch for a repository
+ * Tries symbolic-ref first, then falls back to checking common branch names
+ */
+export async function getDefaultBranch(repoPath?: string): Promise<string> {
+  const cwd = repoPath ? { cwd: repoPath } : {};
+
+  // Try to get from remote HEAD reference
+  const result = await execa("git", ["symbolic-ref", "refs/remotes/origin/HEAD"], {
+    ...cwd,
+    reject: false,
+  });
+
+  if (result.exitCode === 0) {
+    // Output is "refs/remotes/origin/main" or similar
+    return result.stdout.replace("refs/remotes/origin/", "").trim();
+  }
+
+  // Fallback: check which common branches exist on remote
+  for (const branch of ["main", "master", "development", "develop"]) {
+    const check = await execa("git", ["rev-parse", "--verify", `origin/${branch}`], {
+      ...cwd,
+      reject: false,
+    });
+    if (check.exitCode === 0) {
+      return branch;
+    }
+  }
+
+  throw new Error("Could not determine default branch");
+}
+
+/**
+ * Check if a repository uses git-crypt
+ */
+export async function usesGitCrypt(repoPath: string): Promise<boolean> {
+  const gitCryptDir = path.join(repoPath, ".git-crypt");
+  try {
+    await fs.stat(gitCryptDir);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create a worktree with git-crypt support
+ * Uses --no-checkout + symlink + checkout to properly share git-crypt keys
+ */
+export async function createWorktreeWithGitCrypt(options: {
+  branch: string;
+  worktreePath: string;
+  baseBranch: string;
+  repoPath: string;
+}): Promise<void> {
+  const { branch, worktreePath, baseBranch, repoPath } = options;
+  const worktreeName = path.basename(worktreePath);
+
+  // Step 1: Create worktree with --no-checkout
+  await execa("git", ["worktree", "add", "--no-checkout", "-b", branch, worktreePath, baseBranch], {
+    cwd: repoPath,
+  });
+
+  // Step 2: Create symlink to share git-crypt state
+  // The git-crypt keys are at .git/git-crypt in the main repo
+  // Worktree config is at .git/worktrees/<name>/
+  const mainGitDir = path.join(repoPath, ".git");
+  const worktreeGitDir = path.join(mainGitDir, "worktrees", worktreeName);
+  const sourceGitCrypt = path.join(mainGitDir, "git-crypt");
+  const targetGitCrypt = path.join(worktreeGitDir, "git-crypt");
+
+  // Use relative path for the symlink (more robust)
+  const relativeSource = path.relative(worktreeGitDir, sourceGitCrypt);
+  await fs.symlink(relativeSource, targetGitCrypt);
+
+  // Step 3: Now checkout (smudge filter will work because symlink provides keys)
+  await execa("git", ["checkout", "HEAD", "."], {
+    cwd: worktreePath,
+  });
+}
+
+/**
  * Get the repository name from the root path
  */
 export async function getRepoName(): Promise<string> {
@@ -67,21 +148,49 @@ export async function findWorktreeForIssue(issueNumber: number): Promise<string 
 
 /**
  * Create a new worktree
+ * Auto-detects default branch if not specified and handles git-crypt repos
  */
 export async function createWorktree(options: {
   branch: string;
   worktreePath: string;
   baseBranch?: string;
+  repoPath?: string;
 }): Promise<void> {
-  const { branch, worktreePath, baseBranch = "main" } = options;
+  const { branch, worktreePath, repoPath } = options;
+  const cwd = repoPath ? { cwd: repoPath } : {};
 
-  // Fetch latest from remote
-  await execa("git", ["fetch", "origin", `${baseBranch}:${baseBranch}`], {
-    reject: false, // Don't fail if branch doesn't exist remotely
+  // Auto-detect default branch if not specified
+  const baseBranch = options.baseBranch ?? (await getDefaultBranch(repoPath));
+
+  // Fetch latest from remote (don't fail silently - warn if it fails)
+  const fetchResult = await execa("git", ["fetch", "origin", `${baseBranch}:${baseBranch}`], {
+    ...cwd,
+    reject: false,
   });
 
-  // Create worktree with new branch
-  await execa("git", ["worktree", "add", "-b", branch, worktreePath, baseBranch]);
+  if (fetchResult.exitCode !== 0 && repoPath) {
+    // Check if the branch exists locally at least
+    const localCheck = await execa("git", ["rev-parse", "--verify", baseBranch], {
+      ...cwd,
+      reject: false,
+    });
+    if (localCheck.exitCode !== 0) {
+      throw new Error(`Base branch '${baseBranch}' not found locally or on remote`);
+    }
+  }
+
+  // Check if repo uses git-crypt
+  if (repoPath && (await usesGitCrypt(repoPath))) {
+    await createWorktreeWithGitCrypt({
+      branch,
+      worktreePath,
+      baseBranch,
+      repoPath,
+    });
+  } else {
+    // Standard worktree creation
+    await execa("git", ["worktree", "add", "-b", branch, worktreePath, baseBranch], cwd);
+  }
 }
 
 /**

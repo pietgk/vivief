@@ -128,6 +128,7 @@ program
     "Create worktrees in these repos (comma-separated, use from parent directory)",
     parseRepos
   )
+  .option("--base <branch>", "Base branch to create worktree from (default: auto-detect)")
   .option("-v, --verbose", "Verbose output")
   .action(async (issue: string, options) => {
     let parsedIssue: ReturnType<typeof parseIssueArg>;
@@ -150,6 +151,7 @@ program
         verbose: options.verbose,
         also: options.also,
         repos: options.repos,
+        baseBranch: options.base,
       });
     } catch (err) {
       console.error(`✗ ${err instanceof Error ? err.message : String(err)}`);

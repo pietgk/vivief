@@ -18,14 +18,17 @@ import {
   addWorktreeToState,
   checkWorktreeStatus,
   createWorktree,
+  createWorktreeWithGitCrypt,
   deleteBranch,
   findWorktreeForIssue,
+  getDefaultBranch,
   listWorktrees,
   loadState,
   pruneWorktrees,
   removeWorktree,
   removeWorktreeFromState,
   saveState,
+  usesGitCrypt,
 } from "../src/worktree.js";
 
 const mockedExeca = vi.mocked(execa);
@@ -258,14 +261,15 @@ describe("Git Worktree Operations", () => {
     vi.clearAllMocks();
   });
 
-  it("createWorktree fetches main and creates worktree", async () => {
+  it("createWorktree fetches and creates worktree with explicit baseBranch", async () => {
     mockedExeca
-      .mockResolvedValueOnce(mockExecaResult(""))
-      .mockResolvedValueOnce(mockExecaResult(""));
+      .mockResolvedValueOnce(mockExecaResult("")) // fetch
+      .mockResolvedValueOnce(mockExecaResult("")); // worktree add
 
     await createWorktree({
       branch: "42-fix-bug",
       worktreePath: "/worktrees/repo-42",
+      baseBranch: "main",
     });
 
     // First call fetches main
@@ -273,15 +277,13 @@ describe("Git Worktree Operations", () => {
       reject: false,
     });
 
-    // Second call creates worktree
-    expect(mockedExeca).toHaveBeenNthCalledWith(2, "git", [
-      "worktree",
-      "add",
-      "-b",
-      "42-fix-bug",
-      "/worktrees/repo-42",
-      "main",
-    ]);
+    // Second call creates worktree (with empty cwd options when no repoPath)
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      2,
+      "git",
+      ["worktree", "add", "-b", "42-fix-bug", "/worktrees/repo-42", "main"],
+      {}
+    );
   });
 
   it("createWorktree uses custom base branch", async () => {
@@ -456,5 +458,235 @@ describe("checkWorktreeStatus", () => {
       ["ls-files", "--others", "--exclude-standard"],
       { cwd: "/my/worktree/path" }
     );
+  });
+});
+
+describe("getDefaultBranch", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns branch from symbolic-ref when available", async () => {
+    mockedExeca.mockResolvedValueOnce({
+      ...mockExecaResult("refs/remotes/origin/development"),
+      exitCode: 0,
+    });
+
+    const branch = await getDefaultBranch("/repo");
+
+    expect(branch).toBe("development");
+    expect(mockedExeca).toHaveBeenCalledWith(
+      "git",
+      ["symbolic-ref", "refs/remotes/origin/HEAD"],
+      expect.objectContaining({ cwd: "/repo", reject: false })
+    );
+  });
+
+  it("falls back to checking common branches", async () => {
+    mockedExeca
+      .mockResolvedValueOnce({ ...mockExecaResult(""), exitCode: 1 }) // symbolic-ref fails
+      .mockResolvedValueOnce({ ...mockExecaResult(""), exitCode: 1 }) // main doesn't exist
+      .mockResolvedValueOnce({ ...mockExecaResult(""), exitCode: 1 }) // master doesn't exist
+      .mockResolvedValueOnce({ ...mockExecaResult("abc123"), exitCode: 0 }); // development exists
+
+    const branch = await getDefaultBranch("/repo");
+
+    expect(branch).toBe("development");
+  });
+
+  it("throws when no default branch can be determined", async () => {
+    mockedExeca.mockResolvedValue({ ...mockExecaResult(""), exitCode: 1 });
+
+    await expect(getDefaultBranch("/repo")).rejects.toThrow("Could not determine default branch");
+  });
+
+  it("works without repoPath (uses current directory)", async () => {
+    mockedExeca.mockResolvedValueOnce({
+      ...mockExecaResult("refs/remotes/origin/main"),
+      exitCode: 0,
+    });
+
+    const branch = await getDefaultBranch();
+
+    expect(branch).toBe("main");
+    expect(mockedExeca).toHaveBeenCalledWith(
+      "git",
+      ["symbolic-ref", "refs/remotes/origin/HEAD"],
+      expect.objectContaining({ reject: false })
+    );
+  });
+});
+
+describe("usesGitCrypt", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "git-crypt-test-"));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("returns true when .git-crypt directory exists", async () => {
+    await fs.mkdir(path.join(tempDir, ".git-crypt"));
+
+    const result = await usesGitCrypt(tempDir);
+
+    expect(result).toBe(true);
+  });
+
+  it("returns false when .git-crypt directory does not exist", async () => {
+    const result = await usesGitCrypt(tempDir);
+
+    expect(result).toBe(false);
+  });
+});
+
+describe("createWorktreeWithGitCrypt", () => {
+  let tempDir: string;
+  let repoPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "git-crypt-worktree-test-"));
+    repoPath = path.join(tempDir, "repo");
+    await fs.mkdir(repoPath);
+    await fs.mkdir(path.join(repoPath, ".git"));
+    await fs.mkdir(path.join(repoPath, ".git", "git-crypt"));
+    await fs.mkdir(path.join(repoPath, ".git", "worktrees"));
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("creates worktree with --no-checkout and symlinks git-crypt", async () => {
+    const worktreePath = path.join(tempDir, "repo-42-feature");
+    const worktreeName = "repo-42-feature";
+
+    // Create the worktree git directory that git worktree add would create
+    await fs.mkdir(path.join(repoPath, ".git", "worktrees", worktreeName), { recursive: true });
+
+    mockedExeca
+      .mockResolvedValueOnce(mockExecaResult("")) // worktree add --no-checkout
+      .mockResolvedValueOnce(mockExecaResult("")); // checkout
+
+    await createWorktreeWithGitCrypt({
+      branch: "42-feature",
+      worktreePath,
+      baseBranch: "main",
+      repoPath,
+    });
+
+    // Verify worktree add was called with --no-checkout
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      1,
+      "git",
+      ["worktree", "add", "--no-checkout", "-b", "42-feature", worktreePath, "main"],
+      { cwd: repoPath }
+    );
+
+    // Verify checkout was called
+    expect(mockedExeca).toHaveBeenNthCalledWith(2, "git", ["checkout", "HEAD", "."], {
+      cwd: worktreePath,
+    });
+
+    // Verify symlink was created
+    const symlinkPath = path.join(repoPath, ".git", "worktrees", worktreeName, "git-crypt");
+    const symlinkTarget = await fs.readlink(symlinkPath);
+    expect(symlinkTarget).toBe("../../git-crypt");
+  });
+});
+
+describe("createWorktree with git-crypt support", () => {
+  let tempDir: string;
+  let repoPath: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "worktree-gitcrypt-test-"));
+    repoPath = path.join(tempDir, "repo");
+    await fs.mkdir(repoPath);
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("auto-detects default branch when not specified", async () => {
+    mockedExeca
+      .mockResolvedValueOnce({ ...mockExecaResult("refs/remotes/origin/development"), exitCode: 0 }) // getDefaultBranch
+      .mockResolvedValueOnce(mockExecaResult("")) // fetch
+      .mockResolvedValueOnce(mockExecaResult("")); // worktree add
+
+    await createWorktree({
+      branch: "42-feature",
+      worktreePath: "/path/to/worktree",
+      repoPath,
+    });
+
+    // Verify fetch was called with auto-detected branch
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      2,
+      "git",
+      ["fetch", "origin", "development:development"],
+      expect.objectContaining({ cwd: repoPath, reject: false })
+    );
+
+    // Verify worktree add was called with auto-detected branch
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      3,
+      "git",
+      ["worktree", "add", "-b", "42-feature", "/path/to/worktree", "development"],
+      expect.objectContaining({ cwd: repoPath })
+    );
+  });
+
+  it("uses git-crypt workflow when .git-crypt exists", async () => {
+    // Setup git-crypt directories
+    await fs.mkdir(path.join(repoPath, ".git"));
+    await fs.mkdir(path.join(repoPath, ".git-crypt"));
+    await fs.mkdir(path.join(repoPath, ".git", "git-crypt"));
+    await fs.mkdir(path.join(repoPath, ".git", "worktrees"));
+    await fs.mkdir(path.join(repoPath, ".git", "worktrees", "worktree"), { recursive: true });
+
+    mockedExeca
+      .mockResolvedValueOnce({ ...mockExecaResult("refs/remotes/origin/main"), exitCode: 0 }) // getDefaultBranch
+      .mockResolvedValueOnce(mockExecaResult("")) // fetch
+      .mockResolvedValueOnce(mockExecaResult("")) // worktree add --no-checkout
+      .mockResolvedValueOnce(mockExecaResult("")); // checkout
+
+    const worktreePath = path.join(tempDir, "worktree");
+
+    await createWorktree({
+      branch: "42-feature",
+      worktreePath,
+      repoPath,
+    });
+
+    // Verify --no-checkout was used (git-crypt flow)
+    expect(mockedExeca).toHaveBeenNthCalledWith(
+      3,
+      "git",
+      ["worktree", "add", "--no-checkout", "-b", "42-feature", worktreePath, "main"],
+      expect.objectContaining({ cwd: repoPath })
+    );
+  });
+
+  it("throws error when base branch not found", async () => {
+    // When baseBranch is explicitly provided, getDefaultBranch is NOT called
+    mockedExeca
+      .mockResolvedValueOnce({ ...mockExecaResult(""), exitCode: 1 }) // fetch fails
+      .mockResolvedValueOnce({ ...mockExecaResult(""), exitCode: 1 }); // local check fails
+
+    await expect(
+      createWorktree({
+        branch: "42-feature",
+        worktreePath: "/path/to/worktree",
+        baseBranch: "nonexistent",
+        repoPath,
+      })
+    ).rejects.toThrow("Base branch 'nonexistent' not found locally or on remote");
   });
 });

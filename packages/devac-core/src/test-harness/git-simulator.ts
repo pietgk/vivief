@@ -35,11 +35,23 @@ export async function execGit(
   timeout = 10000
 ): Promise<GitCommandResult> {
   return new Promise((resolve) => {
+    // Clear git hook environment variables that interfere with test isolation.
+    // When tests run during pre-push/pre-commit hooks, git sets these env vars
+    // which cause subprocess git commands to operate on the wrong repository.
+    // Setting to undefined removes them from the env object passed to subprocess.
+    const cleanEnv = { ...process.env };
+    cleanEnv.GIT_DIR = undefined;
+    cleanEnv.GIT_WORK_TREE = undefined;
+    cleanEnv.GIT_INDEX_FILE = undefined;
+    cleanEnv.GIT_OBJECT_DIRECTORY = undefined;
+    cleanEnv.GIT_ALTERNATE_OBJECT_DIRECTORIES = undefined;
+    cleanEnv.GIT_QUARANTINE_PATH = undefined;
+
     const proc = spawn("git", args, {
       cwd,
       timeout,
       env: {
-        ...process.env,
+        ...cleanEnv,
         GIT_TERMINAL_PROMPT: "0",
       },
     });
