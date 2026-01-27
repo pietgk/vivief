@@ -214,8 +214,8 @@ export const MCP_TOOLS: MCPTool[] = [
         },
         source: {
           type: "string",
-          enum: ["tsc", "eslint", "test"],
-          description: "Filter by error source (TypeScript, ESLint, or tests)",
+          enum: ["tsc", "eslint", "test", "wcag"],
+          description: "Filter by error source (TypeScript, ESLint, tests, or WCAG accessibility)",
         },
         file: {
           type: "string",
@@ -277,9 +277,10 @@ export const MCP_TOOLS: MCPTool[] = [
           type: "array",
           items: {
             type: "string",
-            enum: ["tsc", "eslint", "test", "ci-check", "github-issue", "pr-review"],
+            enum: ["tsc", "eslint", "test", "wcag", "ci-check", "github-issue", "pr-review"],
           },
-          description: "Filter by diagnostics sources (validation, CI, issues, reviews)",
+          description:
+            "Filter by diagnostics sources (validation, WCAG accessibility, CI, issues, reviews)",
         },
         severity: {
           type: "array",
@@ -297,6 +298,7 @@ export const MCP_TOOLS: MCPTool[] = [
               "compilation",
               "linting",
               "testing",
+              "accessibility",
               "ci-check",
               "task",
               "feedback",

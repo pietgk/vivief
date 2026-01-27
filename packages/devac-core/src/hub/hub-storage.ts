@@ -80,6 +80,7 @@ export type DiagnosticsSource =
   | "biome"
   | "test"
   | "coverage"
+  | "wcag"
   | "ci-check"
   | "github-issue"
   | "pr-review";
@@ -96,6 +97,7 @@ export type DiagnosticsCategory =
   | "compilation"
   | "linting"
   | "testing"
+  | "accessibility"
   | "ci-check"
   | "task"
   | "feedback"
@@ -1232,9 +1234,142 @@ export class HubStorage {
   }
 }
 
+// ================== WCAG Results Helper Types ==================
+
+/**
+ * WCAG level for categorization
+ */
+export type WcagLevel = "A" | "AA" | "AAA";
+
+/**
+ * A WCAG issue to push to the hub
+ * Compatible with WcagIssue from wcag-analyzer
+ */
+export interface WcagHubIssue {
+  /** Rule ID (e.g., "wcag-keyboard-accessible") */
+  ruleId: string;
+  /** Human-readable rule name */
+  ruleName: string;
+  /** WCAG success criterion (e.g., "2.1.1") */
+  wcagCriterion: string;
+  /** WCAG conformance level */
+  wcagLevel: WcagLevel;
+  /** Severity of the violation */
+  severity: "error" | "warning";
+  /** Detailed message describing the issue */
+  message: string;
+  /** Suggested fix */
+  suggestion?: string;
+  /** File path where the issue was found */
+  filePath: string;
+  /** Line number (1-indexed) */
+  line: number;
+  /** Column number (0-indexed) */
+  column: number;
+  /** Entity ID of the node */
+  entityId?: string;
+  /** Detection source (static, runtime, semantic) */
+  detectionSource?: "static" | "runtime" | "semantic";
+  /** Platform (web, react-native) */
+  platform?: "web" | "react-native";
+  /** Confidence score for LLM evaluations (0-1) */
+  confidence?: number;
+}
+
 /**
  * Create a HubStorage instance
  */
 export function createHubStorage(hubPath: string): HubStorage {
   return new HubStorage(hubPath);
+}
+
+/**
+ * Convert WCAG severity to diagnostics severity
+ */
+function wcagSeverityToDiagnostics(wcagSeverity: "error" | "warning"): DiagnosticsSeverity {
+  // Map WCAG error/warning to diagnostic severity levels
+  return wcagSeverity === "error" ? "error" : "warning";
+}
+
+/**
+ * Generate a unique diagnostic ID for WCAG issues
+ */
+function generateWcagDiagnosticId(repoId: string, issue: WcagHubIssue): string {
+  // Create a deterministic ID based on issue location and rule
+  const base = `${repoId}:${issue.filePath}:${issue.line}:${issue.column}:${issue.ruleId}`;
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < base.length; i++) {
+    const char = base.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `wcag_${Math.abs(hash).toString(36)}`;
+}
+
+/**
+ * Push WCAG validation results to the hub as unified diagnostics
+ *
+ * @param storage - HubStorage instance
+ * @param repoId - Repository ID
+ * @param issues - WCAG issues to push
+ * @param options - Optional settings
+ */
+export async function pushWcagResultsToHub(
+  storage: HubStorage,
+  repoId: string,
+  issues: WcagHubIssue[],
+  options: {
+    /** Clear existing WCAG diagnostics for this repo before upserting */
+    clearExisting?: boolean;
+    /** Package path (for filtering) */
+    packagePath?: string;
+  } = {}
+): Promise<void> {
+  // Optionally clear existing WCAG diagnostics for this repo
+  if (options.clearExisting) {
+    await storage.clearDiagnostics(repoId, "wcag");
+  }
+
+  if (issues.length === 0) {
+    return;
+  }
+
+  // Convert WCAG issues to unified diagnostics
+  const diagnostics: UnifiedDiagnostics[] = issues.map((issue) => ({
+    diagnostic_id: generateWcagDiagnosticId(repoId, issue),
+    repo_id: repoId,
+    source: "wcag" as DiagnosticsSource,
+
+    // Location
+    file_path: issue.filePath,
+    line_number: issue.line,
+    column_number: issue.column,
+
+    // Severity & Category
+    severity: wcagSeverityToDiagnostics(issue.severity),
+    category: "accessibility" as DiagnosticsCategory,
+
+    // Content
+    title: `[${issue.wcagCriterion}] ${issue.ruleName}`,
+    description: issue.message,
+    code: issue.ruleId,
+    suggestion: issue.suggestion ?? null,
+
+    // Status
+    resolved: false,
+    actionable: true,
+
+    // Timestamps
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+
+    // No GitHub/CI references for WCAG issues
+    github_issue_number: null,
+    github_pr_number: null,
+    workflow_name: null,
+    ci_url: null,
+  }));
+
+  await storage.upsertDiagnostics(diagnostics);
 }

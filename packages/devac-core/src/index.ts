@@ -278,6 +278,9 @@ export {
   createValidationCoordinator,
   pushValidationResultsToHub,
   clearValidationErrorsFromHub,
+  // WCAG Accessibility Validator (Phase 1 - Accessibility Intelligence Layer)
+  WcagValidator,
+  createWcagValidator,
 } from "./validation/index.js";
 export type {
   ChangedSymbol,
@@ -303,6 +306,12 @@ export type {
   ValidationMode,
   ValidationConfig,
   ValidationCoordinatorResult,
+  // WCAG Accessibility (Phase 1 - Accessibility Intelligence Layer)
+  WcagOptions,
+  WcagResult,
+  WcagValidationIssue,
+  A11yPlatform,
+  A11yDetectionSource,
 } from "./validation/index.js";
 // Note: SymbolInfo from validation is not exported to avoid conflict with parsers/SymbolInfo
 // Use: import { SymbolInfo as ValidationSymbolInfo } from "@pietgk/devac-core/validation" if needed
