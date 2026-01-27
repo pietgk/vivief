@@ -42,4 +42,6 @@ export {
   type WcagOptions,
   type WcagResult,
   type WcagValidationIssue,
+  type A11yPlatform,
+  type A11yDetectionSource,
 } from "./wcag-validator.js";

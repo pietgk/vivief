@@ -29,6 +29,10 @@ export {
   type DiagnosticsSource,
   type DiagnosticsSeverity,
   type DiagnosticsCategory,
+  // WCAG Hub Integration (Accessibility Intelligence Layer)
+  pushWcagResultsToHub,
+  type WcagHubIssue,
+  type WcagLevel,
 } from "./hub-storage.js";
 
 export {
