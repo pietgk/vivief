@@ -252,6 +252,13 @@ export class DevacMCPServer {
         case "query_c4":
           return await this.executeGenerateC4(input);
 
+        // Accessibility tools (Issue #235)
+        case "query_a11y_fix_context":
+          return await this.executeGetA11yFixContext(input);
+
+        case "query_a11y_violations":
+          return await this.executeQueryA11yViolations(input);
+
         default:
           return { success: false, error: `Unknown tool: ${toolName}` };
       }
@@ -839,6 +846,77 @@ export class DevacMCPServer {
 
       const result = await this.provider.generateC4(options);
       return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  // ================== Accessibility Tool Handlers (Issue #235) ==================
+
+  /**
+   * Get context for fixing an accessibility violation
+   *
+   * Given a violation from runtime scanning, retrieves the component source code,
+   * dependencies, and relevant theme tokens to help LLMs generate accurate fixes.
+   */
+  private async executeGetA11yFixContext(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      // Validate required parameters
+      if (typeof input.filePath !== "string" || input.filePath.trim() === "") {
+        return {
+          success: false,
+          error: "Missing or invalid 'filePath' parameter. Expected a non-empty string.",
+        };
+      }
+      if (typeof input.ruleId !== "string" || input.ruleId.trim() === "") {
+        return {
+          success: false,
+          error: "Missing or invalid 'ruleId' parameter. Expected a non-empty string.",
+        };
+      }
+
+      const options = {
+        filePath: resolveToFilePath(input.filePath),
+        ruleId: input.ruleId,
+        cssSelector: input.cssSelector as string | undefined,
+        wcagCriterion: input.wcagCriterion as string | undefined,
+        includeThemeTokens: (input.includeThemeTokens as boolean) ?? true,
+        includeUsageExamples: (input.includeUsageExamples as boolean) ?? true,
+        maxDependencyDepth: (input.maxDependencyDepth as number) ?? 2,
+      };
+
+      const result = await this.provider.getA11yFixContext(options);
+      return { success: true, data: result };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
+   * Query accessibility violations stored in the hub
+   *
+   * Returns WCAG violations detected by static analysis or runtime scanning.
+   */
+  private async executeQueryA11yViolations(input: Record<string, unknown>): Promise<MCPToolResult> {
+    try {
+      const filter = {
+        repo_id: input.repo_id as string | undefined,
+        wcagLevel: input.wcagLevel as "A" | "AA" | "AAA" | undefined,
+        impact: input.impact as "critical" | "serious" | "moderate" | "minor" | undefined,
+        ruleId: input.ruleId as string | undefined,
+        filePath: input.filePath as string | undefined,
+        detectionSource: input.detectionSource as "static" | "runtime" | "semantic" | undefined,
+        limit: input.limit as number | undefined,
+      };
+
+      const violations = await this.provider.queryA11yViolations(filter);
+      return { success: true, data: violations };
     } catch (error) {
       return {
         success: false,

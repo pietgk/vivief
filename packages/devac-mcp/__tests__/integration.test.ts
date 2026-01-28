@@ -66,7 +66,7 @@ describe("MCP Integration", () => {
       // Get status (includes tool count)
       const status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(21);
+      expect(status.toolCount).toBe(23);
       expect(status.packagePath).toBe(packagePath);
       expect(status.uptime).toBeGreaterThanOrEqual(0);
 
@@ -126,7 +126,7 @@ describe("MCP Integration", () => {
       await server.start();
       status = server.getStatus();
       expect(status.isRunning).toBe(true);
-      expect(status.toolCount).toBe(21);
+      expect(status.toolCount).toBe(23);
 
       // After stop
       await server.stop();
@@ -341,7 +341,7 @@ describe("MCP Protocol Handlers", () => {
       await server.start();
 
       const status = server.getStatus();
-      expect(status.toolCount).toBe(21);
+      expect(status.toolCount).toBe(23);
 
       await server.stop();
     });
@@ -391,7 +391,7 @@ describe("Concurrent Operations", () => {
       // All should return consistent results
       for (const status of statuses) {
         expect(status?.isRunning).toBe(true);
-        expect(status?.toolCount).toBe(21);
+        expect(status?.toolCount).toBe(23);
       }
 
       await server.stop();
