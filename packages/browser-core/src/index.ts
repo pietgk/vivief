@@ -71,6 +71,33 @@ export {
   type RawElementData,
 } from "./reader/index.js";
 
+// Accessibility scanning (Phase 2: Issue #235)
+export {
+  AxeScanner,
+  createAxeScanner,
+  quickScan,
+  runAxeCheck,
+  assertNoViolations,
+  testKeyboardNavigation,
+  testTabOrder,
+  testFocusTrap,
+  testEscapeDismisses,
+  runA11yTestSuite,
+  type A11yViolation,
+  type A11yPlatform,
+  type A11yDetectionSource,
+  type AxeImpact,
+  type WcagLevel,
+  type AxeScanOptions,
+  type AxeScanResult,
+  type AxeCheckOptions,
+  type KeyboardNavOptions,
+  type KeySequence,
+  type KeyboardNavResult,
+  type FocusTrapOptions,
+  type FocusTrapResult,
+} from "./reader/index.js";
+
 // Actions
 export {
   click,

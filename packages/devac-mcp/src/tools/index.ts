@@ -463,6 +463,89 @@ export const MCP_TOOLS: MCPTool[] = [
       required: [],
     },
   },
+  // ================== Accessibility Tools (Issue #235) ==================
+  {
+    name: "query_a11y_fix_context",
+    description:
+      "Get context for fixing an accessibility violation. Given a violation from runtime scanning, retrieves the component source code, dependencies, and relevant theme tokens to help LLMs generate accurate fixes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filePath: {
+          type: "string",
+          description:
+            "File path where the violation was found (e.g., 'src/components/Button.tsx')",
+        },
+        ruleId: {
+          type: "string",
+          description: "Accessibility rule ID (e.g., 'color-contrast', 'button-name')",
+        },
+        cssSelector: {
+          type: "string",
+          description: "CSS selector of the element with the violation",
+        },
+        wcagCriterion: {
+          type: "string",
+          description: "WCAG success criterion (e.g., '1.4.3', '4.1.2')",
+        },
+        includeThemeTokens: {
+          type: "boolean",
+          description: "Include design system theme tokens in the response (default: true)",
+        },
+        includeUsageExamples: {
+          type: "boolean",
+          description: "Include usage examples from other files (default: true)",
+        },
+        maxDependencyDepth: {
+          type: "number",
+          description: "Maximum depth for dependency traversal (default: 2)",
+        },
+      },
+      required: ["filePath", "ruleId"],
+    },
+  },
+  {
+    name: "query_a11y_violations",
+    description:
+      "Query accessibility violations stored in the hub. Returns WCAG violations detected by static analysis or runtime scanning. Use this to get an overview of accessibility issues in the codebase.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        repo_id: {
+          type: "string",
+          description: "Filter by repository ID",
+        },
+        wcagLevel: {
+          type: "string",
+          enum: ["A", "AA", "AAA"],
+          description: "Filter by WCAG conformance level",
+        },
+        impact: {
+          type: "string",
+          enum: ["critical", "serious", "moderate", "minor"],
+          description: "Filter by impact severity",
+        },
+        ruleId: {
+          type: "string",
+          description: "Filter by specific rule ID (e.g., 'color-contrast')",
+        },
+        filePath: {
+          type: "string",
+          description: "Filter by file path (partial match)",
+        },
+        detectionSource: {
+          type: "string",
+          enum: ["static", "runtime", "semantic"],
+          description: "Filter by how the violation was detected",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of violations to return (default: 100)",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 export { MCP_TOOLS as default };
