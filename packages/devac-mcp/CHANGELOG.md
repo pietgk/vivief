@@ -1,5 +1,12 @@
 # @pietgk/devac-mcp
 
+## 2.3.2
+
+### Patch Changes
+
+- 4ee3071: Fix call graph queries using wrong column name (source_file → file_path)
+  - @pietgk/devac-core@2.3.2
+
 ## 2.3.1
 
 ### Patch Changes
