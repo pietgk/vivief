@@ -129,13 +129,13 @@ pnpm --filter @pietgk/devac-mcp exec devac-mcp --help
 DevAC uses a three-layer storage model:
 1. **Package Seeds**: Parquet files in `.devac/seed/` per package
 2. **Repository Manifest**: `.devac/manifest.json` aggregates packages
-3. **Central Hub**: `~/.devac/central.duckdb` for cross-repo queries
+3. **Workspace Hub**: `<workspace>/.devac/central.duckdb` for cross-repo queries within a workspace
 
 ### Hub Concurrency Model
 
-The Central Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
+The Workspace Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
 
-- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub query`, etc.) communicate via Unix socket IPC (`~/.devac/mcp.sock`).
+- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub query`, etc.) communicate via Unix socket IPC (`<workspace>/.devac/mcp.sock`).
 - **When MCP is not running**: CLI commands access the hub directly.
 
 This is transparent to users - CLI commands work the same regardless of whether MCP is running. The `HubClient` class handles routing automatically.

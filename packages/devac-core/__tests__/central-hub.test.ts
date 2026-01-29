@@ -89,7 +89,7 @@ describe("CentralHub", () => {
   }
 
   describe("initialization", () => {
-    it("creates hub at default path ~/.devac/central.duckdb", async () => {
+    it("creates hub at provided hubDir path", async () => {
       hub = createCentralHub({ hubDir });
       await hub.init({ skipValidation: true });
 
