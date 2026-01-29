@@ -113,7 +113,7 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: "query_sql",
     description:
-      "Execute a read-only SQL query against the code graph. In hub mode, queries all seeds from registered repositories.",
+      "Execute a read-only SQL query against the code graph. TIP: Call query_schema first to see available tables and columns. In hub mode, queries all seeds from registered repositories.",
     inputSchema: {
       type: "object",
       properties: {
@@ -125,7 +125,7 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: "query_schema",
     description:
-      "Get available tables and columns in the code graph database. Useful for discovering the schema before writing SQL queries. Returns seed tables (nodes, edges, external_refs, effects) and hub tables (repo_registry, validation_errors, unified_diagnostics).",
+      "Get database schema with all tables and columns. IMPORTANT: Always call this before using query_sql to verify column names. Returns seed tables (nodes, edges, external_refs, effects) and hub tables (repo_registry, validation_errors, unified_diagnostics).",
     inputSchema: {
       type: "object",
       properties: {},
