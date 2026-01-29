@@ -8,46 +8,14 @@
  * - Remote tracking info
  */
 
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { execGit, execGitSuccess } from "../../utils/git.js";
 import type { GitRepoState } from "../types.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Git Command Execution
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Execute a git command and return stdout.
- * Returns empty string on error.
- */
-function git(args: string, cwd: string): string {
-  try {
-    return execSync(`git ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Execute a git command and return success/failure.
- */
-function gitSuccess(args: string, cwd: string): boolean {
-  try {
-    execSync(`git ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Use shared git utilities
+const git = execGit;
+const gitSuccess = execGitSuccess;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Base Branch Detection

@@ -7,11 +7,14 @@
  * - Filter to only source files that affect analysis
  */
 
-import { execSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { execGit } from "../../utils/git.js";
 import type { PackageSeedStateEnhanced, SeedStalenessReason } from "../types.js";
 import { commitExists, getCurrentCommit } from "./git-detection.js";
+
+// Use shared git utility
+const git = execGit;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -72,25 +75,6 @@ const EXCLUDE_PATTERNS = [
   "**/coverage/**",
   "**/__snapshots__/**",
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Git Utilities
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Execute a git command and return stdout.
- */
-function git(args: string, cwd: string): string {
-  try {
-    return execSync(`git ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
-}
 
 /**
  * Get files changed between two commits.

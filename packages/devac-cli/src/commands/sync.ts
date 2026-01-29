@@ -110,6 +110,8 @@ function createErrorResult(errors: string[], message: string): SyncResult {
 export async function syncCommand(options: SyncOptions): Promise<SyncResult> {
   const {
     path: inputPath,
+    // TODO: Implement scope support for targeted sync (workspace/repo/package)
+    // Currently always syncs the entire workspace regardless of scope parameter
     scope: _scope = "auto",
     analyze = true,
     register = true,

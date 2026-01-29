@@ -516,7 +516,7 @@ export interface CleanupDiagnostics {
     /** Total stale branches (local + remote) */
     totalStaleBranches: number;
     /** Branches safe to delete */
-    safeToDeletBranches: number;
+    safeToDeleteBranches: number;
     /** Total stale worktrees */
     totalStaleWorktrees: number;
     /** Worktrees safe to delete */

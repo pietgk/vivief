@@ -21,6 +21,7 @@ import {
   findGitRoot,
   getSemanticResolverFactory,
   toUnresolvedRef,
+  updateSeedMetadataCommit,
 } from "@pietgk/devac-core";
 import type { PackageInfo } from "@pietgk/devac-core";
 import type { Command } from "commander";
@@ -174,6 +175,16 @@ export async function analyzeCommand(options: AnalyzeOptions): Promise<AnalyzeRe
         );
         // Continue - structural analysis succeeded
       }
+    }
+
+    // Update seed metadata with current commit for staleness tracking
+    try {
+      await updateSeedMetadataCommit(options.packagePath);
+    } catch (error) {
+      logger.debug(
+        `Failed to update seed metadata: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Non-fatal - analysis succeeded
     }
 
     return {

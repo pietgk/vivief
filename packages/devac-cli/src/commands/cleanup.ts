@@ -266,7 +266,7 @@ function formatDryRun(diagnostics: CleanupDiagnostics): string {
   // Summary
   lines.push(colors.bold("Summary:"));
   lines.push(
-    `  Local branches:  ${diagnostics.staleBranches.length} stale (${diagnostics.summary.safeToDeletBranches} safe to delete)`
+    `  Local branches:  ${diagnostics.staleBranches.length} stale (${diagnostics.summary.safeToDeleteBranches} safe to delete)`
   );
   lines.push(`  Remote branches: ${diagnostics.staleRemoteBranches.length} stale`);
   lines.push(
@@ -356,7 +356,7 @@ export async function cleanupCommand(options: CleanupOptions): Promise<CleanupRe
         actions: [],
         summary: {
           totalStaleBranches: 0,
-          safeToDeletBranches: 0,
+          safeToDeleteBranches: 0,
           totalStaleWorktrees: 0,
           safeToDeleteWorktrees: 0,
         },
@@ -383,7 +383,7 @@ export async function cleanupCommand(options: CleanupOptions): Promise<CleanupRe
     diagnostics.staleRemoteBranches = [];
     diagnostics.actions = diagnostics.actions.filter((a) => a.type === "delete-worktree");
     diagnostics.summary.totalStaleBranches = 0;
-    diagnostics.summary.safeToDeletBranches = 0;
+    diagnostics.summary.safeToDeleteBranches = 0;
   }
 
   // Dry run mode

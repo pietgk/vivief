@@ -1,12 +1,79 @@
 /**
  * Git Utilities
  *
- * Utilities for detecting git repository information.
+ * Utilities for detecting git repository information and executing git commands.
  * Handles both regular repositories and worktrees.
  */
 
+import { execSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { createLogger } from "./logger.js";
+
+const logger = createLogger({ prefix: "[Git]" });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Git Command Execution
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Execute a git command and return stdout.
+ * Returns empty string on failure (logged at debug level).
+ */
+export function execGit(args: string, cwd: string, options?: { timeout?: number }): string {
+  try {
+    return execSync(`git ${args}`, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: options?.timeout ?? 30000,
+    }).trim();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.debug(`git ${args} failed: ${message}`);
+    return "";
+  }
+}
+
+/**
+ * Execute a git command and return success/failure.
+ */
+export function execGitSuccess(args: string, cwd: string): boolean {
+  try {
+    execSync(`git ${args}`, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Execute a gh CLI command and return parsed JSON.
+ * Returns null on failure (logged at debug level).
+ */
+export function execGhJson<T>(args: string, cwd: string, timeout = 10000): T | null {
+  try {
+    const output = execSync(`gh ${args}`, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout,
+    });
+    return JSON.parse(output) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.debug(`gh ${args} failed: ${message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Git State Detection
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Result of repo ID detection

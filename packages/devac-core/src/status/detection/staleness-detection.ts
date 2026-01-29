@@ -8,9 +8,9 @@
  * - Check for uncommitted changes before cleanup
  */
 
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { execGhJson, execGit } from "../../utils/git.js";
 import type {
   CleanupAction,
   CleanupDiagnostics,
@@ -20,6 +20,10 @@ import type {
   StaleWorktree,
 } from "../types.js";
 import { detectBaseBranch, hasUncommittedChanges } from "./git-detection.js";
+
+// Use shared utilities
+const git = execGit;
+const ghJson = execGhJson;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -34,42 +38,6 @@ const PROTECTED_BRANCHES = ["main", "master", "develop", "dev", "staging", "prod
  * Stale threshold in days.
  */
 const STALE_DAYS = 30;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Git Utilities
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Execute a git command and return stdout.
- */
-function git(args: string, cwd: string): string {
-  try {
-    return execSync(`git ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Execute gh CLI command and return parsed JSON.
- */
-function ghJson<T>(args: string, cwd: string, timeout = 10000): T | null {
-  try {
-    const output = execSync(`gh ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout,
-    });
-    return JSON.parse(output) as T;
-  } catch {
-    return null;
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Branch Analysis
@@ -541,7 +509,7 @@ export function getCleanupDiagnostics(cwd: string): CleanupDiagnostics {
     actions,
     summary: {
       totalStaleBranches: staleBranches.length + staleRemoteBranches.length,
-      safeToDeletBranches: staleBranches.filter((b) => b.safeToDelete).length,
+      safeToDeleteBranches: staleBranches.filter((b) => b.safeToDelete).length,
       totalStaleWorktrees: staleWorktrees.length,
       safeToDeleteWorktrees: staleWorktrees.filter((w) => w.safeToDelete).length,
     },

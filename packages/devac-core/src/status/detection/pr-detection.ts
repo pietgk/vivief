@@ -9,7 +9,11 @@
  */
 
 import { execSync } from "node:child_process";
+import { execGhJson } from "../../utils/git.js";
 import type { MergeBlocker, PRState } from "../types.js";
+
+// Use shared utility for JSON responses
+const ghJson = execGhJson;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -55,27 +59,6 @@ export interface PRDetectionOptions {
   includeChecks?: boolean;
   /** Timeout in milliseconds (default: 10000) */
   timeout?: number;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GitHub CLI Execution
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Execute gh CLI command and return parsed JSON.
- */
-function ghJson<T>(args: string, cwd: string, timeout = 10000): T | null {
-  try {
-    const output = execSync(`gh ${args}`, {
-      cwd,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout,
-    });
-    return JSON.parse(output) as T;
-  } catch {
-    return null;
-  }
 }
 
 /**
