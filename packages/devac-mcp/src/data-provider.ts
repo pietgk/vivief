@@ -357,7 +357,7 @@ export class PackageDataProvider implements DataProvider {
           cc.depth,
           n.name,
           n.kind,
-          n.source_file
+          n.file_path
         FROM caller_chain cc
         JOIN nodes n ON cc.source_entity_id = n.entity_id
         ORDER BY cc.depth, n.name
@@ -398,7 +398,7 @@ export class PackageDataProvider implements DataProvider {
           cc.depth,
           n.name,
           n.kind,
-          n.source_file
+          n.file_path
         FROM call_chain cc
         JOIN nodes n ON cc.target_entity_id = n.entity_id
         ORDER BY cc.depth, n.name
@@ -971,7 +971,7 @@ export class HubDataProvider implements DataProvider {
           cc.depth,
           n.name,
           n.kind,
-          n.source_file
+          n.file_path
         FROM caller_chain cc
         JOIN {nodes} n ON cc.source_entity_id = n.entity_id
         ORDER BY cc.depth, n.name
@@ -1012,7 +1012,7 @@ export class HubDataProvider implements DataProvider {
           cc.depth,
           n.name,
           n.kind,
-          n.source_file
+          n.file_path
         FROM call_chain cc
         JOIN {nodes} n ON cc.target_entity_id = n.entity_id
         ORDER BY cc.depth, n.name
