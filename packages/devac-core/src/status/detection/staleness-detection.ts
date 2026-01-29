@@ -11,13 +11,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { execGhJson, execGit } from "../../utils/git.js";
-import type {
-  CleanupAction,
-  CleanupDiagnostics,
-  StaleBranch,
-  StaleBranchReason,
-  StaleRemoteBranch,
-  StaleWorktree,
+import {
+  type CleanupAction,
+  type CleanupDiagnostics,
+  STALE_THRESHOLD_DAYS,
+  type StaleBranch,
+  type StaleBranchReason,
+  type StaleRemoteBranch,
+  type StaleWorktree,
 } from "../types.js";
 import { detectBaseBranch, hasUncommittedChanges } from "./git-detection.js";
 
@@ -33,11 +34,6 @@ const ghJson = execGhJson;
  * Branches that should never be considered stale.
  */
 const PROTECTED_BRANCHES = ["main", "master", "develop", "dev", "staging", "production"];
-
-/**
- * Stale threshold in days.
- */
-const STALE_DAYS = 30;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Branch Analysis
@@ -188,7 +184,7 @@ export function detectStaleBranches(cwd: string): StaleBranch[] {
         const daysSinceCommit = Math.floor(
           (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24)
         );
-        if (daysSinceCommit > STALE_DAYS) {
+        if (daysSinceCommit > STALE_THRESHOLD_DAYS) {
           reason = "no-activity";
           // Not safe to auto-delete inactive branches
         }
@@ -390,7 +386,7 @@ export function detectStaleWorktrees(cwd: string): StaleWorktree[] {
         const daysSinceCommit = Math.floor(
           (Date.now() - lastCommit.getTime()) / (1000 * 60 * 60 * 24)
         );
-        if (daysSinceCommit > STALE_DAYS) {
+        if (daysSinceCommit > STALE_THRESHOLD_DAYS) {
           reason = "no-activity";
         }
       }
