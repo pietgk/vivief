@@ -289,17 +289,11 @@ describe("CLI: verify command", () => {
 
       const result = await verifyCommand(options);
 
-      // Debug output if verification fails
+      // Provide detailed error info if verification fails
       if (!result.valid) {
-        console.error("[DEBUG] Verify failed:", {
-          errors: result.errors,
-          warnings: result.warnings,
-          tempDir,
-          analyzeResult: {
-            filesAnalyzed: analyzeResult.filesAnalyzed,
-            nodesCreated: analyzeResult.nodesCreated,
-          },
-        });
+        throw new Error(
+          `Verification failed with errors:\n  Errors: ${JSON.stringify(result.errors)}\n  Warnings: ${JSON.stringify(result.warnings)}\n  TempDir: ${tempDir}\n  Analysis: ${analyzeResult.filesAnalyzed} files, ${analyzeResult.nodesCreated} nodes`
+        );
       }
 
       expect(result.valid).toBe(true);
