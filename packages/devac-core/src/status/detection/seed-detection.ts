@@ -24,8 +24,10 @@ const git = execGit;
  * Seed metadata stored in .devac/seed/meta.json
  */
 export interface SeedMetadata {
-  /** Version of the seed format */
-  version: string;
+  /** Schema version written by seed-writer (e.g., "2.1") */
+  schemaVersion?: string;
+  /** Version of the seed format (deprecated, use schemaVersion) */
+  version?: string;
   /** Commit hash when seeds were last analyzed */
   lastAnalyzedCommit?: string;
   /** ISO timestamp when seeds were last analyzed */
@@ -152,6 +154,8 @@ export async function updateSeedMetadataCommit(packagePath: string): Promise<voi
 
   const existing = await readSeedMetadata(packagePath);
   const metadata: SeedMetadata = {
+    // Preserve schemaVersion written by seed-writer
+    schemaVersion: existing?.schemaVersion,
     version: existing?.version ?? "1.0",
     packageName: existing?.packageName,
     configHash: existing?.configHash,
