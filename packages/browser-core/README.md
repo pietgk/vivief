@@ -16,6 +16,7 @@ pnpm add @pietgk/browser-core
 - **Element References**: Deterministic element identification using test IDs, ARIA labels, and semantic refs
 - **Page Reading**: Accessibility tree extraction with interactive element refs
 - **Actions**: Click, type, fill, select, scroll, hover, and screenshot
+- **Accessibility Scanning**: axe-core integration for WCAG 2.1 compliance testing
 
 ## Basic Usage
 
@@ -53,6 +54,47 @@ Element refs prioritize deterministic identifiers:
 2. **ariaLabel** - Unique `aria-label` attribute
 3. **role:name** - Semantic ref from ARIA role + accessible name (e.g., `button:Submit`)
 4. **fallback** - Context-aware sequential ref (e.g., `form_1:button_2`)
+
+## Accessibility Scanning
+
+The accessibility module provides runtime WCAG 2.1 compliance checking via axe-core:
+
+```typescript
+import { AxeScanner, createAxeScanner, quickScan } from "@pietgk/browser-core";
+
+// Quick scan with default options
+const results = await quickScan(page, {
+  tags: ["wcag2a", "wcag2aa", "wcag21aa"],
+});
+
+// Or create a scanner for repeated use
+const scanner = createAxeScanner();
+const violations = await scanner.scan(page);
+
+// Use with Storybook Play Functions
+import { runAxeCheck, testKeyboardNavigation, testFocusTrap } from "@pietgk/browser-core";
+
+export const MyStory: Story = {
+  play: async ({ canvasElement }) => {
+    // Run axe-core check
+    await runAxeCheck(canvasElement, { context: "initial-render" });
+
+    // Test keyboard navigation
+    await testKeyboardNavigation(canvasElement, {
+      sequence: [
+        { key: "Tab", expectFocus: "first-input" },
+        { key: "Tab", expectFocus: "submit-button" },
+      ],
+    });
+
+    // Test focus trap (for modals)
+    await testFocusTrap(canvasElement, {
+      triggerRef: "open-modal-button",
+      trapSelector: "[role='dialog']",
+    });
+  },
+};
+```
 
 ## Full Documentation
 

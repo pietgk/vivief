@@ -153,9 +153,21 @@ See [ADR-0024](docs/adr/0024-hub-single-writer-ipc.md) for details.
 
 ### Data Model
 
-- **Nodes**: Code entities (functions, classes, variables, etc.)
+- **Nodes**: Code entities (functions, classes, variables, jsx_component, story, etc.)
 - **Edges**: Relationships (CALLS, IMPORTS, EXTENDS, etc.)
 - **External Refs**: Import references to external packages
+
+### Validation Pipeline
+
+DevAC includes multiple validators that push results to `unified_diagnostics`:
+- **TypeScript**: Type checking errors
+- **ESLint/Biome**: Lint violations
+- **Test**: Test failures
+- **Coverage**: Coverage gaps
+- **WCAG**: Static accessibility analysis (keyboard handlers, ARIA, accessible names)
+- **Axe**: Runtime accessibility scanning (via browser-core AxeScanner)
+
+See [ADR-0045](docs/adr/0045-accessibility-intelligence-layer.md) for accessibility features.
 
 ### Entity IDs
 
