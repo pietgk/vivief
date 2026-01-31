@@ -81,6 +81,7 @@ export type DiagnosticsSource =
   | "test"
   | "coverage"
   | "wcag"
+  | "axe"
   | "ci-check"
   | "github-issue"
   | "pr-review";

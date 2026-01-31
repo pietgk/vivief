@@ -47,3 +47,15 @@ export { PythonParser, createPythonParser } from "./python-parser.js";
 
 // C# parser
 export { CSharpParser, createCSharpParser } from "./csharp-parser.js";
+
+// Story extractor (CSF3 Storybook files)
+export {
+  extractStories,
+  isStoryFile,
+  createStoryExtractor,
+  type StoryMeta,
+  type ExtractedStory,
+  type StoryExtractionResult,
+  type StoryExtractorOptions,
+  type A11yParameters,
+} from "./story-extractor.js";

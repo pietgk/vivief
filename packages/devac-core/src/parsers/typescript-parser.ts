@@ -105,6 +105,19 @@ interface JSXPropsResult {
   tabIndex: number | null;
   /** ARIA ID references for creating REFERENCES edges */
   ariaIdRefs: AriaIdReference[];
+  /** React Native accessibility props */
+  rnAccessibility: {
+    /** accessibilityRole (e.g., "button", "header") */
+    role: string | null;
+    /** accessibilityLabel */
+    label: string | null;
+    /** accessibilityHint */
+    hint: string | null;
+    /** accessibilityState (parsed object or placeholder) */
+    state: Record<string, unknown> | null;
+    /** accessible prop */
+    accessible: boolean | null;
+  };
 }
 
 // ============================================================================
@@ -1583,6 +1596,13 @@ export class TypeScriptParser implements LanguageParser {
       elementId: null,
       tabIndex: null,
       ariaIdRefs: [],
+      rnAccessibility: {
+        role: null,
+        label: null,
+        hint: null,
+        state: null,
+        accessible: null,
+      },
     };
 
     for (const attr of attributes) {
@@ -1643,6 +1663,56 @@ export class TypeScriptParser implements LanguageParser {
             }
           }
         }
+        continue;
+      }
+
+      // React Native accessibility props
+      if (name === "accessibilityRole") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string") {
+          result.rnAccessibility.role = value;
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      if (name === "accessibilityLabel") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string") {
+          result.rnAccessibility.label = value;
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      if (name === "accessibilityHint") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "string") {
+          result.rnAccessibility.hint = value;
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      if (name === "accessibilityState") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        // For accessibilityState, we can't fully parse the object
+        // but we mark it as present
+        if (value !== null) {
+          result.rnAccessibility.state = { hasState: true };
+        }
+        result.regular[name] = value;
+        continue;
+      }
+
+      if (name === "accessible") {
+        const value = this.extractJSXAttributeValue(attr.value);
+        if (typeof value === "boolean") {
+          // Explicit boolean: accessible={true} or accessible={false}
+          result.rnAccessibility.accessible = value;
+        }
+        // Note: Boolean attribute <View accessible /> returns true from extractJSXAttributeValue
+        result.regular[name] = value;
         continue;
       }
 
@@ -1812,6 +1882,12 @@ export class TypeScriptParser implements LanguageParser {
         isComponent: true,
         elementId: props.elementId,
         tabIndex: props.tabIndex,
+        // React Native accessibility props
+        accessibilityRole: props.rnAccessibility.role,
+        accessibilityLabel: props.rnAccessibility.label,
+        accessibilityHint: props.rnAccessibility.hint,
+        accessibilityState: props.rnAccessibility.state,
+        accessible: props.rnAccessibility.accessible,
       },
     });
 
@@ -2008,6 +2084,12 @@ export class TypeScriptParser implements LanguageParser {
             : null,
           elementId: props.elementId,
           tabIndex: props.tabIndex,
+          // React Native accessibility props
+          accessibilityRole: props.rnAccessibility.role,
+          accessibilityLabel: props.rnAccessibility.label,
+          accessibilityHint: props.rnAccessibility.hint,
+          accessibilityState: props.rnAccessibility.state,
+          accessible: props.rnAccessibility.accessible,
         },
       });
 

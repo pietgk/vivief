@@ -28,6 +28,7 @@ export const NodeKindSchema = z.enum([
   "jsx_component",
   "html_element",
   "hook",
+  "story",
   "unknown",
 ]);
 

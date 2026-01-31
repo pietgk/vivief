@@ -82,7 +82,8 @@ export type SymbolKind =
   | "static_method"
   | "static_property"
   | "jsx_component"
-  | "html_element";
+  | "html_element"
+  | "story";
 
 /**
  * Generate a scoped name for a symbol

@@ -94,3 +94,13 @@ export {
   type HealthIssueFix,
   type HealthIssueType,
 } from "./health-check.js";
+
+// Axe Diagnostics (Runtime Accessibility Testing)
+export {
+  pushAxeDiagnosticsToHub,
+  pushBatchAxeDiagnosticsToHub,
+  type AxeViolation,
+  type AxeScanResultForHub,
+  type PushAxeDiagnosticsOptions,
+  type AxeImpact,
+} from "./push-axe-diagnostics.js";

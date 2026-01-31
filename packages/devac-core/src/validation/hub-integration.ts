@@ -26,7 +26,7 @@ export async function pushValidationResultsToHub(
     column: number;
     message: string;
     severity: "error" | "warning";
-    source: "tsc" | "eslint" | "biome" | "test" | "coverage";
+    source: "tsc" | "eslint" | "biome" | "test" | "coverage" | "wcag";
     code: string | null;
   }> = [];
 
@@ -73,6 +73,21 @@ export async function pushValidationResultsToHub(
         message: issue.message,
         severity: issue.severity,
         source: "coverage",
+        code: issue.code ?? null,
+      });
+    }
+  }
+
+  // Convert WCAG accessibility issues
+  if (result.wcag?.issues) {
+    for (const issue of result.wcag.issues) {
+      errors.push({
+        file: issue.file,
+        line: issue.line,
+        column: issue.column,
+        message: issue.message,
+        severity: issue.severity,
+        source: "wcag",
         code: issue.code ?? null,
       });
     }
