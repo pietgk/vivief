@@ -37024,6 +37024,11 @@ exports[`Parser Snapshots > TypeScript Parser > sample-jsx.tsx snapshot 1`] = `
       "kind": "jsx_component",
       "name": "WrappedComponent",
       "properties": {
+        "accessibilityHint": null,
+        "accessibilityLabel": null,
+        "accessibilityRole": null,
+        "accessibilityState": null,
+        "accessible": null,
         "ariaProps": {},
         "elementId": null,
         "eventHandlers": [],

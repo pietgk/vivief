@@ -66,7 +66,7 @@ export type HubLike = {
       column: number;
       message: string;
       severity: "error" | "warning";
-      source: "tsc" | "eslint" | "biome" | "test" | "coverage";
+      source: "tsc" | "eslint" | "biome" | "test" | "coverage" | "wcag";
       code: string | null;
     }>
   ): Promise<void>;

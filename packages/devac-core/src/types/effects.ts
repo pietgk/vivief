@@ -203,55 +203,6 @@ export const ResponseEffectSchema = BaseEffectSchema.extend({
 export type ResponseEffect = z.infer<typeof ResponseEffectSchema>;
 
 // =============================================================================
-// Code Effects - Accessibility Effects
-// =============================================================================
-
-/**
- * A11yViolation - Accessibility violation effect
- * Example: Missing aria-label on button, color contrast issue
- *
- * Part of the Accessibility Intelligence Layer (Issue #235)
- */
-export const A11yViolationEffectSchema = BaseEffectSchema.extend({
-  effect_type: z.literal("A11yViolation"),
-
-  /** Rule identifier (e.g., "color-contrast", "button-name") */
-  rule_id: z.string(),
-
-  /** Impact severity level (axe-core compatible) */
-  impact: z.enum(["critical", "serious", "moderate", "minor"]),
-
-  /** WCAG success criterion (e.g., "1.4.3", "4.1.2") */
-  wcag_criterion: z.string(),
-
-  /** WCAG conformance level */
-  wcag_level: z.enum(["A", "AA", "AAA"]),
-
-  /** How this violation was detected */
-  detection_source: z.enum(["static", "runtime", "semantic"]),
-
-  /** Platform this violation applies to */
-  platform: z.enum(["web", "react-native"]),
-
-  /** Human-readable description of the violation */
-  message: z.string(),
-
-  /** HTML snippet for runtime violations (null for static) */
-  html_snippet: z.string().nullable(),
-
-  /** CSS selector for runtime violations (null for static) */
-  css_selector: z.string().nullable(),
-
-  /** Confidence score for LLM semantic evaluations (0-1, null for deterministic) */
-  confidence: z.number().min(0).max(1).nullable(),
-
-  /** Suggested fix for the violation */
-  suggestion: z.string().nullable(),
-});
-
-export type A11yViolationEffect = z.infer<typeof A11yViolationEffectSchema>;
-
-// =============================================================================
 // Code Effects - Flow Effects (Control Structures)
 // =============================================================================
 
@@ -554,7 +505,6 @@ export const CodeEffectSchema = z.discriminatedUnion("effect_type", [
   ConditionEffectSchema,
   LoopEffectSchema,
   GroupEffectSchema,
-  A11yViolationEffectSchema,
 ]);
 
 export type CodeEffect = z.infer<typeof CodeEffectSchema>;
@@ -795,36 +745,6 @@ export function createRequestEffect(
     request_type: partial.request_type ?? "http",
     method: partial.method ?? null,
     framework: partial.framework ?? null,
-    ...partial,
-  };
-}
-
-/**
- * Create an A11yViolation effect (accessibility violation)
- */
-export function createA11yViolationEffect(
-  partial: Partial<A11yViolationEffect> &
-    Pick<
-      A11yViolationEffect,
-      | "source_entity_id"
-      | "source_file_path"
-      | "source_line"
-      | "rule_id"
-      | "wcag_criterion"
-      | "message"
-    >
-): A11yViolationEffect {
-  return {
-    ...createBaseEffect(partial),
-    effect_type: "A11yViolation",
-    impact: partial.impact ?? "moderate",
-    wcag_level: partial.wcag_level ?? "A",
-    detection_source: partial.detection_source ?? "static",
-    platform: partial.platform ?? "web",
-    html_snippet: partial.html_snippet ?? null,
-    css_selector: partial.css_selector ?? null,
-    confidence: partial.confidence ?? null,
-    suggestion: partial.suggestion ?? null,
     ...partial,
   };
 }
