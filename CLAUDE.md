@@ -15,6 +15,7 @@ devac/
 │   ├── devac-cli/      # Command-line interface
 │   ├── devac-mcp/      # MCP server for AI assistants
 │   ├── devac-worktree/ # Git worktree + Claude workflow for GitHub issues
+│   ├── devac-eval/     # Evaluation framework for testing analysis quality
 │   ├── browser-core/   # Browser automation core (Playwright wrapper)
 │   ├── browser-mcp/    # MCP server for browser automation
 │   └── browser-cli/    # CLI for browser automation
@@ -425,15 +426,32 @@ Use `--package` to query a single package instead of all workspace repos.
 
 ### MCP Tools
 
-The MCP server provides these tools for AI assistants:
-- `find_symbol`: Find symbols by name
-- `get_dependencies`: Get symbol dependencies
-- `get_dependents`: Get reverse dependencies
-- `get_file_symbols`: Get symbols in a file
-- `get_affected`: Find affected files from changes
-- `get_call_graph`: Get call graph for a function
-- `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from repos)
-- `list_repos`: List available repositories (hub mode only, auto-discovers repos with seeds)
+The MCP server provides 21 tools for AI assistants (see [ADR-0042](docs/adr/0042-mcp-tool-naming-conventions.md) for naming conventions):
+
+**Query Tools:**
+- `query_symbol`: Find symbols by name
+- `query_deps`: Get symbol dependencies
+- `query_dependents`: Get reverse dependencies (who uses this?)
+- `query_file`: Get all symbols in a file
+- `query_affected`: Find files affected by changes
+- `query_call_graph`: Get call graph for a function
+- `query_sql`: Execute read-only SQL queries
+- `query_schema`: Get database schema information
+- `query_repos`: List registered repositories
+- `query_context`: Discover workspace context (repos, worktrees)
+- `query_effects`: Query code effects (function calls, stores, etc.)
+- `query_rules`: Run rules engine on effects
+- `query_rules_list`: List available rules
+- `query_c4`: Generate C4 architecture diagrams
+
+**Status Tools:**
+- `status`: Get workspace status (seeds, health, diagnostics summary)
+- `status_diagnostics`: Get validation errors (tsc, eslint, test)
+- `status_diagnostics_summary`: Get error counts grouped by field
+- `status_diagnostics_counts`: Get total error/warning counts
+- `status_all_diagnostics`: Get unified diagnostics (validation + CI + issues + reviews)
+- `status_all_diagnostics_summary`: Get unified diagnostics grouped counts
+- `status_all_diagnostics_counts`: Get unified diagnostics totals by severity
 
 ## Worktree CLI (devac-worktree)
 

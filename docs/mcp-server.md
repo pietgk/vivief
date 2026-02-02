@@ -208,36 +208,44 @@ Returns table schemas including column names, types, and descriptions.
 
 ### query_effects
 
-Query side effects and I/O operations in the codebase.
+Query code effects (function calls, store operations, external requests, etc.) extracted during analysis.
 
 **Parameters:**
-- `entityId` (string, optional): Filter by entity ID
-- `kind` (string, optional): Filter by effect kind (e.g., "network", "file", "database")
+- `type` (string, optional): Filter by effect type ("FunctionCall", "Store", "Retrieve", "Send", "Request", "Response")
+- `file` (string, optional): Filter by file path (partial match)
+- `entity` (string, optional): Filter by source entity ID
+- `externalOnly` (boolean, optional): Show only external calls
+- `asyncOnly` (boolean, optional): Show only async calls
+- `limit` (number, optional): Maximum results to return (default: 100)
 
 **Example:**
 ```json
 {
   "name": "query_effects",
   "arguments": {
-    "kind": "database"
+    "type": "FunctionCall",
+    "externalOnly": true,
+    "limit": 50
   }
 }
 ```
 
 ### query_rules
 
-Run the rules engine to validate code against defined rules.
+Run the rules engine on effects to produce domain effects. Domain effects are high-level classifications like "Payment:Charge", "Auth:TokenVerify", "Database:Query".
 
 **Parameters:**
-- `ruleId` (string, optional): Run a specific rule by ID
-- `file` (string, optional): Filter to specific file
+- `domain` (string, optional): Filter results by domain (e.g., "Payment", "Auth", "Database")
+- `limit` (number, optional): Maximum effects to process (default: 1000)
+- `includeStats` (boolean, optional): Include rule match statistics in response
 
 **Example:**
 ```json
 {
   "name": "query_rules",
   "arguments": {
-    "ruleId": "no-unused-exports"
+    "domain": "Payment",
+    "includeStats": true
   }
 }
 ```
@@ -262,19 +270,23 @@ Returns an array of rules with their IDs, descriptions, and categories.
 
 ### query_c4
 
-Generate C4 architecture diagrams from the code graph.
+Generate C4 architecture diagrams from code effects. Returns C4 model data and optionally PlantUML diagram code.
 
 **Parameters:**
-- `level` (string, optional): C4 level ("context", "container", "component", "code")
-- `focus` (string, optional): Entity ID to focus on
+- `level` (string, optional): C4 diagram level ("context", "containers", "domains", "externals")
+- `systemName` (string, optional): Name for the system in the diagram
+- `systemDescription` (string, optional): Description for the system
+- `outputFormat` (string, optional): Output format ("json", "plantuml", "both")
+- `limit` (number, optional): Maximum effects to process (default: 1000)
 
 **Example:**
 ```json
 {
   "name": "query_c4",
   "arguments": {
-    "level": "component",
-    "focus": "pkg:class:UserService"
+    "level": "containers",
+    "systemName": "Payment Service",
+    "outputFormat": "both"
   }
 }
 ```
@@ -326,16 +338,22 @@ Returns an array of registered repositories with their paths and package informa
 
 ### status
 
-Get the overall workspace status including seed health, repo registration, and diagnostics summary.
+Get workspace status including seed states for all repositories and packages. Shows which packages are analyzed, need analysis, or have delta changes.
 
 **Parameters:**
-- None
+- `path` (string, optional): Path to check (defaults to current working directory)
+- `level` (string, optional): Output detail level ("summary", "brief", "full"). Default: "brief"
+- `json` (boolean, optional): Return DevACStatusJSON format for structured consumption
+- `groupBy` (string, optional): Grouping mode for output ("type", "repo", "status")
 
 **Example:**
 ```json
 {
   "name": "status",
-  "arguments": {}
+  "arguments": {
+    "level": "full",
+    "json": true
+  }
 }
 ```
 
