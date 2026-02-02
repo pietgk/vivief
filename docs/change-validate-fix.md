@@ -98,6 +98,7 @@ DevAC extracts a queryable representation of your code into **seed files** (Parq
 - **Nodes**: Functions, classes, variables, types
 - **Edges**: Calls, imports, extends relationships
 - **External refs**: Dependencies on npm packages, etc.
+- **Effects**: Function calls, database operations, HTTP requests (used for architecture analysis)
 
 Seeds live in `.devac/seed/` within each package and enable instant code graph queries.
 
@@ -249,7 +250,8 @@ The Stop hook uses quick mode to minimize latency.
 │  SEEDS (.devac/seed/)                                       │
 │  ├─ nodes.parquet (functions, classes, variables)           │
 │  ├─ edges.parquet (calls, imports, extends)                 │
-│  └─ external_refs.parquet (npm, pip dependencies)           │
+│  ├─ external_refs.parquet (npm, pip dependencies)           │
+│  └─ effects.parquet (function calls, I/O operations)        │
 └─────────────────────────┬───────────────────────────────────┘
                           │ register
                           ▼
@@ -334,6 +336,11 @@ The MCP server (`devac-mcp`) provides tools that query:
 - `query_call_graph` - Trace function calls
 - `query_sql` - Raw SQL against the code graph
 
+**Effects (for architecture analysis):**
+- `query_effects` - Find function calls, I/O operations
+- `query_rules` - Classify effects into domains (Payment, Auth, etc.)
+- `query_c4` - Generate C4 architecture diagrams
+
 **Diagnostics:**
 - `status_all_diagnostics` - All diagnostics (validation + CI + issues + reviews)
 - `status_all_diagnostics_summary` - Grouped counts
@@ -384,6 +391,7 @@ For deeper understanding of design decisions:
 | [implementation/overview.md](implementation/overview.md) | Component architecture and data flow |
 | [implementation/storage.md](implementation/storage.md) | DuckDB + Parquet storage layer |
 | [implementation/query-guide.md](implementation/query-guide.md) | SQL patterns for code graph queries |
+| [implementation/rules-engine.md](implementation/rules-engine.md) | Effects and domain classification |
 
 ### Quick Command Reference
 
