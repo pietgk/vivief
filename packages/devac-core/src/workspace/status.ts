@@ -1,12 +1,3 @@
-/**
- * Workspace Status
- *
- * Computes comprehensive status for a workspace or repository,
- * including seed states, hub registration status, and summary statistics.
- * Used by both CLI `devac status` and MCP `get_workspace_status` tool.
- */
-
-import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { CentralHub } from "../hub/central-hub.js";
 import { fileExists } from "../utils/atomic-write.js";
@@ -16,6 +7,7 @@ import {
   findWorkspaceDir,
   getGitBranch,
   getRepoId,
+  isGitWorktree,
 } from "./discover.js";
 import { type RepoSeedStatus, detectRepoSeedStatus } from "./seed-state.js";
 import type { RepoHubStatus } from "./types.js";
@@ -119,14 +111,7 @@ export async function getRepoStatus(repoPath: string): Promise<RepoStatus> {
   const branch = await getGitBranch(absolutePath);
 
   // Check if worktree (has .git file instead of .git directory)
-  let isWorktree = false;
-  try {
-    const gitPath = path.join(absolutePath, ".git");
-    const stats = await fs.stat(gitPath);
-    isWorktree = stats.isFile();
-  } catch {
-    // No .git, not a git repo
-  }
+  const isWorktree = await isGitWorktree(absolutePath);
 
   // Get seed status
   const seedStatus = await detectRepoSeedStatus(absolutePath);

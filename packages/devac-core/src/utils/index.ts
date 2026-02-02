@@ -55,6 +55,9 @@ export type { Logger, LogLevel, LoggerOptions } from "./logger.js";
 
 // Git utilities
 export {
+  execGit,
+  execGitSuccess,
+  execGhJson,
   detectRepoId,
   detectRepoIdFromGit,
   detectRepoIdFromPackageJson,

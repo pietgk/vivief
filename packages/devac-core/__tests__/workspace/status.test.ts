@@ -1,10 +1,3 @@
-/**
- * Workspace Status Tests
- *
- * Tests for status.ts - workspace status computation and formatting
- */
-
-import type { Stats } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +27,7 @@ vi.mock("../../src/workspace/discover.js", () => ({
   findWorkspaceDir: vi.fn().mockResolvedValue(null),
   findGitRoot: vi.fn().mockResolvedValue("/test/repo"),
   discoverWorkspace: vi.fn().mockResolvedValue({ repos: [] }),
+  isGitWorktree: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("../../src/workspace/seed-state.js", () => ({
   detectRepoSeedStatus: vi.fn().mockResolvedValue({
@@ -46,9 +40,8 @@ vi.mock("../../src/workspace/seed-state.js", () => ({
 
 const mockFs = vi.mocked(fs);
 const { fileExists } = await import("../../src/utils/atomic-write.js");
-const { getRepoId, getGitBranch, findWorkspaceDir, findGitRoot, discoverWorkspace } = await import(
-  "../../src/workspace/discover.js"
-);
+const { getRepoId, getGitBranch, findWorkspaceDir, findGitRoot, discoverWorkspace, isGitWorktree } =
+  await import("../../src/workspace/discover.js");
 const { detectRepoSeedStatus } = await import("../../src/workspace/seed-state.js");
 const { CentralHub } = await import("../../src/hub/central-hub.js");
 
@@ -66,7 +59,7 @@ describe("workspace status", () => {
       isWorkspace: false,
       mainRepos: [],
       worktreesByIssue: new Map(),
-      hubPath: "/workspace/.devac/hub.duckdb",
+      hubPath: "/workspace/.devac/central.duckdb",
       config: { version: "1.0" },
     });
     vi.mocked(fileExists).mockResolvedValue(false);
@@ -76,6 +69,7 @@ describe("workspace status", () => {
       packages: [],
       summary: { total: 0, none: 0, base: 0, delta: 0, both: 0 },
     });
+    vi.mocked(isGitWorktree).mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -84,7 +78,7 @@ describe("workspace status", () => {
 
   describe("getRepoStatus", () => {
     it("returns status for a repository", async () => {
-      mockFs.stat.mockRejectedValueOnce(new Error("ENOENT")); // Not a worktree
+      // Default isGitWorktree mock returns false
 
       const result = await getRepoStatus("/test/repo");
 
@@ -97,9 +91,7 @@ describe("workspace status", () => {
     });
 
     it("detects worktree when .git is a file", async () => {
-      mockFs.stat.mockResolvedValueOnce({
-        isFile: () => true,
-      } as Stats);
+      vi.mocked(isGitWorktree).mockResolvedValueOnce(true);
 
       const result = await getRepoStatus("/test/worktree");
 
@@ -107,9 +99,7 @@ describe("workspace status", () => {
     });
 
     it("detects regular repo when .git is a directory", async () => {
-      mockFs.stat.mockResolvedValueOnce({
-        isFile: () => false,
-      } as Stats);
+      vi.mocked(isGitWorktree).mockResolvedValueOnce(false);
 
       const result = await getRepoStatus("/test/repo");
 
@@ -159,7 +149,7 @@ describe("workspace status", () => {
         isWorkspace: true,
         mainRepos: [],
         worktreesByIssue: new Map(),
-        hubPath: "/workspace/.devac/hub.duckdb",
+        hubPath: "/workspace/.devac/central.duckdb",
         config: { version: "1.0" },
       });
       vi.mocked(detectRepoSeedStatus).mockResolvedValue({
@@ -246,7 +236,7 @@ describe("workspace status", () => {
         isWorkspace: true,
         mainRepos: [],
         worktreesByIssue: new Map(),
-        hubPath: "/workspace/.devac/hub.duckdb",
+        hubPath: "/workspace/.devac/central.duckdb",
         config: { version: "1.0" },
       });
       vi.mocked(detectRepoSeedStatus).mockResolvedValue({
@@ -292,7 +282,7 @@ describe("workspace status", () => {
         isWorkspace: true,
         mainRepos: [],
         worktreesByIssue: new Map(),
-        hubPath: "/workspace/.devac/hub.duckdb",
+        hubPath: "/workspace/.devac/central.duckdb",
         config: { version: "1.0" },
       });
 
@@ -329,7 +319,7 @@ describe("workspace status", () => {
         isWorkspace: true,
         mainRepos: [],
         worktreesByIssue: new Map(),
-        hubPath: "/workspace/.devac/hub.duckdb",
+        hubPath: "/workspace/.devac/central.duckdb",
         config: { version: "1.0" },
       });
 

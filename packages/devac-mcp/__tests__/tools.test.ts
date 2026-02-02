@@ -31,9 +31,16 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("query_schema");
       expect(toolNames).toContain("query_repos");
       expect(toolNames).toContain("query_context");
+      // Effects, Rules, C4 tools
+      expect(toolNames).toContain("query_effects");
+      expect(toolNames).toContain("query_rules");
+      expect(toolNames).toContain("query_rules_list");
+      expect(toolNames).toContain("query_c4");
       // Status tools
       expect(toolNames).toContain("status");
       expect(toolNames).toContain("status_diagnostics");
+      expect(toolNames).toContain("status_diagnostics_summary");
+      expect(toolNames).toContain("status_diagnostics_counts");
       // Unified diagnostics tools
       expect(toolNames).toContain("status_all_diagnostics");
       expect(toolNames).toContain("status_all_diagnostics_summary");
@@ -233,6 +240,211 @@ describe("MCP Tool Definitions", () => {
       expect(tool?.description.toLowerCase()).toContain("hub");
     });
   });
+
+  describe("query_effects schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has optional type parameter with enum", () => {
+      const typeProp = tool?.inputSchema.properties.type as { type: string; enum: string[] };
+      expect(typeProp.type).toBe("string");
+      expect(typeProp.enum).toContain("FunctionCall");
+      expect(typeProp.enum).toContain("Store");
+      expect(typeProp.enum).toContain("Request");
+    });
+
+    it("has optional file parameter", () => {
+      expect(tool?.inputSchema.properties.file).toBeDefined();
+      expect((tool?.inputSchema.properties.file as { type: string }).type).toBe("string");
+    });
+
+    it("has optional limit parameter", () => {
+      expect(tool?.inputSchema.properties.limit).toBeDefined();
+      expect((tool?.inputSchema.properties.limit as { type: string }).type).toBe("number");
+    });
+
+    it("has descriptive description mentioning effects", () => {
+      expect(tool?.description.toLowerCase()).toContain("effects");
+    });
+  });
+
+  describe("query_rules schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_rules");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has optional domain parameter", () => {
+      expect(tool?.inputSchema.properties.domain).toBeDefined();
+      expect((tool?.inputSchema.properties.domain as { type: string }).type).toBe("string");
+    });
+
+    it("has optional limit parameter", () => {
+      expect(tool?.inputSchema.properties.limit).toBeDefined();
+      expect((tool?.inputSchema.properties.limit as { type: string }).type).toBe("number");
+    });
+
+    it("has optional includeStats parameter", () => {
+      expect(tool?.inputSchema.properties.includeStats).toBeDefined();
+      expect((tool?.inputSchema.properties.includeStats as { type: string }).type).toBe("boolean");
+    });
+
+    it("has descriptive description mentioning rules engine", () => {
+      expect(tool?.description.toLowerCase()).toContain("rules");
+    });
+
+    it("mentions domain effects in description", () => {
+      expect(tool?.description.toLowerCase()).toContain("domain");
+    });
+  });
+
+  describe("query_rules_list schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_rules_list");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has optional domain parameter", () => {
+      expect(tool?.inputSchema.properties.domain).toBeDefined();
+      expect((tool?.inputSchema.properties.domain as { type: string }).type).toBe("string");
+    });
+
+    it("has optional provider parameter", () => {
+      expect(tool?.inputSchema.properties.provider).toBeDefined();
+      expect((tool?.inputSchema.properties.provider as { type: string }).type).toBe("string");
+    });
+
+    it("has descriptive description mentioning rules", () => {
+      expect(tool?.description.toLowerCase()).toContain("rules");
+    });
+  });
+
+  describe("query_c4 schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_c4");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has optional level parameter with enum", () => {
+      const levelProp = tool?.inputSchema.properties.level as { type: string; enum: string[] };
+      expect(levelProp.type).toBe("string");
+      expect(levelProp.enum).toContain("context");
+      expect(levelProp.enum).toContain("containers");
+      expect(levelProp.enum).toContain("domains");
+      expect(levelProp.enum).toContain("externals");
+    });
+
+    it("has optional systemName parameter", () => {
+      expect(tool?.inputSchema.properties.systemName).toBeDefined();
+      expect((tool?.inputSchema.properties.systemName as { type: string }).type).toBe("string");
+    });
+
+    it("has optional systemDescription parameter", () => {
+      expect(tool?.inputSchema.properties.systemDescription).toBeDefined();
+      expect((tool?.inputSchema.properties.systemDescription as { type: string }).type).toBe(
+        "string"
+      );
+    });
+
+    it("has optional outputFormat parameter with enum", () => {
+      const formatProp = tool?.inputSchema.properties.outputFormat as {
+        type: string;
+        enum: string[];
+      };
+      expect(formatProp.type).toBe("string");
+      expect(formatProp.enum).toContain("json");
+      expect(formatProp.enum).toContain("plantuml");
+      expect(formatProp.enum).toContain("both");
+    });
+
+    it("has optional limit parameter", () => {
+      expect(tool?.inputSchema.properties.limit).toBeDefined();
+      expect((tool?.inputSchema.properties.limit as { type: string }).type).toBe("number");
+    });
+
+    it("has descriptive description mentioning C4", () => {
+      expect(tool?.description.toLowerCase()).toContain("c4");
+    });
+
+    it("mentions PlantUML in description", () => {
+      expect(tool?.description.toLowerCase()).toContain("plantuml");
+    });
+  });
+
+  describe("status_diagnostics_summary schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "status_diagnostics_summary");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("requires groupBy parameter", () => {
+      expect(tool?.inputSchema.required).toContain("groupBy");
+    });
+
+    it("has groupBy parameter with enum", () => {
+      const groupByProp = tool?.inputSchema.properties.groupBy as { type: string; enum: string[] };
+      expect(groupByProp.type).toBe("string");
+      expect(groupByProp.enum).toContain("repo");
+      expect(groupByProp.enum).toContain("file");
+      expect(groupByProp.enum).toContain("source");
+      expect(groupByProp.enum).toContain("severity");
+    });
+
+    it("has descriptive description mentioning summary", () => {
+      expect(tool?.description.toLowerCase()).toContain("summary");
+    });
+
+    it("mentions hub mode in description", () => {
+      expect(tool?.description.toLowerCase()).toContain("hub");
+    });
+  });
+
+  describe("status_diagnostics_counts schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "status_diagnostics_counts");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has no properties (empty object)", () => {
+      expect(Object.keys(tool?.inputSchema.properties || {}).length).toBe(0);
+    });
+
+    it("has descriptive description mentioning counts", () => {
+      expect(tool?.description.toLowerCase()).toContain("count");
+    });
+
+    it("mentions hub mode in description", () => {
+      expect(tool?.description.toLowerCase()).toContain("hub");
+    });
+  });
 });
 
 describe("Tool Input Validation", () => {
@@ -292,6 +504,134 @@ describe("Tool Input Validation", () => {
 
       expect((tool?.inputSchema.properties.sql as { type: string }).type).toBe("string");
       expect(typeof validInput.sql).toBe("string");
+    });
+  });
+
+  describe("query_effects", () => {
+    it("schema accepts valid type filter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+      const validInput = { type: "FunctionCall" };
+      const typeProp = tool?.inputSchema.properties.type as { enum: string[] };
+
+      expect(typeProp.enum).toContain(validInput.type);
+    });
+
+    it("schema accepts file path filter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+      const validInput = { file: "src/auth" };
+
+      expect(tool?.inputSchema.properties.file).toBeDefined();
+      expect(typeof validInput.file).toBe("string");
+    });
+
+    it("schema accepts boolean filters", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_effects");
+      const validInput = { externalOnly: true, asyncOnly: false };
+
+      expect((tool?.inputSchema.properties.externalOnly as { type: string }).type).toBe("boolean");
+      expect((tool?.inputSchema.properties.asyncOnly as { type: string }).type).toBe("boolean");
+      expect(typeof validInput.externalOnly).toBe("boolean");
+    });
+  });
+
+  describe("query_rules", () => {
+    it("schema accepts domain filter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_rules");
+      const validInput = { domain: "Payment" };
+
+      expect((tool?.inputSchema.properties.domain as { type: string }).type).toBe("string");
+      expect(typeof validInput.domain).toBe("string");
+    });
+
+    it("schema accepts limit parameter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_rules");
+      const validInput = { limit: 100 };
+
+      expect((tool?.inputSchema.properties.limit as { type: string }).type).toBe("number");
+      expect(typeof validInput.limit).toBe("number");
+    });
+
+    it("schema accepts includeStats flag", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_rules");
+      const validInput = { includeStats: true };
+
+      expect((tool?.inputSchema.properties.includeStats as { type: string }).type).toBe("boolean");
+      expect(typeof validInput.includeStats).toBe("boolean");
+    });
+  });
+
+  describe("query_rules_list", () => {
+    it("schema accepts domain filter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_rules_list");
+      const validInput = { domain: "Auth" };
+
+      expect((tool?.inputSchema.properties.domain as { type: string }).type).toBe("string");
+      expect(typeof validInput.domain).toBe("string");
+    });
+
+    it("schema accepts provider filter", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_rules_list");
+      const validInput = { provider: "stripe" };
+
+      expect((tool?.inputSchema.properties.provider as { type: string }).type).toBe("string");
+      expect(typeof validInput.provider).toBe("string");
+    });
+  });
+
+  describe("query_c4", () => {
+    it("schema accepts valid level values", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_c4");
+      const levels = ["context", "containers", "domains", "externals"];
+      const levelProp = tool?.inputSchema.properties.level as { enum: string[] };
+
+      for (const level of levels) {
+        expect(levelProp.enum).toContain(level);
+      }
+    });
+
+    it("schema accepts system configuration", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_c4");
+      const validInput = {
+        systemName: "MyApp",
+        systemDescription: "A web application",
+      };
+
+      expect((tool?.inputSchema.properties.systemName as { type: string }).type).toBe("string");
+      expect((tool?.inputSchema.properties.systemDescription as { type: string }).type).toBe(
+        "string"
+      );
+      expect(typeof validInput.systemName).toBe("string");
+    });
+
+    it("schema accepts valid outputFormat values", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "query_c4");
+      const formats = ["json", "plantuml", "both"];
+      const formatProp = tool?.inputSchema.properties.outputFormat as { enum: string[] };
+
+      for (const format of formats) {
+        expect(formatProp.enum).toContain(format);
+      }
+    });
+  });
+
+  describe("status_diagnostics_summary", () => {
+    it("schema accepts valid groupBy values", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "status_diagnostics_summary");
+      const groupByValues = ["repo", "file", "source", "severity"];
+      const groupByProp = tool?.inputSchema.properties.groupBy as { enum: string[] };
+
+      for (const value of groupByValues) {
+        expect(groupByProp.enum).toContain(value);
+      }
+    });
+  });
+
+  describe("status_diagnostics_counts", () => {
+    it("schema has empty properties", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "status_diagnostics_counts");
+
+      expect(tool?.inputSchema.properties).toBeDefined();
+      expect(Object.keys(tool?.inputSchema.properties || {}).length).toBe(0);
     });
   });
 });

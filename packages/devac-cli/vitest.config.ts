@@ -11,6 +11,14 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts", "src/**/index.ts", "src/**/types.ts", "src/**/__tests__/**"],
+      // Coverage thresholds - current baseline, target: 70%
+      // Run `pnpm test:coverage` to see current coverage
+      thresholds: {
+        statements: 20, // Current: ~22%, Target: 70%
+        branches: 60, // Current: ~63%, Target: 80%
+        functions: 25, // Current: ~30%, Target: 70%
+        lines: 20, // Current: ~22%, Target: 70%
+      },
       reportOnFailure: true,
     },
     testTimeout: 60000,

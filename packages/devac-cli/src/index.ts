@@ -10,6 +10,7 @@
 import { runHealthCheck, setGlobalLogLevel } from "@pietgk/devac-core";
 import { Command } from "commander";
 import {
+  registerCleanupCommand,
   registerMcpCommand,
   registerQueryCommand,
   registerStatusCommand,
@@ -98,6 +99,9 @@ registerMcpCommand(program);
 
 // Workflow: CI/git integration (pre-commit, prepare-ship, etc.)
 registerWorkflowCommand(program);
+
+// Cleanup: remove stale branches and worktrees
+registerCleanupCommand(program);
 
 // Default action: show status one-liner when no command is provided
 program.action(async () => {

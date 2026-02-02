@@ -878,10 +878,27 @@ export class SeedWriter {
 
   /**
    * Atomic rename with fsync
+   *
+   * Ensures data integrity by:
+   * 1. Syncing the temp file content to disk before rename
+   * 2. Performing atomic rename
+   * 3. Syncing the directory metadata after rename
+   *
+   * This prevents "file too small to be a Parquet file" errors
+   * that can occur when reading immediately after writing.
    */
   private async atomicRename(tempPath: string, finalPath: string): Promise<void> {
     // Ensure parent directory exists
     await fs.mkdir(path.dirname(finalPath), { recursive: true });
+
+    // Sync the temp file content to disk before rename
+    // This ensures DuckDB's write buffer is fully flushed
+    const tempHandle = await fs.open(tempPath, "r");
+    try {
+      await tempHandle.sync();
+    } finally {
+      await tempHandle.close();
+    }
 
     // Rename (atomic on POSIX systems)
     await fs.rename(tempPath, finalPath);

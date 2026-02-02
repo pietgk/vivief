@@ -49,6 +49,9 @@ export { registerWorkflowCommand } from "./workflow/index.js";
 // Doctor command (system health checks)
 export { registerDoctorCommand } from "./doctor.js";
 
+// Cleanup command (stale branches and worktrees)
+export { registerCleanupCommand } from "./cleanup.js";
+
 // Sync command (analyze + register workflow)
 export { registerSyncCommand } from "./sync.js";
 
@@ -297,6 +300,10 @@ export type {
 // Doctor command (system health checks)
 export { doctorCommand } from "./doctor.js";
 export type { DoctorOptions, DoctorResult } from "./doctor.js";
+
+// Cleanup command (stale branches and worktrees)
+export { cleanupCommand } from "./cleanup.js";
+export type { CleanupOptions, CleanupResult } from "./cleanup.js";
 
 // Sync command (analyze + register workflow)
 export { syncCommand } from "./sync.js";

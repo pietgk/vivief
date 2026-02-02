@@ -40,6 +40,7 @@ Getting started and reference documentation.
 | Document | Description |
 |----------|-------------|
 | [Quick Start](./quick-start.md) | Get up and running (10 min) |
+| [Change-Validate-Fix Loop](./change-validate-fix.md) | Automatic validation with Claude Code |
 | [Start Asking About Your Code](./start-asking-about-your-code-guide.md) | End-to-end AI integration guide |
 | [CLI Reference](./cli-reference.md) | All commands |
 | [API Reference](./api-reference.md) | Programmatic usage |

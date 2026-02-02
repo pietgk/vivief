@@ -617,7 +617,7 @@ describe("discoverWorkspace", () => {
     expect(info.repos).toHaveLength(2);
     expect(info.mainRepos).toHaveLength(2);
     expect(info.worktreesByIssue.size).toBe(0);
-    expect(info.hubPath).toBe(path.join(workspace, ".devac", "hub.duckdb"));
+    expect(info.hubPath).toBe(path.join(workspace, ".devac", "central.duckdb"));
     expect(info.config.version).toBe("1.0");
   });
 

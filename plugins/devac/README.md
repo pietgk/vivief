@@ -119,12 +119,15 @@ Skills activate automatically based on your conversation:
 | Skill | Triggers On | Description |
 |-------|------------|-------------|
 | `code-analysis` | "analyze code", "find functions" | Analyze code structure and symbols |
-| `impact-analysis` | "what will this affect" | Determine change impact and dependencies |
 | `codebase-navigation` | "find where X is defined" | Navigate and locate code |
-| `diagnostics-triage` | "what needs fixing" | Triage errors and warnings |
-| `multi-repo-context` | "cross-repo", "workspace" | Work across multiple repositories |
-| `explain-package` | "explain this package", "document package" | Generate human-readable package documentation |
 | `define-effects` | "define effects", "map effects" | Create and maintain effect mappings |
+| `diagnostics-fix` | "fix errors", "fix diagnostics" | Fix validation errors and warnings |
+| `diagnostics-triage` | "what needs fixing" | Triage errors and warnings |
+| `effects-architecture` | "document architecture", "C4 diagram" | Generate architecture documentation from effects |
+| `explain-package` | "explain this package", "document package" | Generate human-readable package documentation |
+| `impact-analysis` | "what will this affect" | Determine change impact and dependencies |
+| `multi-repo-context` | "cross-repo", "workspace" | Work across multiple repositories |
+| `validate-architecture` | "validate architecture", "check constraints" | Validate architecture rules and constraints |
 
 ### Commands (User-Invoked)
 
@@ -132,8 +135,7 @@ Skills activate automatically based on your conversation:
 |---------|-------------|
 | `/commit` | Full commit workflow with changeset/ADR checks |
 | `/ship` | Commit, push, and create PR |
-| `/start-issue` | Start work on a GitHub issue |
-| `/start-issue-on-new-worktree` | Start issue with new git worktree |
+| `/start-issue` | Start work on a GitHub issue (supports worktree creation) |
 | `/issue` | Create a new GitHub issue |
 | `/prepare-commit` | Prepare commit message (review before committing) |
 | `/draft-commit` | Draft commit message only |
@@ -141,6 +143,9 @@ Skills activate automatically based on your conversation:
 | `/draft-changeset` | Draft changeset for release |
 | `/draft-adr` | Draft architecture decision record |
 | `/devac-status` | Query status across all Four Pillars |
+| `/plans` | Manage plan files (list, read, create) |
+| `/setup` | Guided setup wizard for DevAC |
+| `/validate-architecture` | Validate architecture constraints |
 
 > **Note**: Commands shown without namespace. If installed via marketplace or using `--plugin-dir`, prefix with `devac:` (e.g., `/devac:commit`).
 
@@ -200,15 +205,21 @@ devac effects list -p <package>
 
 An MCP server configuration is included for `devac-mcp`. MCP provides the same functionality with higher context overhead:
 
-- `find_symbol` - Find symbols by name
-- `get_file_symbols` - Get symbols in a file
-- `get_affected` - Get affected files
-- `get_dependencies` - Get file dependencies
-- `get_call_graph` - Get function call graphs
-- `get_diagnostics_summary` - Get diagnostics overview
-- `get_all_diagnostics` - Get all diagnostics
-- `list_repos` - List connected repositories
+**Query Tools:**
+- `query_symbol` - Find symbols by name
+- `query_file` - Get symbols in a file
+- `query_deps` - Get symbol dependencies
+- `query_dependents` - Get reverse dependencies
+- `query_affected` - Get affected files
+- `query_call_graph` - Get function call graphs
 - `query_sql` - Query the Seeds database
+- `query_repos` - List connected repositories
+
+**Status Tools:**
+- `status` - Get workspace status
+- `status_diagnostics` - Get validation errors
+- `status_diagnostics_summary` - Get diagnostics overview
+- `status_all_diagnostics` - Get all diagnostics (unified)
 
 **Note:** CLI is preferred. MCP is useful when you have it configured but is not required.
 

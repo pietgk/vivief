@@ -1343,7 +1343,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
               const totalIssues = counts.error + counts.warning;
               if (totalIssues > 0) {
                 contextParts.push(
-                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.`
+                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nUse status_all_diagnostics MCP tool to see details.`
                 );
               }
             } catch {
@@ -1570,6 +1570,7 @@ export function registerStatusCommand(program: Command): void {
     .option("--doctor", "Run health checks")
     .option("--fix", "Auto-fix issues (use with --doctor)")
     .option("--changeset", "Check if changeset is needed")
+    .option("--cleanup", "Show stale branches and worktrees")
     .action(async (options) => {
       // Handle focused status modes that delegate to other commands
       if (options.diagnostics) {
@@ -1668,6 +1669,80 @@ export function registerStatusCommand(program: Command): void {
           }
         }
         if (!result.success) process.exit(1);
+        return;
+      }
+
+      if (options.cleanup) {
+        const { getCleanupDiagnostics } = await import("@pietgk/devac-core");
+        const { getGitRoot } = await import("../utils/git-utils.js");
+
+        const gitRoot = getGitRoot(options.path);
+        if (!gitRoot) {
+          console.error("Not in a git repository");
+          process.exit(1);
+        }
+
+        const diagnostics = getCleanupDiagnostics(gitRoot);
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                staleBranches: diagnostics.staleBranches,
+                staleRemoteBranches: diagnostics.staleRemoteBranches,
+                staleWorktrees: diagnostics.staleWorktrees,
+                summary: diagnostics.summary,
+                actions: diagnostics.actions,
+              },
+              null,
+              2
+            )
+          );
+          return;
+        }
+
+        // Human-readable output
+        const hasStale =
+          diagnostics.staleBranches.length > 0 ||
+          diagnostics.staleRemoteBranches.length > 0 ||
+          diagnostics.staleWorktrees.length > 0;
+
+        if (!hasStale) {
+          console.log(colors.green("✓ No stale resources found"));
+          return;
+        }
+
+        console.log(colors.bold("Stale Resources"));
+        console.log("─".repeat(40));
+
+        if (diagnostics.staleBranches.length > 0) {
+          console.log("");
+          console.log(`Local Branches (${diagnostics.staleBranches.length}):`);
+          for (const branch of diagnostics.staleBranches) {
+            const safeStr = branch.safeToDelete ? colors.green("safe") : colors.yellow("review");
+            console.log(`  ${branch.name} - ${branch.reason} [${safeStr}]`);
+          }
+        }
+
+        if (diagnostics.staleRemoteBranches.length > 0) {
+          console.log("");
+          console.log(`Remote Branches (${diagnostics.staleRemoteBranches.length}):`);
+          for (const branch of diagnostics.staleRemoteBranches) {
+            console.log(`  ${branch.ref} - ${branch.reason}`);
+          }
+        }
+
+        if (diagnostics.staleWorktrees.length > 0) {
+          console.log("");
+          console.log(`Worktrees (${diagnostics.staleWorktrees.length}):`);
+          for (const wt of diagnostics.staleWorktrees) {
+            const safeStr = wt.safeToDelete ? colors.green("safe") : colors.yellow("review");
+            console.log(`  ${wt.name} - ${wt.reason} [${safeStr}]`);
+          }
+        }
+
+        console.log("");
+        console.log(colors.dim("Run 'devac cleanup' to interactively clean up these resources"));
         return;
       }
 

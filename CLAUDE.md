@@ -15,6 +15,7 @@ devac/
 │   ├── devac-cli/      # Command-line interface
 │   ├── devac-mcp/      # MCP server for AI assistants
 │   ├── devac-worktree/ # Git worktree + Claude workflow for GitHub issues
+│   ├── devac-eval/     # Evaluation framework for testing analysis quality
 │   ├── browser-core/   # Browser automation core (Playwright wrapper)
 │   ├── browser-mcp/    # MCP server for browser automation
 │   └── browser-cli/    # CLI for browser automation
@@ -129,13 +130,13 @@ pnpm --filter @pietgk/devac-mcp exec devac-mcp --help
 DevAC uses a three-layer storage model:
 1. **Package Seeds**: Parquet files in `.devac/seed/` per package
 2. **Repository Manifest**: `.devac/manifest.json` aggregates packages
-3. **Central Hub**: `~/.devac/central.duckdb` for cross-repo queries
+3. **Workspace Hub**: `<workspace>/.devac/central.duckdb` for cross-repo queries within a workspace
 
 ### Hub Concurrency Model
 
-The Central Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
+The Workspace Hub uses a **Single Writer Architecture** due to DuckDB's concurrency constraints:
 
-- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub query`, etc.) communicate via Unix socket IPC (`~/.devac/mcp.sock`).
+- **When MCP is running**: MCP server owns the hub database exclusively. CLI commands (`devac hub query`, etc.) communicate via Unix socket IPC (`<workspace>/.devac/mcp.sock`).
 - **When MCP is not running**: CLI commands access the hub directly.
 
 This is transparent to users - CLI commands work the same regardless of whether MCP is running. The `HubClient` class handles routing automatically.
@@ -425,15 +426,32 @@ Use `--package` to query a single package instead of all workspace repos.
 
 ### MCP Tools
 
-The MCP server provides these tools for AI assistants:
-- `find_symbol`: Find symbols by name
-- `get_dependencies`: Get symbol dependencies
-- `get_dependents`: Get reverse dependencies
-- `get_file_symbols`: Get symbols in a file
-- `get_affected`: Find affected files from changes
-- `get_call_graph`: Get call graph for a function
-- `query_sql`: Execute read-only SQL queries (in hub mode, queries ALL seeds from repos)
-- `list_repos`: List available repositories (hub mode only, auto-discovers repos with seeds)
+The MCP server provides 21 tools for AI assistants (see [ADR-0042](docs/adr/0042-mcp-tool-naming-conventions.md) for naming conventions):
+
+**Query Tools:**
+- `query_symbol`: Find symbols by name
+- `query_deps`: Get symbol dependencies
+- `query_dependents`: Get reverse dependencies (who uses this?)
+- `query_file`: Get all symbols in a file
+- `query_affected`: Find files affected by changes
+- `query_call_graph`: Get call graph for a function
+- `query_sql`: Execute read-only SQL queries
+- `query_schema`: Get database schema information
+- `query_repos`: List registered repositories
+- `query_context`: Discover workspace context (repos, worktrees)
+- `query_effects`: Query code effects (function calls, stores, etc.)
+- `query_rules`: Run rules engine on effects
+- `query_rules_list`: List available rules
+- `query_c4`: Generate C4 architecture diagrams
+
+**Status Tools:**
+- `status`: Get workspace status (seeds, health, diagnostics summary)
+- `status_diagnostics`: Get validation errors (tsc, eslint, test)
+- `status_diagnostics_summary`: Get error counts grouped by field
+- `status_diagnostics_counts`: Get total error/warning counts
+- `status_all_diagnostics`: Get unified diagnostics (validation + CI + issues + reviews)
+- `status_all_diagnostics_summary`: Get unified diagnostics grouped counts
+- `status_all_diagnostics_counts`: Get unified diagnostics totals by severity
 
 ## Worktree CLI (devac-worktree)
 
@@ -459,27 +477,57 @@ Example: `vivief-123-add-auth` for issue #123 "Add authentication"
 ## Development Workflow
 
 1. Make changes in the appropriate package
-2. Run `pnpm typecheck` to verify types
-3. Run `pnpm test` to run tests
-4. Run `pnpm lint` to check formatting
-5. Build with `pnpm build`
+2. Validation runs automatically via hooks (see below)
+3. Fix any errors reported by the Stop hook
+4. Build with `pnpm build` when needed
+
+## Validation Pipeline
+
+DevAC's validation hooks run automatically in Claude Code sessions:
+
+| Hook Event | Command | What It Does |
+|------------|---------|--------------|
+| **UserPromptSubmit** | `devac status --inject` | Injects diagnostic counts into context when errors exist |
+| **Stop** | `devac validate --on-stop --mode quick` | Validates changed files (TypeScript + ESLint) |
+
+### How It Works
+
+1. **On every prompt**: If errors exist in the hub, you'll see a `<system-reminder>` with diagnostic counts
+2. **After code changes**: When Claude stops, validation runs on git-changed files (~5s)
+3. **If errors found**: Hook output shows what needs fixing
+4. **Query details**: Use MCP tool `status_all_diagnostics` to see full error details
+
+### Validation Modes
+
+| Mode | Duration | Runs |
+|------|----------|------|
+| Quick (`--mode quick`) | ~5s | TypeScript + ESLint on changed files |
+| Full (`--mode full`) | ~5m | TypeScript + ESLint + Tests + Coverage |
+
+### MCP Tools for Diagnostics
+
+| Tool | Purpose |
+|------|---------|
+| `status_all_diagnostics` | Get all diagnostics (validation + CI + issues + reviews) |
+| `status_diagnostics` | Get validation errors only |
+| `status_all_diagnostics_counts` | Get counts by severity |
+
+**You don't need to manually run validation.** The hooks handle it automatically.
 
 ## Commit and Push Rules
 
 **CRITICAL: Never bypass validation hooks.**
 
-- Always wait for `pnpm typecheck`, `pnpm test`, and `pnpm lint` to complete before committing
-- Never use `git push --no-verify` or `git commit --no-verify` to bypass hooks
+- The Stop hook validates changed files automatically after edits
+- Pre-push hooks run full `pnpm typecheck && pnpm test`
+- Never use `--no-verify` to bypass hooks
 - If validation fails, fix the errors before committing
-- If validation times out, wait or investigate - do not bypass
 - If there is ever a legitimate reason to bypass validation (rare), ask the user first and explain why
 
-**Before every commit:**
+**Manual validation** (only needed if hooks aren't working):
 ```bash
 pnpm typecheck && pnpm test && pnpm lint
 ```
-
-If any of these fail, fix the issues before committing. No exceptions.
 
 ## Adding New Features
 

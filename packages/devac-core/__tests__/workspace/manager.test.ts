@@ -272,7 +272,7 @@ describe("WorkspaceManager", () => {
       const info = manager.getInfo();
       // hubPath is still based on workspacePath
       expect(info.hubPath).toContain(".devac");
-      expect(info.hubPath).toContain("hub.duckdb");
+      expect(info.hubPath).toContain("central.duckdb");
 
       await manager.dispose();
     });

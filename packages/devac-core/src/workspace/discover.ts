@@ -515,7 +515,7 @@ export async function discoverWorkspace(
       repos: [],
       mainRepos: [],
       worktreesByIssue: new Map(),
-      hubPath: path.join(absolutePath, ".devac", "hub.duckdb"),
+      hubPath: path.join(absolutePath, ".devac", "central.duckdb"),
       config: await loadWorkspaceConfig(absolutePath),
     };
   }
@@ -545,7 +545,7 @@ export async function discoverWorkspace(
     repos,
     mainRepos,
     worktreesByIssue,
-    hubPath: path.join(absolutePath, ".devac", "hub.duckdb"),
+    hubPath: path.join(absolutePath, ".devac", "central.duckdb"),
     config,
   };
 }

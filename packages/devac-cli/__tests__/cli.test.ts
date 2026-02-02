@@ -265,87 +265,111 @@ describe("CLI: query command", () => {
 });
 
 describe("CLI: verify command", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-verify-test-"));
-  });
-
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  // Each test creates its own tempDir to avoid race conditions with maxConcurrency > 1
+  // Previously, shared tempDir variable caused flaky tests when tests ran concurrently
 
   it("verifies valid seeds as OK", async () => {
-    // Setup valid seeds
-    await fs.cp(FIXTURES_DIR, path.join(tempDir, "src"), { recursive: true });
-    await analyzeCommand({
-      packagePath: tempDir,
-      repoName: "test-repo",
-      branch: "main",
-    });
+    const tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-verify-test-"));
+    try {
+      // Setup valid seeds
+      await fs.cp(FIXTURES_DIR, path.join(tempDir, "src"), { recursive: true });
+      const analyzeResult = await analyzeCommand({
+        packagePath: tempDir,
+        repoName: "test-repo",
+        branch: "main",
+      });
 
-    const options: VerifyOptions = {
-      packagePath: tempDir,
-    };
+      // Ensure analysis succeeded before verifying
+      expect(analyzeResult.success).toBe(true);
+      expect(analyzeResult.filesAnalyzed).toBeGreaterThan(0);
 
-    const result = await verifyCommand(options);
+      const options: VerifyOptions = {
+        packagePath: tempDir,
+      };
 
-    expect(result.valid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+      const result = await verifyCommand(options);
+
+      // Provide detailed error info if verification fails
+      if (!result.valid) {
+        throw new Error(
+          `Verification failed with errors:\n  Errors: ${JSON.stringify(result.errors)}\n  Warnings: ${JSON.stringify(result.warnings)}\n  TempDir: ${tempDir}\n  Analysis: ${analyzeResult.filesAnalyzed} files, ${analyzeResult.nodesCreated} nodes`
+        );
+      }
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("detects missing parquet files as warnings", async () => {
-    // Create .devac structure without parquet files
-    await fs.mkdir(path.join(tempDir, ".devac", "seed", "base"), {
-      recursive: true,
-    });
+    const tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-verify-test-"));
+    try {
+      // Create .devac structure without parquet files
+      await fs.mkdir(path.join(tempDir, ".devac", "seed", "base"), {
+        recursive: true,
+      });
 
-    const options: VerifyOptions = {
-      packagePath: tempDir,
-    };
+      const options: VerifyOptions = {
+        packagePath: tempDir,
+      };
 
-    const result = await verifyCommand(options);
+      const result = await verifyCommand(options);
 
-    // Missing files are warnings, not errors (per spec - seeds can be regenerated)
-    expect(result.warnings.length).toBeGreaterThan(0);
-    // Stats should show zero counts
-    expect(result.stats?.nodeCount).toBe(0);
+      // Missing files are warnings, not errors (per spec - seeds can be regenerated)
+      expect(result.warnings.length).toBeGreaterThan(0);
+      // Stats should show zero counts
+      expect(result.stats?.nodeCount).toBe(0);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("detects corrupted parquet files", async () => {
-    // Create .devac structure with invalid parquet
-    const seedDir = path.join(tempDir, ".devac", "seed", "base");
-    await fs.mkdir(seedDir, { recursive: true });
-    await fs.writeFile(path.join(seedDir, "nodes.parquet"), "invalid data");
+    const tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-verify-test-"));
+    try {
+      // Create .devac structure with invalid parquet
+      const seedDir = path.join(tempDir, ".devac", "seed", "base");
+      await fs.mkdir(seedDir, { recursive: true });
+      await fs.writeFile(path.join(seedDir, "nodes.parquet"), "invalid data");
 
-    const options: VerifyOptions = {
-      packagePath: tempDir,
-    };
+      const options: VerifyOptions = {
+        packagePath: tempDir,
+      };
 
-    const result = await verifyCommand(options);
+      const result = await verifyCommand(options);
 
-    expect(result.valid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("returns statistics about seeds", async () => {
-    await fs.cp(FIXTURES_DIR, path.join(tempDir, "src"), { recursive: true });
-    await analyzeCommand({
-      packagePath: tempDir,
-      repoName: "test-repo",
-      branch: "main",
-    });
+    const tempDir = await fs.mkdtemp(path.join(tmpdir(), "devac-verify-test-"));
+    try {
+      await fs.cp(FIXTURES_DIR, path.join(tempDir, "src"), { recursive: true });
+      await analyzeCommand({
+        packagePath: tempDir,
+        repoName: "test-repo",
+        branch: "main",
+      });
 
-    const options: VerifyOptions = {
-      packagePath: tempDir,
-    };
+      const options: VerifyOptions = {
+        packagePath: tempDir,
+      };
 
-    const result = await verifyCommand(options);
+      const result = await verifyCommand(options);
 
-    expect(result.stats).toBeDefined();
-    expect(result.stats?.nodeCount).toBeGreaterThan(0);
-    expect(result.stats?.edgeCount).toBeGreaterThanOrEqual(0);
-    expect(result.stats?.fileCount).toBeGreaterThan(0);
+      expect(result.stats).toBeDefined();
+      expect(result.stats?.nodeCount).toBeGreaterThan(0);
+      expect(result.stats?.edgeCount).toBeGreaterThanOrEqual(0);
+      expect(result.stats?.fileCount).toBeGreaterThan(0);
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 
