@@ -16,6 +16,14 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts", "src/**/index.ts", "src/**/types.ts", "src/**/__tests__/**"],
+      // Coverage thresholds - current baseline, target: 70%
+      // Run `pnpm test:coverage` to see current coverage
+      thresholds: {
+        statements: 25, // Current: ~27%, Target: 70%
+        branches: 85, // Current: ~92%, Target: 90%
+        functions: 40, // Current: ~46%, Target: 70%
+        lines: 25, // Current: ~27%, Target: 70%
+      },
       reportOnFailure: true,
     },
     // Use forks for stability - prevents tinypool channel closed errors
