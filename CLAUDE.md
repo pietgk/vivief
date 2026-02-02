@@ -165,7 +165,7 @@ DevAC includes multiple validators that push results to `unified_diagnostics`:
 - **Test**: Test failures
 - **Coverage**: Coverage gaps
 - **WCAG**: Static accessibility analysis (keyboard handlers, ARIA, accessible names)
-- **Axe**: Runtime accessibility scanning (via browser-core AxeScanner)
+- **Axe**: Runtime accessibility scanning (via browser-core AxeScanner, source: "axe")
 
 See [ADR-0045](docs/adr/0045-accessibility-intelligence-layer.md) for accessibility features.
 
