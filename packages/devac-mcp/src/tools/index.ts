@@ -389,7 +389,7 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: "query_rules",
     description:
-      "Run the rules engine on effects to produce domain effects. Domain effects are high-level classifications like 'Payment:Charge', 'Auth:TokenVerify', 'Database:Query'. Returns matched domain effects and statistics about rule matches.",
+      "Run the rules engine on effects to produce domain effects. Domain effects are high-level classifications like 'Payment:Charge', 'Auth:TokenVerify', 'Database:Query'. Returns matched domain effects and statistics about rule matches. IMPORTANT: Effects must be extracted first via query_effects or devac sync. Use query_rules_list to see available rules before filtering by domain. Common domains: Payment, Auth, Database, Cache, Queue, HTTP, Storage.",
     inputSchema: {
       type: "object",
       properties: {
@@ -431,7 +431,7 @@ export const MCP_TOOLS: MCPTool[] = [
   {
     name: "query_c4",
     description:
-      "Generate C4 architecture diagrams from code effects. Returns C4 model data and optionally PlantUML diagram code. Supports Context, Container, and Component levels.",
+      "Generate C4 architecture diagrams from code effects. Returns C4 model data and optionally PlantUML diagram code. Levels explained: context (system boundary view - shows external actors and systems), containers (deployable units - shows services, databases, apps), domains (business capability areas - groups by Payment, Auth, etc.), externals (external dependencies - third-party APIs and services). IMPORTANT: Requires effects to be extracted first. For best results, run query_rules first to classify effects into domains.",
     inputSchema: {
       type: "object",
       properties: {
