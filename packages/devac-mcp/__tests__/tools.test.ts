@@ -47,8 +47,8 @@ describe("MCP Tool Definitions", () => {
       expect(toolNames).toContain("status_all_diagnostics_counts");
     });
 
-    it("has exactly 21 tools", () => {
-      expect(MCP_TOOLS.length).toBe(21);
+    it("has exactly 23 tools", () => {
+      expect(MCP_TOOLS.length).toBe(23);
     });
   });
 
@@ -763,6 +763,151 @@ describe("Tool Error Scenarios", () => {
       for (const sql of invalidQueries) {
         expect(sql.trim().toLowerCase().startsWith("select")).toBe(false);
       }
+    });
+  });
+});
+
+describe("Accessibility Tools (Issue #235)", () => {
+  describe("query_a11y_fix_context schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_a11y_fix_context");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has correct description mentioning accessibility violations", () => {
+      expect(tool?.description.toLowerCase()).toContain("accessibility");
+      expect(tool?.description.toLowerCase()).toContain("violation");
+    });
+
+    it("requires filePath parameter", () => {
+      expect(tool?.inputSchema.properties.filePath).toBeDefined();
+      expect((tool?.inputSchema.properties.filePath as { type: string }).type).toBe("string");
+      expect(tool?.inputSchema.required).toContain("filePath");
+    });
+
+    it("requires ruleId parameter", () => {
+      expect(tool?.inputSchema.properties.ruleId).toBeDefined();
+      expect((tool?.inputSchema.properties.ruleId as { type: string }).type).toBe("string");
+      expect(tool?.inputSchema.required).toContain("ruleId");
+    });
+
+    it("has optional cssSelector parameter", () => {
+      expect(tool?.inputSchema.properties.cssSelector).toBeDefined();
+      expect((tool?.inputSchema.properties.cssSelector as { type: string }).type).toBe("string");
+    });
+
+    it("has optional wcagCriterion parameter", () => {
+      expect(tool?.inputSchema.properties.wcagCriterion).toBeDefined();
+      expect((tool?.inputSchema.properties.wcagCriterion as { type: string }).type).toBe("string");
+    });
+
+    it("has optional includeThemeTokens parameter", () => {
+      expect(tool?.inputSchema.properties.includeThemeTokens).toBeDefined();
+      expect((tool?.inputSchema.properties.includeThemeTokens as { type: string }).type).toBe(
+        "boolean"
+      );
+    });
+
+    it("has optional includeUsageExamples parameter", () => {
+      expect(tool?.inputSchema.properties.includeUsageExamples).toBeDefined();
+      expect((tool?.inputSchema.properties.includeUsageExamples as { type: string }).type).toBe(
+        "boolean"
+      );
+    });
+
+    it("has optional maxDependencyDepth parameter", () => {
+      expect(tool?.inputSchema.properties.maxDependencyDepth).toBeDefined();
+      expect((tool?.inputSchema.properties.maxDependencyDepth as { type: string }).type).toBe(
+        "number"
+      );
+    });
+  });
+
+  describe("query_a11y_violations schema", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "query_a11y_violations");
+
+    it("exists", () => {
+      expect(tool).toBeDefined();
+    });
+
+    it("has correct description mentioning WCAG", () => {
+      expect(tool?.description).toContain("WCAG");
+      expect(tool?.description.toLowerCase()).toContain("accessibility");
+    });
+
+    it("has no required parameters", () => {
+      expect(tool?.inputSchema.required).toEqual([]);
+    });
+
+    it("has optional repo_id parameter", () => {
+      expect(tool?.inputSchema.properties.repo_id).toBeDefined();
+      expect((tool?.inputSchema.properties.repo_id as { type: string }).type).toBe("string");
+    });
+
+    it("has optional wcagLevel parameter with correct enum values", () => {
+      const wcagLevelProp = tool?.inputSchema.properties.wcagLevel as { enum: string[] };
+      expect(wcagLevelProp).toBeDefined();
+      expect(wcagLevelProp.enum).toEqual(["A", "AA", "AAA"]);
+    });
+
+    it("has optional impact parameter with correct enum values", () => {
+      const impactProp = tool?.inputSchema.properties.impact as { enum: string[] };
+      expect(impactProp).toBeDefined();
+      expect(impactProp.enum).toEqual(["critical", "serious", "moderate", "minor"]);
+    });
+
+    it("has optional ruleId parameter", () => {
+      expect(tool?.inputSchema.properties.ruleId).toBeDefined();
+      expect((tool?.inputSchema.properties.ruleId as { type: string }).type).toBe("string");
+    });
+
+    it("has optional filePath parameter", () => {
+      expect(tool?.inputSchema.properties.filePath).toBeDefined();
+      expect((tool?.inputSchema.properties.filePath as { type: string }).type).toBe("string");
+    });
+
+    it("has optional detectionSource parameter with correct enum values", () => {
+      const detectionSourceProp = tool?.inputSchema.properties.detectionSource as {
+        enum: string[];
+      };
+      expect(detectionSourceProp).toBeDefined();
+      expect(detectionSourceProp.enum).toEqual(["static", "runtime", "semantic"]);
+    });
+
+    it("has optional limit parameter", () => {
+      expect(tool?.inputSchema.properties.limit).toBeDefined();
+      expect((tool?.inputSchema.properties.limit as { type: string }).type).toBe("number");
+    });
+  });
+
+  describe("tool registry includes accessibility tools", () => {
+    it("contains query_a11y_fix_context", () => {
+      const toolNames = MCP_TOOLS.map((t) => t.name);
+      expect(toolNames).toContain("query_a11y_fix_context");
+    });
+
+    it("contains query_a11y_violations", () => {
+      const toolNames = MCP_TOOLS.map((t) => t.name);
+      expect(toolNames).toContain("query_a11y_violations");
+    });
+
+    it("status_diagnostics includes wcag source option", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "status_diagnostics");
+      const sourceProp = tool?.inputSchema.properties.source as { enum: string[] };
+      expect(sourceProp.enum).toContain("wcag");
+    });
+
+    it("status_all_diagnostics includes wcag source option", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "status_all_diagnostics");
+      const sourceProp = tool?.inputSchema.properties.source as { items: { enum: string[] } };
+      expect(sourceProp.items.enum).toContain("wcag");
+    });
+
+    it("status_all_diagnostics includes accessibility category", () => {
+      const tool = MCP_TOOLS.find((t) => t.name === "status_all_diagnostics");
+      const categoryProp = tool?.inputSchema.properties.category as { items: { enum: string[] } };
+      expect(categoryProp.items.enum).toContain("accessibility");
     });
   });
 });

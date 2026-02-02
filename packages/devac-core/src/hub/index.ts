@@ -29,6 +29,10 @@ export {
   type DiagnosticsSource,
   type DiagnosticsSeverity,
   type DiagnosticsCategory,
+  // WCAG Hub Integration (Accessibility Intelligence Layer)
+  pushWcagResultsToHub,
+  type WcagHubIssue,
+  type WcagLevel,
 } from "./hub-storage.js";
 
 export {
@@ -90,3 +94,13 @@ export {
   type HealthIssueFix,
   type HealthIssueType,
 } from "./health-check.js";
+
+// Axe Diagnostics (Runtime Accessibility Testing)
+export {
+  pushAxeDiagnosticsToHub,
+  pushBatchAxeDiagnosticsToHub,
+  type AxeViolation,
+  type AxeScanResultForHub,
+  type PushAxeDiagnosticsOptions,
+  type AxeImpact,
+} from "./push-axe-diagnostics.js";

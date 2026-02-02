@@ -999,6 +999,7 @@ export class CentralHub {
     await this.storage.clearDiagnostics(repoId, "eslint");
     await this.storage.clearDiagnostics(repoId, "test");
     await this.storage.clearDiagnostics(repoId, "coverage");
+    await this.storage.clearDiagnostics(repoId, "wcag");
 
     if (errors.length === 0) return;
 
@@ -1136,7 +1137,7 @@ export class CentralHub {
    * Map source to category
    */
   private sourceToCategory(
-    source: "tsc" | "eslint" | "biome" | "test" | "coverage"
+    source: "tsc" | "eslint" | "biome" | "test" | "coverage" | "wcag"
   ): DiagnosticsCategory {
     switch (source) {
       case "tsc":
@@ -1145,9 +1146,10 @@ export class CentralHub {
       case "biome":
         return "linting";
       case "test":
-        return "testing";
       case "coverage":
         return "testing";
+      case "wcag":
+        return "accessibility";
     }
   }
 

@@ -95,6 +95,84 @@ export interface C4Options {
 }
 
 /**
+ * Options for getting accessibility fix context
+ */
+export interface A11yFixContextOptions {
+  filePath: string;
+  ruleId: string;
+  cssSelector?: string;
+  wcagCriterion?: string;
+  includeThemeTokens?: boolean;
+  includeUsageExamples?: boolean;
+  maxDependencyDepth?: number;
+}
+
+/**
+ * Result from getting accessibility fix context
+ */
+export interface A11yFixContextResult {
+  /** Source code of the component */
+  componentSource: string;
+  /** File path of the component */
+  filePath: string;
+  /** Dependencies of the component (imports, parent components) */
+  dependencies: Array<{
+    entityId: string;
+    name: string;
+    kind: string;
+    filePath: string;
+  }>;
+  /** Theme tokens relevant for fixing the violation (colors, spacing, etc.) */
+  themeTokens: Record<string, string>;
+  /** Examples of similar components that may be accessible */
+  usageExamples: Array<{
+    filePath: string;
+    source: string;
+    description: string;
+  }>;
+  /** The accessibility rule that was violated */
+  ruleId: string;
+  /** WCAG criterion if available */
+  wcagCriterion?: string;
+}
+
+/**
+ * Filter for accessibility violations query
+ */
+export interface A11yViolationsFilter {
+  repo_id?: string;
+  wcagLevel?: "A" | "AA" | "AAA";
+  impact?: "critical" | "serious" | "moderate" | "minor";
+  ruleId?: string;
+  filePath?: string;
+  detectionSource?: "static" | "runtime" | "semantic";
+  limit?: number;
+}
+
+/**
+ * Accessibility violation from hub storage
+ */
+export interface A11yViolation {
+  id: string;
+  repo_id: string;
+  rule_id: string;
+  impact: "critical" | "serious" | "moderate" | "minor";
+  wcag_criterion: string;
+  wcag_level: "A" | "AA" | "AAA";
+  detection_source: "static" | "runtime" | "semantic";
+  platform: "web" | "react-native" | "ios" | "android";
+  message: string;
+  html_snippet?: string;
+  css_selector?: string;
+  file_path: string;
+  line?: number;
+  column?: number;
+  confidence: number;
+  suggestion?: string;
+  created_at: string;
+}
+
+/**
  * Result from C4 generation
  */
 export interface C4Result {
@@ -205,6 +283,14 @@ export interface DataProvider {
 
   /** Generate C4 diagram */
   generateC4(options?: C4Options): Promise<C4Result>;
+
+  // ================== Accessibility Methods (Issue #235) ==================
+
+  /** Get context for fixing an accessibility violation */
+  getA11yFixContext(options: A11yFixContextOptions): Promise<A11yFixContextResult>;
+
+  /** Query accessibility violations from hub */
+  queryA11yViolations(filter?: A11yViolationsFilter): Promise<A11yViolation[]>;
 }
 
 /**
@@ -611,6 +697,122 @@ export class PackageDataProvider implements DataProvider {
     }
 
     return result;
+  }
+
+  // ================== Accessibility Methods (Issue #235) ==================
+
+  async getA11yFixContext(options: A11yFixContextOptions): Promise<A11yFixContextResult> {
+    const { filePath, ruleId } = options;
+
+    // Read the component source file
+    let componentSource = "";
+    try {
+      componentSource = await fs.readFile(path.resolve(this.packagePath, filePath), "utf-8");
+    } catch {
+      componentSource = `/* Unable to read file: ${filePath} */`;
+    }
+
+    // Get symbols in the file to find dependencies
+    const fileSymbols = await this.getFileSymbols(filePath);
+    const entityIds = (fileSymbols.rows as Array<{ entity_id: string }>).map((r) => r.entity_id);
+
+    // Get dependencies for each symbol
+    const dependencies: A11yFixContextResult["dependencies"] = [];
+    const seenEntities = new Set<string>();
+
+    for (const entityId of entityIds) {
+      if (seenEntities.size >= 50) break; // Limit to avoid too many results
+
+      const deps = await this.getDependencies(entityId);
+      for (const dep of deps.rows as Array<{
+        target_entity_id: string;
+        edge_type: string;
+      }>) {
+        if (seenEntities.has(dep.target_entity_id)) continue;
+        seenEntities.add(dep.target_entity_id);
+
+        // Query node info for the dependency
+        const nodeSql = `SELECT * FROM nodes WHERE entity_id = '${dep.target_entity_id.replace(/'/g, "''")}'`;
+        const nodeResult = await this.seedReader.querySeeds(nodeSql);
+        if (nodeResult.rows.length > 0) {
+          const node = nodeResult.rows[0] as {
+            entity_id: string;
+            name: string;
+            kind: string;
+            file_path: string;
+          };
+          dependencies.push({
+            entityId: node.entity_id,
+            name: node.name,
+            kind: node.kind,
+            filePath: node.file_path,
+          });
+        }
+      }
+    }
+
+    // Look for theme tokens - search for files containing "theme", "colors", "tokens"
+    const themeTokens: Record<string, string> = {};
+    try {
+      const themeSql = `
+        SELECT * FROM nodes
+        WHERE (name LIKE '%theme%' OR name LIKE '%color%' OR name LIKE '%token%')
+        AND kind IN ('variable', 'const', 'property')
+        LIMIT 20
+      `;
+      const themeResult = await this.seedReader.querySeeds(themeSql);
+      for (const row of themeResult.rows as Array<{
+        name: string;
+        file_path: string;
+      }>) {
+        themeTokens[row.name] = row.file_path;
+      }
+    } catch {
+      // Ignore errors in theme token lookup
+    }
+
+    // Find usage examples - look for similar component patterns
+    const usageExamples: A11yFixContextResult["usageExamples"] = [];
+    try {
+      // Find other components with similar patterns
+      const examplesSql = `
+        SELECT DISTINCT n.file_path, n.name
+        FROM nodes n
+        WHERE n.kind = 'function'
+        AND n.file_path != '${filePath.replace(/'/g, "''")}'
+        AND n.file_path LIKE '%.tsx'
+        LIMIT 5
+      `;
+      const examplesResult = await this.seedReader.querySeeds(examplesSql);
+      for (const row of examplesResult.rows as Array<{
+        file_path: string;
+        name: string;
+      }>) {
+        usageExamples.push({
+          filePath: row.file_path,
+          source: `// See ${row.file_path}`,
+          description: `Example component: ${row.name}`,
+        });
+      }
+    } catch {
+      // Ignore errors in example lookup
+    }
+
+    return {
+      componentSource,
+      filePath,
+      dependencies,
+      themeTokens,
+      usageExamples,
+      ruleId,
+      wcagCriterion: options.wcagCriterion,
+    };
+  }
+
+  async queryA11yViolations(_filter?: A11yViolationsFilter): Promise<A11yViolation[]> {
+    // Package mode doesn't have access to hub violations
+    // Return empty array - violations are stored in the hub
+    throw new Error("query_a11y_violations is only available in hub mode");
   }
 }
 
@@ -1293,6 +1495,193 @@ export class HubDataProvider implements DataProvider {
     }
 
     return result;
+  }
+
+  // ================== Accessibility Methods (Issue #235) ==================
+
+  async getA11yFixContext(options: A11yFixContextOptions): Promise<A11yFixContextResult> {
+    const { filePath, ruleId } = options;
+
+    // Find the package that contains this file
+    const packagePaths = await this.getPackagePaths();
+    let componentSource = "";
+    let resolvedFilePath = filePath;
+
+    // Try to read the file from each package path
+    for (const pkgPath of packagePaths) {
+      try {
+        const fullPath = path.resolve(pkgPath, filePath);
+        componentSource = await fs.readFile(fullPath, "utf-8");
+        resolvedFilePath = fullPath;
+        break;
+      } catch {
+        // Try next package
+      }
+    }
+
+    if (!componentSource) {
+      componentSource = `/* Unable to read file: ${filePath} */`;
+    }
+
+    // Get symbols in the file to find dependencies
+    const fileSymbols = await this.getFileSymbols(filePath);
+    const entityIds = (fileSymbols.rows as Array<{ entity_id: string }>).map((r) => r.entity_id);
+
+    // Get dependencies for each symbol
+    const dependencies: A11yFixContextResult["dependencies"] = [];
+    const seenEntities = new Set<string>();
+
+    for (const entityId of entityIds) {
+      if (seenEntities.size >= 50) break; // Limit to avoid too many results
+
+      const deps = await this.getDependencies(entityId);
+      for (const dep of deps.rows as Array<{
+        target_entity_id: string;
+        edge_type: string;
+      }>) {
+        if (seenEntities.has(dep.target_entity_id)) continue;
+        seenEntities.add(dep.target_entity_id);
+
+        // Query node info for the dependency
+        const nodeSql = `SELECT * FROM {nodes} WHERE entity_id = '${dep.target_entity_id.replace(/'/g, "''")}'`;
+        const nodeResult = await queryMultiplePackages(this.pool, packagePaths, nodeSql);
+        if (nodeResult.rows.length > 0) {
+          const node = nodeResult.rows[0] as {
+            entity_id: string;
+            name: string;
+            kind: string;
+            file_path: string;
+          };
+          dependencies.push({
+            entityId: node.entity_id,
+            name: node.name,
+            kind: node.kind,
+            filePath: node.file_path,
+          });
+        }
+      }
+    }
+
+    // Look for theme tokens - search for files containing "theme", "colors", "tokens"
+    const themeTokens: Record<string, string> = {};
+    try {
+      const themeSql = `
+        SELECT * FROM {nodes}
+        WHERE (name LIKE '%theme%' OR name LIKE '%color%' OR name LIKE '%token%')
+        AND kind IN ('variable', 'const', 'property')
+        LIMIT 20
+      `;
+      const themeResult = await queryMultiplePackages(this.pool, packagePaths, themeSql);
+      for (const row of themeResult.rows as Array<{
+        name: string;
+        file_path: string;
+      }>) {
+        themeTokens[row.name] = row.file_path;
+      }
+    } catch {
+      // Ignore errors in theme token lookup
+    }
+
+    // Find usage examples - look for similar component patterns
+    const usageExamples: A11yFixContextResult["usageExamples"] = [];
+    try {
+      // Find other components with similar patterns
+      const examplesSql = `
+        SELECT DISTINCT n.file_path, n.name
+        FROM {nodes} n
+        WHERE n.kind = 'function'
+        AND n.file_path != '${filePath.replace(/'/g, "''")}'
+        AND n.file_path LIKE '%.tsx'
+        LIMIT 5
+      `;
+      const examplesResult = await queryMultiplePackages(this.pool, packagePaths, examplesSql);
+      for (const row of examplesResult.rows as Array<{
+        file_path: string;
+        name: string;
+      }>) {
+        usageExamples.push({
+          filePath: row.file_path,
+          source: `// See ${row.file_path}`,
+          description: `Example component: ${row.name}`,
+        });
+      }
+    } catch {
+      // Ignore errors in example lookup
+    }
+
+    return {
+      componentSource,
+      filePath: resolvedFilePath,
+      dependencies,
+      themeTokens,
+      usageExamples,
+      ruleId,
+      wcagCriterion: options.wcagCriterion,
+    };
+  }
+
+  async queryA11yViolations(filter?: A11yViolationsFilter): Promise<A11yViolation[]> {
+    // Query the effects table for A11yViolation effects
+    // These are stored with effect_type = 'A11yViolation'
+    const packagePaths = await this.getPackagePaths();
+    if (packagePaths.length === 0) {
+      return [];
+    }
+
+    // Build SQL query for accessibility violations in effects table
+    const conditions: string[] = ["effect_type = 'A11yViolation'"];
+
+    if (filter?.wcagLevel) {
+      conditions.push(`wcag_level = '${filter.wcagLevel}'`);
+    }
+
+    if (filter?.impact) {
+      conditions.push(`impact = '${filter.impact}'`);
+    }
+
+    if (filter?.ruleId) {
+      conditions.push(`rule_id = '${filter.ruleId.replace(/'/g, "''")}'`);
+    }
+
+    if (filter?.filePath) {
+      conditions.push(
+        `source_file_path LIKE '%${filter.filePath.replace(/'/g, "''").replace(/%/g, "\\%")}%'`
+      );
+    }
+
+    if (filter?.detectionSource) {
+      conditions.push(`detection_source = '${filter.detectionSource}'`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+    const limitClause = `LIMIT ${filter?.limit ?? 100}`;
+
+    const sql = `SELECT * FROM {effects} ${whereClause} ${limitClause}`;
+    const result = await queryMultiplePackages(this.pool, packagePaths, sql);
+
+    // Map effects to A11yViolation format
+    return result.rows.map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: (r.effect_id as string) || "",
+        repo_id: filter?.repo_id || "unknown",
+        rule_id: (r.rule_id as string) || "unknown",
+        impact: (r.impact as "critical" | "serious" | "moderate" | "minor") || "moderate",
+        wcag_criterion: (r.wcag_criterion as string) || "",
+        wcag_level: (r.wcag_level as "A" | "AA" | "AAA") || "AA",
+        detection_source: (r.detection_source as "static" | "runtime" | "semantic") || "static",
+        platform: (r.platform as "web" | "react-native" | "ios" | "android") || "web",
+        message: (r.message as string) || "",
+        html_snippet: r.html_snippet as string | undefined,
+        css_selector: r.css_selector as string | undefined,
+        file_path: (r.source_file_path as string) || "",
+        line: r.source_line as number | undefined,
+        column: r.source_column as number | undefined,
+        confidence: (r.confidence as number) ?? 1.0,
+        suggestion: r.suggestion as string | undefined,
+        created_at: (r.timestamp as string) || new Date().toISOString(),
+      };
+    });
   }
 }
 

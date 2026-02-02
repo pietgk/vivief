@@ -5,6 +5,7 @@
  * Uses parsed seed data from SeedReader to detect accessibility violations.
  *
  * Part of DevAC Phase 2: WCAG Validation.
+ * Extended with Accessibility Intelligence Layer (Issue #235).
  */
 
 import type { WcagLevel } from "../../rules/wcag-rules.js";
@@ -16,6 +17,20 @@ import {
   analyzeWcag,
   getAnalysisSummary,
 } from "../wcag-analyzer.js";
+
+// ============================================================================
+// Accessibility Intelligence Layer Types
+// ============================================================================
+
+/**
+ * Platform for accessibility validation
+ */
+export type A11yPlatform = "web" | "react-native";
+
+/**
+ * Detection source for accessibility issues
+ */
+export type A11yDetectionSource = "static" | "runtime" | "semantic";
 
 // ============================================================================
 // Types
@@ -33,6 +48,10 @@ export interface WcagOptions {
   timeout?: number;
   /** Git branch for seed data (default: base) */
   branch?: string;
+  /** Platform being validated (default: web) */
+  platform?: A11yPlatform;
+  /** Detection source for tracking (default: static) */
+  detectionSource?: A11yDetectionSource;
 }
 
 /**
@@ -55,6 +74,12 @@ export interface WcagResult {
   errorCount: number;
   /** Count of warnings (severity: warning) */
   warningCount: number;
+  /** Platform that was validated */
+  platform: A11yPlatform;
+  /** Detection source used */
+  detectionSource: A11yDetectionSource;
+  /** Raw WCAG issues (for hub integration) */
+  rawIssues: WcagIssue[];
 }
 
 // ============================================================================
@@ -88,6 +113,8 @@ export class WcagValidator {
   async validate(options: WcagOptions = {}): Promise<WcagResult> {
     const startTime = Date.now();
     const branch = options.branch ?? "base";
+    const platform = options.platform ?? "web";
+    const detectionSource = options.detectionSource ?? "static";
 
     try {
       // Read nodes and edges from seed data
@@ -103,7 +130,7 @@ export class WcagValidator {
       });
 
       // Convert to validator result format
-      return this.toWcagResult(analysisResult, startTime);
+      return this.toWcagResult(analysisResult, startTime, platform, detectionSource);
     } catch (error) {
       // Handle seed reading errors gracefully
       return {
@@ -124,6 +151,9 @@ export class WcagValidator {
         passRate: 0,
         errorCount: 1,
         warningCount: 0,
+        platform,
+        detectionSource,
+        rawIssues: [],
       };
     }
   }
@@ -131,7 +161,12 @@ export class WcagValidator {
   /**
    * Convert WCAG analysis result to validator result format
    */
-  private toWcagResult(analysisResult: WcagAnalysisResult, startTime: number): WcagResult {
+  private toWcagResult(
+    analysisResult: WcagAnalysisResult,
+    startTime: number,
+    platform: A11yPlatform,
+    detectionSource: A11yDetectionSource
+  ): WcagResult {
     const summary = getAnalysisSummary(analysisResult);
     const issues = analysisResult.issues.map((issue) => this.toValidationIssue(issue));
 
@@ -144,6 +179,9 @@ export class WcagValidator {
       passRate: summary.passRate,
       errorCount: summary.errorCount,
       warningCount: summary.warningCount,
+      platform,
+      detectionSource,
+      rawIssues: analysisResult.issues,
     };
   }
 
@@ -195,4 +233,8 @@ export interface WcagValidationIssue extends ValidationIssue {
   ruleName?: string;
   /** Suggested fix */
   suggestion?: string;
+  /** Platform this issue applies to */
+  platform?: A11yPlatform;
+  /** How this issue was detected */
+  detectionSource?: A11yDetectionSource;
 }
