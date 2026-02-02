@@ -94,9 +94,17 @@ describe("cleanup command result", () => {
       const result: CleanupResult = {
         success: true,
         diagnostics: {
+          path: "/repo",
           staleBranches: [],
           staleRemoteBranches: [],
           staleWorktrees: [],
+          actions: [],
+          summary: {
+            totalStaleBranches: 0,
+            safeToDeleteBranches: 0,
+            totalStaleWorktrees: 0,
+            safeToDeleteWorktrees: 0,
+          },
         },
         executedActions: [],
         skippedActions: [],
@@ -110,9 +118,17 @@ describe("cleanup command result", () => {
       const result: CleanupResult = {
         success: true,
         diagnostics: {
+          path: "/repo",
           staleBranches: [],
           staleRemoteBranches: [],
           staleWorktrees: [],
+          actions: [],
+          summary: {
+            totalStaleBranches: 0,
+            safeToDeleteBranches: 0,
+            totalStaleWorktrees: 0,
+            safeToDeleteWorktrees: 0,
+          },
         },
         executedActions: [],
         skippedActions: [],
@@ -129,9 +145,17 @@ describe("cleanup command result", () => {
       const result: CleanupResult = {
         success: true,
         diagnostics: {
+          path: "/repo",
           staleBranches: [],
           staleRemoteBranches: [],
           staleWorktrees: [],
+          actions: [],
+          summary: {
+            totalStaleBranches: 0,
+            safeToDeleteBranches: 0,
+            totalStaleWorktrees: 0,
+            safeToDeleteWorktrees: 0,
+          },
         },
         executedActions: [],
         skippedActions: [],
@@ -146,9 +170,17 @@ describe("cleanup command result", () => {
       const result: CleanupResult = {
         success: false,
         diagnostics: {
+          path: "/repo",
           staleBranches: [],
           staleRemoteBranches: [],
           staleWorktrees: [],
+          actions: [],
+          summary: {
+            totalStaleBranches: 0,
+            safeToDeleteBranches: 0,
+            totalStaleWorktrees: 0,
+            safeToDeleteWorktrees: 0,
+          },
         },
         executedActions: [],
         skippedActions: [],
@@ -162,9 +194,17 @@ describe("cleanup command result", () => {
       const result: CleanupResult = {
         success: true,
         diagnostics: {
+          path: "/repo",
           staleBranches: [],
           staleRemoteBranches: [],
           staleWorktrees: [],
+          actions: [],
+          summary: {
+            totalStaleBranches: 0,
+            safeToDeleteBranches: 0,
+            totalStaleWorktrees: 0,
+            safeToDeleteWorktrees: 0,
+          },
         },
         executedActions: [],
         skippedActions: [],
