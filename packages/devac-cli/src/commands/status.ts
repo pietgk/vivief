@@ -1343,7 +1343,7 @@ export async function statusCommand(options: StatusOptions): Promise<StatusResul
               const totalIssues = counts.error + counts.warning;
               if (totalIssues > 0) {
                 contextParts.push(
-                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nRun get_all_diagnostics to see details.`
+                  `DevAC Status: ${counts.error} errors, ${counts.warning} warnings\nUse status_all_diagnostics MCP tool to see details.`
                 );
               }
             } catch {
