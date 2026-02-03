@@ -1,5 +1,12 @@
 # @pietgk/devac-eval
 
+## 2.5.0
+
+### Patch Changes
+
+- Updated dependencies [9656502]
+  - @pietgk/devac-core@2.5.0
+
 ## 2.4.0
 
 ### Patch Changes
