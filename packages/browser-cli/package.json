@@ -26,7 +26,10 @@
   },
   "dependencies": {
     "@pietgk/browser-core": "workspace:*",
-    "commander": "^12.1.0"
+    "@pietgk/devac-core": "^2.5.0",
+    "commander": "^12.1.0",
+    "p-limit": "^7.2.0",
+    "playwright": "^1.40.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.28",

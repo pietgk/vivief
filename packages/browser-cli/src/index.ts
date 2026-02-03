@@ -11,6 +11,7 @@ import {
   registerInteractCommands,
   registerNavigateCommands,
   registerReadCommands,
+  registerScanStorybookCommand,
   registerScreenshotCommands,
   registerSessionCommands,
 } from "./commands/index.js";
@@ -25,6 +26,7 @@ export {
   registerInteractCommands,
   registerScreenshotCommands,
   registerFindCommands,
+  registerScanStorybookCommand,
 } from "./commands/index.js";
 export type { CommandRegister, CommandResult, CommonOptions } from "./commands/index.js";
 
@@ -48,6 +50,7 @@ function createProgram(): Command {
   registerInteractCommands(program);
   registerScreenshotCommands(program);
   registerFindCommands(program);
+  registerScanStorybookCommand(program);
 
   return program;
 }
