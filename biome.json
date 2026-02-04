@@ -51,5 +51,26 @@
       "packages/fixtures-csharp",
       "packages/fixtures-validation"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["packages/a11y-reference-storybook/src/stories/**/*.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "style": {
+            "noUnusedTemplateLiteral": "off"
+          },
+          "a11y": {
+            "useAltText": "off",
+            "noRedundantAlt": "off",
+            "useAnchorContent": "off",
+            "useValidAnchor": "off"
+          }
+        }
+      }
+    }
+  ]
 }

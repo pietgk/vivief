@@ -1,0 +1,57 @@
+{
+  "name": "@pietgk/a11y-reference-storybook",
+  "version": "0.1.0",
+  "description": "Reference Storybook for accessibility testing - contains intentional violations for each axe-core rule",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "a11y-stories": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./manifest": {
+      "types": "./a11y-rule-manifest.json",
+      "import": "./a11y-rule-manifest.json"
+    }
+  },
+  "files": ["dist", "a11y-rule-manifest.json"],
+  "scripts": {
+    "prebuild": "node ../../scripts/generate-version.mjs .",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "clean": "rm -rf dist",
+    "generate": "node --loader ts-node/esm src/index.ts generate",
+    "storybook": "storybook dev -p 6007",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "axe-core": "^4.10.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^8.4.0",
+    "@storybook/react": "^8.4.0",
+    "@storybook/react-vite": "^8.4.0",
+    "@types/node": "^20.17.28",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "storybook": "^8.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.2.0",
+    "vitest": "^3.1.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
