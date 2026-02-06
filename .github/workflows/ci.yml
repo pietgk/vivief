@@ -41,7 +41,7 @@ jobs:
 
       - name: Generate version files
         run: |
-          for pkg in packages/browser-* packages/devac-*; do
+          for pkg in packages/browser-* packages/devac-* packages/a11y-*; do
             if [ -d "$pkg/src" ]; then
               node scripts/generate-version.mjs "$pkg"
             fi

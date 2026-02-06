@@ -83,11 +83,21 @@ function createTestContext(nodes: ParsedNode[] = []): WcagContext {
 describe("WCAG_RULES", () => {
   it("should have all expected rules defined", () => {
     const ruleIds = WCAG_RULES.map((r) => r.id);
+    // Original rules
     expect(ruleIds).toContain("wcag-keyboard-accessible");
     expect(ruleIds).toContain("wcag-accessible-name");
     expect(ruleIds).toContain("wcag-valid-aria-reference");
     expect(ruleIds).toContain("wcag-no-positive-tabindex");
     expect(ruleIds).toContain("wcag-button-has-text");
+    // New rules
+    expect(ruleIds).toContain("wcag-form-label");
+    expect(ruleIds).toContain("wcag-heading-order");
+    expect(ruleIds).toContain("wcag-semantic-elements");
+    expect(ruleIds).toContain("wcag-aria-hidden-focus");
+    expect(ruleIds).toContain("wcag-list-structure");
+    expect(ruleIds).toContain("wcag-image-alt");
+    expect(ruleIds).toContain("wcag-link-name");
+    expect(ruleIds).toContain("wcag-table-headers");
   });
 
   it("should have all rules enabled by default", () => {
@@ -155,12 +165,13 @@ describe("getWcagRulesByCriterion", () => {
   });
 
   it("should find multiple rules for same criterion", () => {
-    // 4.1.2 is used by both accessible-name and button-has-text
+    // 4.1.2 is used by accessible-name, button-has-text, and aria-hidden-focus
     const rules = getWcagRulesByCriterion("4.1.2");
-    expect(rules.length).toBe(2);
+    expect(rules.length).toBe(3);
     const ids = rules.map((r) => r.id);
     expect(ids).toContain("wcag-accessible-name");
     expect(ids).toContain("wcag-button-has-text");
+    expect(ids).toContain("wcag-aria-hidden-focus");
   });
 
   it("should return empty array for non-existent criterion", () => {
@@ -510,6 +521,644 @@ describe("wcag-valid-aria-reference rule", () => {
 
     // The node-level check always returns null
     // The actual check happens at edge level in the analyzer
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Form Label Rule Tests
+// ============================================================================
+
+describe("wcag-form-label rule", () => {
+  const rule = getRequiredRule("wcag-form-label");
+
+  it("should flag input without label", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "input",
+        props: { type: "text" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-form-label");
+  });
+
+  it("should not flag hidden inputs", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "input",
+        props: { type: "hidden" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag input with aria-label", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "input",
+        ariaProps: { "aria-label": "Email address" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag input with associated label via htmlFor", () => {
+    const labelNode = createTestNode({
+      entity_id: "label-node",
+      properties: {
+        htmlElement: "label",
+        htmlFor: "email-input",
+      },
+    });
+    const inputNode = createTestNode({
+      entity_id: "input-node",
+      properties: {
+        htmlElement: "input",
+        elementId: "email-input",
+      },
+    });
+    const context = createTestContext([labelNode, inputNode]);
+
+    const violation = rule.check(inputNode, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag select with aria-labelledby", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "select",
+        ariaProps: { "aria-labelledby": "select-label" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-labelable elements", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Heading Order Rule Tests
+// ============================================================================
+
+describe("wcag-heading-order rule", () => {
+  const rule = getRequiredRule("wcag-heading-order");
+
+  it("should flag skipped heading levels (h1 -> h3)", () => {
+    const h1 = createTestNode({
+      entity_id: "h1-node",
+      properties: { htmlElement: "h1" },
+      start_line: 10,
+    });
+    const h3 = createTestNode({
+      entity_id: "h3-node",
+      properties: { htmlElement: "h3" },
+      start_line: 20,
+    });
+    const context = createTestContext([h1, h3]);
+
+    const violation = rule.check(h3, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-heading-order");
+    expect(violation?.message).toContain("h1 to h3");
+  });
+
+  it("should not flag proper heading sequence (h1 -> h2)", () => {
+    const h1 = createTestNode({
+      entity_id: "h1-node",
+      properties: { htmlElement: "h1" },
+      start_line: 10,
+    });
+    const h2 = createTestNode({
+      entity_id: "h2-node",
+      properties: { htmlElement: "h2" },
+      start_line: 20,
+    });
+    const context = createTestContext([h1, h2]);
+
+    const violation = rule.check(h2, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag first heading in file", () => {
+    const h2 = createTestNode({
+      entity_id: "h2-node",
+      properties: { htmlElement: "h2" },
+      start_line: 10,
+    });
+    const context = createTestContext([h2]);
+
+    const violation = rule.check(h2, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-heading elements", () => {
+    const node = createTestNode({
+      properties: { htmlElement: "div" },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Semantic Elements Rule Tests
+// ============================================================================
+
+describe("wcag-semantic-elements rule", () => {
+  const rule = getRequiredRule("wcag-semantic-elements");
+
+  it("should flag div with role=navigation", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+        ariaProps: { role: "navigation" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.message).toContain("<nav>");
+  });
+
+  it("should flag div with role=main", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+        ariaProps: { role: "main" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.message).toContain("<main>");
+  });
+
+  it("should not flag semantic elements", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "nav",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag divs without roles", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag divs with roles that have no semantic alternative", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+        ariaProps: { role: "presentation" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// ARIA Hidden Focus Rule Tests
+// ============================================================================
+
+describe("wcag-aria-hidden-focus rule", () => {
+  const rule = getRequiredRule("wcag-aria-hidden-focus");
+
+  it("should flag focusable element with aria-hidden=true", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "button",
+        ariaProps: { "aria-hidden": "true" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-aria-hidden-focus");
+  });
+
+  it("should flag input with aria-hidden=true", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "input",
+        ariaProps: { "aria-hidden": "true" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+  });
+
+  it("should flag link with aria-hidden=true", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: { href: "/home" },
+        ariaProps: { "aria-hidden": "true" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+  });
+
+  it("should not flag non-focusable element with aria-hidden=true", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+        ariaProps: { "aria-hidden": "true" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag focusable element without aria-hidden", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "button",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// List Structure Rule Tests
+// ============================================================================
+
+describe("wcag-list-structure rule", () => {
+  const rule = getRequiredRule("wcag-list-structure");
+
+  it("should flag li without parent list in file", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "li",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-list-structure");
+  });
+
+  it("should not flag li with ul parent in file", () => {
+    const ulNode = createTestNode({
+      entity_id: "ul-node",
+      properties: { htmlElement: "ul" },
+      start_line: 10,
+    });
+    const liNode = createTestNode({
+      entity_id: "li-node",
+      properties: { htmlElement: "li" },
+      start_line: 11,
+    });
+    const context = createTestContext([ulNode, liNode]);
+
+    const violation = rule.check(liNode, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag li with ol parent in file", () => {
+    const olNode = createTestNode({
+      entity_id: "ol-node",
+      properties: { htmlElement: "ol" },
+      start_line: 10,
+    });
+    const liNode = createTestNode({
+      entity_id: "li-node",
+      properties: { htmlElement: "li" },
+      start_line: 11,
+    });
+    const context = createTestContext([olNode, liNode]);
+
+    const violation = rule.check(liNode, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-li elements", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Image Alt Rule Tests
+// ============================================================================
+
+describe("wcag-image-alt rule", () => {
+  const rule = getRequiredRule("wcag-image-alt");
+
+  it("should flag img without alt attribute", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-image-alt");
+    expect(violation?.wcagCriterion).toBe("1.1.1");
+  });
+
+  it("should not flag img with alt attribute", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png", alt: "Test image" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag img with empty alt (decorative)", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png", alt: "" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag img with aria-label", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png" },
+        ariaProps: { "aria-label": "Test image" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag img with role=presentation", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png" },
+        ariaProps: { role: "presentation" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag img with role=none", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png" },
+        ariaProps: { role: "none" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag img with aria-hidden=true", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "img",
+        props: { src: "test.png" },
+        ariaProps: { "aria-hidden": "true" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-img elements", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "div",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Link Name Rule Tests
+// ============================================================================
+
+describe("wcag-link-name rule", () => {
+  const rule = getRequiredRule("wcag-link-name");
+
+  it("should flag link without accessible name", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: { href: "/home" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-link-name");
+    expect(violation?.wcagCriterion).toBe("2.4.4");
+  });
+
+  it("should not flag link with children (text content)", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: { href: "/home", children: "Go home" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag link with aria-label", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: { href: "/home" },
+        ariaProps: { "aria-label": "Navigate home" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag link with title attribute", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: { href: "/home", title: "Home page" },
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag anchor without href", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "a",
+        props: {},
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-link elements", () => {
+    const node = createTestNode({
+      properties: {
+        htmlElement: "button",
+      },
+    });
+    const context = createTestContext([node]);
+
+    const violation = rule.check(node, context);
+    expect(violation).toBeNull();
+  });
+});
+
+// ============================================================================
+// Table Headers Rule Tests
+// ============================================================================
+
+describe("wcag-table-headers rule", () => {
+  const rule = getRequiredRule("wcag-table-headers");
+
+  it("should flag th without scope when multiple th exist", () => {
+    const th1 = createTestNode({
+      entity_id: "th1",
+      properties: { htmlElement: "th" },
+    });
+    const th2 = createTestNode({
+      entity_id: "th2",
+      properties: { htmlElement: "th" },
+    });
+    const context = createTestContext([th1, th2]);
+
+    const violation = rule.check(th1, context);
+    expect(violation).not.toBeNull();
+    expect(violation?.ruleId).toBe("wcag-table-headers");
+  });
+
+  it("should not flag th with scope attribute", () => {
+    const th1 = createTestNode({
+      entity_id: "th1",
+      properties: { htmlElement: "th", props: { scope: "col" } },
+    });
+    const th2 = createTestNode({
+      entity_id: "th2",
+      properties: { htmlElement: "th", props: { scope: "col" } },
+    });
+    const context = createTestContext([th1, th2]);
+
+    const violation = rule.check(th1, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag single th in simple table", () => {
+    const th = createTestNode({
+      properties: { htmlElement: "th" },
+    });
+    const context = createTestContext([th]);
+
+    const violation = rule.check(th, context);
+    expect(violation).toBeNull();
+  });
+
+  it("should not flag non-th elements", () => {
+    const node = createTestNode({
+      properties: { htmlElement: "td" },
+    });
+    const context = createTestContext([node]);
+
     const violation = rule.check(node, context);
     expect(violation).toBeNull();
   });

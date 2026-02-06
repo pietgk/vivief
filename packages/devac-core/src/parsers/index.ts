@@ -58,4 +58,5 @@ export {
   type StoryExtractionResult,
   type StoryExtractorOptions,
   type A11yParameters,
+  type A11yReferenceParameters,
 } from "./story-extractor.js";

@@ -10,6 +10,7 @@ export { registerReadCommands } from "./read.js";
 export { registerInteractCommands } from "./interact.js";
 export { registerScreenshotCommands } from "./screenshot.js";
 export { registerFindCommands } from "./find.js";
+export { registerScanStorybookCommand } from "./scan-storybook.js";
 
 // Re-export types
 export type { CommandRegister, CommandResult, CommonOptions } from "./types.js";
