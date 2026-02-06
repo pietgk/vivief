@@ -1,6 +1,6 @@
-# @pietgk/browser-cli
+# @pietgk/a11y-reference-storybook
 
-## 0.3.0
+## 0.2.0
 
 ### Minor Changes
 
@@ -24,30 +24,3 @@
   - Story generator that creates stories from axe-core rule fixtures
   - Rule manifest mapping rules to expected violations
   - CLI tool for generating stories: `a11y-stories generate`
-
-### Patch Changes
-
-- Updated dependencies [8d6bbb1]
-  - @pietgk/devac-core@2.6.0
-
-## 0.2.1
-
-### Patch Changes
-
-- Updated dependencies [9656502]
-  - @pietgk/browser-core@0.3.0
-
-## 0.2.0
-
-### Minor Changes
-
-- 66396cd: Add browser automation packages for AI-assisted web interaction
-
-  - **browser-core**: Playwright wrapper with element ref system, session management, and page reading
-  - **browser-cli**: Command-line interface for browser automation
-  - **browser-mcp**: MCP server exposing browser tools to AI assistants
-
-### Patch Changes
-
-- Updated dependencies [66396cd]
-  - @pietgk/browser-core@0.2.0
