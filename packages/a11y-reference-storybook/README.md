@@ -143,6 +143,12 @@ The expected workflow:
 | `pnpm test` | Run tests |
 | `pnpm typecheck` | Type check the code |
 
+## See Also
+
+- [ADR-0045: Accessibility Intelligence Layer](../../docs/adr/0045-accessibility-intelligence-layer.md)
+- [Scan Storybook Getting Started](../../docs/guides/scan-storybook-getting-started.md)
+- [Scan Storybook CI/CD Integration](../../docs/guides/scan-storybook-ci-cd.md)
+
 ## License
 
 MIT

@@ -313,6 +313,40 @@ Find options:
 - `--placeholder <text>` - Find by placeholder
 - `--test-id <id>` - Find by data-testid
 
+### Accessibility Scanning
+
+| Command | Description |
+|---------|-------------|
+| `browser scan-storybook` | Scan Storybook stories for accessibility violations |
+
+Options for `scan-storybook`:
+- `--url <url>` - Storybook base URL (default: `http://localhost:6006`)
+- `--workers <n>` - Number of parallel browser pages (default: `4`)
+- `--timeout <ms>` - Timeout per story in milliseconds (default: `30000`)
+- `--wcag <level>` - WCAG conformance level: `wcag2a`, `wcag2aa`, `wcag21aa` (default: `wcag21aa`)
+- `--filter <pattern>` - Filter stories by title pattern (supports wildcards)
+- `--exclude-tags <tags>` - Skip stories with these tags (comma-separated)
+- `--headed` - Run browser in headed mode
+- `--json` - Output results as JSON
+- `--no-hub` - Skip pushing results to DevAC hub
+- `--repo-id <id>` - Repository ID for hub integration (auto-detected from git)
+
+```bash
+# Scan all stories
+browser scan-storybook
+
+# Scan with options
+browser scan-storybook --workers 8 --wcag wcag21aa --exclude-tags "wip,a11y-skip"
+
+# Filter by component name
+browser scan-storybook --filter "Button/*"
+
+# JSON output for CI
+browser scan-storybook --json > results.json
+```
+
+See [Scan Storybook Getting Started](docs/guides/scan-storybook-getting-started.md) for detailed usage.
+
 ### Example Workflow
 
 ```bash

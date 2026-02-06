@@ -154,6 +154,80 @@ The original plan proposed adding an `A11yViolationEffect` type. After implement
 - **Simpler architecture**: No parallel storage for the same data
 - **LLM integration**: Existing MCP tools (`status_diagnostics`, `status_all_diagnostics`) already expose diagnostics
 
+### 7. Scan-Storybook CLI Command
+
+The `browser scan-storybook` command automates Storybook accessibility scanning:
+
+**Architecture:**
+
+```
+browser-cli scan-storybook
+├── story-discovery.ts    # Fetch and filter stories from /index.json
+├── parallel-scanner.ts   # Worker pool for scanning stories via Playwright
+├── hub-writer.ts         # Push violations to DevAC unified_diagnostics
+└── types.ts              # Shared types
+```
+
+**Workflow:**
+1. Fetches story metadata from Storybook's `/index.json` endpoint
+2. Filters stories by title pattern and/or excludes by tags
+3. Uses parallel Playwright workers to navigate and scan each story
+4. Runs axe-core via `AxeScanner` on each story's iframe
+5. Converts violations to `unified_diagnostics` format
+6. Pushes results to DevAC hub for LLM visibility
+
+**CLI Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--url` | `localhost:6006` | Storybook base URL |
+| `--workers` | `4` | Parallel browser pages |
+| `--timeout` | `30000` | Timeout per story (ms) |
+| `--wcag` | `wcag21aa` | Conformance level |
+| `--filter` | - | Filter stories by title |
+| `--exclude-tags` | - | Skip stories with tags |
+| `--no-hub` | `false` | Skip hub push |
+| `--json` | `false` | JSON output |
+
+### 8. A11y Reference Storybook Package
+
+A validation package (`@pietgk/a11y-reference-storybook`) providing reference stories with intentional violations for testing the scan-storybook command:
+
+**Story Generator:**
+- Reads axe-core rule fixtures
+- Generates stories with intentional violations
+- Produces complementary passing stories
+
+**Rule Manifest:**
+- JSON mapping rules to expected violations
+- Used to validate detection rate
+- Tracks coverage gaps
+
+**Story Format:**
+Stories use `a11yReference` parameters for validation:
+
+```typescript
+export const ButtonWithoutLabel: Story = {
+  parameters: {
+    a11yReference: {
+      ruleId: "button-name",
+      shouldViolate: true,
+      expectedViolations: ["button-name"],
+      wcag: ["4.1.2"],
+      impact: "critical",
+    },
+  },
+  render: () => <button><Icon name="close" /></button>,
+};
+```
+
+**Fields:**
+- `ruleId`: The axe-core rule being tested
+- `shouldViolate`: `true` for violation stories, `false` for passing stories
+- `expectedViolations`: Array of expected rule IDs
+- `wcag`: Related WCAG success criteria
+- `impact`: Expected severity level
+
 ## Consequences
 
 ### Positive
@@ -188,6 +262,15 @@ The original plan proposed adding an `A11yViolationEffect` type. After implement
 | `packages/browser-core/src/reader/accessibility/play-function-utils.ts` | Storybook Play Function utilities |
 | `docs/spec/accessibility-research/*.md` | Research documents |
 
+### New Files (Scan-Storybook)
+
+| File | Purpose |
+|------|---------|
+| `packages/browser-cli/src/commands/scan-storybook/*.ts` | CLI command implementation |
+| `packages/a11y-reference-storybook/*` | Reference Storybook package |
+| `docs/guides/scan-storybook-getting-started.md` | Getting started guide |
+| `docs/guides/scan-storybook-ci-cd.md` | CI/CD integration guide |
+
 ### Modified Files
 
 | File | Change |
@@ -203,8 +286,12 @@ The original plan proposed adding an `A11yViolationEffect` type. After implement
 ## References
 
 - [Issue #235](https://github.com/pietgk/vivief/issues/235) - Accessibility Retrieval Strategy
+- [Issue #248](https://github.com/pietgk/vivief/issues/248) - Scan-Storybook CLI Command
 - [ADR-0044](0044-unified-addressing-scheme.md) - Unified Addressing Scheme (entity IDs)
 - [Plan: Accessibility Intelligence Layer](.claude/plans/235-accessibility-retrieval-strategy.md)
+- [Plan: Scan-Storybook](.claude/plans/248-scan-storybook.md)
 - [WCAG 2.1 Guidelines](https://www.w3.org/TR/WCAG21/)
 - [Storybook CSF3](https://storybook.js.org/docs/react/api/csf)
 - [axe-core](https://github.com/dequelabs/axe-core)
+- [Getting Started Guide](../guides/scan-storybook-getting-started.md)
+- [CI/CD Integration Guide](../guides/scan-storybook-ci-cd.md)
