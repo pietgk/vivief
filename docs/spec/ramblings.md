@@ -2,6 +2,18 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+# focus and features
+
+determine the main features of this workspace
+- user facing features like onboarding, booking, messaging, ...
+- technical features like notifications, events, storage, analytics, ...
+for each feature whe want an overview of where parts of it are implemented using diagrams with a legend table that fully defines the packages and the relevan directories.
+implementations can be shared by multiple features
+we want these features so that we can use it to have focus on them while adding new features, fix bugs, improve test coverage, improve accessibility.
+lets plan how to implement this with some alternatives with pros and cons.
+the end goal is the have a pleasent and manageble way of working with devac validation pipeline to tackle bigger issues like improve test coverage, improve accessibility with having a large number of accessibility issues.
+focus can also mean that we want to tackle a specific concept that spans different features so we can determine the total scope, learn if they should be fixed from learning to fix if for 1 feature and then apply it for all features.
+we should also prepare for the idea that learning from fixing is a fundamental concept that matches llm instructions and (lint) rules so finding out haw to handle this is something we should make explicit and starts using more.
 
 ## devac status improve determnistic part
 
