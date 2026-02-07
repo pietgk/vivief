@@ -126,27 +126,24 @@ This is the most-cited number, but it requires nuance:
 | **Human review (genuinely needed, Tier C)** | 5-10% | **80-100%** |
 
 ```mermaid
-block-beta
-  columns 1
-  block:pyramid
-    A["Human Review (Tier C) — 5-10%"]
-    B["LLM + Browser Automation (Tier B) — 8-12%"]
-    C["LLM Semantic Analysis (Tier A) — 12-15%"]
-    D["Full-Page E2E (Playwright/Maestro) — 8-12%"]
-    E["ARIA Tree + Screen Reader Testing — 10-15%"]
-    F["Behavioral Testing (Zag + Play Functions) — 15-20%"]
-    G["Runtime Scanning (axe-core) — 20-25%"]
-    H["Static Analysis (DevAC + ESLint) — 5-10%"]
-  end
+flowchart TD
+    H["Static Analysis — DevAC + ESLint — 5-10%"] --> G
+    G["Runtime Scanning — axe-core — 20-25%"] --> F
+    F["Behavioral Testing — Zag + Play Functions — 15-20%"] --> E
+    E["ARIA Tree + Screen Reader Testing — 10-15%"] --> D
+    D["Full-Page E2E — Playwright/Maestro — 8-12%"] --> C
+    C["LLM Semantic Analysis — Tier A — 12-15%"] --> B
+    B["LLM + Browser Automation — Tier B — 5-8%"] --> A
+    A["Human Review — Tier C — 5-10%"]
 
-  style A fill:#ff6b6b,color:#fff
-  style B fill:#ffa94d,color:#fff
-  style C fill:#ffd43b,color:#333
-  style D fill:#69db7c,color:#333
-  style E fill:#4dabf7,color:#fff
-  style F fill:#4dabf7,color:#fff
-  style G fill:#339af0,color:#fff
-  style H fill:#1c7ed6,color:#fff
+    style H fill:#1c7ed6,color:#fff
+    style G fill:#339af0,color:#fff
+    style F fill:#4dabf7,color:#fff
+    style E fill:#4dabf7,color:#fff
+    style D fill:#69db7c,color:#333
+    style C fill:#ffd43b,color:#333
+    style B fill:#ffa94d,color:#fff
+    style A fill:#ff6b6b,color:#fff
 ```
 
 ### Our Honest Ceiling (React Native)
@@ -249,22 +246,22 @@ Use zag to bootstrap contracts, validate against APG, own the result independent
 
 ```mermaid
 gantt
-    title A11y Detection & Fixing — Phase Progression
-    dateFormat YYYY-MM
-    axisFormat %Y Q%q
+    title A11y Detection and Fixing — Phase Progression
+    dateFormat YYYY-MM-DD
+    axisFormat %b %Y
 
     section Foundation
-    Phase 0: Current State       :done, p0, 2026-01, 2026-02
-    Phase 1: A11y Contracts      :active, p1, 2026-02, 3w
-    Phase 2: Behavioral Storybook :p2, after p1, 3w
+    Phase 0 Current State       :done, p0, 2026-01-01, 2026-02-01
+    Phase 1 A11y Contracts      :active, p1, 2026-02-01, 21d
+    Phase 2 Behavioral Storybook :p2, after p1, 21d
 
     section Expansion
-    Phase 3: Behavioral Assertions :p3, after p2, 2w
-    Phase 4: RN Testing Stack     :p4, after p2, 4w
+    Phase 3 Behavioral Assertions :p3, after p2, 14d
+    Phase 4 RN Testing Stack     :p4, after p2, 28d
 
     section Intelligence
-    Phase 5+: Advanced (ARIA, SR, LLM) :p5, after p3, 8w
-    Phase 6: Full-Page E2E        :p6, after p4, 3w
+    Phase 5 Advanced ARIA SR LLM :p5, after p3, 56d
+    Phase 6 Full-Page E2E        :p6, after p4, 21d
 ```
 
 ### Phase 0: Current State (~25-35% web coverage)
@@ -888,33 +885,13 @@ These criteria require observing real browser behavior during interaction sequen
 ### 15.5 Revised Coverage Model with E2E Layer
 
 ```mermaid
-graph LR
-    subgraph SB["Storybook (Component-Level)"]
-        direction TB
-        SB1["59 axe-core rules"]
-        SB2["Contrast, ARIA, labels"]
-        SB3["Keyboard via play functions"]
-        SB4["Isolated, fast, parallel"]
-    end
+flowchart TD
+    SB["Storybook — Component-Level\n59 of 67 axe-core rules\nContrast, ARIA, labels, keyboard"]
+    E2E["Full-Page E2E — Playwright/Maestro\n8 page-level rules\nbypass, document-title, html-has-lang\nmeta-viewport, landmarks, focus order"]
+    XP["Cross-Page E2E — Multi-Page Crawl\n4+ WCAG criteria\nConsistent navigation, help, redundant entry"]
 
-    subgraph E2E["Full-Page E2E (Playwright/Maestro)"]
-        direction TB
-        E1["8 page-level rules"]
-        E2["bypass, document-title, html-has-lang"]
-        E3["meta-viewport, landmarks"]
-        E4["Runtime focus/keyboard"]
-    end
-
-    subgraph XP["Cross-Page E2E (Multi-Page Crawl)"]
-        direction TB
-        XP1["4+ WCAG criteria"]
-        XP2["Consistent navigation (3.2.3)"]
-        XP3["Consistent help (3.2.6)"]
-        XP4["Redundant entry (3.3.7)"]
-    end
-
-    SB -->|"covers 88%<br/>of axe rules"| E2E
-    E2E -->|"+ page context<br/>+ runtime"| XP
+    SB -->|"covers 88% of axe rules"| E2E
+    E2E -->|"adds page context + runtime"| XP
 
     style SB fill:#4dabf7,color:#fff
     style E2E fill:#69db7c,color:#333
@@ -958,27 +935,27 @@ The existing XCTest PoC (Section 12) proved this pipeline works, but it runs ins
 
 ```mermaid
 flowchart LR
-    CL["Component<br/>Library"] --> NSA["Native Storybook<br/>App"]
+    CL["Component Library"] --> NSA["Native Storybook App"]
     NSA --> iOS["iOS Simulator"]
     NSA --> Android["Android Emulator"]
-    iOS --> XCT["XCTest<br/>performAccessibilityAudit()"]
-    iOS --> Maestro1["Maestro<br/>E2E"]
-    Android --> Espresso["Espresso<br/>+ ATF"]
-    Android --> Maestro2["Maestro<br/>E2E"]
+    iOS --> XCT["XCTest audit"]
+    iOS --> M1["Maestro E2E"]
+    Android --> ESP["Espresso + ATF"]
+    Android --> M2["Maestro E2E"]
     XCT --> Hub["DevAC Hub"]
-    Espresso --> Hub
-    Maestro1 --> Hub
-    Maestro2 --> Hub
-    Hub --> UD["Unified<br/>Diagnostics"]
+    ESP --> Hub
+    M1 --> Hub
+    M2 --> Hub
+    Hub --> UD["Unified Diagnostics"]
 
     style CL fill:#4dabf7,color:#fff
     style NSA fill:#339af0,color:#fff
     style iOS fill:#868e96,color:#fff
     style Android fill:#868e96,color:#fff
     style XCT fill:#69db7c,color:#333
-    style Espresso fill:#69db7c,color:#333
-    style Maestro1 fill:#ffd43b,color:#333
-    style Maestro2 fill:#ffd43b,color:#333
+    style ESP fill:#69db7c,color:#333
+    style M1 fill:#ffd43b,color:#333
+    style M2 fill:#ffd43b,color:#333
     style Hub fill:#ff6b6b,color:#fff
     style UD fill:#cc5de8,color:#fff
 ```
