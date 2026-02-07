@@ -10,7 +10,7 @@
 
 | Term | Definition |
 |------|-----------|
-| **WCAG** | Web Content Accessibility Guidelines - W3C standard defining accessibility requirements. Levels: A (minimum), AA (standard target), AAA (enhanced). Current version: 2.1, with 2.2 released 2023. |
+| **WCAG** | Web Content Accessibility Guidelines - W3C standard defining accessibility requirements. Levels: A (minimum), AA (standard target), AAA (enhanced). Current version: 2.2 (released October 2023). Adds 9 new criteria including 4 at AA level. Removes 4.1.1 (Parsing). |
 | **WAI-ARIA** | Web Accessibility Initiative - Accessible Rich Internet Applications. A W3C specification that defines HTML attributes (roles, states, properties) to make dynamic web content accessible to assistive technologies. |
 | **APG** | ARIA Authoring Practices Guide - W3C guide describing how to build accessible web components using WAI-ARIA. Defines expected keyboard interactions, ARIA attributes, and focus management per component pattern (dialog, menu, tabs, etc.). |
 | **ACT Rules** | Accessibility Conformance Testing Rules - W3C standard format for writing machine-readable accessibility test rules. Ensures consistent interpretation of WCAG across tools. |
@@ -53,7 +53,7 @@
 
 ## 2. The Goal & Why It Matters
 
-**What we want:** Automated detection of WCAG 2.1 AA accessibility issues in React and React Native, with LLM-consumable fix suggestions delivered through DevAC's MCP server.
+**What we want:** Automated detection of WCAG 2.2 AA accessibility issues in React and React Native, with LLM-consumable fix suggestions delivered through DevAC's MCP server.
 
 **Why it matters:**
 
@@ -90,7 +90,7 @@
 | **XCTest + performAccessibilityAudit()** (iOS) | PoC exists | iOS WCAG audit | Xcode 15+ built-in audit: contrast, touch targets, Dynamic Type, element descriptions, traits. **PROVEN** - working PoC in ~/ws/app scanning RN Storybook stories. |
 | **Apple HIG audit** (via performAccessibilityAudit) | PoC exists | iOS HIG + WCAG audit | 7 audit types covering Apple-specific criteria beyond WCAG: Dynamic Type (300%+), 44pt touch targets, system preference response. **PROVEN** - working PoC in ~/ws/app. |
 | **Espresso + ATF** (Android) | 0 | Android WCAG audit | Google's ATF: touch target size (48dp), color contrast, content labels. Runs automatically on every Espresso interaction. Works with RN views. |
-| **axe DevTools Mobile** (Deque) | 0 | Comprehensive mobile scanning | Full RN support (2025). WCAG 2.1/2.2 compliance, touch target spacing, contrast with ML enhancement. Available as Appium plugin. |
+| **axe DevTools Mobile** (Deque) | 0 | Comprehensive mobile scanning | Full RN support (2025). WCAG 2.2 compliance, touch target spacing, contrast with ML enhancement. Available as Appium plugin. |
 | **Simulator keyboard testing** | 0 | Keyboard nav verification | iOS: Full Keyboard Access in simulator. Android: D-pad + Tab navigation in emulator. Verifies focus order and keyboard accessibility. |
 
 ---
@@ -106,7 +106,7 @@
 This is the most-cited number, but it requires nuance:
 
 - **57% by volume** means automated tools catch 57% of individual issue instances. Many of these are repeated patterns (e.g., 100 images all missing alt text = 100 issues, one rule).
-- **By WCAG criteria count:** ~13-15 of ~50 criteria are fully automatable (~30%). Another ~20 can be partially checked.
+- **By WCAG criteria count:** ~15-17 of ~55 AA-level criteria (WCAG 2.2) are fully automatable (~30%). Another ~20 can be partially checked.
 - **70% of criteria** require some human judgment - the tool can flag a potential issue but cannot confirm it.
 - **The "last mile" (~20-35%):** Meaningful alt text, logical reading order, cognitive accessibility, and context-dependent decisions were beyond traditional rule-based automation entirely. However, LLM-augmented evaluation challenges this ceiling - see Section 13.
 
@@ -120,9 +120,34 @@ This is the most-cited number, but it requires nuance:
 | Runtime scanning (axe-core) | 20-25% | 25-35% |
 | Behavioral testing (zag + play functions) | 15-20% | 40-55% |
 | ARIA tree + screen reader testing | 10-15% | 50-65% |
-| LLM semantic analysis (Tier A) | 12-15% | 62-80% |
-| LLM + browser automation (Tier B) | 8-12% | 70-90% |
-| **Human review (genuinely needed, Tier C)** | 5-10% | **75-100%** |
+| Full-page E2E (Playwright/Maestro) | 8-12% | 58-75% |
+| LLM semantic analysis (Tier A) | 12-15% | 70-88% |
+| LLM + browser automation (Tier B) | 5-8% | 75-95% |
+| **Human review (genuinely needed, Tier C)** | 5-10% | **80-100%** |
+
+```mermaid
+block-beta
+  columns 1
+  block:pyramid
+    A["Human Review (Tier C) — 5-10%"]
+    B["LLM + Browser Automation (Tier B) — 8-12%"]
+    C["LLM Semantic Analysis (Tier A) — 12-15%"]
+    D["Full-Page E2E (Playwright/Maestro) — 8-12%"]
+    E["ARIA Tree + Screen Reader Testing — 10-15%"]
+    F["Behavioral Testing (Zag + Play Functions) — 15-20%"]
+    G["Runtime Scanning (axe-core) — 20-25%"]
+    H["Static Analysis (DevAC + ESLint) — 5-10%"]
+  end
+
+  style A fill:#ff6b6b,color:#fff
+  style B fill:#ffa94d,color:#fff
+  style C fill:#ffd43b,color:#333
+  style D fill:#69db7c,color:#333
+  style E fill:#4dabf7,color:#fff
+  style F fill:#4dabf7,color:#fff
+  style G fill:#339af0,color:#fff
+  style H fill:#1c7ed6,color:#fff
+```
 
 ### Our Honest Ceiling (React Native)
 
@@ -141,7 +166,25 @@ This is the most-cited number, but it requires nuance:
 
 ### Bottom Line
 
-**55-65% fully automated with traditional rule-based tools is realistic for both web AND React Native.** This is the number the industry quotes because it was measured with traditional tools. With LLM-augmented evaluation (Tier A semantic analysis + Tier B browser/platform automation), the ceiling rises to **70-90%**. The genuinely human-required portion - user testing with people with disabilities, complex cognitive UX, novel interaction patterns, legal compliance sign-off - is **5-10%**. The industry's "25-35% requires humans" figure is a 2022 answer to a 2026 question. See Section 13 for the full evidence and three-tier decomposition.
+**55-65% fully automated with traditional rule-based tools is realistic for both web AND React Native.** Adding a full-page E2E layer (Section 15) raises the traditional automation ceiling to **63-75%** by covering the 8 page-level rules and runtime criteria that Storybook cannot test. With LLM-augmented evaluation (Tier A semantic analysis + Tier B browser/platform automation), the ceiling rises to **78-95%**. The genuinely human-required portion - user testing with people with disabilities, complex cognitive UX, novel interaction patterns, legal compliance sign-off - is **5-10%**. The industry's "25-35% requires humans" figure is a 2022 answer to a 2026 question. See Section 13 for the full evidence and three-tier decomposition.
+
+### WCAG 2.2 New Criteria Analysis
+
+WCAG 2.2 (October 2023) added 9 new success criteria and removed 4.1.1 (Parsing). The new criteria most relevant to our testing strategy:
+
+| New SC | Level | Name | Testing Tier | Notes |
+|--------|-------|------|-------------|-------|
+| 2.4.11 | AA | Focus Not Obscured (Minimum) | Tier B (runtime) | Needs browser automation to detect sticky headers/footers obscuring focused elements |
+| 2.4.12 | AAA | Focus Not Obscured (Enhanced) | Out of scope | AAA — beyond target conformance level |
+| 2.4.13 | AAA | Focus Appearance | Out of scope | AAA — beyond target conformance level |
+| 2.5.7 | AA | Dragging Movements | Tier B (interaction) | Must verify single-pointer alternatives exist for drag operations |
+| 2.5.8 | AA | Target Size (Minimum) 24×24px | Static/Tier A | Automatable via computed style inspection; aligns with existing touch target checks |
+| 3.2.6 | A | Consistent Help | Tier A (cross-page LLM) | LLM can verify help mechanism placement consistency across pages |
+| 3.3.7 | A | Redundant Entry | Tier B (cross-page forms) | Requires multi-page form flow automation to verify data persistence |
+| 3.3.8 | AA | Accessible Authentication (Minimum) | Tier A (semantic) | LLM can evaluate whether auth flows avoid cognitive function tests |
+| 3.3.9 | AAA | Accessible Authentication (Enhanced) | Out of scope | AAA — beyond target conformance level |
+
+**Impact on coverage estimates:** The 4 new AA criteria (2.4.11, 2.5.7, 2.5.8, 3.3.8) and 2 new A criteria (3.2.6, 3.3.7) expand the total AA-level criteria to ~55. Of these, 2.5.8 is automatable via static analysis, 3.2.6 and 3.3.8 are LLM Tier A candidates, and 2.4.11, 2.5.7, and 3.3.7 require runtime automation (Tier B). The removal of 4.1.1 (Parsing) eliminates one criterion that was already obsolete in modern browsers.
 
 ---
 
@@ -196,13 +239,33 @@ Use zag to bootstrap contracts, validate against APG, own the result independent
 | 3. Platform audit iOS | XCTest + `performAccessibilityAudit()` | Contrast, touch targets, Dynamic Type, descriptions, traits | CI (iOS) |
 | 4. Platform audit Android | Espresso + ATF (`AccessibilityChecks.enable()`) | Touch targets (48dp), contrast, content labels | CI (Android) |
 | 5. Cross-platform E2E | Maestro (operates at accessibility layer) | Functional a11y, labels, interaction via same layer as VoiceOver/TalkBack | CI |
-| 6. Automated scanning | axe DevTools Mobile | WCAG 2.1/2.2, touch spacing, contrast (ML) | CI / on demand |
+| 6. Automated scanning | axe DevTools Mobile | WCAG 2.2, touch spacing (including 2.5.8 Target Size), contrast (ML) | CI / on demand |
 | 7. Simulator keyboard | iOS Full Keyboard Access, Android D-pad | Focus order, keyboard navigation, traps | CI / manual |
 | 8. Human + real AT (Tier C) | VoiceOver/TalkBack manual testing, disability user testing | Gesture nav, complex cognitive a11y, novel interactions, lived experience | Periodic |
 
 ---
 
 ## 7. What Each Phase Achieves
+
+```mermaid
+gantt
+    title A11y Detection & Fixing — Phase Progression
+    dateFormat YYYY-MM
+    axisFormat %Y Q%q
+
+    section Foundation
+    Phase 0: Current State       :done, p0, 2026-01, 2026-02
+    Phase 1: A11y Contracts      :active, p1, 2026-02, 3w
+    Phase 2: Behavioral Storybook :p2, after p1, 3w
+
+    section Expansion
+    Phase 3: Behavioral Assertions :p3, after p2, 2w
+    Phase 4: RN Testing Stack     :p4, after p2, 4w
+
+    section Intelligence
+    Phase 5+: Advanced (ARIA, SR, LLM) :p5, after p3, 8w
+    Phase 6: Full-Page E2E        :p6, after p4, 3w
+```
 
 ### Phase 0: Current State (~25-35% web coverage)
 
@@ -321,7 +384,13 @@ What is missing:
 - Live region announcement verification: accessibility tree diffs → LLM evaluates announcement completeness
 - Cross-page consistency: multi-page crawl → LLM identifies navigation/labeling inconsistencies
 
-**Coverage ceiling:** ~70-90% with LLM augmentation. The genuinely human-required portion (Tier C) is 5-10% - user testing with people with disabilities, complex cognitive UX evaluation, novel interaction patterns, and legal compliance sign-off. See Section 13 for the full evidence.
+**Phase 6: Full-Page E2E** (parallel to Phase 5+):
+- **Playwright full-page scans** covering the 8 page-level axe-core rules Storybook cannot test (see Section 15)
+- **Cross-page crawl** for WCAG 3.2.3, 3.2.4, 3.2.6, 3.3.7 consistency criteria
+- **Runtime interaction testing** for keyboard traps (2.1.2), focus order (2.4.3), focus not obscured (2.4.11)
+- **Maestro full-app E2E** for React Native page-level and cross-screen testing
+
+**Coverage ceiling:** ~78-95% with E2E + LLM augmentation. The genuinely human-required portion (Tier C) is 5-10% - user testing with people with disabilities, complex cognitive UX evaluation, novel interaction patterns, and legal compliance sign-off. See Section 13 for the full evidence.
 
 ---
 
@@ -378,7 +447,7 @@ XCTest's `performAccessibilityAudit()` and Espresso's ATF together provide platf
 
 ### Value Proposition
 
-Going from ~30% (axe-core alone) to ~70-90% (full layered approach with LLM augmentation) for both web and RN:
+Going from ~30% (axe-core alone) to ~78-95% (full layered approach with E2E + LLM augmentation) for both web and RN:
 
 - **Catches the most impactful behavioral bugs** that axe-core completely misses: keyboard navigation failures, focus trap issues, state-dependent ARIA errors
 - **Platform-native audits** (XCTest, ATF) catch mobile-specific issues no web tool can detect
@@ -396,13 +465,14 @@ Going from ~30% (axe-core alone) to ~70-90% (full layered approach with LLM augm
 | Phase 3: Behavioral Assertions | scan-storybook contract integration | ~1-2 weeks |
 | Phase 4: RN Testing Stack | ESLint, XCTest, Espresso, Maestro integration | ~3-4 weeks |
 | Phase 5+: Advanced | Playwright ARIA, Guidepup, LLM analysis, axe Mobile | ~4-8 weeks |
-| **Total to full vision** | | **~12-20 weeks** |
+| Phase 6: Full-Page E2E | Page-level rules, cross-page criteria, runtime interaction | ~2-3 weeks |
+| **Total to full vision** | | **~14-23 weeks** |
 
 ### The Comparison
 
 **Without this effort:** axe-core (~30%) + periodic manual audits. Every audit starts from scratch. No behavioral coverage. No RN automation. AI agents cannot help fix issues.
 
-**With this effort:** ~55-65% automated with traditional tools + ~70-90% with LLM-augmented evaluation + focused human audit for the 5-10% that genuinely requires it. Violations caught in PRs. AI agents query diagnostics and suggest fixes. Expert audit scope reduced by 70-80%.
+**With this effort:** ~63-75% automated with traditional tools (including E2E layer) + ~78-95% with LLM-augmented evaluation + focused human audit for the 5-10% that genuinely requires it. Violations caught in PRs. AI agents query diagnostics and suggest fixes. Expert audit scope reduced by 70-80%.
 
 **This is a 2-3x improvement** in automated coverage for both platforms.
 
@@ -559,8 +629,9 @@ They cluster into seven skill domains:
 | **Sensory/color** | 1.3.3, 1.4.1 | Instructions not relying solely on sensory cues |
 | **Interaction patterns** | 2.1.4, 2.5.1, 2.5.2, 2.5.4, 2.5.7 | Pointer/motion alternatives, keyboard shortcuts |
 | **Cross-page consistency** | 3.2.3, 3.2.4, 3.2.6 | Navigation, identification, help consistency |
-| **Cognitive/error** | 3.3.3, 3.3.4, 3.3.7, 3.3.8 | Error suggestion quality, authentication alternatives |
+| **Cognitive/error** | 3.3.3, 3.3.4, 3.3.7 (2.2), 3.3.8 (2.2) | Error suggestion quality, redundant entry, accessible authentication |
 | **AT compatibility** | 4.1.2, 4.1.3 | Dynamic state changes, status message announcements |
+| **New in WCAG 2.2** | 2.4.11, 2.5.7, 2.5.8 | Focus not obscured, dragging alternatives, target size minimum |
 
 ### Evidence: LLMs Are Already Performing "Human-Only" A11y Tasks
 
@@ -597,8 +668,13 @@ We rate current LLM capability on a 1-10 scale for each "human-only" domain, bas
 | **Focus order logic** | 2.4.3 | **5/10** | Fundamentally runtime - needs browser automation bridge to capture actual focus trace |
 | **Media quality** | 1.2.x | **5/10** | Can evaluate captions/transcripts for accuracy, but multimedia analysis is harder |
 | **AT compatibility** | 4.1.2, 4.1.3 | **4/10** | Dynamic state changes need runtime verification via accessibility tree diffs |
+| **Target size (2.2)** | 2.5.8 | **8/10** | Computed style inspection; 24×24px minimum is measurable |
+| **Consistent help (2.2)** | 3.2.6 | **7/10** | Cross-page LLM comparison of help mechanism placement |
+| **Accessible auth (2.2)** | 3.3.8 | **7/10** | Semantic analysis of auth flows for cognitive function tests |
+| **Focus not obscured (2.2)** | 2.4.11 | **5/10** | Needs runtime scroll/focus trace + LLM evaluation of visibility |
+| **Dragging movements (2.2)** | 2.5.7 | **5/10** | Needs interaction simulation to verify single-pointer alternatives |
 
-**Average: 6.4/10 across all "human-only" criteria** - far from zero, which is what traditional automation scores.
+**Average: 6.3/10 across all "human-only" criteria** (including WCAG 2.2 additions) - far from zero, which is what traditional automation scores.
 
 ### The Three-Tier Decomposition
 
@@ -616,6 +692,9 @@ Tasks where LLMs match or approach human auditor performance TODAY:
 - Color as sole information carrier (multimodal analysis)
 - Plain language / readability evaluation
 - Navigation consistency (given multi-page input)
+- Target size verification (2.5.8 — computed style inspection)
+- Consistent help placement (3.2.6 — cross-page LLM comparison)
+- Accessible authentication evaluation (3.3.8 — semantic analysis of auth flows)
 
 **What's needed:** Screenshot + DOM + accessibility tree + page context → LLM evaluation → structured pass/fail with confidence score.
 
@@ -629,6 +708,9 @@ Tasks where LLMs need runtime data from browser automation to make judgments:
 - Live region announcement verification (need accessibility tree diffs)
 - Cross-page consistency (need to crawl multiple pages)
 - Pointer/motion alternative verification (need interaction simulation)
+- Focus not obscured verification (2.4.11 — scroll position + focus trace)
+- Dragging movement alternatives (2.5.7 — interaction simulation for pointer alternatives)
+- Redundant entry detection (3.3.7 — multi-page form flow automation)
 
 **What's needed:** Browser automation captures runtime state → feeds to LLM for judgment → structured results. DevAC's browser-core + Playwright integration provides the automation layer.
 
@@ -663,9 +745,21 @@ It is consensus - from 2022. The studies that established this figure (Deque aut
 | Runtime scanning (axe-core) | 20-25% | 25-35% |
 | Behavioral testing (zag + play functions) | 15-20% | 40-55% |
 | ARIA tree + screen reader testing | 10-15% | 50-65% |
-| **LLM semantic analysis (Tier A)** | **12-15%** | **62-80%** |
-| **LLM + browser automation (Tier B)** | **8-12%** | **70-90%** |
-| **Human review (Tier C - genuinely needed)** | **5-10%** | **75-100%** |
+| Full-page E2E (Playwright/Maestro) | 8-12% | 58-75% |
+| **LLM semantic analysis (Tier A)** | **12-15%** | **70-88%** |
+| **LLM + browser automation (Tier B)** | **5-8%** | **75-95%** |
+| **Human review (Tier C - genuinely needed)** | **5-10%** | **80-100%** |
+
+```mermaid
+pie title Coverage Distribution by Testing Layer
+    "Static Analysis" : 8
+    "Runtime Scanning (axe-core)" : 22
+    "Behavioral + AT Testing" : 17
+    "Full-Page E2E" : 10
+    "LLM Tier A (Semantic)" : 13
+    "LLM Tier B (Runtime-Assisted)" : 10
+    "Human Review (Tier C)" : 7
+```
 
 **The genuinely human-required portion is 5-10%, not 25-35%.** The remaining 15-27% that was previously classified as "human-only" is LLM-addressable with current technology, given the right evaluation architecture (structured criteria, multimodal input, browser automation for runtime data).
 
@@ -730,6 +824,171 @@ If we accept that accessibility auditing is a definable skill set composed of sp
 
 ---
 
+## 15. Testing Context Gap: Storybook vs. Full-Page vs. Cross-Page
+
+Storybook scanning (via `browser scan-storybook`) is our primary component-level testing vehicle. However, it has structural limitations that must be addressed by complementary full-page and cross-page E2E testing.
+
+### 15.1 What Storybook Can Test
+
+Of 67 axe-core WCAG rules, **59 fire at component level** and are testable in Storybook isolation:
+
+- Color contrast (all contrast rules)
+- ARIA attribute validation (roles, states, properties)
+- Keyboard handler presence (via play functions)
+- Form labels and accessible names
+- Heading structure within components
+- Image alt text presence
+- Link and button accessible names
+- Table structure and semantics
+
+**Strengths:** Isolated rendering, fast execution, parallelizable across stories, deterministic results. Each component is tested in every configured state.
+
+### 15.2 Page-Level Rules (Storybook Cannot Test)
+
+**8 axe-core WCAG rules require full-page context** that Storybook's isolated component rendering cannot provide:
+
+| axe-core Rule | WCAG SC | Why Page-Level |
+|---------------|---------|----------------|
+| `bypass` | 2.4.1 | Skip-navigation mechanism needs full page with nav + main content |
+| `document-title` | 2.4.2 | `<title>` element lives in `<head>`, not in component markup |
+| `html-has-lang` | 3.1.1 | `<html lang>` attribute is set at document level |
+| `html-lang-valid` | 3.1.1 | Validates the `lang` attribute value on `<html>` |
+| `html-xml-lang-mismatch` | 3.1.1 | Compares `lang` and `xml:lang` on `<html>` |
+| `meta-viewport` | 1.4.4 | `<meta name="viewport">` is in `<head>` |
+| `meta-refresh` | 2.2.1 | `<meta http-equiv="refresh">` is in `<head>` |
+| `valid-lang` | 3.1.2 | Validates `lang` attributes across the full document |
+
+Additionally, 5 best-practice rules in the `PAGE_LEVEL_RULES` set require full-page structure: `landmark-one-main`, `page-has-heading-one`, `landmark-unique`, `frame-tested`, and `skip-link`.
+
+**Data source:** `packages/a11y-reference-storybook/a11y-rule-manifest.json` (67 rules, 59 component-level, 8 page-level) and `packages/a11y-reference-storybook/src/lib/axe-rule-extractor.ts` (PAGE_LEVEL_RULES set, 13 rules including best practices).
+
+### 15.3 Cross-Page Criteria (Need Multi-Page E2E)
+
+Several WCAG criteria require comparing behavior or content across multiple pages. No single-page test (Storybook or otherwise) can verify these:
+
+| WCAG SC | Name | Why Cross-Page |
+|---------|------|---------------|
+| 3.2.3 | Consistent Navigation | Navigation order/presentation must be consistent across pages |
+| 3.2.4 | Consistent Identification | Components with same function must be identified consistently |
+| 3.2.6 | Consistent Help (2.2) | Help mechanisms must appear in same relative order across pages |
+| 3.3.7 | Redundant Entry (2.2) | Previously entered data must be auto-populated or selectable in multi-step forms |
+
+### 15.4 Runtime/Interaction Criteria (Need Browser Automation)
+
+These criteria require observing real browser behavior during interaction sequences, not just scanning rendered DOM:
+
+| WCAG SC | Name | Why Runtime |
+|---------|------|------------|
+| 2.1.2 | No Keyboard Trap | Must execute real Tab sequence through full page to verify escape |
+| 2.4.3 | Focus Order | Full page focus chain must follow meaningful sequence |
+| 2.4.11 | Focus Not Obscured (2.2) | Sticky headers/footers may obscure focused elements on scroll |
+| 2.5.7 | Dragging Movements (2.2) | Must verify single-pointer alternatives exist for drag operations |
+| 4.1.3 | Status Messages | Live region timing and announcement behavior under real conditions |
+
+### 15.5 Revised Coverage Model with E2E Layer
+
+```mermaid
+graph LR
+    subgraph SB["Storybook (Component-Level)"]
+        direction TB
+        SB1["59 axe-core rules"]
+        SB2["Contrast, ARIA, labels"]
+        SB3["Keyboard via play functions"]
+        SB4["Isolated, fast, parallel"]
+    end
+
+    subgraph E2E["Full-Page E2E (Playwright/Maestro)"]
+        direction TB
+        E1["8 page-level rules"]
+        E2["bypass, document-title, html-has-lang"]
+        E3["meta-viewport, landmarks"]
+        E4["Runtime focus/keyboard"]
+    end
+
+    subgraph XP["Cross-Page E2E (Multi-Page Crawl)"]
+        direction TB
+        XP1["4+ WCAG criteria"]
+        XP2["Consistent navigation (3.2.3)"]
+        XP3["Consistent help (3.2.6)"]
+        XP4["Redundant entry (3.3.7)"]
+    end
+
+    SB -->|"covers 88%<br/>of axe rules"| E2E
+    E2E -->|"+ page context<br/>+ runtime"| XP
+
+    style SB fill:#4dabf7,color:#fff
+    style E2E fill:#69db7c,color:#333
+    style XP fill:#ffd43b,color:#333
+```
+
+Adding a full-page E2E layer (Playwright for web, Maestro for RN) addresses the 8 page-level rules and several runtime criteria, increasing the automated ceiling:
+
+| Testing Context | Rules/Criteria Covered | Layer |
+|----------------|----------------------|-------|
+| Component-level (Storybook) | 59 of 67 axe-core rules | Layers 1-3 |
+| Full-page E2E (Playwright/Maestro) | 8 page-level rules + runtime criteria | New E2E layer |
+| Cross-page E2E (multi-page crawl) | 4+ cross-page WCAG criteria | Tier B (LLM-assisted) |
+
+**Impact on coverage ceiling:** The E2E layer adds ~8-12% coverage that Storybook structurally cannot provide. This raises the pre-LLM automated ceiling from ~55-65% to ~63-75%, and the LLM-augmented ceiling from ~70-90% to ~78-95%.
+
+---
+
+## 16. React Native Storybook Test Host
+
+### 16.1 The Problem
+
+Web Storybook runs in any browser — `browser scan-storybook` opens a Playwright session and scans stories directly. **Native Storybook requires a compiled React Native application** running on a simulator or physical device. There is no browser-based rendering path for native components.
+
+This means native accessibility scanning needs:
+1. A running RN app that hosts Storybook stories
+2. Platform-specific test tools (XCTest on iOS, Espresso on Android) that connect to the app
+3. A way to navigate between stories programmatically (WebSocket or deep links)
+
+The existing XCTest PoC (Section 12) proved this pipeline works, but it runs inside the production app (`~/ws/app`). A dedicated test host is needed for clean, isolated scanning.
+
+### 16.2 Options
+
+| Option | Description | Recommendation |
+|--------|-------------|---------------|
+| **Dedicated test Expo app** (`packages/a11y-test-app/`) | Purpose-built Expo app that imports component library and hosts Native Storybook | **Recommended** — clean isolation, no production risk, controlled dependencies |
+| Existing production app (`~/ws/app`) | Use the current app with Storybook mode | Not recommended — production dependency risk, bloated with non-a11y code, slow builds |
+| Generic Expo template app | Start from `create-expo-app` and add Storybook | Fallback — requires customization, no component library integration out of the box |
+
+### 16.3 Native Pipeline Vision
+
+```mermaid
+flowchart LR
+    CL["Component<br/>Library"] --> NSA["Native Storybook<br/>App"]
+    NSA --> iOS["iOS Simulator"]
+    NSA --> Android["Android Emulator"]
+    iOS --> XCT["XCTest<br/>performAccessibilityAudit()"]
+    iOS --> Maestro1["Maestro<br/>E2E"]
+    Android --> Espresso["Espresso<br/>+ ATF"]
+    Android --> Maestro2["Maestro<br/>E2E"]
+    XCT --> Hub["DevAC Hub"]
+    Espresso --> Hub
+    Maestro1 --> Hub
+    Maestro2 --> Hub
+    Hub --> UD["Unified<br/>Diagnostics"]
+
+    style CL fill:#4dabf7,color:#fff
+    style NSA fill:#339af0,color:#fff
+    style iOS fill:#868e96,color:#fff
+    style Android fill:#868e96,color:#fff
+    style XCT fill:#69db7c,color:#333
+    style Espresso fill:#69db7c,color:#333
+    style Maestro1 fill:#ffd43b,color:#333
+    style Maestro2 fill:#ffd43b,color:#333
+    style Hub fill:#ff6b6b,color:#fff
+    style UD fill:#cc5de8,color:#fff
+```
+
+The test host app serves as the rendering vehicle. It imports the component library, renders each component via Native Storybook, and exposes them to platform-native audit tools. Results flow to DevAC hub alongside web Storybook scan results, providing a unified view of accessibility issues across both platforms.
+
+**Note:** Implementation details (app structure, CI configuration, story iteration) are deferred. This section establishes the architectural need and recommended approach only.
+
+---
+
 ## Sources
 
 - [Deque: Automated Testing Study (57% coverage)](https://www.deque.com/blog/automated-testing-study-identifies-57-percent-of-digital-accessibility-issues/)
@@ -764,3 +1023,15 @@ If we accept that accessibility auditing is a definable skill set composed of sp
 - [IAAP WAS Body of Knowledge](https://www.accessibilityassociation.org/s/wascertification)
 - [DHS Trusted Tester Conformance Test Process v5](https://www.dhs.gov/trusted-tester)
 - [Deque University Course Catalog](https://dequeuniversity.com/)
+
+### WCAG 2.2 References
+
+- [WCAG 2.2 W3C Recommendation (October 2023)](https://www.w3.org/TR/WCAG22/)
+- [What's New in WCAG 2.2](https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/)
+
+### Storybook & Testing Gap References (Section 15 & 16)
+
+- Rule manifest: `packages/a11y-reference-storybook/a11y-rule-manifest.json` (67 WCAG rules: 59 component-level, 8 page-level)
+- Page-level rules: `packages/a11y-reference-storybook/src/lib/axe-rule-extractor.ts` (PAGE_LEVEL_RULES set)
+- [Storybook Accessibility Testing](https://storybook.js.org/docs/writing-tests/accessibility-testing)
+- [React Native Storybook](https://storybook.js.org/docs/get-started/react-native)
