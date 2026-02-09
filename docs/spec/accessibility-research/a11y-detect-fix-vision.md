@@ -248,7 +248,8 @@ Use zag to bootstrap contracts, validate against APG, own the result independent
 gantt
     title A11y Detection and Fixing — Phase Progression
     dateFormat YYYY-MM-DD
-    axisFormat %b %Y
+    tickInterval 1month
+    axisFormat %b
 
     section Foundation
     Phase 0 Current State       :done, p0, 2026-01-01, 2026-02-01
@@ -260,7 +261,7 @@ gantt
     Phase 4 RN Testing Stack     :p4, after p2, 28d
 
     section Intelligence
-    Phase 5 Advanced ARIA SR LLM :p5, after p3, 56d
+    Phase 5 Advanced             :p5, after p3, 56d
     Phase 6 Full-Page E2E        :p6, after p4, 21d
 ```
 
@@ -886,16 +887,25 @@ These criteria require observing real browser behavior during interaction sequen
 
 ```mermaid
 flowchart TD
-    SB["Storybook — Component-Level\n59 of 67 axe-core rules\nContrast, ARIA, labels, keyboard"]
-    E2E["Full-Page E2E — Playwright/Maestro\n8 page-level rules\nbypass, document-title, html-has-lang\nmeta-viewport, landmarks, focus order"]
-    XP["Cross-Page E2E — Multi-Page Crawl\n4+ WCAG criteria\nConsistent navigation, help, redundant entry"]
+    SB["Storybook — Component-Level"]
+    SB_D["59 of 67 axe-core rules: contrast, ARIA, labels, keyboard"]
+    E2E["Full-Page E2E — Playwright / Maestro"]
+    E2E_D["8 page-level rules: bypass, document-title, html-has-lang, meta-viewport, landmarks"]
+    XP["Cross-Page E2E — Multi-Page Crawl"]
+    XP_D["4+ WCAG criteria: consistent navigation, help, redundant entry"]
 
-    SB -->|"covers 88% of axe rules"| E2E
-    E2E -->|"adds page context + runtime"| XP
+    SB --- SB_D
+    SB_D -->|"covers 88% of axe rules"| E2E
+    E2E --- E2E_D
+    E2E_D -->|"adds page context + runtime"| XP
+    XP --- XP_D
 
     style SB fill:#4dabf7,color:#fff
+    style SB_D fill:#4dabf7,color:#fff
     style E2E fill:#69db7c,color:#333
+    style E2E_D fill:#69db7c,color:#333
     style XP fill:#ffd43b,color:#333
+    style XP_D fill:#ffd43b,color:#333
 ```
 
 Adding a full-page E2E layer (Playwright for web, Maestro for RN) addresses the 8 page-level rules and several runtime criteria, increasing the automated ceiling:
