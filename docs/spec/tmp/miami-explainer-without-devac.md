@@ -102,7 +102,7 @@ After completing the document i like you to give a review of the generated answe
   ---
   Executive Summary
 
-  Miami is a high-throughput messaging microservice (up to 4000 msg/sec) responsible for delivering all messages within the Mindler healthcare platform. It handles:
+  Miami is a high-throughput messaging microservice (up to 4000 msg/sec) responsible for delivering all messages within the ViviefCorp healthcare platform. It handles:
 
   - In-app notifications - User-facing messages displayed in the mobile app
   - Push notifications - Firebase Cloud Messaging for mobile devices
@@ -358,7 +358,7 @@ After completing the document i like you to give a review of the generated answe
   Sequence 3: M2M Templated Message (Service-to-Service)
 
   ┌────────────────┐    ┌──────────────────┐    ┌──────────────┐    ┌────────────┐    ┌──────────────┐
-  │b2b-membership  │    │sendMessageM2M    │    │ Mindler DB   │    │ Contentful │    │messageService│
+  │b2b-membership  │    │sendMessageM2M    │    │ ViviefCorp DB   │    │ Contentful │    │messageService│
   └───────┬────────┘    └────────┬─────────┘    └──────┬───────┘    └──────┬─────┘    └──────┬───────┘
           │                      │                     │                   │                  │
           │ POST /miami-endpoints│                     │                   │                  │
@@ -475,13 +475,13 @@ After completing the document i like you to give a review of the generated answe
   Flow:
   1. Validates IAM authorization (AWS signature)
   2. Parses request with Zod schema
-  3. Queries user from Mindler MySQL database
+  3. Queries user from ViviefCorp MySQL database
   4. Fetches template from Contentful by name + type + language
   5. Interpolates {{placeholders}} with templateData
   6. Calls messageService.createMessage()
 
   Key Dependencies:
-  - @shared/mindlerDb/kysely/client - MySQL connection with crypto plugin
+  - @shared/viviefcorpDb/kysely/client - MySQL connection with crypto plugin
   - @shared/contentful/contentfulService - Contentful CMS client
   - @shared/awsIAMAuthorizer - IAM auth validation
 

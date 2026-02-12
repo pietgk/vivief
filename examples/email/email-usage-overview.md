@@ -20,7 +20,7 @@
 
 ## Executive Summary
 
-The Mindler platform uses a multi-provider email architecture to handle different email use cases:
+The ViviefCorp platform uses a multi-provider email architecture to handle different email use cases:
 
 | Provider | Use Case | Service |
 |----------|----------|---------|
@@ -44,7 +44,7 @@ The Mindler platform uses a multi-provider email architecture to handle differen
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              MINDLER EMAIL SYSTEM                                │
+│                            VIVIEFCORP EMAIL SYSTEM                                │
 │                                System Context                                    │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
@@ -58,7 +58,7 @@ The Mindler platform uses a multi-provider email architecture to handle differen
 │                                     ▼                                            │
 │   ┌─────────────────────────────────────────────────────────────────────────┐   │
 │   │                                                                          │   │
-│   │                        MINDLER PLATFORM                                  │   │
+│   │                       VIVIEFCORP PLATFORM                                │   │
 │   │                                                                          │   │
 │   │   ┌─────────────┐   ┌─────────────┐   ┌─────────────────────────────┐   │   │
 │   │   │ send-email  │   │  reminders  │   │   remove-old-accounts       │   │   │
@@ -187,9 +187,9 @@ The Mindler platform uses a multi-provider email architecture to handle differen
 │   │                              AWS SES v2                                  │   │
 │   │                                                                          │   │
 │   │  SendEmailCommand({                                                      │   │
-│   │    FromEmailAddress: "noreply@mindler.se",                              │   │
+│   │    FromEmailAddress: "noreply@viviefcorp.com",                           │   │
 │   │    Destination: { ToAddresses: ["patient@example.com"] },               │   │
-│   │    ReplyToAddresses: ["support.se@mindler.se"],                         │   │
+│   │    ReplyToAddresses: ["support.se@viviefcorp.com"],                      │   │
 │   │    Content: { Simple: { Subject, Body: { Html, Text } } }               │   │
 │   │  })                                                                      │   │
 │   └─────────────────────────────────────────────────────────────────────────┘   │
@@ -482,11 +482,11 @@ The Mindler platform uses a multi-provider email architecture to handle differen
 ```typescript
 // From getReplyToEmail.ts
 const countryToEmail: Record<CodeISO3, string> = {
-  SWE: process.env.REPLY_TO_EMAIL_SWE,  // support.se@mindler.se
-  NOR: process.env.REPLY_TO_EMAIL_NOR,  // support.no@mindler.no
-  NLD: process.env.REPLY_TO_EMAIL_NLD,  // support.nl@mindler.nl
-  FRA: process.env.REPLY_TO_EMAIL_FRA,  // support.fr@mindler.fr
-  GBR: process.env.REPLY_TO_EMAIL_GBR,  // support.uk@mindler.co.uk
+  SWE: process.env.REPLY_TO_EMAIL_SWE,  // support.se@viviefcorp.com
+  NOR: process.env.REPLY_TO_EMAIL_NOR,  // support.no@viviefcorp.com
+  NLD: process.env.REPLY_TO_EMAIL_NLD,  // support.nl@viviefcorp.com
+  FRA: process.env.REPLY_TO_EMAIL_FRA,  // support.fr@viviefcorp.com
+  GBR: process.env.REPLY_TO_EMAIL_GBR,  // support.uk@viviefcorp.com
 };
 ```
 
@@ -521,16 +521,16 @@ const countryToEmail: Record<CodeISO3, string> = {
 
 ```
 /emailAddresses/
-├── NO_REPLY                    → noreply@mindler.se
-├── REPLY_TO_SWE               → support.se@mindler.se
-├── REPLY_TO_NOR               → support.no@mindler.no
-├── REPLY_TO_NLD               → support.nl@mindler.nl
-├── REPLY_TO_FRA               → support.fr@mindler.fr
-├── REPLY_TO_GBR               → support.uk@mindler.co.uk
+├── NO_REPLY                    → noreply@viviefcorp.com
+├── REPLY_TO_SWE               → support.se@viviefcorp.com
+├── REPLY_TO_NOR               → support.no@viviefcorp.com
+├── REPLY_TO_NLD               → support.nl@viviefcorp.com
+├── REPLY_TO_FRA               → support.fr@viviefcorp.com
+├── REPLY_TO_GBR               → support.uk@viviefcorp.com
 └── AUTH_USER                  → SMTP authentication username
 
 /sendEmail/
-└── VALIDATE_EMAIL_PAGE_URL    → https://app.mindler.se/verify-email
+└── VALIDATE_EMAIL_PAGE_URL    → https://app.viviefcorp.com/verify-email
 ```
 
 ---

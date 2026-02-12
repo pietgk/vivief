@@ -43,7 +43,7 @@ function impactToSeverity(impact: AxeImpact): DiagnosticsSeverity {
 /**
  * Extract file path from story ID
  *
- * Story ID format: "mindlerui-atoms-button--primary"
+ * Story ID format: "vivief-ui-atoms-button--primary"
  * This can be mapped back to a potential file path.
  */
 function extractFilePath(storyId: string): string {

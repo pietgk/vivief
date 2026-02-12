@@ -159,7 +159,7 @@ aggregation:
   groups:
     - name: "DevAC Platform"
       repos: ["vivief", "devac-plugins"]
-    - name: "Mindler Platform"
+    - name: "ViviefCorp Platform"
       repos: ["monorepo-3.0", "app", "frontend-monorepo"]
 
   # Show cross-repo relationships

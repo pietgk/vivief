@@ -299,7 +299,7 @@ export const Violation = {
   describe("extractStories - story ID generation", () => {
     it("should generate correct story IDs", () => {
       const content = `
-const meta = { title: "mindlerui/Atoms/Button" };
+const meta = { title: "vivief-ui/Atoms/Button" };
 export default meta;
 
 export const Primary = {};
@@ -308,8 +308,8 @@ export const PrimaryLarge = {};
 
       const result = extractStories({ ...baseOptions, content });
 
-      expect(result.stories[0]?.storyId).toBe("mindlerui-atoms-button--primary");
-      expect(result.stories[1]?.storyId).toBe("mindlerui-atoms-button--primary-large");
+      expect(result.stories[0]?.storyId).toBe("vivief-ui-atoms-button--primary");
+      expect(result.stories[1]?.storyId).toBe("vivief-ui-atoms-button--primary-large");
     });
   });
 });

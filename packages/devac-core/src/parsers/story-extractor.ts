@@ -37,7 +37,7 @@ type NodePath<T = BabelNode> = {
  * Story meta extracted from default export
  */
 export interface StoryMeta {
-  /** Title hierarchy (e.g., "mindlerui/Atoms/Button") */
+  /** Title hierarchy (e.g., "vivief-ui/Atoms/Button") */
   title: string | null;
   /** Component name being tested */
   componentName: string | null;
@@ -88,7 +88,7 @@ export interface A11yReferenceParameters {
 export interface ExtractedStory {
   /** Export name (e.g., "Primary") */
   name: string;
-  /** Generated story ID (e.g., "mindlerui-atoms-button--primary") */
+  /** Generated story ID (e.g., "vivief-ui-atoms-button--primary") */
   storyId: string;
   /** Whether story has a play function (interaction test) */
   hasPlayFunction: boolean;
@@ -144,7 +144,7 @@ export interface StoryExtractorOptions {
 
 /**
  * Convert title to kebab-case story ID prefix
- * "mindlerui/Atoms/Button" -> "mindlerui-atoms-button"
+ * "vivief-ui/Atoms/Button" -> "vivief-ui-atoms-button"
  */
 function titleToIdPrefix(title: string): string {
   return title

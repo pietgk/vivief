@@ -513,11 +513,11 @@ More complex machines (Menu, Select, Combobox) need full ElementRegistry + Focus
 
 **Tech Stack:**
 - Expo ~53.0 / React Native 0.79.6 / React 19
-- Custom UI library: `@mindlercare/mindlerui` (styled-components)
+- Custom UI library: `@viviefcorp/vivief-ui` (styled-components)
 - Navigation: React Navigation (stack + bottom tabs)
 - State: Redux + Redux Persist + React Query + tRPC
 
-**Key Interactive Components in mindlerui:**
+**Key Interactive Components in vivief-ui:**
 | Component | Current Implementation | Zag.js Equivalent |
 |-----------|----------------------|-------------------|
 | Modal, ActionModal | RN Modal + animations | `dialog` |
@@ -550,7 +550,7 @@ More complex machines (Menu, Select, Combobox) need full ElementRegistry + Focus
 ├── Web target via Expo Web / RN Web
 ├── Keep: View, Text, ScrollView, FlatList, etc.
 ├── Replace: Modal, Sheet, DropdownPicker → Zag.js
-└── mindlerui components → web-compatible versions
+└── vivief-ui components → web-compatible versions
 ```
 
 **Pros:**
@@ -606,18 +606,18 @@ More complex machines (Menu, Select, Combobox) need full ElementRegistry + Focus
 
 ## Option 3: Shared Component Library with Platform Adapters
 
-**Approach:** Create `@mindlercare/mindlerui-web` that mirrors mindlerui API but uses Zag.js internally.
+**Approach:** Create `@viviefcorp/vivief-ui-web` that mirrors vivief-ui API but uses Zag.js internally.
 
 ```
 packages/
-├── mindlerui/          # Existing RN components
-├── mindlerui-web/      # NEW: Web versions using Zag.js
+├── vivief-ui/          # Existing RN components
+├── vivief-ui-web/      # NEW: Web versions using Zag.js
 │   ├── Modal.tsx       # Uses @zag-js/dialog
 │   ├── Sheet.tsx       # Uses @zag-js/dialog (drawer)
 │   ├── DropdownPicker  # Uses @zag-js/select
 │   └── ...
-├── mindlerui-core/     # Shared logic, types, tokens
-└── mindlerui-style/    # Design tokens (already exists)
+├── vivief-ui-core/     # Shared logic, types, tokens
+└── vivief-ui-style/    # Design tokens (already exists)
 ```
 
 **Pros:**
@@ -640,7 +640,7 @@ packages/
 
 ## Option 4: Expo Web with Component Replacement Strategy
 
-**Approach:** Use Expo's web support, progressively replace mindlerui components with web-optimized versions.
+**Approach:** Use Expo's web support, progressively replace vivief-ui components with web-optimized versions.
 
 ```
 ~/ws/app
@@ -687,7 +687,7 @@ For **accessibility testing on web**, I recommend:
 - Preserve existing accessibility patterns
 
 **Phase 3 (ongoing):** Extract to shared library
-- Move web components to mindlerui-web
+- Move web components to vivief-ui-web
 - Standardize API across platforms
 - Full Zag.js component coverage
 
@@ -716,9 +716,9 @@ For **accessibility testing on web**, I recommend:
 | `app.config.js` | Enable web platform |
 | `metro.config.js` | Web bundling config |
 | `package.json` | Add Zag.js deps, web polyfills |
-| `mindlerui/Modal/` | Add web variant with Zag.js |
-| `mindlerui/Sheet/` | Add web variant with Zag.js |
-| `mindlerui/DropdownPicker/` | Add web variant with Zag.js |
+| `vivief-ui/Modal/` | Add web variant with Zag.js |
+| `vivief-ui/Sheet/` | Add web variant with Zag.js |
+| `vivief-ui/DropdownPicker/` | Add web variant with Zag.js |
 
 ---
 
@@ -758,7 +758,7 @@ const styles = css.create({
 | **Meta support** | Direct investment | Community + Chakra team |
 | **Production use** | facebook.com, Instagram VR | Zag.js used in Chakra UI |
 
-### RSD Native Limitations (Critical for Mindler app)
+### RSD Native Limitations (Critical for ViviefCorp app)
 
 ❌ **Not supported on React Native:**
 - `<select>`, `<option>` - your DropdownPicker won't work
@@ -784,7 +784,7 @@ const styles = css.create({
 5. **Web-native quality** - Web apps render as real HTML/CSS, not RN abstractions
 6. **StyleX optimization** - Atomic CSS, excellent performance
 
-### Cons of React Strict DOM (for Mindler app)
+### Cons of React Strict DOM (for ViviefCorp app)
 
 1. **Styling migration required** - Must move from styled-components to StyleX
    - ~100+ components to rewrite styles
@@ -819,7 +819,7 @@ const styles = css.create({
 - Simple UI without complex native features
 - Teams already using StyleX
 
-❌ **Poor fit (Mindler's situation):**
+❌ **Poor fit (ViviefCorp's situation):**
 - Existing native-first app
 - Complex native components (gestures, sheets, pickers)
 - Heavy investment in styled-components
@@ -831,7 +831,7 @@ const styles = css.create({
 
 ### For Accessibility Testing on Web
 
-**React Strict DOM is NOT recommended** for Mindler app because:
+**React Strict DOM is NOT recommended** for ViviefCorp app because:
 1. You'd need to rewrite all styling (styled-components → StyleX)
 2. Your complex native components (Sheet, DropdownPicker) aren't supported
 3. The app is native-first; RSD is web-first
@@ -874,7 +874,7 @@ const styles = css.create({
 
 ### Overview
 
-Add web support to the Mindler app while **keeping native fully functional**. Use platform-specific files (`Component.web.tsx` / `Component.tsx`) so both platforms run optimally with their own implementations.
+Add web support to the ViviefCorp app while **keeping native fully functional**. Use platform-specific files (`Component.web.tsx` / `Component.tsx`) so both platforms run optimally with their own implementations.
 
 **Key Principle:** Native stays native, web gets proper web components with Zag.js.
 
@@ -919,7 +919,7 @@ pnpm add @zag-js/react @zag-js/dialog @zag-js/select @zag-js/tabs @zag-js/accord
 
 #### 2.1 Modal/ActionModal → @zag-js/dialog (Week 1)
 ```typescript
-// mindlerui/Modal/Modal.web.tsx
+// vivief-ui/Modal/Modal.web.tsx
 import * as dialog from "@zag-js/dialog";
 import { useMachine, normalizeProps } from "@zag-js/react";
 
@@ -940,7 +940,7 @@ export function Modal({ open, onClose, children }) {
 
 #### 2.3 DropdownPicker → @zag-js/select (Week 2-3)
 ```typescript
-// mindlerui/DropdownPicker/DropdownPicker.web.tsx
+// vivief-ui/DropdownPicker/DropdownPicker.web.tsx
 import * as select from "@zag-js/select";
 // Full keyboard navigation, ARIA combobox pattern
 ```
@@ -966,7 +966,7 @@ import * as select from "@zag-js/select";
 Metro/Expo automatically resolves platform-specific files. No manual Platform.select needed!
 
 ```
-mindlerui/Modal/
+vivief-ui/Modal/
 ├── Modal.tsx          # Native implementation (existing, unchanged)
 ├── Modal.web.tsx      # Web implementation (new, uses Zag.js)
 ├── Modal.types.ts     # Shared types
@@ -974,7 +974,7 @@ mindlerui/Modal/
 ```
 
 ```typescript
-// mindlerui/Modal/index.ts
+// vivief-ui/Modal/index.ts
 // Metro automatically picks Modal.web.tsx for web, Modal.tsx for native
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal.types";
@@ -988,7 +988,7 @@ export type { ModalProps } from "./Modal.types";
 **Same API, different implementations:**
 ```typescript
 // App code works on BOTH platforms - no changes needed
-import { Modal } from "@mindlercare/mindlerui";
+import { Modal } from "@viviefcorp/vivief-ui";
 
 <Modal
   open={isOpen}
@@ -1037,20 +1037,20 @@ npx expo start --web
 **New web-specific components (native files UNCHANGED):**
 | New File | Native File (unchanged) | Zag.js Package |
 |----------|------------------------|----------------|
-| `mindlerui/Modal/Modal.web.tsx` | `Modal.tsx` ✓ | `@zag-js/dialog` |
-| `mindlerui/Sheet/Sheet.web.tsx` | `Sheet.tsx` ✓ | `@zag-js/dialog` |
-| `mindlerui/DropdownPicker/DropdownPicker.web.tsx` | `DropdownPicker.tsx` ✓ | `@zag-js/select` |
-| `mindlerui/TabBar/TabBar.web.tsx` | `TabBar.tsx` ✓ | `@zag-js/tabs` |
-| `mindlerui/ExpandableList/ExpandableList.web.tsx` | `ExpandableList.tsx` ✓ | `@zag-js/accordion` |
-| `mindlerui/CheckBox/CheckBox.web.tsx` | `CheckBox.tsx` ✓ | `@zag-js/checkbox` |
-| `mindlerui/RadioButton/RadioButton.web.tsx` | `RadioButton.tsx` ✓ | `@zag-js/radio-group` |
-| `mindlerui/ToastBanner/ToastBanner.web.tsx` | `ToastBanner.tsx` ✓ | `@zag-js/toast` |
+| `vivief-ui/Modal/Modal.web.tsx` | `Modal.tsx` ✓ | `@zag-js/dialog` |
+| `vivief-ui/Sheet/Sheet.web.tsx` | `Sheet.tsx` ✓ | `@zag-js/dialog` |
+| `vivief-ui/DropdownPicker/DropdownPicker.web.tsx` | `DropdownPicker.tsx` ✓ | `@zag-js/select` |
+| `vivief-ui/TabBar/TabBar.web.tsx` | `TabBar.tsx` ✓ | `@zag-js/tabs` |
+| `vivief-ui/ExpandableList/ExpandableList.web.tsx` | `ExpandableList.tsx` ✓ | `@zag-js/accordion` |
+| `vivief-ui/CheckBox/CheckBox.web.tsx` | `CheckBox.tsx` ✓ | `@zag-js/checkbox` |
+| `vivief-ui/RadioButton/RadioButton.web.tsx` | `RadioButton.tsx` ✓ | `@zag-js/radio-group` |
+| `vivief-ui/ToastBanner/ToastBanner.web.tsx` | `ToastBanner.tsx` ✓ | `@zag-js/toast` |
 
 **Shared types (extract if needed):**
 | File | Purpose |
 |------|---------|
-| `mindlerui/Modal/Modal.types.ts` | Shared props interface |
-| `mindlerui/Sheet/Sheet.types.ts` | Shared props interface |
+| `vivief-ui/Modal/Modal.types.ts` | Shared props interface |
+| `vivief-ui/Sheet/Sheet.types.ts` | Shared props interface |
 | etc. | Same API contract for both platforms |
 
 ### Timeline Summary

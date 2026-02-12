@@ -164,7 +164,7 @@ graph extracted data as needed
 
  1. Top-Down Discovery Pattern
 
- - Started with package.json to understand the service's purpose ("Mindler Messaging Microservice for handling all messages")
+ - Started with package.json to understand the service's purpose ("ViviefCorp Messaging Microservice for handling all messages")
  - Identified key dependencies: AWS SDK (DynamoDB, S3, SNS, SQS), Express, Firebase, tsoa
 
  2. DevAC Symbol Extraction
@@ -191,7 +191,7 @@ graph extracted data as needed
 
  ┌─────────────────────────────────────────────────────────────────────────────────┐
  │                              MIAMI MICROSERVICE                                   │
- │                     "Mindler Messaging Microservice"                              │
+ │                     "ViviefCorp Messaging Microservice"                              │
  ├─────────────────────────────────────────────────────────────────────────────────┤
  │                                                                                   │
  │  ┌─────────────────────────────────────────────────────────────────────────────┐ │
@@ -560,7 +560,7 @@ graph extracted data as needed
  │  │  ────────────────────────────────────────────────────────────  │         │
  │  │  • Health Profiles (M2M API) - secure message storage          │         │
  │  │  • Contentful - message templates                               │         │
- │  │  • MindlerDB (RDS) - user data lookup                          │         │
+ │  │  • ViviefCorpDB (RDS) - user data lookup                          │         │
  │  │  • EventLoki - analytics events                                 │         │
  │  └────────────────────────────────────────────────────────────────┘         │
  │                                                                              │
@@ -611,7 +611,7 @@ graph extracted data as needed
  │                                    ▼                                           │
  │                         ┌─────────────────────┐                                │
  │                         │    M2MClient        │                                │
- │                         │ (@mindlercare/      │                                │
+ │                         │ (@viviefcorp/      │                                │
  │                         │  m2m-client)        │                                │
  │                         └─────────────────────┘                                │
  │                                                                                 │
@@ -751,11 +751,11 @@ graph extracted data as needed
  | Step | Method                 | Tools Used                             | What I Learned                                      |
  |------|------------------------|----------------------------------------|-----------------------------------------------------|
  | 1    | File Discovery         | Glob, ls                               | Found miami at /monorepo-3.0/services/miami         |
- | 2    | Entry Point Analysis   | Read package.json                      | Service purpose: "Mindler Messaging Microservice"   |
+ | 2    | Entry Point Analysis   | Read package.json                      | Service purpose: "ViviefCorp Messaging Microservice"   |
  | 3    | Symbol Extraction      | DevAC query_sql                        | 11 classes, 60+ functions across the codebase       |
  | 4    | Architecture Discovery | Read miamiStack.ts                     | 4 Lambdas, DynamoDB, SNS, SQS, S3 resources         |
  | 5    | Data Flow Tracing      | Read controller → service → repository | Message lifecycle from API to push notification     |
- | 6    | Integration Analysis   | Read hpService.ts, sendMessageM2M      | Health Profiles, Contentful, MindlerDB integrations |
+ | 6    | Integration Analysis   | Read hpService.ts, sendMessageM2M      | Health Profiles, Contentful, ViviefCorpDB integrations |
 
  DevAC Queries Used
 

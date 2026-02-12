@@ -42,7 +42,7 @@ If Effects capture complete semantics, understanding effects = understanding cod
 
 | Concept | Definition | Format |
 |---------|------------|--------|
-| **issueId** | A change request with source and origin repo | `ghapi-123` → `gh:mindler/api:123` |
+| **issueId** | A change request with source and origin repo | `ghapi-123` → `gh:viviefcorp/api:123` |
 | **Entity** | A code symbol (function, class, etc.) | `repo:package:kind:hash` |
 | **Seed** | Queryable extraction of a source of truth | `.devac/seed/nodes.parquet` |
 
@@ -53,7 +53,7 @@ If Effects capture complete semantics, understanding effects = understanding cod
 
 Parse by splitting on **last `-`** to extract number (handles repos with dashes/digits like `monorepo-3.0`).
 
-The canonical form expands to URN-style: `gh:mindler/api:123` (owner resolved from git remote).
+The canonical form expands to URN-style: `gh:viviefcorp/api:123` (owner resolved from git remote).
 
 ### 2.3 Workspaces
 

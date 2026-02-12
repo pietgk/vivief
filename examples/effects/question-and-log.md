@@ -450,7 +450,7 @@
                                      50")
  ⎿  [
       {
-        "project_path": "frontend-monorepo/frontends/mindlercare/src/services/auth.ts"
+        "project_path": "frontend-monorepo/frontends/viviefcorp-care/src/services/auth.ts"
     … +155 lines (ctrl+o to expand)
 
 ⏺ Now I have enough context. Let me design the plan for the improved v2 document with proper references and confidence markers.
