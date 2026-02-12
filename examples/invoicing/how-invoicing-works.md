@@ -20,7 +20,7 @@
 
 ## Overview
 
-The invoicing service handles all billing operations for the Mindler healthcare platform, including:
+The invoicing service handles all billing operations for the ViviefCorp healthcare platform, including:
 
 - **Regular patient fees** - Standard consultation charges
 - **No-show fees** - Charges for missed appointments
@@ -439,8 +439,8 @@ The invoicing service supports multiple payment methods, each implemented in `sr
 | Credit Card | `creditCard.ts` | Stripe payment processing |
 | Freecard | `freecard.ts` | Swedish healthcare subsidy card |
 | B2B | `b2b.ts` | Business-to-business billing |
-| Mindler for Youth | `mindlerForYouth.ts` | Free for patients under 20 |
-| Mindler for Elderly | `mindlerForElderly.ts` | Free for patients over 85 |
+| ViviefCorp for Youth | `youthDiscount.ts` | Free for patients under 20 |
+| ViviefCorp for Elderly | `elderlyDiscount.ts` | Free for patients over 85 |
 | No Payment | `noPayment.ts` | Scenarios requiring no payment |
 
 ### Payment Method Selection Flow
@@ -456,8 +456,8 @@ The invoicing service supports multiple payment methods, each implemented in `sr
 │   ┌─────────────────────────────────────────────────────────────────┐       │
 │   │ Check patient eligibility                                       │       │
 │   │                                                                  │       │
-│   │ - Age < 20?  → Mindler for Youth (free)                         │       │
-│   │ - Age > 85?  → Mindler for Elderly (free)                       │       │
+│   │ - Age < 20?  → ViviefCorp for Youth (free)                       │       │
+│   │ - Age > 85?  → ViviefCorp for Elderly (free)                    │       │
 │   │ - B2B member? → B2B billing                                     │       │
 │   │ - Has freecard? → Freecard processing                           │       │
 │   └─────────────────────────────────────────────────────────────────┘       │

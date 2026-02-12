@@ -92,7 +92,7 @@ This approach transforms accessibility from "test after the fact" to "correct by
 
 ### The Real-World Impact
 
-For a medical application (like Mindler), the untestable issues are critical:
+For a medical application (like ViviefCorp), the untestable issues are critical:
 
 - **Keyboard navigation**: Users with motor impairments rely 100% on keyboard
 - **Focus management**: Screen reader users get lost without proper focus handling
@@ -928,7 +928,7 @@ CI/CD:
 - Pros: Complete solution, reusable across projects
 - Cons: Significant upfront investment
 
-**Option B: Mindler-specific patterns first (~8 patterns)**
+**Option B: ViviefCorp-specific patterns first (~8 patterns)**
 - Pros: Faster time to value, validated approach
 - Cons: May need refactoring as we add patterns
 
@@ -1320,7 +1320,7 @@ This is a **conceptually brilliant** and technically rigorous proposal. It addre
 
 By treating accessibility as a **finite state problem** rather than a **DOM attribute problem**, you move the verification from "fragile E2E tests" to "mathematically provable behavior."
 
-Here is my detailed review of the architecture, broken down by strengths, risks, and specific recommendations for the Mindler context.
+Here is my detailed review of the architecture, broken down by strengths, risks, and specific recommendations for the ViviefCorp context.
 
 ### 1. The Strongest Points (The "Why This Works")
 
@@ -1360,7 +1360,7 @@ Writing a static linter that checks if an XState machine graph satisfies an ARIA
 Since you are using Expo/React Native, you cannot use Playwright directly on the native app.
 *   **Suggestion:** Explicitly mention **Maestro** or **Detox** in the roadmap. The XState model can generate the *plans*, and you will need an adapter to execute those plans against the simulator.
 
-### 4. Verdict for Mindler Workspace
+### 4. Verdict for ViviefCorp Workspace
 
 Given your workspace structure (AGENTS.md, React Native, Docs-heavy approach):
 
@@ -1372,7 +1372,7 @@ Given your workspace structure (AGENTS.md, React Native, Docs-heavy approach):
 I would alter **Phase 1** slightly:
 
 *   **Don't build machines from scratch yet.**
-*   **Task:** Take an *existing* complex component in Mindler (e.g., a custom modal or specialized input).
+*   **Task:** Take an *existing* complex component in ViviefCorp (e.g., a custom modal or specialized input).
 *   **Action:** Retrofit it with this XState architecture as a POC.
 *   **Verify:** Does it catch bugs? accurately? Does it slow down the app?
 
@@ -1663,7 +1663,7 @@ Phase 3 (Ongoing): Maintain & Extend
 │                                                              │
 │  Layer 1: "Just Works" Components (90% of devs)             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ import { Dialog } from '@mindler/ui';               │    │
+│  │ import { Dialog } from '@viviefcorp/vivief-ui';               │    │
 │  │                                                     │    │
 │  │ <Dialog trigger={<Button>Open</Button>}>            │    │
 │  │   <Dialog.Title>Confirm</Dialog.Title>              │    │
@@ -1675,7 +1675,7 @@ Phase 3 (Ongoing): Maintain & Extend
 │                                                              │
 │  Layer 2: Controlled Components (10% of devs)               │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ import { useDialog } from '@mindler/ui';            │    │
+│  │ import { useDialog } from '@viviefcorp/vivief-ui';            │    │
 │  │                                                     │    │
 │  │ const dialog = useDialog({                          │    │
 │  │   onOpenChange: (open) => analytics.track(open),    │    │
@@ -1687,7 +1687,7 @@ Phase 3 (Ongoing): Maintain & Extend
 │                                                              │
 │  Layer 3: Machine Access (Library maintainers only)         │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ import { dialogMachine } from '@mindler/ui/machines';│    │
+│  │ import { dialogMachine } from '@viviefcorp/vivief-ui/machines';│    │
 │  │                                                     │    │
 │  │ // Full machine access for testing, debugging,      │    │
 │  │ // or building custom variants                      │    │
@@ -1846,7 +1846,7 @@ const dialogA11yMeta = {
 ```typescript
 // Instead of static analysis, use runtime checks in development
 
-import { createAccessibilityValidator } from '@mindler/ui/dev-tools';
+import { createAccessibilityValidator } from '@viviefcorp/vivief-ui/dev-tools';
 
 // In development, wrap components with validator
 export function Dialog(props) {
@@ -2003,7 +2003,7 @@ function generateMaestroFlow(
   machinePath: Path,
   a11yMeta: Record<string, A11yStateMeta>
 ): string {
-  const steps: string[] = ['appId: com.mindler.app'];
+  const steps: string[] = ['appId: com.viviefcorp.app'];
   
   for (const segment of machinePath.segments) {
     // Convert event to Maestro action
@@ -2095,9 +2095,9 @@ Tasks:
 □ Storybook integration (auto-generate stories from states)
 
 Deliverables:
-□ @mindler/ui-machines package
-□ @mindler/a11y-validator package (dev-only)
-□ @mindler/storybook-machines addon
+□ @viviefcorp/vivief-ui-machines package
+□ @viviefcorp/a11y-validator package (dev-only)
+□ @viviefcorp/storybook-machines addon
 ```
 
 ### Phase 2: Zag.js Collaboration (Weeks 7-10)
@@ -2113,7 +2113,7 @@ Tasks:
 
 Fallback (if rejected):
 □ Continue with wrapper approach
-□ Publish @mindler/zag-a11y-metadata as community package
+□ Publish @viviefcorp/zag-a11y-metadata as community package
 ```
 
 ### Phase 3: React Native & Full Coverage (Weeks 11-14)
@@ -2129,7 +2129,7 @@ Tasks:
 □ Coverage reporting
 
 Deliverables:
-□ @mindler/maestro-machines test generator
+□ @viviefcorp/maestro-machines test generator
 □ CI pipeline running a11y tests on every PR
 □ Dashboard showing WCAG coverage by component
 ```
@@ -2183,13 +2183,13 @@ Given Gemini's feedback and the Zag.js integration options:
 │  ├── dialog.connect.ts    ← We can't modify (upstream)      │
 │  └── dialog.types.ts      ← We can't modify (upstream)      │
 │                                                              │
-│  @mindler/ui-machines                                        │
+│  @viviefcorp/vivief-ui-machines                                        │
 │  ├── dialog.a11y.ts       ← OUR A11Y METADATA              │
 │  ├── dialog.wrapper.ts    ← WRAPS ZAG MACHINE + META        │
 │  ├── dialog.tests.ts      ← GENERATED FROM META             │
 │  └── dialog.stories.ts    ← GENERATED FROM MACHINE STATES   │
 │                                                              │
-│  @mindler/ui                                                 │
+│  @viviefcorp/vivief-ui                                                 │
 │  └── Dialog.tsx           ← COMPONENT USING WRAPPER         │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘

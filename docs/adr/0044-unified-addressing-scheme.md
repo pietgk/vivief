@@ -327,7 +327,7 @@ query_file({ uri: "devac://app/./src/App.tsx" })
 
 **Before (old format):**
 ```
-devac://mindlercare/app@main/packages/core/src/auth.ts#AuthService#L45:C10
+devac://viviefcorp/app@main/packages/core/src/auth.ts#AuthService#L45:C10
 ```
 
 **After (new format):**
@@ -337,7 +337,7 @@ devac://app/packages/core/src/auth.ts#AuthService?version=main&line=45&col=10
 
 | Change | Before | After |
 |--------|--------|-------|
-| Workspace | In path: `mindlercare/` | Removed (inferred from context) |
+| Workspace | In path: `viviefcorp/` | Removed (inferred from context) |
 | Version | In path: `@main` | Query param: `?version=main` |
 | Position | Fragment: `#L45:C10` | Query params: `?line=45&col=10` |
 | Fragment | Overloaded | Symbol only: `#AuthService` |

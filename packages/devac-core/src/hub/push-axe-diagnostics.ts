@@ -85,7 +85,7 @@ function impactToSeverity(impact: AxeImpact): DiagnosticsSeverity {
 /**
  * Extract file path from story ID or URL
  *
- * Story ID format: "mindlerui-atoms-button--primary"
+ * Story ID format: "vivief-ui-atoms-button--primary"
  * This can be mapped back to a file path if we have component metadata.
  */
 function extractFilePath(storyId?: string, url?: string): string | null {
@@ -111,7 +111,7 @@ function extractFilePath(storyId?: string, url?: string): string | null {
  * const result = await axeScanner.scan();
  * await pushAxeDiagnosticsToHub(hub, result, {
  *   repoId: "github.com/org/repo",
- *   storyId: "mindlerui-atoms-button--primary",
+ *   storyId: "vivief-ui-atoms-button--primary",
  *   clearExisting: true,
  * });
  * ```

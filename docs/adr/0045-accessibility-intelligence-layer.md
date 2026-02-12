@@ -14,7 +14,7 @@ DevAC had a validation pipeline with TypeScript, ESLint, test, and coverage vali
 4. **No Storybook integration**: No way to extract story metadata for component-level accessibility testing
 5. **Missing RN support**: React Native accessibility props weren't extracted during parsing
 
-Healthcare applications like Mindler require WCAG 2.1 AA compliance. The goal was to extend DevAC's existing validation pipeline with comprehensive accessibility detection rather than creating parallel structures.
+Healthcare applications like ViviefCorp require WCAG 2.1 AA compliance. The goal was to extend DevAC's existing validation pipeline with comprehensive accessibility detection rather than creating parallel structures.
 
 ## Decision
 
@@ -60,7 +60,7 @@ Create `push-axe-diagnostics.ts` to push AxeScanner results as unified diagnosti
 - Source: `"axe"` (runtime detection)
 - Category: `"accessibility"`
 - Map AxeScanner's impact levels (critical/serious/moderate/minor) to severity
-- Extract file paths from story IDs (e.g., `mindlerui-atoms-button--primary` → `mindlerui/Atoms/Button/Button.stories.tsx`)
+- Extract file paths from story IDs (e.g., `vivief-ui-atoms-button--primary` → `vivief-ui/Atoms/Button/Button.stories.tsx`)
 - Clear existing axe diagnostics before push to avoid duplicates
 
 ### 3. Add "story" Node Kind
@@ -100,7 +100,7 @@ Create a dedicated parser for Component Story Format 3 (CSF3) files:
 
 **Story ID Convention:**
 Format: `{kebab-title}--{kebab-export-name}`
-Example: `mindlerui/Atoms/Button` + `Primary` → `mindlerui-atoms-button--primary`
+Example: `vivief-ui/Atoms/Button` + `Primary` → `vivief-ui-atoms-button--primary`
 
 **Story Node Properties:**
 ```typescript
@@ -108,12 +108,12 @@ Example: `mindlerui/Atoms/Button` + `Primary` → `mindlerui-atoms-button--prima
   entity_id: "repo:pkg:story:hash",
   name: "Primary",
   kind: "story",
-  qualified_name: "mindlerui-atoms-button--primary",
+  qualified_name: "vivief-ui-atoms-button--primary",
   properties: {
-    namespace: "mindlerui",
+    namespace: "vivief-ui",
     category: "Atoms",
     component_name: "Button",
-    story_id: "mindlerui-atoms-button--primary",
+    story_id: "vivief-ui-atoms-button--primary",
     tested_component_id: "repo:pkg:jsx_component:xyz",
     has_play_function: true,
     has_custom_render: false,

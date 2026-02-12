@@ -20,7 +20,7 @@ The current foundation document is **v3.0** located at:
 - [../vision/foundation.md](../vision/foundation.md)
 
 Version 2.3 evolved into v3.0, which added:
-- Updated issueId format (ghapi-123 → gh:mindler/api:123)
+- Updated issueId format (ghapi-123 → gh:viviefcorp/api:123)
 - Refined workspace topology concepts
 - Improved Effect taxonomy
 - Developer-maintained effects workflow (ADR-0023)

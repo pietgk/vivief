@@ -16,7 +16,7 @@ when running
   [PackageManager] Discovered 7 total packages in /Users/grop/ws/frontend-monorepo {}
   [PackageManager] Discovered 3 total packages in /Users/grop/ws/likec4 {}
   [PackageManager] Discovered 5 total packages in /Users/grop/ws/living-architecture {}
-  [PackageManager] Discovered 6 total packages in /Users/grop/ws/mindler {}
+  [PackageManager] Discovered 6 total packages in /Users/grop/ws/viviefcorp {}
   [PackageManager] Discovered 36 total packages in /Users/grop/ws/monorepo-3.0 {}
   [PackageManager] Discovered 22 total packages in /Users/grop/ws/npm-private-packages {}
   [PackageManager] Discovered 1 total packages in /Users/grop/ws/public-website-3 {}
@@ -48,7 +48,7 @@ when running
   frontend-monorepo   : 7 packages analyzed
   likec4              : 3 packages analyzed
   living-architecture : 5 packages analyzed
-  mindler             : 6 packages analyzed
+  viviefcorp          : 6 packages analyzed
   monorepo-3.0        : 36 packages analyzed
   npm-private-packages: 20/22 analyzed
   public-website-3    : 1 package analyzed
@@ -73,7 +73,7 @@ when running
   ○ frontend-monorepo  no PR
   ○ likec4             no PR
   ○ living-architecture no PR
-  ? mindler            no PR
+  ? viviefcorp         no PR
   ○ monorepo-3.0       no PR
   ○ npm-private-packages no PR
   ○ public-website-3   no PR
@@ -552,7 +552,7 @@ After completing the document i like you to give a review of the generated answe
 ⏺ Now let me use the C4 diagram generator from DevAC:
 
 ⏺ plugin:devac:devac - generate_c4 (MCP)(level: "containers", systemName: "Miami Messaging Service", systemDescription: "In-app messaging and push notification service for
-                                        Mindler healthcare platform", outputFormat: "plantuml", limit: 500)
+                                        ViviefCorp healthcare platform", outputFormat: "plantuml", limit: 500)
   ⎿  Error: {"error":"Parser Error: syntax error at or near \"{\"\n\nLINE 1: SELECT * FROM {effects} LIMIT 500\n                      ^"}
 
 ⏺ plugin:devac:devac - run_rules (MCP)(limit: 500, includeStats: true)

@@ -89,7 +89,7 @@ This separation ensures the conceptual foundation remains stable while implement
 - [DevAC Concepts](../vision/concepts.md) - Quick reference for terminology and Four Pillars
 - [Conceptual Foundation Document](../vision/foundation.md)
 - [VVE System v2.0](../archive/foundation-v2.md) - Effect taxonomy source
-- [Linters as Rules](mindler/packages/architecture/specs/335-linters-as-rules.md) - Executable specs concept
-- [OTEL Overlap Analysis](mindler/packages/architecture/specs/335-otel-overlap-analysis.md) - Runtime extraction insights
+- Linters as Rules - Executable specs concept
+- OTEL Overlap Analysis - Runtime extraction insights
 - [ADR-0007: Federation Central Hub](0007-federation-central-hub.md) - Hub concept implementation
 - [ADR-0014: Worktree Claude Workflow](0014-worktree-claude-workflow.md) - Context preservation implementation

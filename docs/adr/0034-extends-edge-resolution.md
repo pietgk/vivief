@@ -157,4 +157,4 @@ WHERE e.edge_type = 'EXTENDS'
 
 - [ADR-0005: Two-Pass Parsing Architecture](0005-two-pass-parsing.md)
 - [ADR-0033: CALLS Edge Resolution](0033-calls-edge-resolution.md)
-- [GitHub Issue #143](https://github.com/mindlercare/vivief/issues/143)
+- [GitHub Issue #143](https://github.com/pietgk/vivief/issues/143)

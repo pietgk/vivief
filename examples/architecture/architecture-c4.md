@@ -1,4 +1,4 @@
-# Mindler Healthcare Platform - C4 Architecture
+# ViviefCorp Healthcare Platform - C4 Architecture
 
 > Generated: 2026-01-09
 > Source: DevAC Code Analysis (`devac query`, `devac status`, `devac context`)
@@ -20,7 +20,7 @@
 
 ### Overview
 
-The Mindler Healthcare Platform is a comprehensive digital mental health solution that connects patients with psychologists for online therapy sessions. The system operates across multiple markets (Sweden, Norway, Denmark, UK) with localized content and payment integrations.
+The ViviefCorp Healthcare Platform is a comprehensive digital mental health solution that connects patients with psychologists for online therapy sessions. The system operates across multiple markets (Sweden, Norway, Denmark, UK) with localized content and payment integrations.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                  │
 │                    ┌────────────────────────────────────┐                       │
-│                    │    MINDLER HEALTHCARE PLATFORM     │                       │
+│                    │   VIVIEFCORP HEALTHCARE PLATFORM   │                       │
 │                    │                                    │                       │
 │                    │  • Online therapy booking          │                       │
 │                    │  • Video consultations             │                       │
@@ -82,8 +82,8 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 | Actor | Description | Primary Interfaces | Confidence |
 |-------|-------------|-------------------|------------|
 | **Patients** | End users seeking mental health care | Mobile App (iOS/Android), Public Website | **HIGH** - Direct evidence from app/ and public-website-3/ |
-| **Psychologists** | Licensed mental health professionals | Frontend Web Apps (mindlercare) | **HIGH** - Direct evidence from frontend-monorepo/ |
-| **Admins** | Internal staff managing the platform | Back-office tools | **MEDIUM** - Evidence from mindler-back-office-tools |
+| **Psychologists** | Licensed mental health professionals | Frontend Web Apps (viviefcorp-care) | **HIGH** - Direct evidence from frontend-monorepo/ |
+| **Admins** | Internal staff managing the platform | Back-office tools | **MEDIUM** - Evidence from back-office-tools |
 | **B2B Partners** | Corporate partners with employee programs | API integrations, B2B portal | **HIGH** - Evidence from b2b-membership service |
 
 ### External Systems Summary
@@ -109,13 +109,13 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              MINDLER HEALTHCARE PLATFORM                             │
+│                            VIVIEFCORP HEALTHCARE PLATFORM                            │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                      │
 │  ┌─────────────────────── CLIENT APPLICATIONS ────────────────────────────────────┐ │
 │  │                                                                                 │ │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐                   │ │
-│  │  │   Mobile App   │  │ Public Website │  │ Mindlercare    │                   │ │
+│  │  │   Mobile App   │  │ Public Website │  │ ViviefCorp     │                   │ │
 │  │  │   (app/)       │  │(public-web-3/) │  │(frontend-mono/)│                   │ │
 │  │  │                │  │                │  │                │                   │ │
 │  │  │ React Native   │  │ Next.js 15     │  │ React 18       │                   │ │
@@ -131,7 +131,7 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 │  ┌─────────────────────── API GATEWAY LAYER ──────────────────────────────────────┐ │
 │  │                                                                                 │ │
 │  │  ┌────────────────────────────┐     ┌────────────────────────────┐            │ │
-│  │  │      mindlerapi            │     │      tRPC API Layer        │            │ │
+│  │  │      viviefcorp-api        │     │      tRPC API Layer        │            │ │
 │  │  │                            │     │                            │            │ │
 │  │  │  Express + tRPC            │     │  Type-safe API routes      │            │ │
 │  │  │  JWT Auth                  │     │  React Query integration   │            │ │
@@ -190,11 +190,11 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 │                                                                                      │
 │  ┌─────────────────────── SHARED PACKAGES (npm-private-packages/) ────────────────┐ │
 │  │                                                                                 │ │
-│  │  @mindlercare/auth          @mindlercare/schema       @mindlercare/logger      │ │
-│  │  @mindlercare/mindlerapi-client                       @mindlercare/ui-web      │ │
-│  │  @mindlercare/b2b-membership-client                   @mindlercare/crypto      │ │
-│  │  @mindlercare/videocall-auth-client                   @mindlercare/pdf-gen     │ │
-│  │  @mindlercare/log-washer-client                       @mindlercare/ssm-client  │ │
+│  │  @viviefcorp/auth            @viviefcorp/schema        @viviefcorp/logger       │ │
+│  │  @viviefcorp/api-client                               @viviefcorp/ui-web       │ │
+│  │  @viviefcorp/b2b-membership-client                    @viviefcorp/crypto       │ │
+│  │  @viviefcorp/videocall-auth-client                    @viviefcorp/pdf-gen      │ │
+│  │  @viviefcorp/log-washer-client                        @viviefcorp/ssm-client   │ │
 │  │                                                                                 │ │
 │  └─────────────────────────────────────────────────────────────────────────────────┘ │
 │                                                                                      │
@@ -209,15 +209,15 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 |-----------|-----------|---------|------------|
 | **Mobile App** (`app/`) | React Native, Expo 52, TypeScript | Patient mobile app for iOS/Android | **HIGH** - package.json analysis |
 | **Public Website** (`public-website-3/`) | Next.js 15.3.3, Contentful, XState v5 | Marketing website, booking flows | **HIGH** - package.json, CLAUDE.md |
-| **Mindlercare** (`frontend-monorepo/frontends/mindlercare`) | React 18, Vite, MUI | Provider dashboard, patient management | **HIGH** - monorepo structure |
-| **Back Office Tools** (`frontend-monorepo/frontends/mindler-back-office-tools`) | React, Vite | Admin tools | **MEDIUM** - directory listing |
+| **ViviefCorp Care** (`frontend-monorepo/frontends/viviefcorp-care`) | React 18, Vite, MUI | Provider dashboard, patient management | **HIGH** - monorepo structure |
+| **Back Office Tools** (`frontend-monorepo/frontends/back-office-tools`) | React, Vite | Admin tools | **MEDIUM** - directory listing |
 | **Video Stream** (`frontend-monorepo/frontends/video-stream-2`) | React | Video calling interface | **MEDIUM** - directory listing |
 
 #### Backend Services (monorepo-3.0/services/)
 
 | Service | Purpose | Key Dependencies | Confidence |
 |---------|---------|-----------------|------------|
-| **mindlerapi** | Core API, tRPC endpoints | Express, tRPC, Kysely, MySQL | **HIGH** - DevAC query router.ts |
+| **viviefcorp-api** | Core API, tRPC endpoints | Express, tRPC, Kysely, MySQL | **HIGH** - DevAC query router.ts |
 | **auth-lambda** | API Gateway authorizer | JWT, Cognito | **HIGH** - monorepo CLAUDE.md |
 | **bankid** | Swedish BankID authentication | BankID API | **HIGH** - service directory |
 | **passkey-auth** | WebAuthn/Passkey authentication | @simplewebauthn | **MEDIUM** - npm-private-packages |
@@ -240,16 +240,16 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 
 | Package | Purpose | Confidence |
 |---------|---------|------------|
-| **@mindlercare/auth** | Authentication utilities, Cognito integration | **HIGH** - DevAC query |
-| **@mindlercare/schema** | Shared TypeScript schemas, zod validators | **HIGH** - DevAC query (73 usages) |
-| **@mindlercare/mindlerapi-client** | tRPC client for frontend apps | **HIGH** - DevAC query |
-| **@mindlercare/ui-web** | Shared React web components | **HIGH** - coding-rules.md |
-| **@mindlercare/logger** | Logging utilities | **HIGH** - DevAC query |
-| **@mindlercare/crypto** | Encryption/decryption utilities | **MEDIUM** - package directory |
-| **@mindlercare/pdf-generator** | PDF document generation | **MEDIUM** - package directory |
-| **@mindlercare/secrets-manager-client** | AWS Secrets Manager wrapper | **HIGH** - DevAC query (55 usages) |
-| **@mindlercare/ssm-client** | AWS SSM Parameter Store client | **HIGH** - package directory |
-| **@mindlercare/log-washer-client** | Log sanitization | **HIGH** - DevAC query (37 usages) |
+| **@viviefcorp/auth** | Authentication utilities, Cognito integration | **HIGH** - DevAC query |
+| **@viviefcorp/schema** | Shared TypeScript schemas, zod validators | **HIGH** - DevAC query (73 usages) |
+| **@viviefcorp/api-client** | tRPC client for frontend apps | **HIGH** - DevAC query |
+| **@viviefcorp/ui-web** | Shared React web components | **HIGH** - coding-rules.md |
+| **@viviefcorp/logger** | Logging utilities | **HIGH** - DevAC query |
+| **@viviefcorp/crypto** | Encryption/decryption utilities | **MEDIUM** - package directory |
+| **@viviefcorp/pdf-generator** | PDF document generation | **MEDIUM** - package directory |
+| **@viviefcorp/secrets-manager-client** | AWS Secrets Manager wrapper | **HIGH** - DevAC query (55 usages) |
+| **@viviefcorp/ssm-client** | AWS SSM Parameter Store client | **HIGH** - package directory |
+| **@viviefcorp/log-washer-client** | Log sanitization | **HIGH** - DevAC query (37 usages) |
 
 ---
 
@@ -308,9 +308,9 @@ The Mindler Healthcare Platform is a comprehensive digital mental health solutio
 | **app** | Mobile | 3 | React Native patient mobile application |
 | **frontend-monorepo** | Web apps | 6 | Provider dashboards, web applications |
 | **public-website-3** | Website | 1 | Next.js marketing website |
-| **npm-private-packages** | Libraries | 18 | Shared npm packages (@mindlercare/*) |
+| **npm-private-packages** | Libraries | 18 | Shared npm packages (@viviefcorp/*) |
 | **contentful-monorepo** | CMS | 1 | Contentful configuration and schemas |
-| **mindler** | Experimental | 5 | New architecture experiments |
+| **viviefcorp** | Experimental | 5 | New architecture experiments |
 | **living-architecture** | Docs | 4 | Architecture documentation |
 | **CodeGraph** | Tools | 2 | Code analysis tools |
 
@@ -480,6 +480,6 @@ devac query "SELECT DISTINCT target, provider, operation
 
 *Document generated using DevAC code analysis tools. For updates, regenerate using:*
 ```bash
-devac c4 context --name "Mindler Healthcare Platform" --json
+devac c4 context --name "ViviefCorp Healthcare Platform" --json
 devac c4 containers --json
 ```
