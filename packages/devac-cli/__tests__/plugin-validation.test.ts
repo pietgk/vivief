@@ -104,7 +104,10 @@ describe("plugin validation", () => {
   });
 
   describe("hooks validation", () => {
-    let hooksConfig: { hooks?: Array<{ event?: string; command?: string; blocking?: boolean }> };
+    type HookCommand = { type?: string; command?: string };
+    type RuleGroup = { hooks?: HookCommand[] };
+    type HooksRecord = Record<string, RuleGroup[]>;
+    let hooksConfig: { hooks?: HooksRecord };
 
     beforeAll(async () => {
       const hooksPath = path.join(PLUGIN_ROOT, "hooks", "hooks.json");
@@ -112,38 +115,50 @@ describe("plugin validation", () => {
       hooksConfig = JSON.parse(content);
     });
 
-    it("has hooks array", () => {
+    it("has hooks record", () => {
       expect(hooksConfig.hooks).toBeDefined();
-      expect(Array.isArray(hooksConfig.hooks)).toBe(true);
+      expect(typeof hooksConfig.hooks).toBe("object");
+      expect(Array.isArray(hooksConfig.hooks)).toBe(false);
     });
 
-    it("each hook has required event field", () => {
-      for (const hook of hooksConfig.hooks || []) {
-        expect(hook.event).toBeDefined();
-        expect(typeof hook.event).toBe("string");
+    it("each event has an array of rule groups", () => {
+      for (const [, ruleGroups] of Object.entries(hooksConfig.hooks || {})) {
+        expect(Array.isArray(ruleGroups)).toBe(true);
+        for (const group of ruleGroups) {
+          expect(group.hooks).toBeDefined();
+          expect(Array.isArray(group.hooks)).toBe(true);
+        }
       }
     });
 
-    it("each hook has required command field", () => {
-      for (const hook of hooksConfig.hooks || []) {
-        expect(hook.command).toBeDefined();
-        expect(typeof hook.command).toBe("string");
+    it("each hook command has required command field", () => {
+      for (const [, ruleGroups] of Object.entries(hooksConfig.hooks || {})) {
+        for (const group of ruleGroups) {
+          for (const hook of group.hooks || []) {
+            expect(hook.command).toBeDefined();
+            expect(typeof hook.command).toBe("string");
+          }
+        }
       }
     });
 
     it("hooks use valid event names", () => {
       const validEvents = ["UserPromptSubmit", "Stop", "PreToolUse", "PostToolUse"];
 
-      for (const hook of hooksConfig.hooks || []) {
-        expect(validEvents).toContain(hook.event);
+      for (const event of Object.keys(hooksConfig.hooks || {})) {
+        expect(validEvents).toContain(event);
       }
     });
 
     it("hooks reference valid devac commands", () => {
-      for (const hook of hooksConfig.hooks || []) {
-        const command = hook.command || "";
-        // Should start with "devac" command
-        expect(command.startsWith("devac ")).toBe(true);
+      for (const [, ruleGroups] of Object.entries(hooksConfig.hooks || {})) {
+        for (const group of ruleGroups) {
+          for (const hook of group.hooks || []) {
+            const command = hook.command || "";
+            // Should start with "devac" command
+            expect(command.startsWith("devac ")).toBe(true);
+          }
+        }
       }
     });
   });
@@ -300,11 +315,15 @@ describe("plugin validation", () => {
         "doc-sync",
       ];
 
-      for (const hook of hooksConfig.hooks || []) {
-        const command = hook.command || "";
-        if (command.startsWith("devac ")) {
-          const subcommand = command.split(" ")[1];
-          expect(validSubcommands).toContain(subcommand);
+      for (const [, ruleGroups] of Object.entries(hooksConfig.hooks || {})) {
+        for (const group of ruleGroups as Array<{ hooks?: Array<{ command?: string }> }>) {
+          for (const hook of group.hooks || []) {
+            const command = hook.command || "";
+            if (command.startsWith("devac ")) {
+              const subcommand = command.split(" ")[1];
+              expect(validSubcommands).toContain(subcommand);
+            }
+          }
         }
       }
     });
