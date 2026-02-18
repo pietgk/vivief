@@ -9,13 +9,17 @@
 export {
   HookOutputSchema,
   HookSpecificOutputSchema,
+  StopHookOutputSchema,
   DiagnosticsCountsSchema,
   validateHookOutput,
+  validateStopHookOutput,
   safeValidateHookOutput,
+  safeValidateStopHookOutput,
   extractReminderContent,
   parseDiagnosticsCounts,
   hasIssues,
   type HookOutput,
+  type StopHookOutput,
   type HookSpecificOutput,
   type DiagnosticsCounts,
 } from "./hook-output-schema.js";

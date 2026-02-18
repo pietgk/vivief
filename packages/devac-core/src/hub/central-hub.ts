@@ -54,6 +54,8 @@ export interface RepoRegistrationResult {
   repoId: string;
   packages: number;
   crossRepoEdges: number;
+  skipped?: boolean;
+  skipReason?: string;
 }
 
 /**
@@ -270,9 +272,13 @@ export class CentralHub {
     // Check if repo has seed data
     const hasSeed = await this.repoHasSeeds(repoPath);
     if (!hasSeed) {
-      throw new Error(
-        `Repository at ${repoPath} has no .devac/seed/ directory. Run 'devac sync' first.`
-      );
+      return {
+        repoId: path.basename(repoPath),
+        packages: 0,
+        crossRepoEdges: 0,
+        skipped: true,
+        skipReason: "no seeds",
+      };
     }
 
     // Generate or update manifest

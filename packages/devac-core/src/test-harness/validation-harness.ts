@@ -18,9 +18,11 @@ import { type GitSimulator, createGitSimulator } from "./git-simulator.js";
 import {
   type DiagnosticsCounts,
   type HookOutput,
+  type StopHookOutput,
   extractReminderContent,
   parseDiagnosticsCounts,
   safeValidateHookOutput,
+  safeValidateStopHookOutput,
   validateHookOutput,
 } from "./hook-output-schema.js";
 
@@ -73,7 +75,7 @@ export interface ValidationRunOptions {
  */
 export interface HookAssertionResult {
   valid: boolean;
-  output: HookOutput | null;
+  output: HookOutput | StopHookOutput | null;
   error?: string;
   counts: DiagnosticsCounts;
 }
@@ -160,6 +162,7 @@ export class ValidationTestHarness {
 
   /**
    * Parse and validate hook JSON output.
+   * Supports both UserPromptSubmit (hookSpecificOutput) and Stop (stopReason) formats.
    */
   parseHookOutput(stdout: string): HookAssertionResult {
     const trimmed = stdout.trim();
@@ -186,25 +189,34 @@ export class ValidationTestHarness {
       };
     }
 
-    // Validate against schema
-    const result = safeValidateHookOutput(parsed);
-    if (!result.success) {
+    // Try Stop hook schema first (stopReason)
+    const stopResult = safeValidateStopHookOutput(parsed);
+    if (stopResult.success) {
+      const counts = parseDiagnosticsCounts(stopResult.data.stopReason);
       return {
-        valid: false,
-        output: null,
-        error: `Schema validation failed: ${result.error.message}`,
-        counts: { errors: 0, warnings: 0 },
+        valid: true,
+        output: stopResult.data,
+        counts,
       };
     }
 
-    // Extract counts from content
-    const content = extractReminderContent(result.data.hookSpecificOutput.additionalContext);
-    const counts = parseDiagnosticsCounts(content);
+    // Try UserPromptSubmit hook schema (hookSpecificOutput)
+    const result = safeValidateHookOutput(parsed);
+    if (result.success) {
+      const content = extractReminderContent(result.data.hookSpecificOutput.additionalContext);
+      const counts = parseDiagnosticsCounts(content);
+      return {
+        valid: true,
+        output: result.data,
+        counts,
+      };
+    }
 
     return {
-      valid: true,
-      output: result.data,
-      counts,
+      valid: false,
+      output: null,
+      error: `Schema validation failed: ${result.error.message}`,
+      counts: { errors: 0, warnings: 0 },
     };
   }
 

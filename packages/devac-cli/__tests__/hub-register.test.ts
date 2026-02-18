@@ -90,7 +90,7 @@ describe("hub register command", () => {
     expect(result.error).toContain("does not exist");
   });
 
-  it("validates repo has .devac/seed/ directory", async () => {
+  it("skips repo with no .devac/seed/ directory", async () => {
     // Create repo without seed data
     await fs.mkdir(repoDir, { recursive: true });
 
@@ -100,8 +100,9 @@ describe("hub register command", () => {
       skipValidation: true,
     });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("seed");
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Skipped");
+    expect(result.packages).toBe(0);
   });
 
   it("generates manifest if not present", async () => {

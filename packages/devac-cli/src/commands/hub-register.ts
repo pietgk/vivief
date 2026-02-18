@@ -65,6 +65,18 @@ async function registerSingleRepo(
   try {
     const result = await client.registerRepo(repoPath);
 
+    if (result.skipped) {
+      onProgress?.(`Skipped ${result.repoId} (${result.skipReason})`);
+
+      return {
+        success: true,
+        repoId: result.repoId,
+        packages: 0,
+        crossRepoEdges: 0,
+        message: `Skipped ${result.repoId} (${result.skipReason})`,
+      };
+    }
+
     onProgress?.(`Registered ${result.repoId} with ${result.packages} package(s)`);
 
     return {

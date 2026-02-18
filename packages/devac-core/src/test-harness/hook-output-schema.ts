@@ -8,10 +8,11 @@
 import { z } from "zod";
 
 /**
- * Schema for hook-specific output that gets injected into Claude Code context.
+ * Schema for hook-specific output (UserPromptSubmit hooks).
+ * Uses hookSpecificOutput with additionalContext wrapped in system-reminder tags.
  */
 export const HookSpecificOutputSchema = z.object({
-  hookEventName: z.enum(["UserPromptSubmit", "Stop"]),
+  hookEventName: z.literal("UserPromptSubmit"),
   additionalContext: z
     .string()
     .refine(
@@ -21,16 +22,29 @@ export const HookSpecificOutputSchema = z.object({
 });
 
 /**
- * Full hook output schema as expected by Claude Code hooks.
+ * Full hook output schema for UserPromptSubmit hooks.
  */
 export const HookOutputSchema = z.object({
   hookSpecificOutput: HookSpecificOutputSchema,
 });
 
 /**
- * Type for the full hook output.
+ * Schema for Stop hook output.
+ * Stop hooks use top-level stopReason instead of hookSpecificOutput.
+ */
+export const StopHookOutputSchema = z.object({
+  stopReason: z.string(),
+});
+
+/**
+ * Type for the UserPromptSubmit hook output.
  */
 export type HookOutput = z.infer<typeof HookOutputSchema>;
+
+/**
+ * Type for Stop hook output.
+ */
+export type StopHookOutput = z.infer<typeof StopHookOutputSchema>;
 
 /**
  * Type for hook-specific output.
@@ -38,7 +52,7 @@ export type HookOutput = z.infer<typeof HookOutputSchema>;
 export type HookSpecificOutput = z.infer<typeof HookSpecificOutputSchema>;
 
 /**
- * Validate hook output against schema.
+ * Validate UserPromptSubmit hook output against schema.
  * Returns validated output or throws Zod error.
  */
 export function validateHookOutput(output: unknown): HookOutput {
@@ -46,12 +60,29 @@ export function validateHookOutput(output: unknown): HookOutput {
 }
 
 /**
- * Safe validation that returns result object instead of throwing.
+ * Validate Stop hook output against schema.
+ * Returns validated output or throws Zod error.
+ */
+export function validateStopHookOutput(output: unknown): StopHookOutput {
+  return StopHookOutputSchema.parse(output);
+}
+
+/**
+ * Safe validation for UserPromptSubmit hook output.
  */
 export function safeValidateHookOutput(
   output: unknown
 ): z.SafeParseReturnType<unknown, HookOutput> {
   return HookOutputSchema.safeParse(output);
+}
+
+/**
+ * Safe validation for Stop hook output.
+ */
+export function safeValidateStopHookOutput(
+  output: unknown
+): z.SafeParseReturnType<unknown, StopHookOutput> {
+  return StopHookOutputSchema.safeParse(output);
 }
 
 /**
@@ -92,8 +123,11 @@ export function parseDiagnosticsCounts(content: string): DiagnosticsCounts {
 /**
  * Check if hook output indicates issues were found.
  */
-export function hasIssues(hookOutput: HookOutput): boolean {
-  const content = extractReminderContent(hookOutput.hookSpecificOutput.additionalContext);
+export function hasIssues(hookOutput: HookOutput | StopHookOutput): boolean {
+  const content =
+    "stopReason" in hookOutput
+      ? hookOutput.stopReason
+      : extractReminderContent(hookOutput.hookSpecificOutput.additionalContext);
   const counts = parseDiagnosticsCounts(content);
   return counts.errors > 0 || counts.warnings > 0;
 }

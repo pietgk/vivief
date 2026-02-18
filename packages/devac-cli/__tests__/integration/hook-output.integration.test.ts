@@ -8,10 +8,12 @@
 import * as path from "node:path";
 import {
   type HookOutput,
+  type StopHookOutput,
   ValidationTestHarness,
   extractReminderContent,
   parseDiagnosticsCounts,
   validateHookOutput,
+  validateStopHookOutput,
 } from "@pietgk/devac-core/test-harness";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
@@ -28,17 +30,14 @@ describe("Hook Output Integration", () => {
   });
 
   describe("Hook Output Schema Validation", () => {
-    test("valid hook output passes schema validation", () => {
+    test("valid Stop hook output passes schema validation", () => {
       const validOutput = {
-        hookSpecificOutput: {
-          hookEventName: "Stop",
-          additionalContext:
-            "<system-reminder>\nValidation found issues:\n- 2 TypeScript errors in src/error.ts\n</system-reminder>",
-        },
+        stopReason:
+          "Validation found issues:\n- 2 TypeScript errors in src/error.ts\n\nConsider fixing these before continuing.",
       };
 
-      const result = validateHookOutput(validOutput);
-      expect(result.hookSpecificOutput.hookEventName).toBe("Stop");
+      const result = validateStopHookOutput(validOutput);
+      expect(result.stopReason).toContain("Validation found issues");
     });
 
     test("UserPromptSubmit hook output is valid", () => {
@@ -65,10 +64,10 @@ describe("Hook Output Integration", () => {
       expect(() => validateHookOutput(invalidOutput)).toThrow();
     });
 
-    test("missing system-reminder tags throws", () => {
+    test("missing system-reminder tags in UserPromptSubmit throws", () => {
       const invalidOutput = {
         hookSpecificOutput: {
-          hookEventName: "Stop",
+          hookEventName: "UserPromptSubmit",
           additionalContext: "Missing system-reminder tags",
         },
       };
@@ -76,7 +75,7 @@ describe("Hook Output Integration", () => {
       expect(() => validateHookOutput(invalidOutput)).toThrow();
     });
 
-    test("missing hookSpecificOutput throws", () => {
+    test("missing hookSpecificOutput throws for UserPromptSubmit validation", () => {
       const invalidOutput = {
         someOtherField: "value",
       };
@@ -167,12 +166,9 @@ Line 3
   });
 
   describe("Harness Parse Methods", () => {
-    test("parseHookOutput handles valid JSON", () => {
+    test("parseHookOutput handles valid Stop hook JSON", () => {
       const stdout = JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: "Stop",
-          additionalContext: "<system-reminder>\n5 errors, 3 warnings\n</system-reminder>",
-        },
+        stopReason: "Validation found issues:\n- 5 errors, 3 warnings\n\nConsider fixing these.",
       });
 
       const result = harness.parseHookOutput(stdout);
@@ -216,10 +212,10 @@ Line 3
   });
 
   describe("Harness Assertion Methods", () => {
-    test("assertHookOutputValid passes for valid output", () => {
+    test("assertHookOutputValid passes for valid UserPromptSubmit output", () => {
       const stdout = JSON.stringify({
         hookSpecificOutput: {
-          hookEventName: "Stop",
+          hookEventName: "UserPromptSubmit",
           additionalContext: "<system-reminder>Test</system-reminder>",
         },
       });
@@ -244,54 +240,46 @@ Line 3
 
   describe("Stop Hook Output Format", () => {
     test("Stop hook output includes TypeScript errors grouped by file", () => {
-      // Simulate what formatOnStopHookOutput would produce
-      const hookOutput: HookOutput = {
-        hookSpecificOutput: {
-          hookEventName: "Stop",
-          additionalContext: `<system-reminder>
-Validation found issues:
+      // Simulate what formatOnStopHookOutput produces
+      const hookOutput: StopHookOutput = {
+        stopReason: `Validation found issues:
 - 3 TypeScript errors in src/type-errors.ts
 - 2 TypeScript errors in src/index.ts
 
-Consider fixing these before continuing.
-</system-reminder>`,
-        },
+Consider fixing these before continuing.`,
       };
 
       const result = harness.parseHookOutput(JSON.stringify(hookOutput));
 
       expect(result.valid).toBe(true);
-      expect(result.output?.hookSpecificOutput.hookEventName).toBe("Stop");
+      expect(result.output).not.toBeNull();
 
-      if (!result.output) throw new Error("Expected output to be defined");
-      const content = extractReminderContent(result.output.hookSpecificOutput.additionalContext);
-      expect(content).toContain("Validation found issues:");
-      expect(content).toContain("TypeScript errors in src/type-errors.ts");
-      expect(content).toContain("Consider fixing these before continuing");
+      if (!result.output || !("stopReason" in result.output)) {
+        throw new Error("Expected StopHookOutput");
+      }
+      expect(result.output.stopReason).toContain("Validation found issues:");
+      expect(result.output.stopReason).toContain("TypeScript errors in src/type-errors.ts");
+      expect(result.output.stopReason).toContain("Consider fixing these before continuing");
     });
 
     test("Stop hook output includes ESLint errors and warnings", () => {
-      const hookOutput: HookOutput = {
-        hookSpecificOutput: {
-          hookEventName: "Stop",
-          additionalContext: `<system-reminder>
-Validation found issues:
+      const hookOutput: StopHookOutput = {
+        stopReason: `Validation found issues:
 - 2 errors, 3 warnings (ESLint) in src/lint-errors.ts
 
-Consider fixing these before continuing.
-</system-reminder>`,
-        },
+Consider fixing these before continuing.`,
       };
 
       const result = harness.parseHookOutput(JSON.stringify(hookOutput));
 
       expect(result.valid).toBe(true);
 
-      if (!result.output) throw new Error("Expected output to be defined");
-      const content = extractReminderContent(result.output.hookSpecificOutput.additionalContext);
-      expect(content).toContain("errors");
-      expect(content).toContain("warnings");
-      expect(content).toContain("ESLint");
+      if (!result.output || !("stopReason" in result.output)) {
+        throw new Error("Expected StopHookOutput");
+      }
+      expect(result.output.stopReason).toContain("errors");
+      expect(result.output.stopReason).toContain("warnings");
+      expect(result.output.stopReason).toContain("ESLint");
     });
   });
 
@@ -310,7 +298,10 @@ Run get_all_diagnostics to see details.
       const result = harness.parseHookOutput(JSON.stringify(hookOutput));
 
       expect(result.valid).toBe(true);
-      expect(result.output?.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+      expect(result.output).not.toBeNull();
+      if (result.output && "hookSpecificOutput" in result.output) {
+        expect(result.output.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+      }
       expect(result.counts.errors).toBe(5);
       expect(result.counts.warnings).toBe(3);
     });

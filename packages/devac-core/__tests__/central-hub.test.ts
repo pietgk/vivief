@@ -193,11 +193,15 @@ describe("CentralHub", () => {
       expect(result.repoId).toBe("package/test-pkg");
     });
 
-    it("fails if repo has no .devac/seed/ directory", async () => {
+    it("returns skip result if repo has no .devac/seed/ directory", async () => {
       const repoPath = path.join(tempDir, "empty-repo");
       await fs.mkdir(repoPath, { recursive: true });
 
-      await expect(hub.registerRepo(repoPath)).rejects.toThrow();
+      const result = await hub.registerRepo(repoPath);
+      expect(result.skipped).toBe(true);
+      expect(result.skipReason).toBe("no seeds");
+      expect(result.packages).toBe(0);
+      expect(result.crossRepoEdges).toBe(0);
     });
 
     it("unregisters repo and cleans up edges", async () => {
