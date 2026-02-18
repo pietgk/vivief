@@ -19,6 +19,7 @@ import {
   pushValidationResultsToHub,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getGitChangedFiles } from "../utils/git-utils.js";
 import { getWorkspaceHubDir } from "../utils/workspace-discovery.js";
 
 /**
@@ -250,41 +251,6 @@ function createErrorResult(mode: ValidationMode, error: string, startTime: numbe
     totalTimeMs: Date.now() - startTime,
     error,
   };
-}
-
-/**
- * Get changed files from git (staged and unstaged)
- */
-async function getGitChangedFiles(packagePath: string): Promise<string[]> {
-  const { execSync } = await import("node:child_process");
-
-  try {
-    // Get both staged and unstaged changes
-    const staged = execSync("git diff --cached --name-only", {
-      cwd: packagePath,
-      encoding: "utf-8",
-    }).trim();
-    const unstaged = execSync("git diff --name-only", {
-      cwd: packagePath,
-      encoding: "utf-8",
-    }).trim();
-
-    const files = new Set<string>();
-    if (staged) {
-      for (const file of staged.split("\n")) {
-        if (file) files.add(file);
-      }
-    }
-    if (unstaged) {
-      for (const file of unstaged.split("\n")) {
-        if (file) files.add(file);
-      }
-    }
-
-    return Array.from(files);
-  } catch {
-    return [];
-  }
 }
 
 /**

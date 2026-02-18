@@ -14,6 +14,7 @@ import {
   getWorkspaceStatus,
 } from "@pietgk/devac-core";
 import type { Command } from "commander";
+import { getGitChangedFiles } from "../utils/git-utils.js";
 import { analyzeCommand } from "./analyze.js";
 import { cleanCommand } from "./clean.js";
 import { contextCICommand, contextIssuesCommand } from "./context.js";
@@ -333,11 +334,20 @@ export async function syncCommand(options: SyncOptions): Promise<SyncResult> {
     for (const repo of status.repos) {
       if (!repo.seedStatus) continue;
 
+      // Detect changed files once per repo
+      const changedFiles = getGitChangedFiles(repo.path);
+      if (changedFiles.length === 0) {
+        for (const pkg of repo.seedStatus.packages) {
+          onProgress?.(`  ⊘ ${pkg.packageName}: skipped (no changes)`);
+        }
+        continue;
+      }
+
       for (const pkg of repo.seedStatus.packages) {
         try {
           const validateResult = await validateCommand({
             packagePath: pkg.packagePath,
-            changedFiles: [],
+            changedFiles,
             mode: "quick",
           });
 
