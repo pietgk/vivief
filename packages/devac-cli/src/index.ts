@@ -15,6 +15,7 @@ import {
   registerQueryCommand,
   registerStatusCommand,
   registerSyncCommand,
+  registerValidateCommand,
   registerWorkflowCommand,
 } from "./commands/index.js";
 import {
@@ -99,6 +100,9 @@ registerMcpCommand(program);
 
 // Workflow: CI/git integration (pre-commit, prepare-ship, etc.)
 registerWorkflowCommand(program);
+
+// Validate: run validation on changed files (used by hooks)
+registerValidateCommand(program);
 
 // Cleanup: remove stale branches and worktrees
 registerCleanupCommand(program);
