@@ -1,5 +1,12 @@
 # @pietgk/devac-cli
 
+## 2.6.1
+
+### Patch Changes
+
+- 28d4515: Re-register validate command in CLI entry point, fixing the Claude Code Stop hook (`devac validate --on-stop --mode quick`)
+  - @pietgk/devac-core@2.6.1
+
 ## 2.6.0
 
 ### Patch Changes

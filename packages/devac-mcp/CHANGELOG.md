@@ -1,5 +1,11 @@
 # @pietgk/devac-mcp
 
+## 2.6.1
+
+### Patch Changes
+
+- @pietgk/devac-core@2.6.1
+
 ## 2.6.0
 
 ### Patch Changes
