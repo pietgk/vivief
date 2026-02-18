@@ -1,5 +1,11 @@
 # @pietgk/browser-cli
 
+## 0.3.1
+
+### Patch Changes
+
+- @pietgk/devac-core@2.6.1
+
 ## 0.3.0
 
 ### Minor Changes
