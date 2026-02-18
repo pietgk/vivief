@@ -298,7 +298,10 @@ Run get_all_diagnostics to see details.
       const result = harness.parseHookOutput(JSON.stringify(hookOutput));
 
       expect(result.valid).toBe(true);
-      expect(result.output?.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+      expect(result.output).not.toBeNull();
+      if (result.output && "hookSpecificOutput" in result.output) {
+        expect(result.output.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+      }
       expect(result.counts.errors).toBe(5);
       expect(result.counts.warnings).toBe(3);
     });
