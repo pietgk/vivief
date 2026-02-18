@@ -1,5 +1,13 @@
 # @pietgk/devac-cli
 
+## 2.6.2
+
+### Patch Changes
+
+- be5e5fd: Handle seedless repos gracefully during hub registration (skip instead of error) and fix Stop hook output to use `stopReason` instead of unsupported `hookSpecificOutput`
+- Updated dependencies [be5e5fd]
+  - @pietgk/devac-core@2.6.2
+
 ## 2.6.1
 
 ### Patch Changes

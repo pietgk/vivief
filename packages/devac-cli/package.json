@@ -1,6 +1,6 @@
 {
   "name": "@pietgk/devac-cli",
-  "version": "2.6.1",
+  "version": "2.6.2",
   "description": "DevAC command-line interface",
   "type": "module",
   "publishConfig": {
