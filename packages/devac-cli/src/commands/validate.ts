@@ -333,10 +333,7 @@ function formatOnStopHookOutput(result: ValidateResult): string | null {
   }
 
   const hookOutput = {
-    hookSpecificOutput: {
-      hookEventName: "Stop",
-      additionalContext: `<system-reminder>\nValidation found issues:\n${issueLines.join("\n")}\n\nConsider fixing these before continuing.\n</system-reminder>`,
-    },
+    stopReason: `Validation found issues:\n${issueLines.join("\n")}\n\nConsider fixing these before continuing.`,
   };
 
   return JSON.stringify(hookOutput);

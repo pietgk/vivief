@@ -309,6 +309,10 @@ export async function syncCommand(options: SyncOptions): Promise<SyncResult> {
 
       try {
         const result = await client.registerRepo(repo.path);
+        if (result.skipped) {
+          onProgress?.(`  ⊘ ${repo.name}: skipped (${result.skipReason})`);
+          continue;
+        }
         reposRegistered++;
         onProgress?.(
           `  ✓ ${result.repoId}: ${result.packages} package(s), ${result.crossRepoEdges} cross-repo edges`
