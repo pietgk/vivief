@@ -266,6 +266,29 @@ export function getFileChangesSinceBranch(base: string, cwd: string): FileChange
 }
 
 /**
+ * Get changed files from git (staged + unstaged, deduplicated).
+ * Returns file paths relative to the repo root.
+ */
+export function getGitChangedFiles(cwd: string): string[] {
+  const staged = git("diff --cached --name-only", cwd);
+  const unstaged = git("diff --name-only", cwd);
+
+  const files = new Set<string>();
+  if (staged) {
+    for (const file of staged.split("\n")) {
+      if (file) files.add(file);
+    }
+  }
+  if (unstaged) {
+    for (const file of unstaged.split("\n")) {
+      if (file) files.add(file);
+    }
+  }
+
+  return Array.from(files);
+}
+
+/**
  * Get staged files
  */
 export function getStagedFiles(cwd: string): string[] {
