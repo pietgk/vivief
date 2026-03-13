@@ -1,9 +1,9 @@
 # Counseling Practice Platform — Architecture Document
 
-**Version:** 0.2 (Draft)
+**Version:** 0.3 (Draft)
 **Date:** 2026-03-13
 **Authors:** Piet (Technical Lead & Architect), Claude (Strategic Thought Partner)
-**Status:** Brainstorm → Concept Definition (CRDT choice resolved)
+**Status:** Brainstorm → Concept Definition (CRDT, privacy, and encryption resolved)
 
 ---
 
@@ -111,6 +111,31 @@ The user never "switches apps." Surfaces morph based on:
 4. **What the AI suggests** — generated widget inline, ephemeral or pin-to-Canvas
 
 Transitions are animated morphs, not page navigations. The datoms stay — only the rendering shifts.
+
+### 2.4 The Seal (Privacy Model)
+
+A Seal is not a fourth primitive — it emerges from combining a Lens with cryptographic enforcement. It answers three questions: who are you (identity), what can you do (capability), and what can you see (encryption boundary).
+
+**Core insight: a capability scope IS a Lens.** The statement "client Maria can read her own data" is expressed as a Lens `{ filter: entity refs client:42, depth: own-data-only }` combined with Maria's decryption key. The same query engine that renders Surfaces also enforces access control.
+
+**Selective Value encryption.** Only the Value field of sensitive datoms is encrypted. Entity, Attribute, Tx, and Op remain cleartext so the system can route, index, and query without decryption. Which attributes are sensitive is defined in the schema itself (as datoms).
+
+**Deterministic key derivation.** One counselor passphrase → PBKDF2 → master key → HKDF per-client keys. No key database, no key server. Keys exist only in memory during a session. The counselor never manages keys — she just remembers her passphrase.
+
+**Four roles, four Seals:**
+
+| Role       | Key held                    | Can see                                  | Can do                              |
+|------------|-----------------------------|------------------------------------------|-------------------------------------|
+| Counselor  | Master key (derives all)    | All clients, all data                    | Read all, write all, grant/revoke   |
+| Client     | Portal key (own data only)  | Own datoms only                          | Read own, submit check-ins, message |
+| AI agent   | AI key (per consented client)| Consented clients' data                 | Read consented, write drafts only   |
+| System     | No decryption keys          | Entity + Attribute + Tx (metadata only)  | Route, index, schedule              |
+
+**Consent as datom.** Every privacy decision is stored as an auditable datom with a Why chain. Revoking consent is a retraction datom — the same operation used for any other change. The effectHandler processes it and triggers key rotation as a downstream Effect'.
+
+**Client-side search.** Because Values are encrypted in PostgreSQL, search over encrypted fields is handled by an in-memory index built on login (decrypt searchable fields once, filter locally). PostgreSQL never sees search queries for sensitive content.
+
+See sections 10.4, 10.5, and 10.8 for the full resolved analysis including key derivation hierarchy, regulatory compliance mapping, and encryption trade-offs.
 
 ---
 
@@ -297,6 +322,12 @@ All running locally on a MacBook Pro. No cloud dependencies for core operations.
 │  MCP Servers: mcp-clients, mcp-sessions, mcp-schedule,        │
 │               mcp-notes, mcp-plans                             │
 ├─────────────────────────────────────────────────────────────────┤
+│                     Seal Layer (Privacy)                         │
+│  Key derivation: passphrase → PBKDF2 → master → HKDF per-client│
+│  Selective Value encryption: AES-256-GCM on sealed attributes  │
+│  Consent enforcement: datom-based, per-client, per-scope       │
+│  Client-side search index: decrypt-on-login, filter in memory  │
+├─────────────────────────────────────────────────────────────────┤
 │                     Intelligence Layer                          │
 │  Whisper.cpp — local speech-to-text                            │
 │  Local LLM (Ollama) — privacy-critical structuring             │
@@ -323,6 +354,8 @@ All running locally on a MacBook Pro. No cloud dependencies for core operations.
 | **Claude API**  | For complex reasoning when the counselor explicitly opts in: treatment plan suggestions, cross-client pattern analysis, evidence-based intervention recommendations. |
 | **TanStack DB** | Reactive UI layer. Client-side query cache that syncs with the datom store. Surfaces re-render automatically when relevant datoms change. |
 | **Loro**        | CRDT library built on Event Graph Walker (Eg-walker) + Fugue algorithm. Rust core with JS/WASM bindings. Native support for text, list, map, tree, movable list, and counter CRDTs. Stores complete editing history in compact form (360K ops in 361KB). Time travel, fork/merge like Git. Aligns with the datom append-only philosophy — Loro's event graph IS an append-only operation log. See section 10.1 for full analysis. |
+| **AES-256-GCM** | Symmetric encryption for datom Values. Industry-standard authenticated encryption — fast on Apple Silicon (GB/s), detects wrong-key attempts (integrity check), widely audited. Used for selective Value encryption of sealed attributes. |
+| **PBKDF2 + HKDF** | Key derivation chain. PBKDF2 turns the counselor's passphrase into a master key (slow by design — 600K rounds to resist brute force). HKDF deterministically derives per-client and per-role keys from the master. No key storage needed — all keys recomputed on login from the passphrase alone. |
 | **MCP Servers** | The vivief pattern. Claude (or local LLM) connects to the system via MCP servers, one per domain. Enables the "Tarvis" conversational interface. |
 
 ### 6.3 Data flow — two-tier model
@@ -552,15 +585,95 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
 3. **Schema evolution:** How to handle Type changes over time. Adding attributes is trivial (new schema datoms). Renaming or removing attributes needs a migration pattern that preserves history.
 
-4. **Consent model:** Per-client consent for AI analysis, transcription, and data sharing. Needs to be a first-class entity with audit trail.
+4. **Consent model: Consent-as-datom with Seal** *(resolved)*
 
-5. **Regulatory compliance:** Swedish healthcare data regulations (Patientdatalagen), GDPR, and emerging AI-in-therapy legislation. Need legal review of the local-first architecture's compliance implications.
+   **Decision:** Consent is a first-class datom with full Why chain. It controls the Seal — the combination of Lens (what's visible) and cryptographic key (what's decryptable) — that governs each role's access.
+
+   **How consent works:**
+
+   Every privacy decision is stored as datoms in the same append-only log as everything else:
+
+   ```
+   [:consent/c1  :consent/client      :client/42                              tx:100  true]
+   [:consent/c1  :consent/scope       :ai-analysis                            tx:100  true]
+   [:consent/c1  :consent/granted-by  :identity/maria                         tx:100  true]
+   [:consent/c1  :consent/valid-from  2026-03-13                              tx:100  true]
+   [:consent/c1  :consent/why         "Discussed benefits, Maria opted in"    tx:100  true]
+   ```
+
+   Revoking consent = asserting a retraction datom (same pattern as any datom change):
+
+   ```
+   [:consent/c1  :consent/scope  :ai-analysis  tx:500  false]  ← retract
+   ```
+
+   **Effect on encryption keys:** The AI agent's key for a client is derived from the consent transaction: `ai_key = HKDF(client_key, "ai:" + consent_tx)`. When consent is revoked, the consent_tx changes, so the AI key changes. The old key is discarded. New data encrypted with the client key is no longer decryptable by the AI agent. Old AI-generated datoms remain in the log (auditable) but the agent cannot generate new ones.
+
+   **Consent scopes defined:** ai-analysis, transcription, portal-access, data-sharing, supervisor-review. Each scope is independent — a client can consent to portal access but not AI analysis.
+
+5. **Regulatory compliance: Patientdatalagen + GDPR** *(resolved — architecturally addressed, legal review still recommended)*
+
+   **Decision:** The architecture satisfies the key regulatory requirements by design. A formal legal review is recommended before production use, but the structural compliance is strong.
+
+   **How each requirement is met:**
+
+   | Requirement (Patientdatalagen / GDPR) | How the architecture addresses it |
+   |----------------------------------------|-----------------------------------|
+   | Confidentiality of patient data | Selective Value encryption with per-client AES-256-GCM keys. Entity/Attribute cleartext for routing; sensitive content encrypted at rest. |
+   | Access restricted to authorized personnel | Four roles (counselor, client, ai-agent, system) with Seal-enforced access. Each role holds only the keys it needs. System layer cannot decrypt any Values. |
+   | Audit trail of access and changes | Every datom is immutable with Tx timestamp. The Why chain records who did what, when, and why. Consent changes are datoms. AI actions are tagged `:tx/source :ai`. |
+   | Data controller responsibility | Counselor holds the master key. All data is local-first on the counselor's machine. No third-party data transfer unless explicitly chosen. |
+   | Right to erasure (GDPR Art. 17) | Datom Values can be re-encrypted with a destroyed key (crypto-shredding). The Entity/Attribute skeleton remains for audit trail integrity, but Values become permanently unrecoverable. |
+   | Data minimization | Attribute schema marks fields as sealed (sensitive) or cleartext (operational). Only necessary operational metadata is exposed. |
+   | Data protection impact assessment | Required for health data processing. The local-first, per-client encryption architecture significantly reduces the risk profile compared to cloud-based alternatives. |
+   | AI-in-therapy legislation (emerging) | AI agent operates in draft-only mode (:tx/source :ai, :tx/status :pending). Counselor approval required for all AI-generated content. AI cannot make independent therapeutic decisions. Consent required per-client for AI analysis. |
+
+   **Strongest compliance position:** Because all data resides locally on the counselor's machine and no patient data is transmitted to third-party servers (including AI providers for the local LLM path), the system avoids the most common GDPR compliance failures in healthcare — unauthorized third-party data transfer and inadequate data processing agreements.
+
+   **Remaining action:** Engage a Swedish healthcare data protection lawyer to review the architecture document, confirm the Patientdatalagen interpretation, and advise on any registration or notification requirements for the practice.
 
 6. **Voice UX:** Push-to-talk vs. wake word vs. ambient. Each has different privacy and UX implications. Needs user testing with the counselor.
 
 7. **Surface morphing implementation:** CSS-based animated transitions vs. React layout animations. TanStack Router integration for deep-linkable surface states.
 
-8. **Encryption at rest:** Full-disk encryption (FileVault) sufficient, or per-datom encryption needed? Per-client encryption keys for the eventual multi-tenant client portal?
+8. **Encryption at rest: Selective Value encryption with deterministic key derivation** *(resolved)*
+
+   **Decision:** Per-datom selective Value encryption using AES-256-GCM, with deterministic key derivation from a single counselor passphrase. FileVault provides defense-in-depth as the outer encryption layer.
+
+   **Architecture summary:**
+
+   The Seal model provides three layers of the encryption design:
+
+   *Layer 1 — Key derivation (no key storage):*
+   - Counselor passphrase → PBKDF2 (600,000 rounds, with salt) → master key (in memory only)
+   - Per-client key: `HKDF(master, "client:" + client_id)` — deterministic, computed on demand
+   - Portal key (for client access): `HKDF(client_key, "portal")` — delivered to client at intake via QR code or magic link
+   - AI agent key: `HKDF(client_key, "ai:" + consent_tx)` — bound to consent, invalidated on revocation
+   - No key database, no key file, no key server. Keys exist only in memory during a session.
+
+   *Layer 2 — Selective encryption:*
+   - Attribute schema defines which attributes are sealed: `[:attr/client-name :attr/sealed true tx:1 true]`
+   - Sealed attributes: `:client/name`, `:client/contact-info`, `:session/recap`, `:session/themes`, `:client/risk-level`, `:plan/goal`, all rich-text content
+   - Cleartext attributes: `:client/status`, `:session/date`, `:schedule/next-date`, `:session/type` — operational metadata needed for routing, indexing, and scheduling
+   - Entity, Attribute, Tx, and Op fields are always cleartext — PostgreSQL can index and query on these without decrypting
+
+   *Layer 3 — Search over encrypted data:*
+   - Client-side in-memory search index, built on login by decrypting searchable fields (name, status, presenting issue)
+   - 100 clients × 3 fields = 300 decryptions = ~10-30ms on Apple Silicon
+   - Index maintained in real-time via NATS subscription (new/changed datoms decrypted and inserted incrementally)
+   - PostgreSQL never receives search queries for encrypted content — all filtering happens in the browser/app
+   - Future optimization: encrypted index blob (entire search index encrypted with master key, persisted to disk for faster cold start)
+
+   *Defense-in-depth:*
+   - FileVault (macOS full-disk encryption) as the outer layer — protects against physical theft when the machine is off
+   - Per-client Value encryption as the inner layer — protects against unauthorized access even if the disk is mounted (e.g., compromised system process, future multi-user scenario)
+   - On logout/sleep: master key and all derived keys are wiped from memory. Only the passphrase can regenerate them.
+
+   **Trade-offs accepted:**
+   - Cleartext Entity/Attribute fields reveal the *structure* of the data (that client:42 has a session on a given date) but not the *content* (who client:42 is or what was discussed). For a single-counselor local-first practice, this metadata exposure is acceptable. For a multi-counselor or cloud-hosted scenario, Entity IDs could be pseudonymized.
+   - The counselor's passphrase is the single point of trust. If forgotten, all encrypted data is unrecoverable. Mitigation: standard recovery phrase pattern (12-word BIP39 mnemonic generated at setup, stored offline by the counselor).
+   - Per-datom encryption adds CPU overhead on read. At the scale of a counseling practice (hundreds, not millions, of datoms per session), this overhead is negligible — AES-256-GCM on Apple Silicon runs at GB/s.
+   - Portal key delivery (QR code or magic link) requires a one-time in-person or secure-channel exchange. This is actually a feature for a counseling practice — it happens naturally at the intake session.
 
 ---
 
