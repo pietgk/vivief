@@ -1,9 +1,9 @@
 # Counseling Practice Platform — Architecture Document
 
-**Version:** 0.3 (Draft)
+**Version:** 0.4 (Draft)
 **Date:** 2026-03-13
 **Authors:** Piet (Technical Lead & Architect), Claude (Strategic Thought Partner)
-**Status:** Brainstorm → Concept Definition (CRDT, privacy, and encryption resolved)
+**Status:** Brainstorm → Concept Definition (6 of 8 questions resolved)
 
 ---
 
@@ -583,7 +583,46 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
 2. **Local LLM sizing:** Which models fit comfortably on a MacBook Pro for structuring session notes? Llama 3.1 8B via Ollama is the baseline. Qwen 3.5 models are promising for multilingual (Swedish/Dutch/English) support.
 
-3. **Schema evolution:** How to handle Type changes over time. Adding attributes is trivial (new schema datoms). Renaming or removing attributes needs a migration pattern that preserves history.
+3. **Schema evolution: Schema-as-of-Tx** *(resolved)*
+
+   **Decision:** No explicit version numbers on Types. The datom log's Tx dimension IS the version history. Schema changes are just more datoms — subject to the same append-only, time-traveling rules as all other data.
+
+   **Core insight:** Traditional databases need migration scripts because the schema is a separate mutable structure that lives outside the data. In our system, the schema IS data. Schema evolution is not a special problem — it's just more datoms.
+
+   **The four cases and how each is handled:**
+
+   *a) Add attribute — zero migration:*
+   Assert a new `:type/attr` datom with a `:attr/default` value. Old entities that lack a datom for this attribute → Surface renders the default. No backfill, no data changes.
+   ```
+   [:type/client  :type/attr  :client/preferred-lang   tx:5000  true]
+   [:attr/preferred-lang  :attr/type     :enum          tx:5000  true]
+   [:attr/preferred-lang  :attr/default  "sv"           tx:5000  true]
+   ```
+
+   *b) Remove attribute — retract from Type, data preserved:*
+   Retract the `:type/attr` datom. The Surface stops rendering the attribute. Existing datoms remain in the log — they're historical facts. A time-travel query (as-of before the retraction) still shows them.
+   ```
+   [:type/client  :type/attr  :client/emergency-contact  tx:8000  false]
+   ```
+
+   *c) Rename attribute — alias via display-name:*
+   Assert a `:attr/display-name` datom. The internal attribute ID stays stable (code and queries never break). The Surface renders the display name. For true renames (rare), add the new attribute with a `:attr/migrated-from` hint — the Surface falls back to the old attribute's value for entities that predate the change.
+   ```
+   [:attr/presenting-issue  :attr/display-name  "Referral reason"  tx:9000  true]
+   ```
+
+   *d) Change attribute type — schema-aware rendering per Tx:*
+   Retract the old type, assert the new type. The Surface checks the attribute type contemporary to each datom's Tx: old data renders with its original type, new data with the new type. Both coexist without data conversion.
+   ```
+   [:attr/mood-pre  :attr/type  :text   tx:1     true]
+   [:attr/mood-pre  :attr/type  :text   tx:9500  false]
+   [:attr/mood-pre  :attr/type  :enum   tx:9500  true]
+   [:attr/mood-pre  :attr/enum-range  [1,10]  tx:9500  true]
+   ```
+
+   **Why explicit version numbers are unnecessary:** The Tx on each schema datom IS the version. "Show me Type:client as of 6 months ago" is just `query(schema-datoms, as-of: tx)`. Explicit version numbers would group unrelated changes together and add a concept that the datom model already provides through its time dimension.
+
+   **Trade-off accepted:** The Surface rendering logic must be schema-aware per Tx for the type-change case (case d). This adds complexity to the rendering pipeline — each datom's Value is interpreted according to the attribute schema contemporary to its Tx. For a counseling practice where type changes are rare (maybe once or twice a year), this complexity is minimal and well-contained.
 
 4. **Consent model: Consent-as-datom with Seal** *(resolved)*
 
