@@ -1,9 +1,9 @@
 # Counseling Practice Platform — Architecture Document
 
-**Version:** 0.4 (Draft)
-**Date:** 2026-03-13
+**Version:** 0.5 (Draft)
+**Date:** 2026-03-14
 **Authors:** Piet (Technical Lead & Architect), Claude (Strategic Thought Partner)
-**Status:** Brainstorm → Concept Definition (6 of 8 questions resolved)
+**Status:** Concept Definition — all questions resolved or deferred by design
 
 ---
 
@@ -527,7 +527,165 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
 ---
 
-## 10. Open Questions
+## 10. Live Evolution
+
+The system is designed to be developed while running. There is no deploy downtime, no migration window, no maintenance mode. Code changes, configuration changes, schema changes, and feature experiments all flow through the same datom + effect model and take effect immediately.
+
+This is not a separate capability bolted on — it emerges naturally from the architectural choices already made: datoms are append-only (changes never break history), the effectHandler is the single control plane (all changes are Effects), and NATS provides real-time signaling (external systems react instantly).
+
+### 10.1 Handlers vs. Signals — the critical distinction
+
+Not all effects are NATS messages. The system has two fundamentally different kinds of operations:
+
+**Handlers** are code. A handler is a TypeScript module that processes an effect. It imports other modules, reads datom state, branches on feature flags, calls functions directly, and produces new datoms. Handlers run in-process. Most of the system's logic is handlers calling handlers — ordinary function calls, not message passing.
+
+**Signals** are NATS publications. After a handler completes and writes its datoms, the system publishes signals to NATS for external listeners: Surfaces that need to re-render, the AI loop that needs to analyze, or future cross-device sync. Signals are notifications that something happened — they don't carry the logic of what to do about it.
+
+```
+effectHandler(state, effect) {
+  // HANDLER: code logic — function calls, feature flags, direct imports
+  const config = state.query(':config/*')
+  const structurer = config.get(':feature/soap-v2') 
+    ? structureSOAP_v2 
+    : structureSOAP
+  const structured = await structurer(effect.transcript)
+  const patterns = await detectPatterns(state, structured)
+  const reminders = await scheduleFollowup(state, structured)
+
+  // Write datoms to PostgreSQL
+  const datoms = [...structured.datoms, ...patterns.datoms, ...reminders.datoms]
+
+  // SIGNAL: publish to NATS for external listeners only
+  const signals = ['datom.session.new', 'datom.alert.*']
+
+  return { datoms, signals }
+}
+```
+
+### 10.2 The Dispatcher — resolving which code runs
+
+The dispatcher is the runtime core. When an effect arrives, it resolves which handler module to load and call:
+
+1. **Effect arrives** (from voice input, UI action, AI proposal, timer, or another handler)
+2. **Resolve handler:** Read handler datoms → find the module + git-ref for this effect type
+3. **Check feature flags:** If an override exists and is enabled, use the override handler instead
+4. **Dynamic import:** Load the resolved module (hot module reload in dev, file-based import in production)
+5. **Execute handler:** Handler reads state, calls other handlers (direct function calls), produces datoms
+6. **Write datoms:** Assert new datoms to PostgreSQL
+7. **Publish signals:** Notify NATS subscribers (Surfaces, AI loop) that something changed
+
+```
+async function dispatch(state: State, effect: Effect) {
+  // Resolve handler from datoms
+  const handlerDatom = state.query(
+    ':handler/* WHERE :handler/effect-type = effect.type AND :handler/active = true'
+  )
+
+  // Check feature flag overrides
+  const override = state.query(
+    ':feature/* WHERE :feature/effect-type = effect.type AND :feature/enabled = true'
+  )
+
+  // Resolve git-ref and module path
+  const ref = override ?? handlerDatom
+  const gitRef = ref.get(':handler/git-ref')   // "main" or "feature-branch"
+  const modulePath = ref.get(':handler/module') // "handlers/session-recap"
+
+  // Dynamic import — hot reload
+  const handler = await importHandler(modulePath, gitRef)
+
+  // Execute
+  const result = await handler(state, effect)
+
+  // Persist + signal
+  await writeDatoms(result.datoms)
+  await publishSignals(result.signals)
+}
+```
+
+### 10.3 Handler registration — code as datoms
+
+Every handler is registered as datoms. This makes the system's own behavior queryable, auditable, and time-travelable — "which handler processed session recaps last month?" is just a datom query.
+
+```
+[:handler/session-recap  :handler/effect-type  :effect/session-recap    tx:1  true]
+[:handler/session-recap  :handler/module       "handlers/session-recap" tx:1  true]
+[:handler/session-recap  :handler/git-ref      "main"                  tx:1  true]
+[:handler/session-recap  :handler/active       true                    tx:1  true]
+```
+
+### 10.4 Feature flags as datoms
+
+A feature flag is a datom that the dispatcher reads at runtime to decide which code path to take. Feature flags can be scoped: all effects, per-client, per-effect-type, or per-handler.
+
+```
+// Flag: disabled (new handler loaded but not active)
+[:feature/soap-v2  :feature/enabled      false                        tx:N    true]
+[:feature/soap-v2  :feature/effect-type  :effect/session-recap        tx:N    true]
+[:feature/soap-v2  :feature/handler      :handler/session-recap-v2    tx:N    true]
+
+// Enable for one client first (testing)
+[:feature/soap-v2  :feature/enabled      true                        tx:N+1  true]
+[:feature/soap-v2  :feature/scope        :client/42                  tx:N+1  true]
+
+// Promote to all
+[:feature/soap-v2  :feature/scope        :client/42                  tx:N+2  false]
+[:feature/soap-v2  :feature/scope        :all                        tx:N+2  true]
+```
+
+The counselor can toggle features via the Dialog surface ("turn on mood charts for Maria"). The developer can toggle them via code or the Stream surface. Claude can propose them as `:tx/status :pending` datoms.
+
+### 10.5 Git-integrated deployment cycle
+
+The deployment model connects git branches to the handler datom system. No CI/CD pipeline needed for a single-MacBook system — the git repo IS the deployment artifact.
+
+**Development flow:**
+
+1. Developer creates a git branch, edits handler code
+2. Registers a handler datom pointing to the branch:
+   ```
+   [:handler/session-recap-v2  :handler/module   "handlers/session-recap"        tx:N  true]
+   [:handler/session-recap-v2  :handler/git-ref  "improve-soap-structuring"      tx:N  true]
+   [:handler/session-recap-v2  :handler/active   true                            tx:N  true]
+   ```
+3. Creates a feature flag (enabled: false) — new code loaded but gated
+4. Flips the flag when ready to test — new effects use branch code, old code available as fallback
+5. When satisfied: merges PR, updates handler datom git-ref to "main", retracts feature flag
+6. System never stopped. Rollback = retract merge datom, re-assert old git-ref. Old code reloads instantly.
+
+**In practice on the MacBook:**
+
+- In dev mode: this is Vite HMR (hot module replacement). Edit a file, module reloads, effect behavior changes immediately.
+- In "production" mode (still the MacBook): `git pull` on the local repo + module re-import achieves the same. The handler datoms and feature flags formalize and audit what developers already do informally with branches and env variables.
+- Future: if the system moves to a VPS, the same model works with a webhook from GitHub triggering `git pull` + handler re-import on the server.
+
+### 10.6 Three actors, one running system
+
+Each actor can change the system at a different level, all through the same datom + effect model:
+
+| Actor     | Changes what                    | How                                                  | Approval needed? |
+|-----------|---------------------------------|------------------------------------------------------|-----------------|
+| Counselor | Config datoms, feature flag toggles | Dialog surface ("switch to wake word") or Card settings | No — direct write |
+| Developer | Handler code, handler datoms, feature flags | Git branch + handler registration + flag toggle | No — owns the system |
+| Claude/AI | Schema proposals, handler drafts, config suggestions | MCP → writes `:tx/status :pending` datoms | Yes — human approves |
+
+Claude's role in the development cycle: Claude (via MCP) can propose a new handler by writing code to a branch, registering the handler datom, and creating the feature flag — all as pending datoms. The developer reviews the code (it's a PR), approves the datoms, and the new handler goes live. Claude never directly changes live behavior — it proposes, a human gates.
+
+### 10.7 Config datoms for deferred decisions
+
+The remaining open architectural questions (voice UX mode, LLM model choice, Surface rendering library) are not unsolved — they are intentionally deferred to config datoms that can be changed at any time:
+
+```
+[:config/voice-ux       :config/value  "push-to-talk"   tx:1  true]
+[:config/llm-model      :config/value  "qwen3.5:8b"     tx:1  true]
+[:config/surface-lib    :config/value  "react-dom"       tx:1  true]
+```
+
+These can be changed by any actor at runtime. The Why chain records who changed them and why. The history shows every previous value. Rollback is a retraction + assertion.
+
+---
+
+## 11. Open Questions
 
 1. **CRDT choice: Loro** *(resolved)*
 
@@ -581,7 +739,9 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
    The Loro binary snapshot is stored as a blob value in a datom (`[:doc/42 :doc/content <loro-binary> tx:N true]`), preserving the ability to reconstruct the full editing timeline from any commit point. See section 6.3 for the complete data flow diagram.
 
-2. **Local LLM sizing:** Which models fit comfortably on a MacBook Pro for structuring session notes? Llama 3.1 8B via Ollama is the baseline. Qwen 3.5 models are promising for multilingual (Swedish/Dutch/English) support.
+2. **Local LLM sizing** *(deferred to config datom — see section 10.7)*
+
+   Initial config: `[:config/llm-model :config/value "qwen3.5:8b" tx:1 true]`. Will be evaluated empirically during prototyping. The handler hot-swap model (section 10.2) allows switching models at runtime without code changes. Candidates: Llama 3.1 8B for general structuring, Qwen 3.5 models for multilingual (Swedish/Dutch/English) support. The right answer will change as models improve — the system handles this by design.
 
 3. **Schema evolution: Schema-as-of-Tx** *(resolved)*
 
@@ -671,9 +831,13 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
    **Remaining action:** Engage a Swedish healthcare data protection lawyer to review the architecture document, confirm the Patientdatalagen interpretation, and advise on any registration or notification requirements for the practice.
 
-6. **Voice UX:** Push-to-talk vs. wake word vs. ambient. Each has different privacy and UX implications. Needs user testing with the counselor.
+6. **Voice UX** *(deferred to config datom — see section 10.7)*
 
-7. **Surface morphing implementation:** CSS-based animated transitions vs. React layout animations. TanStack Router integration for deep-linkable surface states.
+   Initial config: `[:config/voice-ux :config/value "push-to-talk" tx:1 true]`. Will be evaluated with the counselor during user testing. Push-to-talk is the safest default (no ambient listening). Can be switched to wake-word or ambient at runtime via config datom change.
+
+7. **Surface morphing implementation** *(deferred to config datom — see section 10.7)*
+
+   Initial config: `[:config/surface-lib :config/value "react-dom" tx:1 true]`. The handler/dispatcher model (section 10.2) allows the Surface rendering layer to be swapped (e.g., react-dom → react-native) by registering new handler modules and toggling feature flags. The Lens and datom layers are renderer-agnostic — only the Surface layer needs to change.
 
 8. **Encryption at rest: Selective Value encryption with deterministic key derivation** *(resolved)*
 
@@ -716,16 +880,15 @@ Because datoms are append-only facts with transaction IDs, they are naturally re
 
 ---
 
-## 11. Next Steps
+## 12. Next Steps
 
 1. **Define the Type schema** for the three primary entity families in detail (attributes, types, validations, relations).
 2. **Prototype the datom store** in PostgreSQL — table design, index strategy, query patterns.
-3. **Prototype the NATS topic structure** — which subjects, how the AI loop subscribes, how Surfaces get reactive updates.
-4. **Build the first Surface** — start with Card mode for a client entity. Prove the Lens → datom → render pipeline.
-5. **Wire Whisper.cpp** — voice-to-text pipeline running locally.
-6. **Build the first MCP server** — `mcp-clients` as the bridge between Claude/LLM and the datom store.
-7. **Test with the counselor** — mock data, real workflow, iterate on Surface modes and morphing.
-
----
-
-*This document is a living artifact. It will evolve as we prototype, test, and learn.*
+3. **Prototype the NATS topic structure** — which subjects for signals, how the AI loop subscribes, how Surfaces get reactive updates.
+4. **Build the dispatcher** — the runtime core that resolves handlers from datoms and checks feature flags.
+5. **Build the first Surface** — start with Card mode for a client entity. Prove the Lens → datom → render pipeline.
+6. **Wire Whisper.cpp** — voice-to-text pipeline running locally.
+7. **Build the first MCP server** — `mcp-clients` as the bridge between Claude/LLM and the datom store.
+8. **Set up the git-integrated handler workflow** — handler registration datoms, feature flag datoms, hot module reload.
+9. **Test with the counselor** — mock data, real workflow, iterate on Surface modes and morphing.
+10. **Legal review** — engage a Swedish healthcare data protection lawyer to confirm Patientdatalagen compliance.
