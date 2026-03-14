@@ -1,9 +1,9 @@
 # Counseling Practice Platform — Architecture Document
 
-**Version:** 0.5 (Draft)
+**Version:** 0.6 (Draft)
 **Date:** 2026-03-14
 **Authors:** Piet (Technical Lead & Architect), Claude (Strategic Thought Partner)
-**Status:** Concept Definition — all questions resolved or deferred by design
+**Status:** Concept Definition complete — ready for prototyping
 
 ---
 
@@ -136,6 +136,20 @@ A Seal is not a fourth primitive — it emerges from combining a Lens with crypt
 **Client-side search.** Because Values are encrypted in PostgreSQL, search over encrypted fields is handled by an in-memory index built on login (decrypt searchable fields once, filter locally). PostgreSQL never sees search queries for sensitive content.
 
 See sections 10.4, 10.5, and 10.8 for the full resolved analysis including key derivation hierarchy, regulatory compliance mapping, and encryption trade-offs.
+
+### 2.5 The Contract (Development Model)
+
+A Contract is a datom that declares expected behavior. It is simultaneously spec ("what should happen"), test ("did it happen?"), and runtime guard ("prevent it from not happening"). Contracts are enforced by the dispatcher on every effect execution — not just during testing.
+
+Three levels of contracts:
+
+- **Schema contracts:** structural validity of entities ("a client must have a name and status")
+- **Effect contracts:** handler output validity ("a session recap must produce themes and mood, must never produce a diagnosis")
+- **Invariant contracts:** cross-entity business rules ("a high-risk client must have a session within 7 days")
+
+Contracts are datoms — versioned, auditable, queryable. They evolve through the same five-step flow (Contract → Handler → Verify → Gate → Live) as any other change. Contract violations produce violation datoms, making the test report part of the datom log.
+
+See section 11 for the full development flow built on contracts.
 
 ---
 
@@ -685,7 +699,156 @@ These can be changed by any actor at runtime. The Why chain records who changed 
 
 ---
 
-## 11. Open Questions
+## 11. Development Flow — Contract-Driven Development
+
+The system's development workflow is redesigned for the LLM age. The traditional 13-step flow (spec → types → lint → unit test → integration test → e2e test → coverage → human test → branch → PR → approval → merge → release) collapses into 5 steps that all run in the same system, against the same data, using the same datom primitives.
+
+The key new concept is the **Contract** — a datom that is simultaneously spec, test, and runtime guard.
+
+### 11.1 The Contract primitive
+
+A Contract is a datom that declares: "when this Effect arrives, these datoms must result." It serves as:
+
+- **Spec:** documents expected behavior, readable by humans and machines
+- **Test:** the dispatcher validates handler output against it on every execution
+- **Runtime guard:** violations are caught in production, not just in CI
+- **Documentation:** queryable, versioned, always up to date because it IS the enforcement
+
+Contracts operate at three levels:
+
+**Schema contracts** — structural validity of entities:
+```
+[:contract/schema-client  :contract/entity-type  :client              tx:1  true]
+[:contract/schema-client  :contract/requires     :client/name         tx:1  true]
+[:contract/schema-client  :contract/requires     :client/status       tx:1  true]
+```
+Enforced on every datom write for a `:client` entity.
+
+**Effect contracts** — handler output validity:
+```
+[:contract/recap  :contract/effect-type  :effect/session-recap       tx:1  true]
+[:contract/recap  :contract/requires     :session/themes             tx:1  true]
+[:contract/recap  :contract/requires     :session/mood-pre           tx:1  true]
+[:contract/recap  :contract/requires     :tx/why                    tx:1  true]
+[:contract/recap  :contract/forbids      :session/diagnosis          tx:1  true]
+```
+Enforced on every dispatch of `:effect/session-recap`.
+
+**Invariant contracts** — cross-entity business rules:
+```
+[:contract/high-risk  :contract/invariant    true                    tx:1  true]
+[:contract/high-risk  :contract/condition    ":client/risk-level = high"  tx:1  true]
+[:contract/high-risk  :contract/requires     ":schedule/* within 7d" tx:1  true]
+```
+Enforced periodically by an invariant checker handler subscribed to datom changes.
+
+### 11.2 The dispatcher enforces contracts at runtime
+
+The dispatcher doesn't just route effects to handlers — it validates every handler's output against applicable contracts before committing datoms. This is not a test that runs in CI — it's a live guardrail on every effect, always.
+
+```typescript
+async function dispatch(state: State, effect: Effect) {
+  const handler = resolveHandler(state, effect)
+  const result = await handler(state, effect)
+
+  // Contract validation — runs on EVERY dispatch, not just tests
+  const contracts = state.query(
+    ':contract/* WHERE :contract/effect-type = effect.type'
+  )
+  for (const contract of contracts) {
+    const required = contract.getAll(':contract/requires')
+    const forbidden = contract.getAll(':contract/forbids')
+
+    for (const attr of required) {
+      if (!result.datoms.some(d => d.attribute === attr)) {
+        throw new ContractViolation(contract, `Missing required: ${attr}`)
+      }
+    }
+    for (const attr of forbidden) {
+      if (result.datoms.some(d => d.attribute === attr)) {
+        throw new ContractViolation(contract, `Forbidden: ${attr}`)
+      }
+    }
+  }
+
+  // Passed all contracts — commit
+  await writeDatoms(result.datoms)
+  await publishSignals(result.signals)
+}
+```
+
+Contract violations produce datoms too — they are queryable, auditable test reports:
+```
+[:violation/v1  :violation/contract  :contract/recap              tx:N  true]
+[:violation/v1  :violation/reason    "Missing required: :session/themes"  tx:N  true]
+[:violation/v1  :violation/handler   :handler/session-recap-v2    tx:N  true]
+[:violation/v1  :violation/effect    <effect-reference>           tx:N  true]
+```
+
+### 11.3 The five-step development flow
+
+**Step 1 — Contract:** Define what the handler must produce. Assert contract datoms. Who: developer writes, Claude proposes, counselor validates business rules. Replaces: spec documents and test design.
+
+**Step 2 — Handler:** Write the handler code on a git branch. Register handler datom with git-ref. Who: developer writes or Claude writes and developer reviews. Replaces: implementation phase.
+
+**Step 3 — Verify:** Enable the feature flag with scope `:test`. Dispatch test effects through the real dispatcher against the real datom store. Contracts validate output. Violations become datoms. Who: automated (dispatcher does it) + developer reviews violations. Replaces: unit tests, integration tests, type checking at the effect level.
+
+**Step 4 — Gate:** Developer reviews code + verification results. Counselor tests UX via feature flag scoped to one client. Approval = feature flag scope change from `:test` to `:client/42` to `:all`. Both gates are datoms with Why chain. Replaces: PR review, approval, merge.
+
+**Step 5 — Live:** Handler is live. Contracts keep validating on every dispatch — continuously, forever. Violations trigger alert signals. Rollback = retract feature flag. Replaces: deploy and release (which no longer exist as separate steps).
+
+### 11.4 What stays from traditional development
+
+The Contract model does not replace everything. These traditional tools remain because they catch failure modes that contracts cannot:
+
+- **TypeScript** — type checking for handler code. Catches structural code errors (wrong variable name, missing import, logic errors in loops). TypeScript validates the code; contracts validate the output.
+- **Linting** (ESLint/Biome) — code style consistency. Especially valuable when Claude writes handler code — linting enforces project conventions.
+- **Git + branches** — version control for handler code. The handler datom system builds on top of git, not instead of it.
+- **Code review** — human eyes on handler logic. Claude can pre-review ("does this handler satisfy contract/c1?") but a developer validates the approach, not just the output.
+- **Handler tests** — traditional test files that feed test effects through the dispatcher and check results. Written by developer or Claude. Simpler than traditional tests because the dispatcher does the contract assertion — the test just provides input and checks for violations.
+
+### 11.5 What's new — didn't exist in traditional development
+
+- **Runtime contract enforcement.** Contracts validate continuously in production, not just in a test run. If a handler regression happens, the contract catches it before the bad datom is committed. Tests that never stop running.
+- **Violation datoms.** Test failures are first-class datoms. Queryable: "show me all violations this week." Trendable: "is handler/soap-v2 producing more violations than v1?" The test report is part of the datom log.
+- **Counselor-in-the-loop testing.** Feature flags with per-client scope let the counselor be the final gate — not a QA team in a staging environment, but the actual user with actual client data.
+- **Claude as co-developer.** Claude writes contracts, writes handlers, writes handler tests, reviews code, and proposes schema changes — all as pending datoms that a human approves. The flow is designed for human+AI collaboration at every step.
+- **No CI/CD pipeline.** The dispatcher IS the deployment mechanism. Feature flags ARE the release gates. Git merge IS the promotion. No Jenkins, no GitHub Actions, no build server.
+- **No releases.** The system is always "released." Features appear when flags enable them. There is no version number, no release notes, no big-bang deploy moment.
+
+### 11.6 Coverage metrics
+
+Traditional line coverage ("78% of code lines exercised") is replaced by more meaningful metrics:
+
+| Metric              | What it measures                                             | Target    |
+|---------------------|--------------------------------------------------------------|-----------|
+| Contract coverage   | % of effect types that have at least one contract            | 100%      |
+| Schema coverage     | % of entity types that have schema contracts                 | 100%      |
+| Invariant coverage  | % of business rules expressed as invariant contracts         | Best effort |
+| Violation rate      | Contract violations per 1000 dispatches (should trend to 0)  | < 0.1%   |
+| Handler test coverage | % of handlers with at least one test dispatching through contracts | 100% |
+
+### 11.7 The old flow mapped to the new
+
+| Traditional step        | Status      | In the new flow                                                |
+|-------------------------|-------------|----------------------------------------------------------------|
+| Spec / PRD              | Transformed | Contract datoms (living, executable, versioned)                |
+| Type checking           | Kept + extended | TypeScript for code + dispatcher schema validation for datoms |
+| Lint rules              | Kept        | ESLint/Biome for handler code quality                          |
+| Unit tests              | Transformed | Handler tests: given state + effect → contracts pass?          |
+| Integration tests       | Transformed | Dispatcher with real datom store + contract validation         |
+| E2E tests               | Transformed | Lens verification (pure data) + counselor feature-flag testing |
+| Test coverage           | Transformed | Contract coverage + effect coverage + violation rate           |
+| Human testing           | Kept        | Counselor tests via per-client feature flags                   |
+| Branch                  | Kept        | Git branches, handler datom points to git-ref                  |
+| PR / Review             | Transformed | Code review + contract verification results as datoms          |
+| Approval                | Transformed | Feature flag scope change (datom with Why chain)               |
+| Merge                   | Transformed | Git merge + handler datom git-ref update (no deploy step)      |
+| Release                 | Replaced    | Gone. Continuous. Features appear when flags enable them.      |
+
+---
+
+## 12. Open Questions
 
 1. **CRDT choice: Loro** *(resolved)*
 
@@ -880,15 +1043,16 @@ These can be changed by any actor at runtime. The Why chain records who changed 
 
 ---
 
-## 12. Next Steps
+## 13. Next Steps
 
 1. **Define the Type schema** for the three primary entity families in detail (attributes, types, validations, relations).
 2. **Prototype the datom store** in PostgreSQL — table design, index strategy, query patterns.
-3. **Prototype the NATS topic structure** — which subjects for signals, how the AI loop subscribes, how Surfaces get reactive updates.
-4. **Build the dispatcher** — the runtime core that resolves handlers from datoms and checks feature flags.
-5. **Build the first Surface** — start with Card mode for a client entity. Prove the Lens → datom → render pipeline.
-6. **Wire Whisper.cpp** — voice-to-text pipeline running locally.
-7. **Build the first MCP server** — `mcp-clients` as the bridge between Claude/LLM and the datom store.
-8. **Set up the git-integrated handler workflow** — handler registration datoms, feature flag datoms, hot module reload.
-9. **Test with the counselor** — mock data, real workflow, iterate on Surface modes and morphing.
-10. **Legal review** — engage a Swedish healthcare data protection lawyer to confirm Patientdatalagen compliance.
+3. **Define the first contracts** — schema contracts for client/session/plan entities, effect contracts for the session recap flow.
+4. **Build the dispatcher** — the runtime core that resolves handlers from datoms, checks feature flags, and enforces contracts.
+5. **Prototype the NATS signal structure** — which subjects for signals, how the AI loop subscribes, how Surfaces get reactive updates.
+6. **Build the first Surface** — start with Card mode for a client entity. Prove the Lens → datom → render pipeline.
+7. **Build the first handler** — session recap (voice → Whisper → LLM → structured datoms) with contract validation.
+8. **Build the first MCP server** — `mcp-clients` as the bridge between Claude/LLM and the datom store.
+9. **Set up the git-integrated handler workflow** — handler registration datoms, feature flag datoms, hot module reload.
+10. **Test with the counselor** — mock data, real workflow, feature-flagged per client, iterate on Surface modes and morphing.
+11. **Legal review** — engage a Swedish healthcare data protection lawyer to confirm Patientdatalagen compliance.
