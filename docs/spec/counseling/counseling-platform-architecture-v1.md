@@ -135,7 +135,7 @@ A Seal is not a fourth primitive — it emerges from combining a Lens with crypt
 
 **Client-side search.** Because Values are encrypted in PostgreSQL, search over encrypted fields is handled by an in-memory index built on login (decrypt searchable fields once, filter locally). PostgreSQL never sees search queries for sensitive content.
 
-See sections 10.4, 10.5, and 10.8 for the full resolved analysis including key derivation hierarchy, regulatory compliance mapping, and encryption trade-offs.
+See sections 12.4, 12.5, and 12.8 for the full resolved analysis including key derivation hierarchy, regulatory compliance mapping, and encryption trade-offs.
 
 ### 2.5 The Contract (Development Model)
 
