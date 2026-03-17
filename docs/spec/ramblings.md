@@ -3,6 +3,23 @@
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
 
+
+# concepts the total version
+
+create a vivief-concepts.md from [@counseling-platform-architecture-v2.md](file:///Users/grop/ws/vivief/docs/spec/counseling/counseling-platform-architecture-v2.md) using the brainstorm and ideations from [@viviefco-architecture-v4.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-v4.md)  and the recommendations from [@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) and the original concepts from [@concepts.md](file:///Users/grop/ws/vivief/docs/vision/concepts.md) and [@foundation.md](file:///Users/grop/ws/vivief/docs/vision/foundation.md). 
+the concepts will be used by senior developing architect me and future team mates to develop in the new world where you (Claude) and developers and counselors combine the strength of LLM's Humans (developers and counselers and clients) and systems. 
+this is a long term vision to get the best concepts we can devise with the current knowledge and experience taking into account that the llm world changes fast and probably will get smarter and smaller and faster over time.
+ so dAtoms, Lens, Surface, Seal, Contract and P2P are first class in this vision.
+ the development angle from vivief devac can be seen as a starting point together with contracts.
+ the counseling app is the concrete app we use to define developing and using the total set of concepts
+ the iea that developing and using the app merges with llm being ble to develop while using the app blurs these concept and that is a good way to make sure we define matching ways of defining the concepts.
+ use these prompt to create a proper prompt to make sure we understand each other and have the best starting point to create the vivief-concepts.md.
+ feel free to ask for more detail if you think that will result in a better starting prompt
+
+ 
+
+
+
 ## devac status improve determnistic part
 
 when running

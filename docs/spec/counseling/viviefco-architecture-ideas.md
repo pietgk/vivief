@@ -274,11 +274,13 @@ function findDeps(entityId, maxDepth, edgeType?) {
 }
 ```
 
-10 lines. Cycle detection is `Set.has()`. No ARRAY type, no UNION ALL, no JOIN. The existing `affected-analyzer.ts` in devac already proves this pattern — the cross-repo affected analysis is already in-memory BFS, not SQL. This just extends that pattern inward.
+10 lines. Cycle detection is `Set.has()`. No ARRAY type, no UNION ALL, no JOIN. The existing `affected-analyzer.ts` in devac already proves this pattern — the cross-repo affected analysis is already in-memory BFS (Breadth-First Search — the standard graph traversal algorithm), not SQL. This just extends that pattern inward.
+
+*BFS = Breadth-First Search. It is the graph traversal algorithm: start from a node, visit all immediate neighbors, then their neighbors, level by level, until you reach max depth or exhaust the graph. The in-memory graph store is just the data structure (Map indexes) that BFS runs over — BFS is the query algorithm, not the store type.*
 
 The three devac query categories in-memory:
-- **Simple lookups** (symbol by name, file symbols, diagnostics by severity): trivial index lookups
-- **Graph traversal** (deps, dependents, call-graph): BFS — simpler and faster than CTEs
+- **Simple lookups** (symbol by name, file symbols, diagnostics by severity): trivial Map index lookups — `O(1)`
+- **Graph traversal** (deps, dependents, call-graph): BFS over Map indexes — simpler and faster than recursive CTEs
 - **Aggregations** (schema stats, diagnostics counts): one-pass array reduce — slightly more code than GROUP BY, but these are infrequent queries
 
 **Only meaningful loss:** `query_sql` raw SQL passthrough. Mitigation: DuckDB WASM kept as an optional analytics overlay on top of the in-memory store, for historical trend queries and ad-hoc SQL.
@@ -381,7 +383,484 @@ Each alternative tells a different story about vivief's architectural principles
 
 ---
 
-## Possible hybrid: Alt 1 or 2 for the app, Alt 3 or 4 as a vivief platform mode
+## Holepunch deep dive: full stack mapping and the most elegant patterns
+
+*This section extends Alt 4 by mapping every component of the Holepunch/Pear ecosystem to a vivief architectural concept, identifying the 5 most elegant Holepunch-native patterns, and designing the in-memory store's embedded vs. daemon duality.*
+
+---
+
+### The full Holepunch stack mapped to vivief concepts
+
+The Holepunch ecosystem has 12 modules. The mapping reveals which ones vivief needs, which ones it gets for free, and which ones replace things in v2.
+
+| Holepunch module | What it is | vivief equivalent / role |
+|---|---|---|
+| **Hypercore** | Append-only log, cryptographically signed per-entry | Datom log — `[E, A, V, Tx, Op]` sequence per entity |
+| **Hyperbee** | B-tree key-value store built *on top of* a Hypercore | Persistent index — eliminates startup replay cost |
+| **Corestore** | Hypercore factory: master key → named Hypercores via key derivation | **The Seal** — one line replaces the entire HKDF key hierarchy |
+| **Autobase** | Multi-writer causal DAG linearization | Multi-device sync + multi-counselor collaboration |
+| **HyperDHT** | Kademlia DHT with holepunching | Peer discovery without servers |
+| **Hyperswarm** | Connection management over HyperDHT | MacBook ↔ phone sync transport |
+| **Protomux** | Protocol multiplexer over a single stream | IPC channel between daemon and UI (replaces Unix socket) |
+| **Secretstream** | Encrypted stream (Noise protocol variant) | Transport layer encryption — wraps all Hyperswarm connections |
+| **Hyperdrive** | Versioned filesystem over Hyperbee | Handler artifact store — `dist/handlers/session-recap.v2.mjs` |
+| **Localdrive** | Local filesystem with same API as Hyperdrive | Dev mode — handler files on disk, same interface as Hyperdrive |
+| **Mirrordrive** | Sync between Localdrive and Hyperdrive | `pnpm build:handler` → mirror built artifacts into Hyperdrive |
+| **Bare** | Minimal JS runtime (V8/JSC/QuickJS, not Node.js) | Counselor app and data daemon runtime |
+| **Pear** | P2P app runtime + deployment on top of Bare | App distribution — no App Store, no cloud, no installer |
+
+What's **not** in the Holepunch stack (you bring these):
+- In-memory datom store (you build this — 4 Map indexes)
+- DatomQuery API (you build this — TypeScript typed builder)
+- effectHandler pattern (you build this)
+- Contract validation (you build this)
+- Loro CRDT hot layer (external — runs on Bare via WASM)
+
+---
+
+### The 5 most elegant Holepunch-native patterns
+
+#### Pattern 1: Corestore IS the Seal
+
+The v2 Seal model describes a key derivation hierarchy: passphrase → PBKDF2 → master key → HKDF per-client. This maps exactly to Corestore's built-in design.
+
+Corestore derives all writable Hypercore keypairs from a single master key plus a user-provided name. It uses deterministic derivation — the same master key + name always produces the same keypair.
+
+```typescript
+// v2 Seal model (manual HKDF implementation needed)
+const masterKey = await pbkdf2(passphrase, salt, 100000, 32, 'sha256')
+const clientKey = await hkdf('sha256', masterKey, '', `client:${clientId}`, 32)
+
+// Holepunch model (zero implementation needed)
+const store = new Corestore('./data', { masterKey })
+const clientCore = store.get({ name: `client:${clientId}` })  // ← deterministically derived
+```
+
+This is not an approximation — Corestore's `get({ name })` internally performs exactly the HKDF derivation the Seal requires. The counselor holds one Corestore (one master key). Each client gets a core derived from that master key. A client's portal key is just the discovery key of their core — it cannot derive any other client's key.
+
+**Seal = Corestore. Zero additional cryptographic code needed.**
+
+#### Pattern 2: Hyperbee as the persistent index
+
+Alt 4 described an in-memory store that replays all Hypercore logs on startup. For devac this is fine (~1 second for 2.5M datoms). For the counseling app with years of session history, startup replay could become slow.
+
+Hyperbee solves this. It is a B-tree that *lives inside a Hypercore* — its index nodes are just Hypercore entries. The B-tree structure persists to disk. Queries (`bee.get(key)`, `bee.createReadStream({ gt, lt })`) read only the necessary B-tree nodes, not the entire log.
+
+```typescript
+// Two persistent structures per client entity:
+const writeLog = store.get({ name: `client:${id}:log` })    // Hypercore — append-only datom log
+const indexBee = new Hyperbee(store.get({ name: `client:${id}:index` }))  // Hyperbee — queryable index
+
+// On sync commit: append datoms to writeLog + update indexBee
+await writeLog.append(encode(datom))
+await indexBee.put(`:client/risk-level`, 'high')   // attribute index
+await indexBee.put(`tx:${txId}`, encode(datom))     // tx index
+
+// On query (no startup replay needed):
+const riskLevel = await indexBee.get(':client/risk-level')
+const txHistory = indexBee.createReadStream({ gt: `tx:${from}`, lt: `tx:${to}` })
+```
+
+The in-memory store becomes a hot cache on top of Hyperbee — loaded only for the entities currently active in the UI, evicted when not needed. Hyperbee is the durability layer; the Map indexes are the speed layer.
+
+**In-memory = hot cache. Hyperbee = cold index. No startup replay cost for large datasets.**
+
+#### Pattern 3: Autobase for multi-device writes without conflicts
+
+The counselor uses MacBook and phone. Both can write to the same client's data. Without Autobase, concurrent writes create merge conflicts.
+
+Autobase's causal DAG model handles this natively. Each device has its own writer Hypercore. Autobase tracks causal dependencies between writes — it knows device B's write happened after device A's write based on explicit causal references. When both devices come back online, Autobase linearizes the concurrent writes deterministically.
+
+```
+MacBook writes:  [session-summary → tx:104]
+Phone writes:    [check-in → tx:105]  (causal ref: nothing — written offline)
+
+Autobase merge:  → linearizes to [session-summary, check-in] or [check-in, session-summary]
+                   based on causal DAG analysis, deterministic across all peers
+```
+
+This is exactly the merge problem the two-tier model defers to "manual conflict resolution." Autobase makes it automatic.
+
+For the vivief counseling app:
+- Single counselor, single device: Autobase with one writer — just Hypercore, no overhead
+- Single counselor, multi-device: Autobase with two writers (MacBook + phone)
+- Future clinic mode: Autobase with N writers (one per counselor)
+
+The API is the same for all three cases. Adding a writer is `autobase.addWriter(key)`. No architectural change needed to go from single to multi.
+
+**Autobase = the sync story for multi-device, built into the data layer.**
+
+#### Pattern 4: Hyperdrive for handler artifacts
+
+The v2 handler hot-swap mechanism builds `.mjs` artifacts per version and loads them by file path. This works but couples handler deployment to the local filesystem.
+
+Hyperdrive is a versioned filesystem over Hyperbee — it stores files by path, tracks versions, and can replicate over Hyperswarm. The handler module store becomes a Hyperdrive:
+
+```typescript
+const handlerDrive = new Hyperdrive(store.get({ name: 'handlers' }))
+
+// Deploy a new handler version:
+await handlerDrive.put('/session-recap/v2.mjs', builtModule)
+
+// Dispatcher loads handler by path from Hyperdrive:
+async function importHandler(name: string, version: string): Promise<Handler> {
+  const buffer = await handlerDrive.get(`/${name}/${version}.mjs`)
+  const blob = new Blob([buffer], { type: 'application/javascript' })
+  const url = URL.createObjectURL(blob)
+  const module = await import(url)
+  return module.default
+}
+
+// Handler registration datom now points to Hyperdrive path:
+{ entity: 'handler:session-recap-v2', attribute: ':handler/drive-path', value: '/session-recap/v2.mjs' }
+```
+
+The key benefit: handlers can be pushed to a phone over Hyperswarm without `git pull` or file system access. The counselor's MacBook and phone always run the same handler version because they share the same Hyperdrive.
+
+**Hyperdrive = versioned handler module store, replicated to all devices automatically.**
+
+#### Pattern 5: Protomux for IPC (replaces Unix socket)
+
+devac's HubClient uses a Unix socket (`<workspace>/.devac/mcp.sock`) for IPC between the CLI and the MCP server. This is platform-specific (Windows needs named pipes) and requires socket file management.
+
+Protomux multiplexes multiple typed protocol channels over a single stream. The "stream" can be a Unix socket, a WebSocket, a TCP connection, or a Hyperswarm connection. The protocol definition is just a list of message types:
+
+```typescript
+// Define a datom store protocol
+const protocol = mux.createChannel({
+  protocol: 'datom-store/1.0.0',
+  messages: [
+    { encoding: 'json' },   // 0: query request
+    { encoding: 'json' },   // 1: query response
+    { encoding: 'json' },   // 2: subscribe (push updates)
+    { encoding: 'json' },   // 3: effect dispatch
+  ]
+})
+```
+
+The same Protomux channel definition works over any transport. When the UI and daemon are on the same machine, they use a local pipe. When the phone connects to the MacBook, they use a Hyperswarm connection — same Protomux protocol, different transport underneath. The HubClient pattern becomes transport-agnostic.
+
+**Protomux = the IPC story that works locally and over P2P without code changes.**
+
+---
+
+### The in-memory store: embedded vs. daemon
+
+This duality is the core architectural decision for the counseling app's data layer. Both modes use the same in-memory store code — the difference is *where the process lives*.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Mode A: Embedded (in-app)                                       │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Counselor App Process                                    │   │
+│  │   ├── Bare runtime                                      │   │
+│  │   ├── Hypercore / Corestore                             │   │
+│  │   ├── Hyperbee indexes                                  │   │
+│  │   ├── In-memory datom store (4 Map indexes)             │   │
+│  │   ├── effectHandler + dispatcher                        │   │
+│  │   └── React UI (rendered via Pear)                      │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Everything in one process. Direct function calls.             │
+│  Zero IPC latency. Single-device use case.                      │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Mode B: Daemon (in-server)                                      │
+│                                                                 │
+│  ┌──────────────────────┐     Protomux IPC      ┌────────────┐ │
+│  │ Data Daemon Process  │◄─────────────────────►│ Counselor  │ │
+│  │  ├── Hypercore       │                        │ App (Pear) │ │
+│  │  ├── Hyperbee        │     Protomux IPC      ├────────────┤ │
+│  │  ├── In-memory store │◄─────────────────────►│ MCP Server │ │
+│  │  ├── dispatcher      │                        ├────────────┤ │
+│  │  └── Autobase        │     Hyperswarm         │ Phone App  │ │
+│  └──────────────────────┘◄──────────────────────│ (remote)   │ │
+│                                                  └────────────┘ │
+│  Daemon owns the data. Clients connect via Protomux.           │
+│  Multi-client: UI + MCP + phone all read the same live store.  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**When to use which mode:**
+
+| Scenario | Mode | Why |
+|---|---|---|
+| Single counselor, single MacBook | Embedded | Simplest, no IPC overhead, fastest prototype |
+| Counselor + phone sync | Daemon | Phone connects via Hyperswarm to daemon on MacBook |
+| Counselor + MCP AI tools | Daemon | MCP server and UI share the same live data state |
+| Multi-device + client portal | Daemon | Portal server is a Protomux client of the daemon |
+| Future clinic (multi-counselor) | Daemon + Autobase | Daemon handles multi-writer merge |
+
+The embedded mode is how you build and test. The daemon mode is how you run in production when multiple consumers (UI, MCP, phone, client portal server) need live access to the same data. The switch from embedded to daemon is a process boundary change — the store code itself doesn't change.
+
+**This mirrors devac exactly.** devac's MCP server owns the hub (daemon mode). The CLI routes via IPC when MCP is running (HubClient). The counseling app data daemon IS the counseling equivalent of devac's MCP hub.
+
+---
+
+### Revised Alt 4 component picture
+
+The full Holepunch-native Alt 4 looks like this:
+
+```
+vivief counseling app — full component picture
+
+Storage layer (on disk / Bare FS):
+  Corestore (master key)
+    ├── client:42:log      ← Hypercore — datom append-only log
+    ├── client:42:index    ← Hyperbee — persistent B-tree index
+    ├── client:43:log      ← Hypercore
+    ├── client:43:index    ← Hyperbee
+    ├── handlers           ← Hyperdrive — versioned handler modules
+    └── contracts          ← Hypercore — contract datoms
+
+Hot layer (in memory, per active entity):
+  Map<EntityId, Datom[]>       ← entity index
+  Map<EntityId, Edge[]>        ← outbound refs
+  Map<EntityId, Edge[]>        ← inbound refs
+  Map<AttributeKw, EntityId[]> ← attribute index
+
+Query layer:
+  DatomQuery → Hyperbee range query (cold, persistent)
+  DatomQuery → in-memory Map lookup (hot, for active entities)
+
+Effect layer:
+  Dispatcher → effectHandler → writeDatoms → appendToHypercore + updateHyperbee
+  ContractValidator → validates DatomQuery invariants before commit
+  Loro CRDT → hot editing layer, commit bridge → datoms
+
+Sync layer:
+  Autobase — multi-device write linearization
+  Hyperswarm — peer discovery + encrypted transport (Secretstream)
+  Protomux — IPC channels between daemon and clients
+
+Client portal:
+  Option A: data daemon includes built-in Hono WebSocket server
+            client browser ← WebSocket ← daemon (portal endpoint)
+  Option B: hyperswarm-dht-relay bridges browser ↔ daemon
+            (browser uses dht-universal package)
+
+Analytics (optional overlay):
+  DuckDB WASM reads Hyperbee-exported Parquet snapshots
+  OR reads Hypercore log directly via arrow serialization
+```
+
+---
+
+### What this changes about Alt 4's tradeoffs
+
+| Previous concern | Holepunch-native answer |
+|---|---|
+| "Hypercore startup replay can be slow for large datasets" | Hyperbee eliminates replay — queries go directly to B-tree |
+| "Multi-device writes to same entity" | Autobase's causal DAG — deterministic linearization built in |
+| "Seal = custom HKDF code" | Corestore key derivation IS the Seal — zero crypto code |
+| "Unix socket IPC is platform-specific" | Protomux channels work on any transport |
+| "Browser client portal is hard" | dht-universal + dht-relay works today (some known edge cases) |
+| "Handler hot-swap tied to filesystem" | Hyperdrive gives versioned, P2P-replicated module store |
+
+The remaining genuine concern: **Bare runtime is not Node.js.** The Bare JS ecosystem is smaller. `better-sqlite3`, many Node.js native modules, and some npm packages don't run on Bare. The counseling app would need to use the Holepunch-native equivalents or run compatibility shims. This is a real adoption cost.
+
+Mitigation: start with Mode A (embedded) running in Node.js (Hypercore works fine in Node.js). Migrate to Bare/Pear when the app is mature and P2P deployment becomes the priority.
+
+---
+
+### The devac connection revisited
+
+If the counseling app uses this Holepunch-native model, and devac migrates from Parquet to Hypercore, the full vivief platform stack unifies:
+
+```
+devac                           vivief counseling app
+─────────────────────────────   ──────────────────────────────────
+repo:vivief:log (Hypercore)     client:42:log (Hypercore)
+repo:vivief:index (Hyperbee)    client:42:index (Hyperbee)
+Corestore (devac master key)    Corestore (counselor master key)
+In-memory graph store (BFS)     In-memory datom store
+DatomQuery (code graph)         DatomQuery (clinical data)
+MCP server (daemon mode)        Data daemon (daemon mode)
+Protomux IPC (CLI ↔ MCP)        Protomux IPC (UI ↔ daemon)
+```
+
+Same primitive. Same query API. Same daemon pattern. Same IPC model. Different data, same architecture. The vivief platform concept — one model that works for code analysis and application data — becomes a concrete reality.
+
+---
+
+### Datoms vs. typed structs: the right model for nodes, edges, external-refs, and effects
+
+The devac graph today uses four typed tables: `nodes`, `edges`, `external_refs`, and `effects`. The question is whether these should be rewritten as pure EAV datoms (following the counseling app model) or kept as typed structs — and whether the in-memory store needs to be "datoms all the way down" to achieve the unified platform story.
+
+This is not a trivial question. Each table has distinct characteristics that affect how well the datom model fits.
+
+---
+
+#### Nodes → fits the datom model cleanly
+
+A Node has 22 typed fields (entity_id, name, qualified_name, kind, file_path, start/end line/column, is_exported, visibility, is_async, is_generator, is_static, is_abstract, type_signature, documentation, decorators, type_parameters, properties, source_file_hash, branch, is_deleted, updated_at).
+
+As pure EAV datoms, a node becomes ~22 datoms:
+```
+[node:abc123, :node/name,            "handleClick",       tx:1, true]
+[node:abc123, :node/kind,            "function",          tx:1, true]
+[node:abc123, :node/file,            "src/handlers.ts",   tx:1, true]
+[node:abc123, :node/start-line,      42,                  tx:1, true]
+[node:abc123, :node/is-async,        true,                tx:1, true]
+[node:abc123, :node/is-exported,     true,                tx:1, true]
+... etc
+```
+
+What this buys:
+- **Schema evolution for free** — add `:node/complexity-score` by just writing the datom. No migration. The existing `properties: JSON` fallback field exists precisely because the typed schema can't evolve cheaply — datoms eliminate this escape hatch.
+- **The `branch: "base" | "delta"` pattern becomes retraction ops** — instead of `is_deleted: true` (a mutation of a row), a deletion is a retraction datom: `[node:abc123, :node/kind, "function", tx:2, false]`. The history of every node is preserved automatically.
+- **Incremental sync becomes append-only** — each `devac sync` appends new/changed node datoms. No UPDATE. No special delta file. The Hypercore append model is a perfect fit.
+
+Cost: 22 datoms instead of 1 row. For 250K nodes: 5.5M datoms. At ~200 bytes per datom in memory: ~1.1GB — approaching the limit for a dev machine. Mitigation: only load node datoms for active files; keep the rest in Hyperbee. Or use attribute packing (see below).
+
+**Verdict for nodes: pure datom model is the right long-term model.**
+
+---
+
+#### Edges → requires a design choice between three representations
+
+An Edge has: source_entity_id, target_entity_id, edge_type, source_file_path, source_line, source_column, properties, source_file_hash, branch, is_deleted, updated_at.
+
+Unlike a node (which is an entity with attributes), an edge is a *relationship between two entities* — and that relationship itself carries metadata (where in the source file it appears). This is the classic "relationship with attributes" problem in graph/entity modeling. Three options:
+
+**Option E1: Ref datom (simple, loses metadata)**
+```
+[source:abc123, :edge/CALLS, target:def456, tx:1, true]
+```
+Pure and clean. But source_file_path, source_line, source_column are lost. For `query_deps` this is fine — you just need the graph structure. For "show me where this call happens in the code" (navigation, hover-to-definition), the location is essential.
+
+**Option E2: Reified edge entity (full metadata, more datoms)**
+Each edge becomes its own entity with a content-addressed ID:
+```
+[edge:sha256(src+type+target), :edge/source,  "node:abc123",       tx:1, true]
+[edge:sha256(src+type+target), :edge/target,  "node:def456",       tx:1, true]
+[edge:sha256(src+type+target), :edge/type,    "CALLS",             tx:1, true]
+[edge:sha256(src+type+target), :edge/file,    "src/handlers.ts",   tx:1, true]
+[edge:sha256(src+type+target), :edge/line,    42,                  tx:1, true]
+```
+5 datoms per edge. Full metadata. Can query: "find all edges from file X" or "find all CALLS edges originating at line 42." The in-memory indexes work naturally: `:edge/source` index maps to the outbound edge index.
+
+For 1M edges: 5M edge datoms. Combined with 5.5M node datoms: ~10.5M total — about 2GB in memory. Still feasible for a dev machine; Hyperbee handles overflow for inactive repos.
+
+**Option E3: Structured-value datom (practical compromise)**
+```
+[source:abc123, :edge/CALLS, { target: "def456", file: "src/handlers.ts", line: 42 }, tx:1, true]
+```
+One datom per edge. The V field is a structured object, not a scalar. This breaks the strict EAV scalar model — but for an in-memory store that never needs to be queried column-by-column in SQL, it's a practical choice. The in-memory outbound edge index stores these structured values directly:
+```typescript
+outbound.get('node:abc123')  // → [{ type: 'CALLS', target: 'node:def456', file: '...', line: 42 }]
+```
+This is what the in-memory store effectively does today with the existing `Edge` typed struct — it's just a structured datom with a named value.
+
+**Verdict for edges: Option E3 for the in-memory store (practical, keeps existing edge semantics), with an Option E2 path available if full datom queryability on edge metadata becomes needed.** The 20 edge types (CALLS, IMPORTS, EXTENDS, CONTAINS, etc.) map cleanly to datom attributes: `:edge/CALLS`, `:edge/IMPORTS`, etc. — enabling "give me all CALLS edges from this entity" as a direct index lookup, not a scan.
+
+---
+
+#### External refs → fits perfectly as ref datoms
+
+An ExternalRef links a source entity to an external module symbol (before resolution). After resolution, it becomes a ref edge to the target entity.
+
+Two states:
+```
+-- Unresolved (import not yet matched to a cross-repo node):
+[node:abc123, :imports/external, "@react::useState",   tx:1, true]
+[node:abc123, :imports/style,    "named",              tx:1, true]
+[node:abc123, :imports/line,     15,                   tx:1, true]
+
+-- Resolved (semantic pass matched it to a real entity):
+[node:abc123, :edge/IMPORTS,  "ext:react:function:useState", tx:2, true]
+-- The unresolved datom is retracted, replaced by the real edge datom.
+```
+
+This is cleaner than the current model where `is_resolved: false` and `target_entity_id: null` sit in the same table as resolved refs. In the datom model, resolution is a state transition: retract the unresolved datom, assert the edge datom. The history of the resolution is preserved in the log.
+
+External packages become synthetic entities: `[ext:react, :npm/name, "react", tx:1, true]`. Their symbols are entities too: `[ext:react:useState, :symbol/kind, "function", tx:1, true]`. Once resolved, cross-package edges are just ref datoms between real entities — the external_refs table dissolves into the edge space.
+
+**Verdict for external refs: pure datom model is cleaner than the current typed table. Resolution becomes a retract+assert, not a row mutation.**
+
+---
+
+#### Effects → typed structs are the better fit here
+
+The Effects table is the most complex. It has 25+ columns, most of which are effect_type-specific — `callee_name` is only meaningful for `function-call` effects; `store_type` is only meaningful for `store-write` effects; `route_pattern` is only meaningful for HTTP effects. The table already uses `properties: JSON` as an overflow for untyped data.
+
+Two approaches:
+
+**Option F1: Pure datom per field**
+```
+[effect:uuid, :effect/type,          "function-call",  tx:1, true]
+[effect:uuid, :effect/source,        "node:abc123",    tx:1, true]
+[effect:uuid, :effect/callee-name,   "fetch",          tx:1, true]
+[effect:uuid, :effect/is-async,      true,             tx:1, true]
+[effect:uuid, :effect/is-external,   true,             tx:1, true]
+... (5–15 datoms for common effect types)
+```
+Works, but the effect_type-specific attributes (`:effect/store-type`, `:effect/route-pattern`) only appear on some effects — the attribute space becomes sparse. For 5M effects across a large workspace: 25–75M datoms. This is the outer limit of what's practical in-memory; you'd need Hyperbee as the primary store with a small hot cache.
+
+**Option F2: Structured-value datom per effect (recommended)**
+```
+[node:abc123, :effect/function-call, {
+  callee: "fetch",
+  isAsync: true,
+  isExternal: true,
+  module: "node:fetch",
+  argCount: 2,
+  file: "src/api.ts",
+  line: 87
+}, tx:1, true]
+```
+One datom per effect. The V field is a typed struct matching the existing Zod schema shape. The attribute is the effect type (`:effect/function-call`, `:effect/store-write`, etc.) — which enables "find all store-write effects in this entity" as a direct attribute index lookup. The effect content is the V struct.
+
+This also matches the existing `properties: JSON` pattern — it's just a first-class structured datom instead of an overflow escape hatch. The `properties: JSON` column goes away; the content IS the value.
+
+**Verdict for effects: structured-value datom per effect (Option F2). One datom per effect, attribute = effect type, value = typed struct. The attribute-as-type pattern enables efficient "find all effects of type X" queries without scanning all effects.**
+
+---
+
+#### Summary: which model for each table
+
+| Table | Pure EAV datom | Structured-value datom | Recommendation |
+|---|---|---|---|
+| **nodes** | ✓ clean fit — ~22 datoms/node | n/a | Pure EAV datoms — schema evolution, history for free |
+| **edges** (simple graph) | ✓ ref datom: `[src, :edge/CALLS, target, tx, op]` | E3: `[src, :edge/CALLS, { target, file, line }, tx, op]` | Structured-value — one datom with location metadata |
+| **external_refs** | ✓ clean fit — resolution = retract+assert | n/a | Pure EAV datoms (or dissolve into edges after resolution) |
+| **effects** | ~ sparse attribute space, 25-75M datoms | F2: `[src, :effect/fn-call, { struct }, tx, op]` | Structured-value per effect — attribute = effect type |
+
+The in-memory store does **not** need to be "pure EAV scalars all the way down." The V field of a datom can be a typed struct for complex records (edges, effects). What matters is the EAV *interface* — every piece of data is addressed by entity, attribute, and version — not whether V is always a scalar.
+
+---
+
+#### The datom wrapper: unified API over typed structs
+
+This design means the in-memory graph store can start from the existing Zod schemas and wrap them in a datom interface — no full rewrite required. The `Node` typed struct becomes an entity whose attributes are accessed via the DatomQuery API:
+
+```typescript
+// Today (typed struct access):
+const node = nodeIndex.get('node:abc123')
+const name = node.name
+const file = node.file_path
+
+// Tomorrow (DatomQuery wrapper over the same struct):
+const result = store.query({ entity: 'node:abc123', attribute: ':node/name' })
+const name = result.get(':node/name')   // → "handleClick"
+
+// Both read from the same in-memory Map. The wrapper adds:
+// - time-travel (asOf)
+// - retraction history
+// - uniform DatomQuery interface across nodes, edges, effects, and counseling data
+```
+
+The Hypercore storage layer stores typed structs as entries (preserving compactness). The in-memory indexing layer presents them as datom entities. The DatomQuery API sits on top. This layering means:
+
+1. **devac keeps its Zod schemas** — no rewrite of parsers, CLI, or MCP tools
+2. **The in-memory store gains a datom API** — uniform query language for both devac and counseling app
+3. **Hypercore replaces Parquet** — append-only, content-addressed, with retraction ops replacing `is_deleted: true` and the `branch: "delta"` pattern
+
+The vivief platform story: both apps share the DatomQuery interface and the Hypercore storage format, but the internal data shape is appropriate to each domain — EAV datoms for counseling (flexible, evolving clinical data), typed structs wrapped in a datom API for devac (structured code graph with known schema).
+
+---
 
 The alternatives don't have to be mutually exclusive. The effectHandler and Lens abstractions are storage-agnostic. A vivief "platform mode" could:
 
