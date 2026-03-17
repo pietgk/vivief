@@ -50,7 +50,9 @@ The universal fact primitive. Inspired by Datomic's immutable fact model.
 - **Immutable.** Datoms are never modified. A "change" is a retraction + assertion in a new Tx.
 - **Append-only.** The log only grows. Any historical state is reproducible via `asOf(tx)`.
 - **Self-describing.** Schema is stored as datoms. Adding an attribute = asserting schema datoms. No migrations.
-- **Typed values.** V carries type information — text, number, date, ref (to another entity), bytes, vec (embedding), encrypted (sealed).
+- **Typed values.** V carries type information — text, number, date, ref (to another entity), bytes, vec (embedding), encrypted (sealed), or **struct** (a typed record with named fields).
+
+**Scalar V vs Struct V.** Most attributes have scalar values — these support per-value indexing and history. Some attributes have struct values (typed records) — these support per-attribute indexing and history at struct granularity. The choice is principled: if sub-fields need independent querying, indexing, or history tracking, they must be separate scalar datoms. If the value is semantically atomic (you never put a WHERE clause on a sub-field independently), it belongs in a struct V. See the [struct-as-value analysis](../spec/counseling/viviefco-architecture-ideas.md#struct-as-value-a-thorough-analysis-of-compound-v-in-the-datom-model) for the full rationale, memory optimization techniques, and migration path.
 
 | Domain | Manifestation |
 |--------|---------------|

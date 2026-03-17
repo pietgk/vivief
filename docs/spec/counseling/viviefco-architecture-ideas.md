@@ -873,6 +873,237 @@ The existing two-tier model (Loro hot + cold store) is already a partial version
 
 ---
 
+### Struct-as-Value: a thorough analysis of compound V in the datom model
+
+The "datoms vs typed structs" analysis above recommends structured-value datoms for edges and effects (Options E3, F2). This section examines whether struct-as-V is conceptually sound, when it breaks, and how to make the overall datom store memory-friendly.
+
+The question matters because it sits at the intersection of three forces:
+1. **Conceptual purity** — Datomic's model assumes scalar V. Violating this has consequences for indexing, history, and query semantics.
+2. **Memory constraints** — Pure EAV for 250K nodes × 22 attributes = 5.5M datoms ≈ 1.1GB. That's the limit for a dev machine before counting edges and effects.
+3. **Migration feasibility** — devac's existing Zod-typed structs (Node, Edge, ExternalRef, Effect) need a realistic path to the datom world without a full rewrite.
+
+---
+
+#### Part 1: When is V a scalar and when is V a struct?
+
+The key distinction is between **identity attributes** and **component attributes**.
+
+**Identity attributes** describe an entity's own properties — things you query, filter, index, and track history on independently. `:client/name`, `:node/kind`, `:client/risk-level` are identity attributes. They must be scalar datoms because:
+- You need per-attribute history: "when did the risk level change?"
+- You need per-attribute indexing: "find all clients with risk-level = high"
+- You need per-attribute reactive subscription: "notify me when any risk-level changes"
+- You need per-attribute Contracts: "risk-level must be one of [low, moderate, high, crisis]"
+
+**Component attributes** describe a *relationship or event* that is atomic — you never query, index, or track history on its sub-parts independently. An edge's `{ target, file, line }` is a component — you never ask "find all edges pointing to line 42" (you ask "find all edges from entity X"). An effect's `{ callee, isAsync, argCount }` is a component — you query by effect type (the attribute), not by individual struct fields.
+
+The rule: **if you would never put a WHERE clause on a sub-field independently, it's a component and belongs in a struct V. If you would, it must be a scalar datom.**
+
+This is not a compromise — it's a principled distinction. Datomic's own composite tuples (tupleAttrs) recognize the same pattern: some groups of values are semantically atomic.
+
+---
+
+#### Part 2: What struct-as-V preserves and what it loses
+
+**Preserved:**
+- **Entity identity** — `[source:abc, :edge/CALLS, {...}, tx, op]` still addresses by E and A
+- **Attribute indexing** — "find all CALLS edges from entity X" works via `:edge/CALLS` index
+- **Transaction history** — the struct is versioned by Tx; retraction retracts the whole struct
+- **Reactive subscription** — subscribers to `:edge/CALLS` on entity X fire when the struct changes
+- **Contract validation** — Contracts can validate the struct shape (Schema contracts) and the struct content (Effect contracts)
+- **P2P peer validation** — the full datom (including struct V) is validated against Contracts on receipt
+
+**Lost:**
+- **Per-sub-field history** — you cannot ask "when did this edge's line number change?" because the whole struct is one V. You see "the edge was retracted and re-asserted with a different struct" — same outcome, but at struct granularity not field granularity.
+- **Per-sub-field indexing** — you cannot put an index on `edge.line` or `effect.callee` at the datom store level. If you need "find all effects calling fetch", you scan all `:effect/function-call` datoms for entity X and filter in application code.
+- **Per-sub-field reactive subscription** — the subscription fires on the whole attribute, not on a sub-field change. Acceptable because struct-V attributes represent atomic units.
+
+**The test:** For every struct-V attribute in the system, verify: "Would I ever need to independently query, index, or track history on a sub-field?" If the answer is ever "yes" for a sub-field, extract it as a separate scalar datom.
+
+Applied to devac:
+
+| Struct-V attribute | Sub-fields | "Need independent query on sub-field?" | Verdict |
+|---|---|---|---|
+| `:edge/CALLS` | target, file, line, column | **target: YES** — "find what entity X calls" → extract target as a ref. **file/line: no** — navigation metadata, never queried independently | Split: target as ref datom, location as struct |
+| `:effect/function-call` | callee, isAsync, isExternal, module, argCount, file, line | **callee: maybe** — "find all calls to fetch" across entities. But this is a scan by effect type, not a direct index lookup. Acceptable as struct scan. | Keep as struct. If callee queries become frequent, add a secondary index (see Part 3) |
+| `:effect/store-write` | table, operation, file, line | No — queried by entity + effect type | Keep as struct |
+
+This suggests a refinement of Option E3: **split the edge into a ref datom + a location struct**, rather than one monolithic struct:
+
+```
+[source:abc, :edge/CALLS,    target:def,                           tx:1, true]  ← ref datom (indexed)
+[source:abc, :edge-loc/CALLS, { file: "src/api.ts", line: 42 },   tx:1, true]  ← location struct (not indexed)
+```
+
+Two datoms per edge instead of one struct or five pure EAV. The graph traversal index uses the ref datom (O(1) lookup). The location metadata is only loaded when navigating to source. This is the sweet spot between purity and practicality.
+
+---
+
+#### Part 3: Memory optimization techniques for the datom store
+
+The memory budget analysis from the original section: 250K nodes × 22 datoms = 5.5M node datoms ≈ 1.1GB. With edges and effects this could reach 15-20M datoms ≈ 3-4GB. Too much for a dev machine. Here's how to cut it by 3-5x.
+
+**Technique 1: String interning (saves 30-50%)**
+
+In a code graph, the same strings appear thousands of times:
+- **File paths** — 500 files × (avg 10 entities per file) = each path repeated 10x
+- **Attribute names** — 200 distinct attributes × millions of datoms = massive redundancy
+- **Kind/visibility enums** — "function", "class", "public", "private" repeated everywhere
+- **Entity ID prefixes** — "myrepo:packages/api:" repeated for every entity in a package
+
+String interning stores each unique string once in a pool. All datoms reference the interned string by pointer. In JavaScript, this is a `Map<string, string>`:
+
+```typescript
+const internPool = new Map<string, string>()
+
+function intern(s: string): string {
+  const existing = internPool.get(s)
+  if (existing !== undefined) return existing
+  internPool.set(s, s)
+  return s
+}
+```
+
+V8 already interns short literal strings, but dynamically constructed strings (entity IDs, file paths, qualified names) are NOT interned by default. Explicit interning for these high-repetition fields saves 30-50% of total string memory.
+
+Additional win: string comparison becomes identity comparison (`===` on same-pool strings is a pointer comparison in V8), making index lookups faster.
+
+**Technique 2: Dictionary encoding for attributes (saves 60-90% on A column)**
+
+There are at most a few hundred distinct attribute names in the system. Instead of storing the full string `:node/qualified-name` on every datom, store a `Uint16` dictionary ID:
+
+```typescript
+// Attribute dictionary — built once, shared across all datoms
+const attrDict: string[] = [':node/name', ':node/kind', ':node/file', ':edge/CALLS', ...]
+const attrToId = new Map<string, number>()  // reverse lookup
+attrDict.forEach((a, i) => attrToId.set(a, i))
+
+// Each datom stores attrId (2 bytes) instead of attribute string (20-40 bytes)
+```
+
+For 10M datoms, this saves ~200-400MB (20-40 bytes per datom × 10M). The dictionary itself is negligible (<50KB for 200 attributes).
+
+**Technique 3: Columnar storage for numeric fields (saves ~3x on numbers)**
+
+Node line/column numbers, Tx IDs, and boolean flags are currently stored as JavaScript `number` values inside objects. Each `number` in a V8 object uses 8 bytes (boxed double). A `Uint32Array` uses 4 bytes.
+
+For a store with many numeric datoms (line numbers, column numbers, Tx IDs), switching the numeric V values to typed arrays reduces memory by ~50% per numeric field.
+
+In practice this means: store datom tuples in a columnar layout (array-of-columns) rather than row-of-objects:
+
+```typescript
+// Row layout (current intuition): array of {e, a, v, tx, op} objects
+// ~120 bytes per datom (object overhead + string pointers + boxed numbers)
+
+// Columnar layout: parallel arrays
+const entities: string[]        // interned entity IDs
+const attributes: Uint16Array   // dictionary-encoded attribute IDs
+const values: unknown[]         // mixed: interned strings, numbers, structs
+const txIds: Uint32Array        // transaction IDs (4 bytes vs 8)
+const ops: Uint8Array           // boolean ops (1 byte vs 8)
+```
+
+Estimated per-datom cost: ~60-80 bytes (vs ~120-200 bytes for object layout). For 10M datoms: ~600-800MB instead of 1.2-2GB.
+
+**Technique 4: Working set + cold storage (eliminates the scaling problem)**
+
+The most impactful technique: don't hold all datoms in memory.
+
+The devac usage pattern has strong locality — when working on a file, you need datoms for entities in that file and their direct dependencies. You don't need the entire 250K-node graph in memory simultaneously.
+
+Split the store into two tiers:
+
+| Tier | What's in it | Storage | Access time |
+|---|---|---|---|
+| **Hot cache** | Entities in active files + 1-hop dependencies | In-memory (Map indexes) | Microseconds |
+| **Cold index** | Everything else | Hyperbee (persistent B-tree on disk) | Low milliseconds |
+
+The hot cache holds ~5-10K entities (the "working set") using ~50-100MB. The cold index holds the full graph on disk, accessed only for graph traversals that reach beyond the working set.
+
+Cache population strategy:
+- On file open / `devac sync`: load all entities in the file + 1-hop dependencies into hot cache
+- On graph traversal (query_deps, query_affected): lazy-load from Hyperbee into hot cache as the BFS expands
+- Eviction: LRU by file — when a file hasn't been active for N minutes, evict its entities from hot cache
+
+This is exactly what Datomic does with its object cache + segment cache. The key insight: **you don't need to solve the "10M datoms in memory" problem — you need to solve the "10K datoms in memory + fast access to the rest" problem.**
+
+**Technique 5: Struct-V as memory optimization (closes the circle)**
+
+Struct-V datoms are themselves a memory optimization technique. Compare:
+
+```
+Pure EAV for one edge (5 datoms):
+  5 × { e: string, a: string, v: string|number, tx: number, op: boolean }
+  ≈ 5 × 120 bytes = 600 bytes
+
+Struct-V for one edge (1 datom):
+  1 × { e: string, a: string, v: { target, file, line }, tx: number, op: boolean }
+  ≈ 200 bytes
+```
+
+For 1M edges: 600MB (pure EAV) vs 200MB (struct-V). The struct-V approach is 3x more memory-efficient because it eliminates 4 copies of entity ID + attribute ID + tx + op per edge.
+
+Combined with string interning and dictionary encoding on the remaining datom fields, struct-V edges drop to ~120-150 bytes each = 120-150MB for 1M edges.
+
+**Combined savings estimate:**
+
+| Approach | 250K nodes | 1M edges | 2M effects | Total |
+|---|---|---|---|---|
+| **Naive pure EAV** | 5.5M datoms × 150B = 825MB | 5M datoms × 150B = 750MB | 15M datoms × 150B = 2.25GB | ~3.8GB |
+| **Struct-V only** | 5.5M × 150B = 825MB | 1M × 200B = 200MB | 2M × 250B = 500MB | ~1.5GB |
+| **+ String interning** | 500MB | 140MB | 350MB | ~1.0GB |
+| **+ Dictionary encoding** | 400MB | 120MB | 300MB | ~0.8GB |
+| **+ Working set (hot/cold)** | 30MB hot | 10MB hot | 20MB hot | **~60MB hot** + disk |
+
+The working set approach is the decisive win. All other techniques are multipliers on top.
+
+---
+
+#### Part 4: Conceptual impact on vivief-concepts.md
+
+Does struct-as-V change the seven concepts? No — it refines the Datom definition:
+
+> **Datom V can be scalar or struct.** The `[E, A, V, Tx, Op]` shape is preserved. When V is a scalar (text, number, date, ref, bool, vec, encrypted), the datom supports per-value indexing and history. When V is a struct (a typed record with named fields), the datom supports per-attribute indexing and history at struct granularity. The choice of scalar vs struct is made per-attribute based on whether sub-fields need independent querying.
+
+This is NOT a compromise. It's a principled design: V is typed, and "struct" is a type. The DatomQuery API works the same — you query by entity + attribute. Contract validation works the same — Contracts can validate struct shapes. Reactive subscription works the same — subscribers fire on attribute changes. P2P peer validation works the same — the full datom (including struct V) is validated.
+
+What changes:
+- **DatomQuery** gains an optional `structField` accessor for struct-V attributes: `result.get(':edge/CALLS').target` navigates into the struct
+- **Contracts** can validate struct shapes as Schema contracts: "an `:edge/CALLS` value must have target, file, line"
+- **Indexes** are per-attribute (not per-struct-field) for struct-V datoms — sub-field lookups are application-level scans within the attribute result set
+
+What stays the same: everything else. The Lens, Surface, Seal, Contract, P2P, and effectHandler concepts are unaffected. The DatomQuery interface is the same — it just returns structs as V values for struct-typed attributes.
+
+---
+
+#### Part 5: The migration path from devac's typed structs
+
+The techniques above define a concrete migration path:
+
+**Phase 1 (now): Datom wrapper over existing Zod structs**
+- Keep the existing Node, Edge, ExternalRef Zod schemas unchanged
+- Add a DatomQuery wrapper that presents typed structs as datoms
+- The in-memory Map indexes stay as they are
+- devac CLI, MCP tools, and parsers remain untouched
+- **Cost: small. Value: uniform query API across devac and counseling.**
+
+**Phase 2 (when adding Hypercore): Nodes become pure EAV, edges/effects become struct-V**
+- Nodes decompose into ~22 scalar datoms (schema evolution, per-attribute history)
+- Edges become ref datom + location struct (2 datoms per edge)
+- Effects become struct-V datoms (1 datom per effect, attribute = effect type)
+- String interning + dictionary encoding applied
+- Hyperbee as cold index, in-memory as hot cache
+- **Cost: moderate. Value: append-only storage, P2P replication, history for free.**
+
+**Phase 3 (at scale): Full memory optimization**
+- Columnar storage layout for hot cache
+- Working set eviction (LRU by file)
+- Hyperbee-first reads with in-memory cache
+- **Cost: significant engineering. Value: handles 10x codebase growth without memory issues.**
+
+Each phase is independently valuable. Phase 1 can ship this week. Phase 2 aligns with the Hypercore adoption timeline. Phase 3 is triggered by actual memory pressure, not speculation.
+
+---
+
 ## Recommended next step
 
 Before committing to one alternative, resolve the clarification questions (Q1–Q6 above), particularly:

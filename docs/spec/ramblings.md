@@ -21,6 +21,7 @@ the parts that need more attention to flesh out in my opinion are
 - you mention watching the datom streams and we seem to define effectHandler results in dAtoms and effects and signals. this feels off and is not defined and or specified as clean as we want.
 - p2p is connected to holepunch naming and concepts, this is ok as a start but we should look at holochain and its eco system to see if we can generalise this. i am not sure if this improves the spec so we need to be thorough in how we address this and still end up with a clean set of concepts that can be explained and implemented
 
+in[@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) we mention that we need structured values to address memory constraints and enabling a feasable move from current vivief devac implementation into the new context. i propose to take a very thorough look at the concept of supporting a struct as value as its conceptual challenging but maybe practicle an serious option. it might also be an oppertunity to include memory optimalisation techniques that others have found to make our use of dAtoms more memory friendly
 
 ## devac status improve determnistic part
 
