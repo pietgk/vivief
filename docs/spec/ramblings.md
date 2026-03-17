@@ -17,7 +17,9 @@ this is a long term vision to get the best concepts we can devise with the curre
  feel free to ask for more detail if you think that will result in a better starting prompt
 
  
-
+the parts that need more attention to flesh out in my opinion are
+- you mention watching the datom streams and we seem to define effectHandler results in dAtoms and effects and signals. this feels off and is not defined and or specified as clean as we want.
+- p2p is connected to holepunch naming and concepts, this is ok as a start but we should look at holochain and its eco system to see if we can generalise this. i am not sure if this improves the spec so we need to be thorough in how we address this and still end up with a clean set of concepts that can be explained and implemented
 
 
 ## devac status improve determnistic part

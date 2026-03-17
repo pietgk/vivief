@@ -19,8 +19,8 @@ effectHandler = (state, effect) => (state', [effect'])
 |-----------|------------|
 | **State** | A point-in-time query over the datom log. `State = f(Lens, DatomLog)` |
 | **Effect** | An immutable description of intent: What (new datoms), How (handler), Why (reasoning) |
-| **State'** | The datom log after new facts are asserted. Append-only — history is never lost |
-| **[Effect']** | Downstream effects triggered by the state transition |
+| **State'** | The datom log after new facts are committed. Append-only — history is never lost. Reactive subscription automatically notifies observers of the transition |
+| **[Effect']** | Downstream effects to be dispatched — each routed to its own handler, producing further (State'', [Effect'']) cascades |
 
 **Deterministic-first principle**: Always push work into the deterministic world (systems handle it) before falling back to reasoning (LLMs/humans handle it). The boundary between deterministic and non-deterministic shifts as LLMs improve — the concepts remain stable.
 
@@ -138,7 +138,7 @@ The Seal is the privacy model — identity, capability, and encryption boundary.
 | **devac** | Corestore master key per workspace; derived keys per repo |
 | **Counseling app** | Counselor passphrase → per-client keys; client portal keys; AI consent keys |
 
-**Holepunch mapping: Corestore IS the Seal.** Corestore's built-in key derivation (`masterKey + name → keypair`) performs exactly the HKDF the Seal requires. Zero additional cryptographic code needed.
+**Implementation note:** The Seal's key derivation maps directly to Corestore's built-in HKDF (see section 6.1). Zero additional cryptographic code needed.
 
 ### 2.5 Contract
 
@@ -170,40 +170,89 @@ Invariant conditions use DatomQuery — the same query model used by Lens and Se
 
 ### 2.6 P2P
 
-The peer-to-peer layer makes datoms replicate without central servers. Built on the Holepunch stack.
+The peer-to-peer layer makes datoms replicate without central servers. P2P is defined here as abstract concepts; the Holepunch stack mapping in section 6 is the chosen implementation.
 
-| Holepunch component | What it gives vivief |
-|---------------------|---------------------|
-| **Hypercore** | Append-only datom log — each entity gets its own core |
-| **Hyperbee** | Persistent B-tree index over datoms — no startup replay needed |
-| **Corestore** | Key derivation factory = the Seal |
-| **Autobase** | Multi-writer causal DAG — multi-device sync without conflicts |
-| **HyperDHT + Hyperswarm** | Peer discovery + NAT holepunching — no server needed |
-| **Protomux** | IPC multiplexer — same protocol over local pipe or P2P connection |
-| **Hyperdrive** | Versioned handler artifact store — replicated to all devices |
-| **Secretstream** | Transport encryption — wraps all connections |
+#### Four P2P sub-concepts
 
-**Embedded vs. daemon duality:**
-- **Embedded** (single process): Corestore + Hyperbee + in-memory store + UI, all in one process. Direct function calls. Zero IPC. For single-device use.
-- **Daemon** (multi-client): Data daemon owns the store. UI, MCP server, phone app connect via Protomux. For multi-device + multi-consumer use.
+| Sub-concept | What it does | Why it's necessary |
+|-------------|-------------|-------------------|
+| **Agent log** | Each agent (person, device, or service) has its own append-only datom log | Sovereignty — your data lives with you, not on someone else's server |
+| **Peer validation** | When a peer receives replicated datoms, it validates them against shared Contracts before accepting | Trust — peers don't blindly accept data; Contracts are the shared rules of the network |
+| **Peer discovery** | Find and connect to peers without central servers | Independence — no single point of failure, no gatekeeper |
+| **Sync** | Multi-writer conflict resolution when multiple agents modify the same entities concurrently | Collaboration — offline-capable, eventually consistent |
 
-Same store code in both modes — the difference is the process boundary.
+**Peer validation is the critical insight.** In a P2P network, there is no central authority to enforce data integrity. Contracts fill this role — they are the shared validation rules that every peer executes on incoming datoms. A datom that violates a Contract is rejected by the receiving peer, even if it was validly signed by its author. This makes Contracts not just runtime guards but **the P2P trust model**.
+
+This insight is validated independently by two P2P architectures:
+- **Holochain** calls this the *integrity zome / coordinator zome* split — integrity zomes define deterministic validation rules (= Contracts) that every peer executes, while coordinator zomes define application logic (= effectHandlers). The split is architectural because P2P trust requires it.
+- **Holepunch** does not build validation into the protocol layer — it provides the transport (Hypercore, Hyperswarm) and leaves validation to the application. In vivief, Contract validation on Hypercore replication events fills this gap.
+
+Both validate the same conclusion: **Contracts and effectHandlers are the right abstraction boundary** for P2P systems. Contracts = deterministic, shared, executed by every peer. effectHandlers = application logic, local, executed by the authoring agent.
+
+#### Embedded vs. daemon duality
+
+Two deployment modes using the same store code — the difference is the process boundary:
+
+- **Embedded** (single process): Store + handlers + UI in one process. Direct function calls. Zero IPC. For single-device use.
+- **Daemon** (multi-client): Data daemon owns the store. UI, MCP server, phone app connect via IPC protocol. For multi-device + multi-consumer use.
+
+This mirrors devac exactly — devac's MCP server owns the hub (daemon mode), the CLI routes via IPC when MCP is running. The counseling app data daemon IS the counseling equivalent of devac's MCP hub.
 
 | Domain | Manifestation |
 |--------|---------------|
-| **devac** | Hypercore per repo; Hyperswarm sync between workspaces; MCP as daemon |
-| **Counseling app** | Hypercore per client; MacBook ↔ phone sync; client portal via Protomux |
+| **devac** | Agent log per repo; peer discovery within workspace; MCP as daemon |
+| **Counseling app** | Agent log per client; MacBook ↔ phone sync; client portal via IPC |
 
 ### 2.7 effectHandler
 
 The effectHandler is the universal control plane. It is the formula from section 1, materialized as the dispatcher pattern.
 
-```
-Effect arrives → Resolve handler → Check feature flags → Dynamic import →
-Execute handler → Validate contracts → Write datoms → Publish signals
+#### What a handler produces
+
+A handler takes state and an effect, and returns exactly two things:
+
+```typescript
+handler(state: State, effect: Effect): {
+  datoms: Datom[]     // New facts to commit (State → State')
+  effects: Effect[]   // Downstream intents to dispatch ([Effect'])
+}
 ```
 
-Handlers are code (TypeScript modules). Signals are notifications (NATS publications or in-process events). Most logic is handlers calling handlers — ordinary function calls, not message passing.
+- **Datoms** are the state transition. They are committed to the datom log atomically.
+- **Effects** are new intents. Each is dispatched to its own handler, which may produce more datoms and more effects. This is how effect cascades emerge — a voice recap effect produces datoms, which trigger a pattern-detection effect, which produces more datoms, which trigger a scheduling effect.
+
+There is no third output. Handlers do not "publish signals" or "notify observers" — that is a property of the datom store, not the handler.
+
+#### Reactive subscription — how observers learn about changes
+
+When datoms are committed, the datom store notifies all subscribers whose subscriptions match the committed datoms. This is **reactive subscription** — a property of the store, not something handlers produce.
+
+```
+Handler commits datoms
+  → Store notifies matching subscribers automatically
+    → Surface re-renders (subscribed via its Lens filter)
+    → AI loop triggers analysis (subscribed to clinical attribute namespaces)
+    → P2P layer replicates (Hypercore append triggers peer sync)
+```
+
+Reactive subscription is how:
+- **Surfaces** stay current — a Surface subscribes to the DatomQuery in its Lens. When matching datoms are committed, the Surface re-renders. No explicit "refresh" signal needed.
+- **The AI loop** observes — it subscribes to attribute namespaces (`:session/*`, `:checkin/*`). When new clinical datoms arrive, analysis handlers are dispatched.
+- **P2P replication** propagates — committing a datom to a Hypercore automatically makes it available to peers. The Hypercore IS the subscription mechanism for remote observers.
+- **Reactive datom projections** update — TanStack DB collections subscribe to datom commits matching their filter, folding new datoms into entity objects with sub-millisecond latency.
+
+The implementation of reactive subscription varies (NATS pub/sub, in-process EventTarget, Hypercore replication events, WebSocket push) — but the concept is uniform: **commit datoms, subscribers react**. No handler ever needs to know who is watching.
+
+#### The dispatch cycle
+
+```
+Effect arrives → Resolve handler → Check feature flags → Dynamic import →
+Execute handler → Validate contracts → Commit datoms → Dispatch downstream effects
+                                                ↓
+                                   (Store notifies subscribers automatically)
+```
+
+Most logic is handlers calling handlers — ordinary function calls, not message passing. A handler can call other handlers directly (synchronous, in-process) or return effects for the dispatcher to route (asynchronous, decoupled).
 
 **Handler registration is a datom:**
 ```
@@ -231,19 +280,35 @@ The seven concepts are not independent — they compose into higher-level capabi
 | **Lens + Surface** | Rendered UI | Morning prep Board, session notes Canvas |
 | **Lens + Seal** | Access control | A capability IS a Lens scoped by a decryption key |
 | **Datom + Contract** | Runtime-enforced specs | "Session recap must produce themes" — validated on every dispatch |
-| **Datom + P2P** | Replicated append-only log | Hypercores replicating datoms between MacBook and phone |
+| **Datom + P2P** | Replicated append-only log | Agent logs replicating datoms between MacBook and phone |
+| **Contract + P2P** | Trustless peer validation | Incoming datoms validated against shared Contracts before acceptance |
 | **effectHandler + Contract + Datom** | The development model | Contract → Handler → Verify → Gate → Live |
 | **Datom + Lens + Surface** | The full UI stack | One data shape, queried by Lens, rendered by Surface |
 | **All seven** | The vivief platform | Development and application unified under one model |
 
-**Reactive datom projections** (the TanStack DB pattern): Collections synced from datom streams with live queries and optimistic mutations. The concept is first-class — datom streams projected into reactive UI state with sub-millisecond updates. TanStack DB is one implementation; the pattern works with any reactive store that can consume `[E, A, V, Tx, Op]` tuples.
+### Reactive subscription — the connective tissue
+
+Reactive subscription (section 2.7) connects concepts without explicit wiring:
+
+```
+effectHandler commits datoms
+  → Lens-based Surface re-renders (Datom + Lens + Surface)
+  → AI loop dispatches analysis effects (effectHandler cascade)
+  → P2P layer replicates to peers (Datom + P2P)
+  → Peer validates against Contracts on receipt (Contract + P2P)
+```
+
+No handler specifies who to notify. The store's reactive subscription model handles it. This is what makes the system composable — adding a new Surface, a new AI analysis handler, or a new peer requires zero changes to existing handlers.
+
+### Reactive datom projections (the TanStack DB pattern)
+
+Collections synced from committed datoms via reactive subscription, with live queries and optimistic mutations. The concept is first-class — committed datoms projected into reactive UI state with sub-millisecond updates. TanStack DB is one implementation; the pattern works with any reactive store that can consume `[E, A, V, Tx, Op]` tuples.
 
 ```typescript
-// The concept: datom stream → reactive collection → live query → UI
+// The concept: reactive subscription → collection → live query → UI
 const clients = createCollection({
-  source: 'datom-stream',
-  filter: { attributePrefix: ':client/' },
-  projection: datomsToEntity   // fold [E,A,V,Tx,Op] into objects
+  subscribe: { attributePrefix: ':client/' },  // reactive subscription filter
+  projection: datomsToEntity                   // fold [E,A,V,Tx,Op] into objects
 })
 
 const activeClients = useLiveQuery(q =>
@@ -300,7 +365,7 @@ All four actors use the same primitives. The development flow (Contract → Hand
 
 ## 5. The Dual-Loop Pattern
 
-Two effectHandler loops run in parallel, connected by the shared datom stream. This pattern generalizes beyond counseling to any domain where AI augments human work.
+Two effectHandler loops run in parallel, connected by reactive subscription to the shared datom store. This pattern generalizes beyond counseling to any domain where AI augments human work.
 
 ### 5.1 Human loop (synchronous, authoritative)
 
@@ -318,17 +383,17 @@ Human actions → datoms → immediate effects. The human sees the result of the
 
 ### 5.2 AI loop (asynchronous, draft-only)
 
-Subscribes to the datom stream → runs analysis → emits draft datoms marked `:tx/source :ai` and `:tx/status :pending`.
+Subscribes via reactive subscription to relevant attribute namespaces → runs analysis → commits draft datoms marked `:tx/source :ai` and `:tx/status :pending`.
 
 ```
-[Datom Stream] → AI Analysis → [Draft Datoms (:tx/source = :ai)]
-                                      |
-                                      ↓
-                            [Human Review]
-                                ↙        ↘
-                           Approve      Reject/Edit
-                              ↓             ↓
-                      Assert Datom    Discard / Modify
+[Reactive subscription to committed datoms] → AI Analysis → [Draft Datoms (:tx/source = :ai)]
+                                                                    |
+                                                                    ↓
+                                                          [Human Review]
+                                                              ↙        ↘
+                                                         Approve      Reject/Edit
+                                                            ↓             ↓
+                                                    Assert Datom    Discard / Modify
 ```
 
 **Critical constraint:** The AI never directly mutates authoritative state. It proposes. The human approves, rejects, or modifies. This satisfies ethical requirements, regulatory requirements (AI therapy legislation), and engineering safety (LLM outputs are probabilistic).
@@ -346,33 +411,53 @@ The dual-loop is not counseling-specific. It is the pattern for any domain where
 
 ---
 
-## 6. Infrastructure: The Holepunch Stack
+## 6. Infrastructure: Implementation Mapping
 
-The Holepunch stack provides the P2P foundation. Twelve modules, mapped to vivief concepts:
+The P2P concept (section 2.6) defines four abstract sub-concepts: agent log, peer validation, peer discovery, and sync. This section maps them to the chosen implementation stack.
 
-| Module | What it does | vivief maps to | Need it? |
-|--------|-------------|----------------|----------|
-| **Hypercore** | Append-only log with Merkle verification | Datom log per entity | Yes — core storage |
-| **Hyperbee** | B-tree on Hypercore (persistent index) | Datom query index | Yes — no startup replay |
-| **Corestore** | Key derivation factory (master key → named cores) | The Seal | Yes — zero-cost privacy |
-| **Autobase** | Multi-writer causal DAG linearization | Multi-device/multi-user sync | Yes — when multi-device |
-| **HyperDHT** | Kademlia DHT with holepunching | Peer discovery | Yes — for P2P sync |
-| **Hyperswarm** | Connection management over HyperDHT | Transport layer | Yes — for P2P sync |
-| **Protomux** | Protocol multiplexer over single stream | IPC (daemon ↔ clients) | Yes — replaces Unix socket |
-| **Secretstream** | Noise-protocol encrypted streams | Transport encryption | Free — comes with Hyperswarm |
-| **Hyperdrive** | Versioned filesystem over Hyperbee | Handler artifact store | Optional — for handler replication |
-| **Localdrive** | Local FS with Hyperdrive API | Dev-mode handler files | Free — same interface |
-| **Mirrordrive** | Sync local ↔ Hyperdrive | Build artifact deployment | Optional |
-| **Bare/Pear** | Minimal JS runtime + P2P app platform | App runtime + distribution | For native app |
+### 6.1 The Holepunch stack
 
-**What you build on top** (not in Holepunch):
-- In-memory datom store (4 Map indexes: entity, outbound edges, inbound edges, name)
-- DatomQuery API (TypeScript typed query builder)
-- effectHandler + dispatcher
-- Contract validation
-- Surface renderers
+Holepunch is chosen as the P2P implementation because it provides agent log, peer discovery, and sync as composable JavaScript modules, and its key derivation model (Corestore) maps exactly to the Seal.
 
-**The embedded vs. daemon duality mirrors devac exactly.** devac's MCP server owns the hub (daemon mode). The CLI routes via IPC when MCP is running. The counseling app data daemon IS the counseling equivalent of devac's MCP hub.
+| P2P sub-concept | Holepunch module | What it provides |
+|-----------------|-----------------|-----------------|
+| **Agent log** | Hypercore | Append-only log with Merkle tree verification per entity |
+| **Agent log** (index) | Hyperbee | B-tree on Hypercore — persistent index, no startup replay |
+| **Seal** (key derivation) | Corestore | Master key → named Hypercores via HKDF. IS the Seal |
+| **Sync** | Autobase | Multi-writer causal DAG linearization — multi-device without conflicts |
+| **Peer discovery** | HyperDHT + Hyperswarm | Kademlia DHT with NAT holepunching + connection management |
+| **IPC** (daemon mode) | Protomux | Protocol multiplexer — same protocol over local pipe or P2P connection |
+| **Transport encryption** | Secretstream | Noise-protocol encrypted streams — wraps all connections |
+| **Handler artifacts** | Hyperdrive | Versioned filesystem — handler modules replicated to all devices |
+| **Dev-mode files** | Localdrive / Mirrordrive | Local FS with same API as Hyperdrive; sync between local and drive |
+| **App runtime** | Bare / Pear | Minimal JS runtime + P2P app distribution |
+
+**Peer validation is not in Holepunch.** Holepunch provides transport and replication but not application-level validation. vivief adds Contract validation on Hypercore replication events — when datoms arrive from a peer, the dispatcher validates them against applicable Contracts before accepting them into the local store. This is the gap that Holochain's integrity zome concept identifies and that vivief fills with Contracts.
+
+### 6.2 What you build on top
+
+These are vivief-specific, not part of any P2P stack:
+
+- **In-memory datom store** — 4 Map indexes (entity, outbound edges, inbound edges, name) as hot cache over Hyperbee
+- **DatomQuery API** — TypeScript typed query builder compiling to store queries
+- **effectHandler + dispatcher** — handler resolution, Contract validation, datom commit, effect dispatch
+- **Reactive subscription** — notify Surfaces, AI loop, and P2P layer on datom commits
+- **Surface renderers** — CLI, web, native, MCP output modes
+
+### 6.3 Why not Holochain?
+
+Holochain's architecture validates vivief's Contract/effectHandler split (section 2.6), but its implementation choices differ:
+
+| Concern | Holochain | Holepunch + vivief |
+|---------|-----------|-------------------|
+| **Language** | Rust (WASM zomes) | JavaScript/TypeScript (native ecosystem match) |
+| **Validation** | Built into protocol (integrity zome) | Application-level (Contract on replication event) |
+| **Data model** | DHT entries + links | Datom `[E,A,V,Tx,Op]` in Hypercore |
+| **Replication** | DHT gossip (eventually consistent) | Direct peer replication (Hyperswarm) |
+| **Key model** | Agent keypairs + capability tokens | Corestore HKDF (= Seal, zero additional code) |
+| **Ecosystem** | Standalone runtime (Holochain conductor) | Composable modules (mix and match) |
+
+Holochain's integrity/coordinator split is the conceptual validation. Holepunch's composable modules are the implementation choice. vivief's Contracts bridge the gap — providing Holochain-grade validation rules on Holepunch's transport layer.
 
 ---
 
@@ -462,7 +547,7 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 | **Surface** | The renderer. Takes a Lens + datom store, produces output in one of five modes |
 | **Seal** | Privacy model: identity + capability + encryption boundary, enforced via Lens + crypto |
 | **Contract** | Datom declaring expected behavior — simultaneously spec, test, and runtime guard |
-| **P2P** | Peer-to-peer replication layer (Holepunch stack) making datoms sync without servers |
+| **P2P** | Peer-to-peer layer: agent log + peer validation + peer discovery + sync — making datoms replicate without central servers |
 | **effectHandler** | `(state, effect) => (state', [effect'])` — the universal control pattern |
 
 ### System terms
@@ -470,10 +555,10 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 | Term | Definition |
 |------|------------|
 | **DatomQuery** | The single typed query model used by Lens, Seal, Contract, and dispatcher |
-| **Dispatcher** | Runtime core that resolves handlers, checks flags, validates contracts, writes datoms |
-| **Handler** | TypeScript module that processes an effect and produces datoms + downstream effects |
-| **Signal** | Notification published after handler completes — for Surfaces, AI loop, or sync |
-| **Reactive datom projection** | Datom stream → reactive collection → live query → UI (the TanStack DB pattern) |
+| **Dispatcher** | Runtime core that resolves handlers, checks flags, validates contracts, commits datoms, dispatches effects |
+| **Handler** | TypeScript module that processes an effect and produces exactly two things: datoms (state transition) and effects (downstream intents) |
+| **Reactive subscription** | Property of the datom store: when datoms are committed, matching subscribers are notified automatically. How Surfaces, AI loop, and P2P replication learn about changes — without handlers specifying who to notify |
+| **Reactive datom projection** | Committed datoms → reactive collection → live query → UI (the TanStack DB pattern). Built on reactive subscription |
 
 ### Actor terms
 
@@ -483,17 +568,27 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 | **LLM** | Queries, reasons, proposes — probabilistic. Drafts are always marked `:tx/source :ai` |
 | **System** | Watches, validates, routes — deterministic. Handles everything that doesn't require reasoning |
 
-### Infrastructure terms
+### P2P terms (abstract)
 
 | Term | Definition |
 |------|------------|
-| **Hypercore** | Append-only log with Merkle tree verification (Holepunch) |
-| **Hyperbee** | B-tree index on Hypercore — persistent, no startup replay needed |
-| **Corestore** | Hypercore factory with HKDF key derivation — IS the Seal implementation |
-| **Autobase** | Multi-writer causal DAG for conflict-free multi-device sync |
-| **Protomux** | Protocol multiplexer — same IPC protocol over local pipe or P2P connection |
+| **Agent log** | Each agent's own append-only datom log — sovereignty over your own data |
+| **Peer validation** | Incoming datoms validated against shared Contracts before acceptance — the P2P trust model |
+| **Peer discovery** | Finding and connecting to peers without central servers |
+| **Sync** | Multi-writer conflict resolution for concurrent modifications |
 | **Embedded mode** | Single-process: store + UI + handlers in one process. For single-device |
-| **Daemon mode** | Multi-client: data daemon owns store, clients connect via Protomux |
+| **Daemon mode** | Multi-client: data daemon owns store, clients connect via IPC protocol |
+
+### Infrastructure terms (Holepunch implementation)
+
+| Term | Definition |
+|------|------------|
+| **Hypercore** | Append-only log with Merkle tree verification — implements agent log |
+| **Hyperbee** | B-tree index on Hypercore — persistent, no startup replay needed |
+| **Corestore** | Hypercore factory with HKDF key derivation — implements the Seal |
+| **Autobase** | Multi-writer causal DAG — implements sync |
+| **Hyperswarm** | DHT-based connection management — implements peer discovery |
+| **Protomux** | Protocol multiplexer — implements daemon-mode IPC over any transport |
 
 ### Development terms
 
@@ -542,4 +637,4 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 
 *This document defines the "why" and "what" of the vivief platform. Implementation details ("how") belong in the specification and implementation docs.*
 
-*Version: 1.0 — Unified platform concepts replacing devac-specific concepts.md and foundation.md*
+*Version: 1.1 — Clean effectHandler output model (datoms + effects, reactive subscription replaces signals); P2P generalized to abstract concepts (agent log, peer validation, peer discovery, sync) with Holochain validation of Contract/effectHandler split; Holepunch moved to implementation section*
