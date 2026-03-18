@@ -23,6 +23,81 @@ the parts that need more attention to flesh out in my opinion are
 
 in[@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) we mention that we need structured values to address memory constraints and enabling a feasable move from current vivief devac implementation into the new context. i propose to take a very thorough look at the concept of supporting a struct as value as its conceptual challenging but maybe practicle an serious option. it might also be an oppertunity to include memory optimalisation techniques that others have found to make our use of dAtoms more memory friendly
 
+to further challenge if we are on the correct path with these concepts in the total set of concepts we should look at the below 2 repos 
+- https://github.com/open-webui/open-webui
+- https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent
+the idea is that they both are a development context arround llm models and our concepts might miss something or could become cleaner and more elegant.
+i am not suggesting that we should reimplement or copy it all but taking a step back and using these repos for verification and possible cool concepts or ideas or improvements or challenges we did not think about.
+create a vivief-concepts-challenge.md that we can use to let it sink in and determine how tu use it or not.
+
+
+
+
+review on [@vivief-concepts-challenge.md](file:///Users/grop/ws/vivief/docs/spec/counseling/vivief-concepts-challenge.md) to create a plan to update vivief-concepts.md based on the challenge and below remarks
+- philosophy: core is thin feels worth trying to adhere to
+- 3.1 agree
+- 3.2 agree that we can have effectHandler ReferencePatterns describing 
+  - ProviderAbstraction and ModelRouting
+  - Extensions
+- 3.3 option b is worth specifying in a clean way that stays true to effectHandler concept
+- 3.4 agree that this should be ReferencePattern and i think the whole LLM usage of creating a Context that is the input for an LLM needs some thoughts, dAtoms as memory, dAtoms width the prompt
+- 3.5 overlaps with 3.4 and 3.2 to create the Concept refinement needed and i agree that we need to do a very thorough analysis on how to do this.
+- 3.6 agree that we need to document this as a effectHandler ReferencePattern
+- 3.7 agree document as effectHandler ReferencePattern
+- 3.8 we should try to get a correct place in the concept for Config for effectHandlers and try to make this elegant and simple and it could be an option the see what options there are to combine this with effectHandlers ReferencePattern
+- 3.9 we already have looked into this and found loro (see [@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) and [@counseling-platform-architecture-v2.md](file:///Users/grop/ws/vivief/docs/spec/counseling/counseling-platform-architecture-v2.md) ) we need to find a clean way to add this to the concepts.
+- 3.10 we need to address OTel in the context of LLM Observability and for effectHandlers in general. Otel is needed as a part of the vivief-concepts
+- 5 use summary with the above remarks, as we are addressing all points priority less relevant for the resulting updates.
+
+
+review on [@vivief-concepts-challenge.md](file:///Users/grop/ws/vivief/docs/spec/counseling/vivief-concepts-challenge.md) to create a plan to update vivief-concepts.md based on the challenge and below remarks
+- philosophy: core is thin feels worth trying to adhere to
+- 3.1 agree
+- 3.2 agree that we can have effectHandler ReferencePatterns describing 
+  - ProviderAbstraction and ModelRouting
+  - Extensions
+- 3.3 option b is worth specifying in a clean way that stays true to effectHandler concept
+- 3.4 agree that this should be ReferencePattern and i think the whole LLM usage of creating a Context that is the input for an LLM needs some thoughts, dAtoms as memory, dAtoms width the prompt
+- 3.5 overlaps with 3.4 and 3.2 to create the Concept refinement needed and i agree that we need to do a very thorough analysis on how to do this.
+- 3.6 agree that we need to document this as a effectHandler ReferencePattern
+- 3.7 agree document as effectHandler ReferencePattern
+- 3.8 we should try to get a correct place in the concept for Config for effectHandlers and try to make this elegant and simple and it could be an option the see what options there are to combine this with effectHandlers ReferencePattern
+- 3.9 we already have looked into this and found loro (see [@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) and [@counseling-platform-architecture-v2.md](file:///Users/grop/ws/vivief/docs/spec/counseling/counseling-platform-architecture-v2.md) ) we need to find a clean way to add this to the concepts.
+- 3.10 we need to address OTel in the context of LLM Observability and for effectHandlers in general. Otel is needed as a part of the vivief-concepts
+- 5 use summary with the above remarks, as we are addressing all points priority less relevant for the resulting updates.
+
+review on [@vivief-concepts-challenge.md](file:///Users/grop/ws/vivief/docs/spec/counseling/vivief-concepts-challenge.md) to create a plan to update vivief-concepts.md based on the challenge and below remarks
+- philosophy: core is thin feels worth trying to adhere to
+- 3.1 agree
+- 3.2 agree that we can have effectHandler ReferencePatterns describing 
+  - ProviderAbstraction and ModelRouting
+  - Extensions
+- 3.3 option b is worth specifying in a clean way that stays true to effectHandler concept
+- 3.4 agree that this should be ReferencePattern and i think the whole LLM usage of creating a Context that is the input for an LLM needs some thoughts, dAtoms as memory, dAtoms width the prompt
+- 3.5 overlaps with 3.4 and 3.2 to create the Concept refinement needed and i agree that we need to do a very thorough analysis on how to do this.
+- 3.6 agree that we need to document this as a effectHandler ReferencePattern
+- 3.7 agree document as effectHandler ReferencePattern
+- 3.8 we should try to get a correct place in the concept for Config for effectHandlers and try to make this elegant and simple and it could be an option the see what options there are to combine this with effectHandlers ReferencePattern
+- 3.9 we already have looked into this and found loro (see [@viviefco-architecture-ideas.md](file:///Users/grop/ws/vivief/docs/spec/counseling/viviefco-architecture-ideas.md) and [@counseling-platform-architecture-v2.md](file:///Users/grop/ws/vivief/docs/spec/counseling/counseling-platform-architecture-v2.md) ) we need to find a clean way to add this to the concepts.
+- 3.10 we need to address OTel in the context of LLM Observability and for effectHandlers in general. Otel is needed as a part of the vivief-concepts
+- 5 use summary with the above remarks, as we are addressing all points priority less relevant for the resulting updates.
+
+
+
+some unifying concepts that might be helpfull to create better concepts to enable an even cleaner architecture:
+- in vivef we try to use the C4 model with its DSL to create C4 diagram at its different levels System, Container, Component, Code. we try to generate a C4 diagam using reasoning from you and we try to create effect and higher level effects and then try to match the reasoning model to the deterministic higher level effects.
+This has overlap and similarity with the referencePattern mentioned.
+What changes in our current thinking is that we start from scratch and are able to think in the current concepts from the start as for example Contract can think if higher level effect and go into detail and designs the higher level effect first and know about lewer level effect as it designed and all effectHandlers are available with Contract. so the Rules from the current vivief devac and Contract maybe are overlapping concepts i think.
+So the unique possibility we have is that we can maintain always up to date C4 diagrams so reviewing the functionality is improved by having C4 diagrams (from dsl files) visible (currently we use likeC4 to do the visualisation). so lets add this to the brainstorm and analysing concepts challenge.
+i am also a big fan of xstate v5 for handling logic that is visible and much easier to grasp how it works and you can try out statemachines in a visual context and for me that helps to understand the how and what and when of the functionality. so i challenge to include this as a first class option in or challenge.
+also the actor model from xstate is a very clean pattern that should be promoted where its a valid use. and i think the actor pattern can help to keep a clean total concept.
+i have good experience with storybook as UI-components maintenance and development and testing and accessibility and design.
+Also for explaining using Flow and Sequence diagram have always helped we to maintain an overview of the system parts
+for organising in a visual way there are concepts like mindmaps, forced graph diagrams, theBrains plextor visualisation that is always like while analysing all kind of things.
+these visual concepts used and in particular C4, XState and Storybook all have overlapping concepts to make things understandable using the visual way.
+lets challenge this visual thinking and see what clean elegant crazy beatifull and usefull Concepts we see in them
+lets create a vivief-concepts-challenge-v2.md from this
+
 ## devac status improve determnistic part
 
 when running
