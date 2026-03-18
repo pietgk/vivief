@@ -98,6 +98,19 @@ these visual concepts used and in particular C4, XState and Storybook all have o
 lets challenge this visual thinking and see what clean elegant crazy beatifull and usefull Concepts we see in them
 lets create a vivief-concepts-challenge-v2.md from this
 
+
+
+create a new set of hybrid vivief-concepts from the just created 4 versions: 
+
+v1 and v2: take v1 as i like the simplification, it makes sense to me,
+  and add v2 actor network concept as i think that still makes sense with the reduced concepts
+
+v1 and v2 and v3: take the just created v1 and v2 and elegantly add the stream concept in a clean and elegant way.
+
+v1 and v2 and v3 and v4: based on the just created v1 and v2 and v3 see if we elegantly can say not everything is a contract but everything that sensibly needs a contract can have one, and see if that elegantly improves the concepts or not.
+
+
+
 ## devac status improve determnistic part
 
 when running
