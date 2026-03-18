@@ -225,6 +225,51 @@ handler(state: State, effect: Effect): {
 
 There is no third output. Handlers do not "publish signals" or "notify observers" — that is a property of the datom store, not the handler.
 
+#### Two zoom levels: function and actor
+
+An effectHandler is described at two levels. They are not competing models — they are different zoom levels of the same concept, mirroring XState v5's split between machine definition and running actor.
+
+**Level 1 — The function (transition logic)**
+
+```typescript
+handler(state: State, effect: Effect): { datoms: Datom[], effects: Effect[] }
+```
+
+The function is the **machine definition** — pure transition logic with no identity, no lifecycle, no message queue. State comes from outside (via Lens over the datom store). The function is:
+
+- **Pure and testable.** Given the same state and effect, it always produces the same datoms and effects.
+- **Composable.** Functions compose via effect dispatch — one handler's output effects are another handler's input.
+- **Stateless.** The function holds no internal state between invocations. All state is datoms.
+
+Most handlers only need this level. A validation handler, a recap formatter, a schema migration — these are functions. They take input, produce output, done.
+
+**Level 2 — The actor (runtime identity)**
+
+When a handler needs to manage a long-running workflow, maintain a message queue, or coordinate with other handlers over time, it runs as an **actor** — a function with runtime context:
+
+| Actor property | What it adds | Why it's needed |
+|----------------|-------------|-----------------|
+| **Identity** | Entity ID in the datom store | Track which instance is running, enable claim-based coordination |
+| **Lens view** | Scoped datom subscription | Actor sees only relevant state, updated reactively |
+| **Message queue** | Ordered effect intake | Handle backpressure, buffering, priority |
+| **Lifecycle** | Spawn, run, stop | Manage resources, handle cancellation, clean up |
+| **Typed protocol** | Declared input/output effect types | Formal composition — actors know what messages they accept and emit |
+
+An actor's transition logic IS a Level 1 function. The actor adds the runtime envelope: identity, queue, lifecycle. This matches XState v5 exactly — `createMachine()` defines the function, `createActor(machine)` runs it with identity and a mailbox.
+
+**When each level applies:**
+
+| Scenario | Level | Why |
+|----------|-------|-----|
+| Validate session notes | Function | Stateless check — no lifecycle needed |
+| Format recap output | Function | Pure transformation |
+| Schema migration | Function | One-shot: read old datoms, produce new datoms |
+| Session-recap workflow (voice → transcribe → structure → analyze) | Actor | Multi-step, long-running, needs cancellation |
+| AI analysis loop | Actor | Persistent subscription, manages its own dispatch cadence |
+| Multi-device claim coordination | Actor | Identity needed for "I claimed this work" datoms |
+
+**The principle:** start with a function. Promote to an actor only when you need identity, lifecycle, or a message queue. The function is always the inner core — the actor is the runtime envelope around it.
+
 #### Reactive subscription — how observers learn about changes
 
 When datoms are committed, the datom store notifies all subscribers whose subscriptions match the committed datoms. This is **reactive subscription** — a property of the store, not something handlers produce.
@@ -550,7 +595,7 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 | **Seal** | Privacy model: identity + capability + encryption boundary, enforced via Lens + crypto |
 | **Contract** | Datom declaring expected behavior — simultaneously spec, test, and runtime guard |
 | **P2P** | Peer-to-peer layer: agent log + peer validation + peer discovery + sync — making datoms replicate without central servers |
-| **effectHandler** | `(state, effect) => (state', [effect'])` — the universal control pattern |
+| **effectHandler** | `(state, effect) => (state', [effect'])` — the universal control pattern. Two zoom levels: function (pure transition logic) and actor (function + identity, message queue, lifecycle) |
 
 ### System terms
 
@@ -558,7 +603,7 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 |------|------------|
 | **DatomQuery** | The single typed query model used by Lens, Seal, Contract, and dispatcher |
 | **Dispatcher** | Runtime core that resolves handlers, checks flags, validates contracts, commits datoms, dispatches effects |
-| **Handler** | TypeScript module that processes an effect and produces exactly two things: datoms (state transition) and effects (downstream intents) |
+| **Handler** | TypeScript module that processes an effect and produces exactly two things: datoms (state transition) and effects (downstream intents). Most handlers are pure functions; long-running workflows run as actors with identity and lifecycle |
 | **Reactive subscription** | Property of the datom store: when datoms are committed, matching subscribers are notified automatically. How Surfaces, AI loop, and P2P replication learn about changes — without handlers specifying who to notify |
 | **Reactive datom projection** | Committed datoms → reactive collection → live query → UI (the TanStack DB pattern). Built on reactive subscription |
 
@@ -639,4 +684,4 @@ What changes and what stays stable as the platform evolves and LLMs improve:
 
 *This document defines the "why" and "what" of the vivief platform. Implementation details ("how") belong in the specification and implementation docs.*
 
-*Version: 1.1 — Clean effectHandler output model (datoms + effects, reactive subscription replaces signals); P2P generalized to abstract concepts (agent log, peer validation, peer discovery, sync) with Holochain validation of Contract/effectHandler split; Holepunch moved to implementation section*
+*Version: 1.2 — effectHandler two-level model: function (pure transition logic) and actor (runtime identity with Lens, message queue, lifecycle). Mirrors XState v5's machine/actor split. Previous: v1.1 — Clean effectHandler output model (datoms + effects, reactive subscription replaces signals); P2P generalized to abstract concepts with Holochain validation; Holepunch moved to implementation section*
