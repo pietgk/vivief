@@ -109,6 +109,29 @@ v1 and v2 and v3: take the just created v1 and v2 and elegantly add the stream c
 
 v1 and v2 and v3 and v4: based on the just created v1 and v2 and v3 see if we elegantly can say not everything is a contract but everything that sensibly needs a contract can have one, and see if that elegantly improves the concepts or not.
 
+i previous pre llm development we used a cms system that adds content and sometimes even schema of the content. as content and code can have overlap and schema is already in the concepts we should brainstorm how to handle content.
+also something that needs to be structural part is translation to a language where we get into the teritory that different languages have ways of expressing things that are not possible in other languages and where culture is added to the game.
+i think its worth defining these using [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) and [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) and try 4 alternative ways on how to handle content and translation in the vivief concepts create a seperate vivief-concepts-content.md the have a way brainstorm how to integrate these lets be creative and keep the same way of thinking we are doing now
+
+
+
+i see a pattern that we could try to determine if creation using Contracts for 
+- code (functionality) development
+- world culture creation development
+- content creation using culture/world as development
+- caching of creations to avoid burning llm tokens and human thinking and effort
+is something we can use to improve our concepts into more elegance and simplified unified ways of looking at it.
+this is triggered by my view of code, content, ui-components, world-locale-culture defining/creation being similar id a lot of ways.
+lets create 4 version of vivief-concepts-creation.md using the previous documents 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) together with this potential pattern and see if it helps us with creating a more complete vivief-concepts view
+
+lets take alterntive 4 a step further and state that a counseler having a session with a client is also Creation, and Vivief is originally about creating answer from existing code presented as documents and its about creating code using its validation pipeline, and if i create a morning brief from my emails and agenda its creation.
+the difference for AI Creation the Contract can be stricter by forcing human approval, or that it runs in a sandbox 
+
+
+
+Interview me relentlessly about every aspect of the vivief concepts [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) and the brainstorm documents [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-creation-is-what-we-do.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation-is-what-we-do.md)  until we reach a shared understanding for creating vivief-concepts-vision.md. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
 
 
 ## devac status improve determnistic part
