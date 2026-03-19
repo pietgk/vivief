@@ -132,7 +132,12 @@ the difference for AI Creation the Contract can be stricter by forcing human app
 
 Interview me relentlessly about every aspect of the vivief concepts [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) and the brainstorm documents [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-creation-is-what-we-do.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation-is-what-we-do.md)  until we reach a shared understanding for creating vivief-concepts-vision.md. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
+another concrete case to validate the concepts
+currently the developer flow is brainstorm, create PRD, create issues, create a branch per issue and create the code and create a PR, review the PR, iterate on review, cancel or merge the pr with optionally a changeset.
+what are the best ways to map our concepts on this. a detail that we need to include is where is the source code while we are building and how do the files used during creation live (filesystem?, hyperdrive?). i think we need to think where these decisions are stated, so i think we need to brainstorm on this to make sure this essential part (in my view to understand and make it concrete enough to verify the concepts) is clear
 
+we put on the developer hat to determine what breaks using probably the most extensive difficult case of creating code for effectHandler. as we have creation defined in a broeder perspective and we already did discuss named artifact we should define this in the creation context with specific for developing with source code, and state that there are other creation flows that generate files like images, svg, cad, spreadsheets, word, markdown, etc ....
+see we need to have a look at those and merge it into the combination.
 
 ## devac status improve determnistic part
 
