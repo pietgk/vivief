@@ -149,6 +149,9 @@ lets create a vivief-concepts-bridging.md to start brainstorming and working to 
 a way to look at this could be: we receive intent for creation where 
 we use use dAtoms, some kind of fileSystem where files come from different sources (dAtoms->files, disk, remote filesystems, web-scraping as markdown files, llm reasoning create the file, ....) and effectHandlers to create
 
+use [@vivief-concepts-security-architecture.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-security-architecture.md) and   [@vivief-concepts-bridging.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-bridging.md) to create vivief-concepts-secure-bridging.md for brainstorming  to get bridgind and security Concepts clearly defined and have Contract, Bridging, Sandbox, Security, injection, Risks, Trust scoring, the snapshot diffing ideas and other Detection Layers defined.
+
+
 
 ## devac status improve determnistic part
 
