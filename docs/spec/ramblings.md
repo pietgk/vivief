@@ -139,6 +139,17 @@ what are the best ways to map our concepts on this. a detail that we need to inc
 we put on the developer hat to determine what breaks using probably the most extensive difficult case of creating code for effectHandler. as we have creation defined in a broeder perspective and we already did discuss named artifact we should define this in the creation context with specific for developing with source code, and state that there are other creation flows that generate files like images, svg, cad, spreadsheets, word, markdown, etc ....
 see we need to have a look at those and merge it into the combination.
 
+
+lets brainstorm on how to elegantly define the complete bridge pattern use cases to make sure wh have the concepts at a level that cleanly defines the concepts regarding the bridge pattern scope.
+until now we defined the bridge pattern for creation as general global concepts / pattern.
+development needs the file system, git and possibly github where one could argue that git and github are only needed when we need to communicate with them to support the current way developers develop in a team (developers and llm's)
+llms need context and memory and tools and have skills and tools that conceptually represent the "code" and state of the reasoning functionality where bridging is needed
+this means that Contract is relevant for all these part of the llm world of creation.
+lets create a vivief-concepts-bridging.md to start brainstorming and working to a clean elegant way of looking at bridging in the developers (pre llm, current with llm and future) and generic users (non developers using llm with their domain expertise) within the extending vivief thinking 
+a way to look at this could be: we receive intent for creation where 
+we use use dAtoms, some kind of fileSystem where files come from different sources (dAtoms->files, disk, remote filesystems, web-scraping as markdown files, llm reasoning create the file, ....) and effectHandlers to create
+
+
 ## devac status improve determnistic part
 
 when running
