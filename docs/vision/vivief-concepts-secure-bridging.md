@@ -677,22 +677,64 @@ No single point of failure — the attack must pass ALL Contracts.
 
 ---
 
-## 12. Open Questions for Further Brainstorming
+## 12. Contract Defaults — Open Questions as Configuration Points
 
-1. **Trust score precision vs simplicity.** Should trust score be a single number, a vector of dimensions (injection risk, provenance depth, source reputation), or categories (verified, uncertain, suspicious)?
+These questions can't be fully answered at the concept design phase — they refine per domain and with experience. But the questions themselves are valid Contract configuration points. The pattern:
 
-2. **Human review fatigue.** If every low-trust memory write requires human approval, this becomes noise. What's the right threshold? Can the system learn which memory categories need review?
+```
+Question → Default (sensible starting point) → Refine per domain → Refine per experience
+```
 
-3. **Trust propagation in creation chains.** If entity A (trust 0.9) combines with entity B (trust 0.4), what's the trust of the output? Min? Weighted average? Domain-specific?
+Each default IS a datom. Refinement IS datom evolution. The tx log tracks when and why a default changed.
 
-4. **P2P trust propagation.** In Hyperdrive replication, how does trust metadata travel between peers? Does a peer's trust affect the trust of content they share?
+```
+[config:X  :config/value      "default-answer"       tx:1   true]   // initial
+[config:X  :config/status     :default                tx:1   true]   // unanswered
+[config:X  :config/value      "default-answer"        tx:50  false]  // retract
+[config:X  :config/value      "domain-refined-answer"  tx:50  true]   // refined
+[config:X  :config/status     :domain-refined          tx:50  true]
+[config:X  :config/refined-by "clinical-pilot-q2"      tx:50  true]   // why + when
+```
 
-5. **Trust evolution.** Can trust scores increase over time if content proves reliable? "This web source has been referenced 50 times with no issues → trust increases."
+### The defaults table
 
-6. **Detection Contract evolution.** New attack patterns emerge. How do detection Contracts update? As datoms (new rules)? Schema evolution?
+| # | Configuration point | Default | Status | Refinement path |
+|---|---|---|---|---|
+| 1 | **Trust score shape** — single number, vector, or categories? | Single number (0.0–1.0) | `:default` | Domain: clinical may need vector (injection × consent × provenance). Experience: add dimensions when single number proves insufficient |
+| 2 | **Human review threshold** — when does a memory write need approval? | All convention-changing writes | `:default` | Domain: clinical = all AI writes reviewed. Dev = only project-level changes. Experience: auto-approve categories that never caused issues |
+| 3 | **Trust propagation rule** — how does trust combine across sources? | `min(source_trusts)` (conservative) | `:default` | Domain: clinical = always min. Dev tooling = weighted average may suffice. Experience: calibrate weights from incident data |
+| 4 | **P2P trust propagation** — does peer trust affect content trust? | Peer trust = floor for content trust | `:default` | Domain: depends on peer network model (open vs closed). Experience: adjust as P2P usage patterns emerge |
+| 5 | **Trust evolution** — can scores increase over time? | No automatic increase (conservative) | `:default` | Domain: known curated sources may earn trust. Experience: "50 references with no issues" → propose trust increase (human approves) |
+| 6 | **Detection Contract updates** — how do new rules arrive? | New rule datoms asserted (Schema evolution) | `:default` | Domain: domain-specific rule sets. Experience: new attack patterns → new Guard Contract rules as datoms |
+| 7 | **Capability-safety balance** — how strict per bridge type? | Strict by default, relax explicitly | `:default` | Domain: dev tools may relax for own repo. Clinical never relaxes. Experience: track false-positive rate → relax where noise exceeds signal |
 
-7. **The capability-safety tradeoff.** Every security restriction makes the LLM less useful. Where is the right balance for different bridge types? Should developers be able to relax security for known-good sources?
+### Why this matters as a pattern
+
+This isn't just about security questions. The "default → refine" pattern applies to ALL Contract configuration in vivief:
+
+| Domain | Example Contract defaults |
+|--------|--------------------------|
+| **Security** | Trust thresholds, detection rules, sandbox strictness (this table) |
+| **Clinical** | Session length limits, risk escalation rules, consent requirements |
+| **Content** | Cultural rules per locale, editorial standards, translation quality thresholds |
+| **Development** | Lint strictness, test coverage minimums, PR approval requirements |
+| **Infrastructure** | Sync conflict resolution, replication frequency, cache TTL |
+
+Every domain has questions that can't be answered at design time. The vivief answer: **assert a sensible default as a datom, mark it `:default`, and let domain experience refine it through normal datom evolution.** The question is never lost — it's an explicit configuration point with provenance.
+
+### The meta-pattern: Contract evolution lifecycle
+
+```
+:default          → sensible starting point, works without domain expertise
+:domain-refined   → adapted for a specific domain (clinical, dev, content)
+:experience-refined → adjusted based on actual usage data and incidents
+:locked           → frozen after deliberate decision (with :tx/why)
+```
+
+Each transition is a datom assertion with provenance. "Why did the trust threshold change from 0.7 to 0.5?" → query the tx log. "When did clinical override the default propagation rule?" → query `:config/refined-by`.
+
+This makes the system **self-documenting about its own evolution** — not just what the rules are, but how they got there and why.
 
 ---
 
-*Version: brainstorm — secure bridging. Core insight: security is Contract enforcement at bridge boundaries, not a separate layer. Maps security doc's architecture (Sandbox → Store → Render) onto bridge pattern (Gather → Create → Land) with Contract at every step. Detection layers = Guard Contracts + Aggregation Contract (trust scoring). Self-reinforcing memory injection is the hardest problem — defended by trust scoring on memory datoms, human gating, and provenance-based filtering. Five concepts remain sufficient for security modeling.*
+*Version: brainstorm — secure bridging. Core insight: security is Contract enforcement at bridge boundaries, not a separate layer. Maps security doc's architecture (Sandbox → Store → Render) onto bridge pattern (Gather → Create → Land) with Contract at every step. Detection layers = Guard Contracts + Aggregation Contract (trust scoring). Self-reinforcing memory injection is the hardest problem — defended by trust scoring on memory datoms, human gating, and provenance-based filtering. Open questions become Contract configuration points with sensible defaults that refine per domain and experience — the default IS a datom, refinement IS datom evolution. Five concepts remain sufficient for security modeling.*

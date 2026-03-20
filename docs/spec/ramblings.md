@@ -151,6 +151,7 @@ we use use dAtoms, some kind of fileSystem where files come from different sourc
 
 use [@vivief-concepts-security-architecture.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-security-architecture.md) and   [@vivief-concepts-bridging.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-bridging.md) to create vivief-concepts-secure-bridging.md for brainstorming  to get bridgind and security Concepts clearly defined and have Contract, Bridging, Sandbox, Security, injection, Risks, Trust scoring, the snapshot diffing ideas and other Detection Layers defined.
 
+the 12 questions for brainstorming at the end are somewhat related to the domain and probably will change over time so its hard to answer them in this phase of brainstorming and designing the concepts. as the questions themself are valid and usefull they somehow need to be part of the concepts but in an unaanswerd state (or default best answer until refined later per domain and or more experience while using where we need stricter or more relaxed answers) so how about making this way of treating questions part of the concept? good idea, bad idea thats the question :-)
 
 
 ## devac status improve determnistic part
