@@ -727,16 +727,131 @@ Claude:
 
 ---
 
+## Beyond Source Code: The File Creation Spectrum
+
+Source code is the HARDEST case — it has compilers, type-checkers, linters, git, GitHub PRs, CI pipelines. But creation in vivief produces many kinds of files. The bridge pattern must generalize.
+
+### The spectrum
+
+| File type | Created by | Tools | Versioning | Validation | Bridge to datoms |
+|-----------|-----------|-------|------------|------------|-----------------|
+| **Source code** (TS, Python) | Developer, AI | Editor, compiler | Git | TypeScript, lint, test | devac sync (code graph) |
+| **Markdown** (docs, specs, notes) | Author, AI | Editor | Git | Schema Contract (structure), editorial | Parse → content datoms |
+| **Images** (PNG, SVG, photos) | Designer, AI gen | Design tool, DALL-E | Git (LFS) or Hyperdrive | Render Contract (dimensions, a11y alt-text) | Metadata datoms (dimensions, alt-text, provenance) |
+| **SVG / Diagrams** | Designer, AI, likeC4 | Design tool, code gen | Git | Schema (valid SVG), visual regression | Parse → structure datoms |
+| **Spreadsheets** (Excel, CSV) | Analyst, AI | Spreadsheet app | Git or cloud | Schema Contract (columns, types, ranges) | Parse → tabular datoms |
+| **Documents** (Word, PDF) | Author, AI | Word processor | Cloud or Hyperdrive | Schema + editorial Contract | Metadata + extracted content datoms |
+| **CAD files** | Engineer | CAD software | Specialized VCS | Dimensional Contracts, material constraints | Metadata + parameter datoms |
+| **Config** (JSON, YAML, TOML) | Developer, AI | Editor | Git | Schema Contract (JSON Schema) | Parse → structured datoms |
+| **Generated reports** (PDF, HTML) | System, AI | Template engine | Tx log (datom-native) | Render Contract | Native — report IS datoms rendered |
+
+### The pattern
+
+Every file-based creation follows the same bridge pattern:
+
+```
+File (native medium)  ←→  Bridge  ←→  Datoms (intent, provenance, metadata, validation)
+```
+
+What varies per file type:
+
+| Dimension | Source code | Images | Spreadsheets | Documents |
+|-----------|-----------|--------|-------------|-----------|
+| **What lives in datoms** | Code graph, diagnostics, effects | Metadata, alt-text, dimensions | Schema, cell values (optional) | Structure, extracted text |
+| **What stays as files** | Source files | Image files | Spreadsheet files | Document files |
+| **Bridge** | devac sync (parser) | Metadata extractor | CSV/schema parser | Document parser |
+| **Versioning** | Git | Git LFS / Hyperdrive | Git / cloud | Cloud / Hyperdrive |
+| **Sandbox** | Git branch | Draft folder / Hyperdrive path | Draft sheet | Draft version |
+| **Promotion** | PR merge | Publish / approve | Release dataset | Publish document |
+| **Validation** | TypeScript, lint, test | Dimensions, a11y | Schema, range checks | Editorial, regulatory |
+| **Cache** | Build output | Rendered variants (thumbnails) | Computed aggregates | Rendered PDF |
+
+### Key insight: datoms never store the file content (usually)
+
+For most file types, the datom store holds **metadata and provenance**, not the file itself:
+
+```
+[image:42     :image/path        "/assets/hero.png"           tx:10  true]
+[image:42     :image/dimensions  "1920x1080"                  tx:10  true]
+[image:42     :image/alt-text    "Session overview dashboard"  tx:10  true]
+[image:42     :image/created-by  :ai/dall-e                   tx:10  true]
+[image:42     :image/intent      workflow:42                   tx:10  true]
+[image:42     :image/contract    :contract/hero-image          tx:10  true]
+
+// The actual PNG lives on filesystem / Hyperdrive — NOT in the datom store
+```
+
+Exception: small structured content (config, short markdown, clinical notes) may live entirely as datoms if they're naturally datom-shaped.
+
+### The Creation Loop applies identically
+
+```
+Source code:    Intent → Behavior Contract → Write code → TypeScript validates → Cache build
+Image:          Intent → Render Contract → Generate image → Dimensions + a11y validate → Cache variants
+Spreadsheet:    Intent → Schema Contract → Populate data → Schema validates → Cache aggregates
+Document:       Intent → Editorial Contract → Write doc → Editorial + regulatory validate → Cache PDF
+CAD:            Intent → Engineering Contract → Design part → Dimensional + material validate → Cache render
+```
+
+Same loop. Same trust strategies (human authoritative, AI gated/sandboxed). Same validation feedback (errors → fix → re-validate). Same cache (content-addressed, invalidate on input/Contract change).
+
+The only variable: **what the bridge extracts** from the file into datoms.
+
+### Where Hyperdrive fits across file types
+
+| File type | Local storage | P2P replication |
+|-----------|--------------|-----------------|
+| Source code | Filesystem + Git | Hyperdrive (mirrors git) |
+| Images | Filesystem | Hyperdrive (binary-friendly) |
+| Spreadsheets | Filesystem | Hyperdrive |
+| Documents | Filesystem | Hyperdrive |
+| Clinical notes | Datom store (native) | Hypercore (datom replication) |
+| Config | Filesystem + Git | Hyperdrive |
+
+Hyperdrive handles ALL file types — it's a P2P filesystem. Source code ALSO uses Git for its specialized versioning (branches, merges). Other file types can use Hyperdrive alone.
+
+### The generalized bridge
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FILE WORLD                             │
+│  Source code  │  Images  │  Docs  │  Spreadsheets  │ ... │
+│  (filesystem + git + GitHub)  (filesystem + cloud/Hyperdrive) │
+└──────┬──────────┬─────────┬──────────┬──────────────────┘
+       │          │         │          │
+       ▼          ▼         ▼          ▼
+┌─────────────────────────────────────────────────────────┐
+│                    BRIDGE LAYER                           │
+│  devac sync  │ metadata  │ doc     │ schema              │
+│  (code graph)│ extractor │ parser  │ parser              │
+│              │           │         │                     │
+│  + git hooks + file watchers + webhooks + cloud sync     │
+└──────┬──────────┬─────────┬──────────┬──────────────────┘
+       │          │         │          │
+       ▼          ▼         ▼          ▼
+┌─────────────────────────────────────────────────────────┐
+│                    DATOM STORE                            │
+│  Intent  │  Provenance  │  Metadata  │  Validation       │
+│  Workflow state  │  LLM context  │  Cache validity        │
+│                                                          │
+│  Queryable. Survives context compaction. Observable.      │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## What This Means for the Vision Document
 
-The vision document needs a section on **Creation Workspace** addressing:
+The vision document needs a **Creation Workspace** section in §3 (Creation) addressing:
 
-1. **Where artifacts live:** Source code on filesystem/git/Hyperdrive. Everything else in datom store.
-2. **The bridge:** devac sync + hooks + webhooks. Bidirectional: events→datoms, datoms→effects.
-3. **Git mapping:** Branch = sandbox. PR = gated promotion. Review = Contract enforcement. Merge = promotion.
-4. **LLM context as datoms:** Claude's memory, plans, and decisions survive across conversations.
+1. **Creation produces artifacts.** An artifact is a datom cluster with provenance — the named output of a creation cycle. Source code, images, documents, spreadsheets, clinical notes are all artifacts.
+2. **Artifacts live in their native medium.** Files stay on filesystem/git/Hyperdrive. Datoms store everything ABOUT the artifact: intent, provenance, metadata, validation state, cache validity. Small structured content may be datom-native.
+3. **The bridge connects media to datoms.** Each file type has a bridge (parser, extractor, sync) that produces datoms from files. Bridges are bidirectional: datoms can trigger effects that create/modify files.
+4. **Git mapping for source code.** Branch = sandbox. PR = gated promotion. Review = Contract enforcement. Merge = promotion. This is the most complex case — other file types use simpler variants.
+5. **LLM context as datoms.** AI memory, plans, and decisions stored as datoms — survives compaction, loads via Projection.
+6. **Hyperdrive for P2P.** All file types replicate via Hyperdrive. Source code additionally uses Git for specialized versioning.
 5. **P2P path:** Hyperdrive replicates sandboxes. Sync Contract resolves conflicts.
 
 ---
 
-*Version: brainstorm — 4 alternatives for developer flow mapping. Key insight: datom layer as intent-and-provenance glue, not another copy of code. Combined approach: Alt 4 vocabulary + Alt 1 glue + Alt 2 memory + Alt 3 optional formality. Files stay on filesystem. Datoms store everything ABOUT files. Claude's memory becomes datoms — survives compaction, loads via Projection.*
+*Version: brainstorm — 4 alternatives for developer flow mapping + file creation spectrum. Key insight: datom layer as intent-and-provenance glue, not another copy of files. Combined approach: Alt 4 vocabulary + Alt 1 glue + Alt 2 memory + Alt 3 optional formality. Generalized beyond source code: images, SVGs, CAD, spreadsheets, documents all follow the same bridge pattern. Files stay in native medium. Datoms store metadata, provenance, validation, intent, LLM context. Hyperdrive for P2P across all file types.*

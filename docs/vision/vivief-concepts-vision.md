@@ -325,6 +325,42 @@ Developer creates session-recap handler (authoritative)
 
 The sandbox absorbs the messy iteration. The outside world sees only the clean result.
 
+### Creation Workspace — Artifacts and the Bridge
+
+Creation produces **artifacts** — datom clusters with provenance. Source code, images, documents, spreadsheets, CAD files, clinical notes are all artifacts. What varies is the medium they live in and the bridge that connects them to the datom store.
+
+**Artifacts live in their native medium.** Files stay on filesystem, git, or Hyperdrive. The datom store holds everything ABOUT the artifact: intent, provenance, metadata, validation state, cache validity. A bridge (parser, extractor, sync) connects the two:
+
+```
+File (native medium) ←→ Bridge ←→ Datoms (intent, provenance, metadata, validation)
+```
+
+| File type | Bridge | Datoms store |
+|-----------|--------|-------------|
+| **Source code** | devac sync (parser) | Code graph, diagnostics, effects |
+| **Images / SVG** | Metadata extractor | Dimensions, alt-text, provenance |
+| **Documents** | Document parser | Structure, extracted content |
+| **Spreadsheets** | Schema parser | Column schema, validation results |
+| **Config** (JSON, YAML) | Schema validator | Structured values, validation |
+| **Clinical notes** | Datom-native | Content lives directly as datoms |
+
+**The datom store never stores large file content.** It stores what the file IS (metadata), whether it's valid (diagnostics), who created it and why (provenance), and where it is in the workflow (state). Small structured content (clinical notes, config) may be datom-native when naturally datom-shaped.
+
+**Source code is the hardest case.** It has compilers, type-checkers, linters, git branching, GitHub PRs, CI pipelines, and review cycles. The vivief mapping:
+
+| Git/GitHub | Vivief concept |
+|-----------|---------------|
+| Branch | Sandbox Projection scope |
+| PR | Gated promotion (`:effect/promote-sandbox`) |
+| Review | Contract enforcement (human + AI validators) |
+| CI checks | Automated Contract validation |
+| Merge | Promotion from sandbox to authoritative |
+| Worktree | Materialized sandbox workspace |
+
+Other file types use simpler variants of the same pattern — an image draft in a staging folder is a sandbox; publishing is promotion; editorial review is Contract enforcement.
+
+**LLM context as datoms.** AI memory, plans, and decisions stored as datoms rather than markdown files. Survives context compaction. Loads via Projection across conversations. Intent→code→review→fix chain is queryable — no re-reading from scratch.
+
 ### A Day in Creation
 
 ```
@@ -432,6 +468,7 @@ Content and translation are domain patterns within the five concepts, not new co
 | **effectHandler + in-flight Contract** | Real-time AI guardrails |
 | **Surface + Projection(fixture)** | Storybook stories |
 | **Validation failure + Creation Loop** | Recursive fix with escalation (auto → AI → human) |
+| **File + Bridge + Datom store** | Artifact with provenance, queryable metadata, and validation |
 | **P2P + Sync Contract** | Conflict-resolved replication with claim protocol |
 | **All five + Contracts** | The vivief platform |
 
@@ -489,7 +526,9 @@ The Sync Contract specifies conflict resolution strategy per attribute type: tex
 | **Behavior Contract** | Constrains effectHandler: accepted effects, state machine, aggregation |
 | **Cultural Contract** | In-flight validation of cultural rules for AI-generated content |
 | **validation feedback** | When a Contract rejects creation, error datoms + fix effect trigger recursive creation with escalation |
+| **artifact** | Datom cluster with provenance — the named output of a creation cycle (code, image, document, etc.) |
+| **bridge** | Syncs native medium (filesystem, Hyperdrive) to datom store; bidirectional |
 
 ---
 
-*Version: vision — 5 concepts with creation as thesis, actor runtime, native streaming, and cross-cutting Contracts. Creation Loop replaces dual-loop: one loop, any actor, variable trust. Cache as creation memory. Content & culture as domain patterns within existing concepts. Visual triangle: tools as Contract verifiers.*
+*Version: vision — 5 concepts with creation as thesis, actor runtime, native streaming, and cross-cutting Contracts. Creation Loop replaces dual-loop: one loop, any actor, variable trust, validation feedback with escalation. Artifacts live in native medium; bridge connects files to datom store (intent, provenance, metadata, validation). Git branch = sandbox, PR = promotion. LLM context as datoms. Cache as creation memory. Content & culture as domain patterns. Visual triangle: tools as Contract verifiers.*
