@@ -146,11 +146,21 @@ v4's most significant addition is the realization that the platform's self-docum
 
 ### Where v4 introduces new tensions
 
-**1. Document scope creep.** v3 was 627 lines (including glossary). v4 is 857 lines. The additional 230 lines are: platform self-documentation (§4), domains (§5), portability/migration (§6), and expanded glossary entries. The document is transitioning from a concept specification to a concept specification + philosophy + strategy document. This makes it harder to use as a pure implementation reference.
+**1. Document scope — specification meets philosophy.** v3 was 627 lines (including glossary). v4 is 857 lines. The additional 230 lines are: platform self-documentation (§4), domains (§5), portability/migration (§6), and expanded glossary entries. The document now serves as both specification and philosophy.
 
-**2. Self-referential complexity.** The platform explaining itself using itself is conceptually clean but implementation-complex. The explanation handler needs to query the platform's own Contract structure, generate explanations from it, cache those explanations, and adapt them per user state — all using the same Projection/Surface/Contract/effectHandler machinery it's explaining. This works conceptually but creates a bootstrap problem: you can't explain the platform until the platform is built, and you can't onboard users until you can explain it.
+**Resolution:** Rather than splitting into two documents, apply the conceptual slices idea to the document itself. Add a reading guide at the top:
 
-**3. Domain as concept vs. domain as packaging.** v4 introduces "domain" as a named configuration bundle. Is this a concept? The document says "no new concept — a domain is a named composite of existing concepts, recorded as datoms." But it gets a full section (§5), domain-specific examples throughout, and multiple glossary entries. The document treats it as something between a concept and a pattern — which may cause confusion about where it sits in the hierarchy.
+- **Fact reading** (implementer): §1 core thesis, §2 five concepts, §3 creation loop, §8 actor runtime, §10 composition, §12 glossary
+- **Feature reading** (+ architecture): add §7 visual triangle, §11 infrastructure
+- **Full reading** (platform vision): add §4 self-documentation, §5 domains, §6 portability, §9 content & culture
+
+This keeps the document unified — the philosophy motivates the specification — while giving a developer building phase 1 clear guidance on which sections to read first. The tension becomes a feature: the vision sections show WHERE you're going while you build the foundations.
+
+**2. Self-documentation bootstrap.** The platform explaining itself using itself creates a bootstrap problem: you can't explain the platform until the platform is built. However, this tension is significantly reduced in the actual implementation context: the initial platform will be built by the concept author working with Claude — both already hold the full concept model. The explanation handler is unnecessary when the builders already have deep concept understanding. The bootstrap problem only materializes when a second developer joins who wasn't part of the concept evolution. By then the platform should be mature enough for the self-documentation domain to exist. **Verdict: real problem, but naturally sequenced by team growth. Acknowledge in implementation guide. Static documentation first, replaced by explanation handler when the platform matures.**
+
+**3. Domain as the primary composition pattern.** v4 introduces "domain" as a named configuration bundle. The document says "no new concept — a domain is a named composite of existing concepts, recorded as datoms." But it gets a full section (§5), domain-specific examples throughout, and multiple glossary entries.
+
+**Assessment: Domain should remain a pattern, not become a sixth concept.** The five concepts each have their own primitive — Datom has the tuple, Projection has query+delivery, Surface has render modes, Contract has guard/aggregation/statemachine, effectHandler has the function signature. Domain has no primitive of its own. It is purely a composition of existing primitives (Schema Contracts + Behavior Contracts + Surface template + onboarding StateMachine). Making it a concept would be like making "library" a language keyword — it's an organizational unit, not a semantic unit. What it deserves is explicit naming as the **primary composition pattern** — the most important entry in the composition table. A sentence in §1 like "Domain is the named composition pattern that packages all five concepts for a user population" would give it the weight it deserves without breaking the concept boundary. The five-concept discipline across four iterations is worth protecting.
 
 ---
 
@@ -179,13 +189,15 @@ These aren't abstract — they map directly to daily workflows. The insight that
 
 ### Where the paradigm has gaps
 
-**1. LLM capability assumptions.** The deterministic-first loop assumes the LLM can reliably: observe its own patterns, propose deterministic rules from those patterns, generate accurate explanations from concept structure, and adapt communication per audience. Current LLMs can do all of these — sometimes. The concepts don't specify what happens when the LLM's pattern observation is wrong, when its proposed rule is incorrect, or when its explanation contradicts the actual concept state. The gated trust strategy provides a safety net (human reviews LLM proposals), but the quality of LLM-generated rules is a domain concern that the concepts don't address.
+**1. LLM capability assumptions — manageable with existing patterns.** The deterministic-first loop assumes the LLM can reliably: observe its own patterns, propose deterministic rules from those patterns, generate accurate explanations from concept structure, and adapt communication per audience. Current LLMs can do all of these — sometimes. The gated trust strategy provides a safety net (human reviews LLM proposals), and this gap is practically manageable through three reinforcing mechanisms: (a) LLM self-review with confidence scoring on generated rules (the LLM declares its confidence as `:tx/trust-score`), (b) human review of all proposed rules before activation (gated trust strategy), and (c) Contract tests that make rules verifiable before enforcement. Low-confidence rules get more scrutiny; high-confidence rules with passing tests can auto-promote. This maps cleanly onto the existing creation loop with trust strategies — no new concept needed. Worth trying out and improving over time as LLMs get better at self-assessment.
 
-**2. The "comfortable" developer who never was a beginner here.** The onboarding StateMachine (unfamiliar → exploring → practicing → comfortable → teaching) assumes a progression. But some developers will never reach "comfortable" — they'll use the platform through LLM-mediated interactions, treating it as a tool rather than internalizing the concepts. The concepts handle this user via the non-developer interaction model (direct + LLM-mediated blend), but it's worth acknowledging that a developer who interacts with vivief primarily through Claude Code is a different user than one who writes effectHandlers directly.
+**2. The "comfortable" developer who never was a beginner here.** The onboarding StateMachine (unfamiliar → exploring → practicing → comfortable → teaching) assumes a progression. But some developers will never reach "comfortable" — they'll use the platform through LLM-mediated interactions, treating it as a tool rather than internalizing the concepts. The concepts handle this user via the non-developer interaction model (direct + LLM-mediated blend), but it's worth acknowledging that a developer who interacts with vivief primarily through Claude Code is a different user than one who writes effectHandlers directly. There's also an overlap between onboarding stages and documentation worth exploring — the best usable framing for users will likely evolve through actual use. The onboarding StateMachine and living documentation may converge into a single adaptive system.
 
-**3. The gap between "creation" and "operations."** The creation loop models building: intent → contract → create → validate → cache. But running a system also involves operations: monitoring, alerting, scaling, incident response, deployment. The concepts touch this via live-persistent Projections (monitoring), escalation StateMachines (incident response), and observability as datoms. But the operations perspective — "the system is running and something went wrong at 3 AM" — is not as well modeled as the development perspective. Failure datoms and escalation are creation-centric; they model the response to failure as creation. This is conceptually correct but may feel awkward to an on-call engineer who wants to understand system state, not enter a creation loop.
+**3. The gap between "creation" and "operations."** The creation loop models building: intent → contract → create → validate → cache. But running a system also involves operations: monitoring, alerting, scaling, incident response, deployment. The concepts touch this via live-persistent Projections (monitoring), escalation StateMachines (incident response), and observability as datoms.
 
-**4. Multi-LLM and model evolution.** The concepts use `:ai/opus-4` as a named actor type with a default trust score of 0.85. But the AI landscape is rapidly changing: models get replaced, new capabilities emerge, costs change, quality varies across tasks. The concepts handle model identity via `:tx/source` provenance but don't address: what happens when a model is deprecated? How do you compare trust scores across model generations? What if the same logical task should use different models based on cost/quality trade-offs? These are domain concerns that the concepts push to Contract defaults refinement, which is the right architectural answer but leaves a lot of practical work unnamed.
+Operations can be framed as creation of understanding — the 3 AM alert response is creating understanding from observability datoms, using a debug Projection, rendered on an operational Surface, with the escalation StateMachine governing the response. This framing is a stretch, but it's conceptually honest: the creation loop holds for operational work. What's missing is the named patterns — operational Projection profiles (health, alerts, audit) and the explicit acknowledgment that operational understanding is a valid creation output. This could result in concrete patterns like a day-end status report ("all ok" or flagged items) that fits naturally in the concepts. Worth explicit mention in the concepts document and possibly a future operations Domain.
+
+**4. Multi-LLM and model evolution.** The concepts use `:ai/opus-4` as a named actor type with a default trust score of 0.85. But the AI landscape is rapidly changing: models get replaced, new capabilities emerge, costs change, quality varies across tasks. The concepts handle model identity via `:tx/source` provenance and push model-specific trust configuration to Contract defaults refinement, which is the right architectural answer. The Contract defaults lifecycle (`:default` → `:domain-refined` → `:experience-refined`) is the right mechanism: when `:ai/opus-5` arrives, it starts at `:default` trust and refines through experience. Good enough to start with, manageable to address while improving, and worth the inclusion compared to not having it.
 
 ---
 
@@ -217,13 +229,28 @@ These aren't abstract — they map directly to daily workflows. The insight that
 
 ## 7. Senior Developer — What You Lose or Risk
 
-### Everything from v3, plus:
+### v3 losses reassessed — v4 mitigations
 
-**Increased conceptual surface area.** v4 adds: composite Projection, live-persistent Projection, debug profiles, handler override trust boundary, anti-pattern Guards, onboarding StateMachine, explanation handler, Learn/Explain Surface modes, domains, export/migration templates, deterministic-first guardrails. That's 13 new named patterns on top of v3's already substantial model. A senior developer must now hold: 5 concepts + 6 Contract sub-types + 3 Contract modes + 3 temporal points + 4 delivery modes + 3 trust strategies + 3 slices + 5 Projection profiles + 3 debug profiles + 3 anti-patterns + 5 onboarding states + domain bundles. The cognitive compression is real but the compressed representation is getting larger.
+The v3 review identified six losses. v4 doesn't eliminate them, but converts each from an unnamed anxiety into a managed, mitigated concern:
 
-**Philosophy vs. engineering tension.** v4's deterministic-first principle, platform self-documentation, and domain packaging are philosophically compelling. But they add a layer of abstraction between "here's what I need to build" and "here's the specification." A senior developer reading v4 for the first time may struggle to separate "what I build in phase 1" from "what the platform will eventually do with itself." The v3 review noted that v3 was implementation-ready; v4 is implementation-ready-plus-visionary, and the vision adds reading burden.
+| v3 loss | v4 mitigation | Current status |
+|---------|---------------|----------------|
+| **Upfront conceptual investment** | Onboarding StateMachine + domains + slices provide a formal learning path | **Reduced** — still the steepest cost, but with a structured mitigation path. Domains and onboarding help at scale. |
+| **Ecosystem isolation** | Export/migration templates prove portability | **Reduced** — portability is demonstrable even if never exercised. Reduces perceived lock-in. |
+| **Over-modeling risk** | Creation boundary + anti-pattern Guards (utility-as-creation, Contract-on-everything, Projection-splitting) with graduated enforcement | **Mitigated** — from unnamed risk to named, detectable, guardable pattern. The biggest v3 risk now has a structural response. |
+| **Contract proliferation** | Anti-pattern "Contract-on-everything" + decision guidance in §4 | **Reduced** — from unnamed anxiety to named anti-pattern with detection criteria. Still requires judgment, but the judgment is guided. |
+| **Debugging complexity** | Debug Projection profiles for common failure patterns (Contract failure, trust escalation, cache invalidation) | **Reduced** — common patterns have one-line entry points. `Projection.debugContractFailure(entity)` replaces manual datom log queries for the 80% case. |
+| **Lock-in depth** | Export templates provide a documented escape hatch | **Reduced** — still real (the five concepts are deeply structural), but the proof that every concept maps to a conventional equivalent lowers the stakes. |
 
-**Bootstrap complexity for self-documentation.** A senior developer who wants to ship onboarding features must build: the explanation handler (an LLM-powered effectHandler actor), the concept Projection (over the platform's own Contract/binding/trust structure), the onboarding StateMachine (tracking per-user per-concept state), and the Learn/Explain Surface modes. Each of these is a non-trivial feature that depends on the core platform being functional. The self-documentation domain is a second-order feature that requires first-order features to work.
+None are fully eliminated — they're inherent in a coherent system with non-mainstream concepts. But v4 has moved each from "risk you accept" to "risk you manage."
+
+### New risks in v4
+
+**Increased conceptual surface area.** v4 adds: composite Projection, live-persistent Projection, debug profiles, handler override trust boundary, anti-pattern Guards, onboarding StateMachine, explanation handler, Learn/Explain Surface modes, domains, export/migration templates, deterministic-first guardrails. That's 13 new named patterns on top of v3's already substantial model. A senior developer must now hold: 5 concepts + 6 Contract sub-types + 3 Contract modes + 3 temporal points + 4 delivery modes + 3 trust strategies + 3 slices + 5 Projection profiles + 3 debug profiles + 3 anti-patterns + 5 onboarding states + domain bundles. The cognitive compression is real but the compressed representation is getting larger. The reading guide (see §4, tension #1) mitigates this by letting developers engage with the surface area progressively.
+
+**Philosophy vs. engineering tension.** v4's deterministic-first principle, platform self-documentation, and domain packaging are philosophically compelling. But they add a layer of abstraction between "here's what I need to build" and "here's the specification." A senior developer reading v4 for the first time may struggle to separate "what I build in phase 1" from "what the platform will eventually do with itself." The reading guide (Fact/Feature/Full reading of the document itself) addresses this directly.
+
+**Bootstrap complexity for self-documentation.** A senior developer who wants to ship onboarding features must build: the explanation handler (an LLM-powered effectHandler actor), the concept Projection (over the platform's own Contract/binding/trust structure), the onboarding StateMachine (tracking per-user per-concept state), and the Learn/Explain Surface modes. Each of these is a non-trivial feature that depends on the core platform being functional. However, the initial builders (concept author + Claude) already hold the full concept model — the bootstrap problem only materializes when the team grows.
 
 **Domain bundling overhead.** For a single-domain deployment (which is likely the first several iterations), domains add overhead without benefit. The domain abstraction becomes valuable when you need to package the platform for different audiences — but that's a scale concern, not a phase 1 concern. A senior developer may be tempted to build domain packaging infrastructure before it's needed.
 
@@ -257,13 +284,18 @@ These are not gaps — the concepts are implementation-ready. These are refineme
 
 ### A. Structural opportunities
 
-**1. Separate the specification from the philosophy.** v4's 857 lines contain two documents: a concept specification (comparable to v3's 627 lines) and a platform philosophy (the deterministic-first principle, self-documentation, domains, portability). Consider restructuring: the core specification (§1-§3, §8, §10-§12) as the implementer's reference, and the platform philosophy (§4-§7, §9) as a companion document. This reduces the implementer's reading burden and lets the philosophy evolve independently.
+**1. Add a reading guide using conceptual slices.** v4's 857 lines serve both specification and philosophy. Rather than splitting into two documents, add a reading guide at the top that applies the Fact/Feature/Full slices to the document itself:
+- **Fact reading** (implementer, phase 1-4): §1, §2, §3, §8, §10, §12
+- **Feature reading** (+ architecture): add §7, §11
+- **Full reading** (platform vision): add §4, §5, §6, §9
+
+This keeps the document unified — the philosophy motivates the specification — while preventing the "need to build everything" feeling. The vision sections show WHERE you're going; the spec sections show WHAT to build now.
 
 **2. Implementation phase mapping for v4 additions.** v3 had an implementation KB that mapped concepts to phases. v4's additions need similar guidance. Without it, a team may attempt to build the onboarding domain before the core platform is functional. A brief "what to build when" appendix would prevent this.
 
 **3. Contract decision tree as a first-class artifact.** The anti-patterns section names three things NOT to do, and §4 mentions a "Contract decision tree" as an LLM-generated artifact. But the positive guidance — "when SHOULD I add a Contract?" — is still distributed across examples rather than consolidated. A concise decision tree ("Does this handler have safety implications? → Behavior Contract. Is this Surface user-facing? → Render Contract with a11y. Is this data from an external source? → Schema Contract + trust scoring.") would reduce decision paralysis.
 
-**4. Operations perspective.** The creation loop models building well. Add a brief "Operations" section or named pattern that covers: system health monitoring (live-persistent Projection), incident response (escalation StateMachine), deployment validation (Contract enforcement at deploy boundary), and post-deployment observation (observability datoms). This would close the gap between "building with vivief" and "running vivief in production."
+**4. Operations as creation of understanding.** The creation loop models building well. Operations — monitoring, alerting, incident response — can be framed as creating understanding from observability datoms. Add a brief subsection naming the operational creation patterns: system health monitoring (live-persistent Projection), incident response (escalation StateMachine), deployment validation (Contract enforcement at deploy boundary), day-end status reports ("all ok" or flagged items), and post-deployment observation (observability datoms). This makes explicit that the creation loop applies to operations — you're creating understanding, not just creating features. Worth a named pattern now and potentially a future operations Domain.
 
 ### B. Concept-level refinements
 
@@ -277,7 +309,7 @@ These are not gaps — the concepts are implementation-ready. These are refineme
 
 ### C. Documentation refinements
 
-**9. Concept count discipline.** The document is at exactly the right concept count (5). But v4 introduces terminology that feels concept-adjacent: "domain," "bridge," "artifact," "anti-pattern Guard," "deterministic-first loop." These are patterns within the five concepts, not new concepts — but the document should explicitly maintain this distinction. A brief note in §1: "The following are patterns, not concepts: domain, bridge, artifact, slice, profile. They compose the five concepts but don't extend them."
+**9. Concept count discipline with explicit pattern naming.** The document is at exactly the right concept count (5). But v4 introduces terminology that feels concept-adjacent: "domain," "bridge," "artifact," "anti-pattern Guard," "deterministic-first loop." These are patterns within the five concepts, not new concepts — but the document should explicitly maintain this distinction. A brief note in §1: "The following are patterns, not concepts: domain, bridge, artifact, slice, profile. They compose the five concepts but don't extend them." Domain in particular deserves a call-out as the **primary composition pattern** — the most important way the five concepts combine for a user population — without elevating it to concept status.
 
 **10. Glossary organization.** The glossary (§12) has grown to 54 entries. Consider grouping by concept (Datom terms, Projection terms, Surface terms, Contract terms, effectHandler terms, Cross-cutting terms) rather than the current alphabetical listing. This would help developers find related terms and understand which concept owns each term.
 
@@ -321,22 +353,25 @@ These scenarios should pass a concept-level walkthrough before implementation:
 
 ## 11. Risk Assessment
 
-### Risks carried forward from v3
+### Risks carried forward from v3 — all mitigated
 
-| Risk | v3 status | v4 status | Mitigation |
-|------|-----------|-----------|------------|
-| **Over-modeling** | Named as biggest risk | Mitigated by creation boundary + anti-pattern Guards | Anti-pattern Guards are the right response. Still requires team discipline. |
-| **Ecosystem isolation** | Named as loss | Mitigated by export/migration templates | Templates reduce perceived lock-in. Actual portability requires implementation. |
-| **Upfront conceptual investment** | Named as loss | Partially mitigated by onboarding StateMachine + domains | Still the steepest cost. Domains and onboarding help at scale, not at day 1. |
-| **Debugging complexity** | Named as loss | Mitigated by debug Projection profiles | Named debug profiles for common patterns reduce the "query the log" burden. |
-| **Contract proliferation** | Named as loss | Mitigated by anti-patterns + decision guidance in §4 | Better than v3 but still requires judgment. No mechanical guard against proliferation. |
+Each v3 risk now has a specific v4 mitigation. None are eliminated, but all are converted from unnamed anxieties into manageable, named concerns with structural responses. See §7 for the full reassessment table.
+
+| Risk | v3 severity | v4 severity | What changed |
+|------|------------|------------|--------------|
+| **Over-modeling** | High (biggest risk) | **Medium** | Creation boundary + 3 named anti-pattern Guards with graduated enforcement |
+| **Ecosystem isolation** | High | **Medium** | Export/migration templates prove portability. Perceived lock-in reduced. |
+| **Upfront conceptual investment** | High | **Medium-High** | Onboarding StateMachine + domains + slices. Still steep, but with a structured path. |
+| **Debugging complexity** | Medium | **Low-Medium** | Debug Projection profiles for 80% of common patterns |
+| **Contract proliferation** | Medium | **Low-Medium** | "Contract-on-everything" named as anti-pattern with detection criteria |
+| **Lock-in depth** | High | **Medium** | Export templates as documented escape hatch |
 
 ### New risks in v4
 
 | Risk | Description | Severity | Mitigation |
 |------|-------------|----------|------------|
-| **Document overload** | 857 lines, mixing specification and philosophy. Harder to use as pure reference. | Medium | Separate spec from philosophy (opportunity #1). |
-| **Self-documentation bootstrap** | Explanation handler requires working platform. Onboarding features are second-order. | Low | Acknowledge in implementation guide. Static docs first. |
+| **Document overload** | 857 lines, mixing specification and philosophy. Harder to use as pure reference. | Medium | Reading guide with Fact/Feature/Full slices applied to the document itself (opportunity #1). |
+| **Self-documentation bootstrap** | Explanation handler requires working platform. Onboarding features are second-order. | Low | Naturally sequenced by team growth. Initial builders hold full concept model. Static docs first. |
 | **Domain complexity before need** | Domain packaging is overhead for single-domain deployments. | Low | Defer domain implementation until second domain is needed. |
 | **Deterministic-first over-promise** | The "system gets more deterministic over time" trajectory depends on LLM quality. | Medium | Frame as aspirational trajectory, not guaranteed outcome. Track rule quality metrics. |
 | **Concept count inflation via patterns** | 54 glossary entries, 13+ named patterns. Risk of feeling like more than 5 concepts. | Medium | Explicitly maintain concept vs. pattern distinction (opportunity #9). |
@@ -361,7 +396,7 @@ One mental model for everything (unchanged from v3). Plus: graduated guardrails 
 
 ### What does a senior developer lose?
 
-Familiarity (unchanged from v3). Plus: a larger conceptual surface area to hold in mind (54 glossary entries vs. v3's 37), a document that mixes specification with philosophy, a self-documentation domain that's compelling but second-order, and the expectation that the deterministic-first trajectory will deliver on its promise.
+Familiarity remains the core cost — vivief concepts don't map onto mainstream developer experience. But unlike v3, where this and five other losses were unnamed anxieties, v4 converts each into a managed concern: over-modeling has anti-pattern Guards, ecosystem isolation has export templates, debugging has named profiles, Contract proliferation has decision guidance, lock-in has an escape hatch. The new v4 risks — larger surface area (54 glossary entries vs. v3's 37), spec/philosophy mixing, bootstrap complexity — are manageable through the reading guide approach and natural implementation sequencing.
 
 ### What should be protected through implementation?
 
@@ -375,9 +410,9 @@ Everything from the v3 review (trust score as flowing attribute, Contract lifecy
 
 ### What's the single biggest risk?
 
-**Document scope.** v4 is trying to be three things: a concept specification, a platform philosophy, and an adoption strategy. It succeeds at all three, but the combination makes the document harder to use for any single purpose. The risk is that an implementation team reads v4 and feels the need to build everything before they can build anything — the self-documentation domain, the domain packaging, the export templates — when what they need is to commit the first datom.
+**Conceptual surface area growth.** The five concepts have held, but the patterns within them have multiplied: 54 glossary entries, 13+ named patterns, 6 Contract sub-types × 3 modes × 3 temporal points. The risk is not that the concepts are wrong — they're remarkably stable — but that a newcomer encounters the full surface area before understanding the five primitives underneath it all.
 
-The mitigation is structural: separate the specification from the philosophy (opportunity #1), provide explicit phase guidance for v4 additions (opportunity #2), and maintain the concept vs. pattern distinction (opportunity #9). The concepts are ready. The document needs editorial discipline to match.
+The mitigation is the reading guide approach (opportunity #1): apply the Fact/Feature/Full slices to the document itself, so developers engage with the surface area progressively. Combined with explicit phase guidance for v4 additions (opportunity #2) and maintaining the concept vs. pattern distinction (opportunity #9), the surface area becomes navigable rather than overwhelming.
 
 ### What's the single biggest opportunity?
 
@@ -385,4 +420,4 @@ The mitigation is structural: separate the specification from the philosophy (op
 
 ---
 
-*Review document. Written against vivief-concepts-v4.md. Covers: v3 gap closure scorecard (§2), implementation readiness (§3), conceptual system evaluation (§4), paradigm fit for human+AI+deterministic work (§5), senior developer gains (§6) and losses (§7), novel primitives worth protecting (§8), improvement opportunities (§9), evolution assessment v1→v2→v3→v4 (§10), risk assessment (§11), and final assessment (§12). Written in the context of the full concept evolution from v1 through v4, including brainstorm documents, previous reviews, and the implementation KB.*
+*Review document. Written against vivief-concepts-v4.md, refined with author feedback. Covers: v3 gap closure scorecard (§2), implementation readiness (§3), conceptual system evaluation (§4), paradigm fit for human+AI+deterministic work (§5), senior developer gains (§6) and losses (§7), novel primitives worth protecting (§8), improvement opportunities (§9), evolution assessment v1→v2→v3→v4 (§10), risk assessment (§11), and final assessment (§12). Written in the context of the full concept evolution from v1 through v4, including brainstorm documents, previous reviews, and the implementation KB. Key refinements from author feedback: reading guide approach replaces document splitting, bootstrap tension reduced by builder context, Domain confirmed as primary composition pattern (not 6th concept), v3 losses reassessed as mitigated rather than carried forward unchanged, LLM confidence scoring added to deterministic-first loop, operations framed as creation of understanding.*
