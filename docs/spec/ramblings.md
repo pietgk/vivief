@@ -212,7 +212,37 @@ we should take this 1 step further and include Contract and effectHandler togeth
 as a part of the vision of vivief is that each user, llm, system should do what it is best at and that we prefer doing things deterministically is possible in an elegant way, we could state that option a is preferred and that if possible we should try to find a way that we can generate the lint rules and let the system use them to validate insteadof using reasoning wich is less consistent 
 
 
+do a very thorough review of  "/Users/grop/ws/vivief/docs/vision/vivief-concepts-v4.md" i want to know if these
+  concepts are usable and complete to start implementation based on these concepts.
+  also an evaluation of the concepts themself as a way to express development using the strength of developers and users
+  together with llm's and the deterministic system world.
+  Also what 
+  does a senior developer gain and loose using these concepts as a base for creating and maintaining functionality. 
+  the result should be vivief-concepts-v4-review.md that can be
+  used my me as reflection of all the thinking and brainstorming we put into this and usable for knowing what
+  oppertunities there are to improve
 
+
+remarks on the review:
+new tensions:
+  1 would you have an alternative way that would remove the tension?
+  2 bootstrap is an issue we have to live with or do you see an alternative, the initial platform will be created by the
+  me together with you (claude) soo that makes the tension a bit less.
+  3 agree that Domain is close to a Concept, would the total be better of with Domain as concept?
+paradigm gaps:
+  1 as i have good experience with llm self review and asking it its confidence about the generted rules adding this
+  would make it together with human review and adding Contract tests would make this a manageable gap woth trying out
+  and improving over time i think
+  2 agree, where i see an overlap between onboarding stages and documentation that makes me wonder what the best usable
+  framing for the users is, this will probably evolve a bit while we work with it.
+  3 agree, the operations and want to understand and monitoring could be seen as creation of understanding (i now that
+  is a bit stretchy but we did discuss this before) and could result in a days end report that all is ok or nothing and
+  thats ok in the Concepts book but could use some explicit mentioning and or onboarding and maybe maybe woth a Domain
+  in the futurre
+  4 agree, good enough for now and manageble to address while improving and worth the addition compared to not starting
+  with it i think
+7 senios developer - what you lose or risk
+    do you really see that all the v3 are still there and none are solved?
 
 ## devac status improve determnistic part
 
