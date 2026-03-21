@@ -130,7 +130,11 @@ the difference for AI Creation the Contract can be stricter by forcing human app
 
 
 
-Interview me relentlessly about every aspect of the vivief concepts [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) and the brainstorm documents [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-creation-is-what-we-do.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation-is-what-we-do.md)  until we reach a shared understanding for creating vivief-concepts-vision.md. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+Interview me relentlessly about every aspect of the vivief concepts 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) 
+and the brainstorm documents 
+[@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-creation-is-what-we-do.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation-is-what-we-do.md)  
+until we reach a shared understanding for creating vivief-concepts-vision.md. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
 another concrete case to validate the concepts
 currently the developer flow is brainstorm, create PRD, create issues, create a branch per issue and create the code and create a PR, review the PR, iterate on review, cancel or merge the pr with optionally a changeset.
@@ -153,7 +157,58 @@ use [@vivief-concepts-security-architecture.md](file:///Users/grop/ws/vivief/doc
 
 the 12 questions for brainstorming at the end are somewhat related to the domain and probably will change over time so its hard to answer them in this phase of brainstorming and designing the concepts. as the questions themself are valid and usefull they somehow need to be part of the concepts but in an unaanswerd state (or default best answer until refined later per domain and or more experience while using where we need stricter or more relaxed answers) so how about making this way of treating questions part of the concept? good idea, bad idea thats the question :-)
 
+create a time line overview of the evolution of the vivief-concepts files [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts.md) [@vivief-concepts-content.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-content.md) [@vivief-concepts-creation.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation.md) [@vivief-concepts-creation-is-what-we-do.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation-is-what-we-do.md) [@vivief-concepts-developer-flow.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-developer-flow.md) [@vivief-concepts-hybrid-c.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-hybrid-c.md) [@vivief-concepts-secure-bridging.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-secure-bridging.md) [@vivief-concepts-vision.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-vision.md) 
+this to refresh my memory and to enable me to guide creation the next iteration of vivief-concepts.md
 
+
+Interview me relentlessly about every aspect of the vivief concepts 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-vision.md) 
+and the brainstorm documents 
+[@vivief-concepts-creation.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-creation.md) 
+[@vivief-concepts-secure-bridging.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-secure-bridging.md) 
+until we reach a shared understanding for creating 
+vivief-concepts-v2.md. 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+
+do a very thorough review of  "/Users/grop/ws/vivief/docs/vision/vivief-concepts-v2.md" i want to know if these
+  concepts are usable and complete to start implementation based on these concepts.
+  also an evaluation of the concepts themself as a way to express development using the strength of developers and users
+  together with llm's and the determnistic system world.
+  also what do a senior developer gain and loose using these concepts as a base for developing functionality in the
+  current and future world of developing and creation. the result should be vivief-concepts-v2-review.md that can be
+  used my me as reflection of all the thinking and brainstorming we put into this and usable for knowing what
+  oppertunities there are to improve
+
+
+Interview me relentlessly about every aspect of the vivief concepts 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-v2.md) 
+its review docs/vision/vivief-concepts-v2-review.md
+and use if needed possible answers in docs/vision/brainstorms directory
+until we reach a shared understanding for creating 
+vivief-concepts-v3.md. 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+do a very thorough review of  "/Users/grop/ws/vivief/docs/vision/vivief-concepts-v3.md" i want to know if these
+  concepts are usable and complete to start implementation based on these concepts.
+  also an evaluation of the concepts themself as a way to express development using the strength of developers and users
+  together with llm's and the determnistic system world.
+  also what do a senior developer gain and loose using these concepts as a base for developing functionality in the
+  current and future world of developing and creation. the result should be vivief-concepts-v3-review.md that can be
+  used my me as reflection of all the thinking and brainstorming we put into this and usable for knowing what
+  oppertunities there are to improve
+
+
+Interview me relentlessly about every aspect of the vivief concepts 
+in [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-v3.md) 
+and use its review docs/vision/vivief-concepts-v3-review.md plus the fact that we can address the oppertunities and things a senior developer looses and the risks without loosing the gains by using the power of llm's 
+until we reach a shared understanding for creating 
+vivief-concepts-v4.md. 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+  
 ## devac status improve determnistic part
 
 when running
