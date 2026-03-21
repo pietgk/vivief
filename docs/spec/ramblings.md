@@ -207,8 +207,13 @@ until we reach a shared understanding for creating
 vivief-concepts-v4.md. 
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
+we should take this 1 step further and include Contract and effectHandler together with having the state-machine stories and determine if onboarding and in scope documentation is a even better option to get and keep every user conftable and effective in using the concepts and the system created from them.  
 
-  
+as a part of the vision of vivief is that each user, llm, system should do what it is best at and that we prefer doing things deterministically is possible in an elegant way, we could state that option a is preferred and that if possible we should try to find a way that we can generate the lint rules and let the system use them to validate insteadof using reasoning wich is less consistent 
+
+
+
+
 ## devac status improve determnistic part
 
 when running
