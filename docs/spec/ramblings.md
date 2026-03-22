@@ -244,6 +244,19 @@ paradigm gaps:
 7 senios developer - what you lose or risk
     do you really see that all the v3 are still there and none are solved?
 
+
+
+Interview me relentlessly about every aspect of the vivief concepts 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-v4.md) 
+and its review docs/vision/vivief-concepts-v4-review.md
+until we reach a shared understanding for creating 
+vivief-concepts-v5.md and a solid readable and clean vivief-concepts-v5-implementation-kb.md as mentioned in the review that we should get started with how to do the implementation with the notice that vivief-concepts-implementation-kb.md is not very usefull as a find it very hard to follow and use
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+
+
+
 ## devac status improve determnistic part
 
 when running
