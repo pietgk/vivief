@@ -254,7 +254,60 @@ vivief-concepts-v5.md and a solid readable and clean vivief-concepts-v5-implemen
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
 
+1 all users together with you claude can create/author skills
+2 think generalized but at this stage explain the difference between the 2 and determine if we want generic or specific or both
+3 i think both, the vivief plugin can grow and per domain the users can grow the skills in their domain and the user itself might want some specific skills within the domain and maybe in their own hobby or personal domain
+4 depends i do not know yet can be both is my first thought
+5 5 yes that sounds like a good starting view
+6 its in the context of vivief-concepts and its implementation-kb. so the brainstorm will be used for the next iteration of the 2 documents i gave you
 
+let me try to phrase my ideas and thinking instead of answering the questions and then see what remaining questions you have.
+- the llm is already seen as a way to implement an effectHandler and this means skills can be used in that context.
+- the creation in intent is a good way to use llm and skills to create the corrent prompt / intent
+- we already have that we defined that effectHandlers (probably using llm with maybe using skills) can create Contracts, Surfaces and Projections in a development and improvement iteration context.
+- So Intent -> Contract -> Create -> Validate gets close to meaning Create can create instances of Concepts and Patterns including Intent comes up in my mind
+- So making clear what intent is sounds like a good idea.
+- So also making clear what Patterns are sound usefull and maybe wrong, should we as a thinking step try to tie patterns to who created and maintains and use them to get insight on what their place is and how skills might fit in or is that overthinking and couter productive (going down a rabbit hole?)
+4 skill trust is the same as llm trust so input data stays as valid is it is in other scenarios we already discussed.
+6 its been a long time ago so i do not know if they are usefull or not we have to take a good look at them to know if they are usefull or distractions
+7 interresting idea i do not know lets try to find out why, what how about this idea in the total scope
+8 a skill is as far as i know triggered by explicitly calling it or by an llm deciding its usefull to call. in this framing a skill is used by an effectHandler as it is a function implemented in markdown using other effectHandler inside to skill to do specific functionality where the used effects can be deterministic code (cli-commands that wrap effectHandlers).
+This does feel we need to make Intent/argument -> Contract -> effectHandler that Creates -> Validate by Contract / human / llm a named thing. this also trigger the trouble i have with Contract being declaration and needing an effectHandler to enforce it plus an effectHandler doing the work ok and not defined nicely enough
+ok now its your turn again
+
+1 yes we can have Contract as the wrapper by adding an enforcer effectHandler or an effectHandler has an internal contractEnforcer or both?
+this needs a thorough pros and cons brainstorm and then a place in the vivief-concepts and inplementation-kb
+2 we describe 
+Intent -> Contract -> effectHandler -> Validate 
+maybe better described as
+Intent -> Contract(effectHandler) or Contract(Intent, effectHandler)
+where it could maybe be name like Work of GatedIntentHandler or a better name
+plus we need a name for the result like Data or Result or ...
+3 Intent is the input message or input event and we are using effect to abstract message and event so intent is an effect so agree
+4 its more that pattern feels underdefined in my mind
+5 yes give them some proper attentions nad lets see
+
+do a very thorough review 
+of  "/Users/grop/ws/vivief/docs/vision/vivief-concepts-v6.md" 
+and "/Users/grop/ws/vivief/docs/vision/vivief-concepts-v6-implementation-kb.md" 
+i want to know 
+- if the concepts are usable and complete to start implementation based on these concepts and the implementation-kb.
+  include  an evaluation of the concepts and implementation proposals themself as a way to express development using the strength of developers and users together with llm's and the deterministic system world. 
+
+the result should be vivief-concepts-v6-review.md that can be
+- used my me as 
+  -- reflection of all the thinking and brainstorming we put into this 
+  -- and knowing what oppertunities there are to improve
+- include an executive summary that gives the pros and cons of the complete concept.  
+  
+
+
+
+Interview me relentlessly about every aspect of the vivief concepts 
+[@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-v6.md) and [@vivief-concepts.md](file:///Users/grop/ws/vivief/docs/vision/vivief-concepts-v6-implementation-kb.md) 
+until we reach a shared understanding for creating 
+the next version vivief-concepts-v6.md and  vivief-concepts-v6-implementation-kb.md 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
 
 ## devac status improve determnistic part
