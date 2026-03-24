@@ -127,10 +127,8 @@
 
 | Candidate | Strengths | Concerns |
 |-----------|-----------|----------|
-| **React** | Largest ecosystem, Storybook native, component model fits Surface modes | Meta-framework choice needed (Next.js, Remix, Vite) |
-| **React + Next.js** | SSR, routing, API routes, deployment options | Server-centric model may conflict with P2P/offline |
+| **React** | Largest ecosystem, Storybook native, component model fits Surface modes | Meta-framework choice needed (TanStack) |
 | **React + Vite** | Lighter, SPA-focused, fast dev experience | No SSR out of the box |
-| **Solid.js** | Fine-grained reactivity, better performance | Smaller ecosystem, Storybook support less mature |
 
 **Concept connection.** Each Surface mode is a component pattern. The Surface → Projection binding maps to data-fetching hooks. Render Contracts map to component prop validation + axe testing.
 

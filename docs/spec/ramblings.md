@@ -310,6 +310,66 @@ the next version vivief-concepts-v6.md and  vivief-concepts-v6-implementation-kb
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
 
+
+we need to define how we make the needed choices in 
+docs/vision/vivief-concepts-v6-implementation-kb.md based on 
+docs/vision/vivief-concepts-v6.md and docs/vision/vivief-concepts-v6-review.md
+we are already using docs/adr where we define our architectual decisions.
+lets define the following ADR for 
+chapter 2.1 runtime & language => 0046-runtime-and-language.md explaining why we choose deno and that we need to upgrade from node. the main reasons are 
+- the extra security
+- no need to build each time because we directly can run and that will simplify the developing of cli and mcp and skills because we can edit and run them. we can not use bun as its not compatible with the current dependencies in vivief.
+- typescript is chosen because we are already using it and its type safety is more structural than python with bolted on typing.
+
+
+vivief-concepts-v5.md and a solid readable and clean vivief-concepts-v5-implementation-kb.md as mentioned in the review that we should get started with how to do the implementation with the notice that vivief-concepts-implementation-kb.md is not very usefull as a find it very hard to follow and use
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+Interview me relentlessly about every aspect of the implementation 
+of the tech stack in docs/vision/vivief-concepts-v6-implementation-kb.md chapters 2.2 datom store, 2.3 p2p & replication 
+and use docs/vision/vivief-concepts-v6.md and docs/vision/vivief-concepts-v6-review.md
+and the brainstorming in docs/vision/brainstorms/datom-data-world-v0.7.md
+until we reach a shared understanding for creating ADR 0047-datom-store-sync.md
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+Interview me relentlessly about every aspect of the implementation 
+of the tech stack in docs/vision/vivief-concepts-v6-implementation-kb.md 
+chapter 2.5 ui framework 
+- we choose React
+- we choose the Tanstack tools (https://tanstack.com/) as the first option to consider (TanStack DB d2ts is already part of ADR 0047). ui query using its d2ts technology and tanstack query is also the prefered choice. main reason to hop on the tanstack eco system is that its high quality open-source and has a lot of usefull functionality and it tries to avoid vendor lock-in 
+- ui-components that support extensive accessibility support like for example zag.js could be a starting point 
+so lets plan creating ADR 0048-ui-framework  and the implementation 
+do a relentless questioning to make sure we agree on all aspects. 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+
+
+and use docs/vision/vivief-concepts-v6.md and docs/vision/vivief-concepts-v6-review.md
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+2.5 ui framework => 0048-ui-framework 
+- we choose React and Expo with React-native
+- we choose the Tanstack tools (https://tanstack.com/) as the first option to consider. TanStack DB is already part of 0047 ui query using its d2ts technology and tanstack query is also the prefered choice. main reason to hop on the tanstack eco system is that its high quality open-source and has a lot of usefull functionality and it tries to avoid vendor lock-in 
+- TODO a11y stuff references here to use
+2.6 state machines => 0049
+2.7 ai/llm integration => 0050 
+hermes agent and pi.dev brainstorm and container to make it concrete
+2.8 build & quality tooling => 0051
+- monorepo, deno+turborepo, biome with eslint as escape if needed, vitest
+2.9 Visualization & Contract Verification => 0052-contact-visualization
+abstract C4 concepts and ideas from LikeC4 and Contracts including State-Machine in 1 visual presentation as claude is good at it and its the main verification for humans to understand the system and be able to verify it
+- model based testing using state machines thinking will also help
+- test runner is integrated in this visual concept
+- contract validation is visible
+- explaining onboarding documentation is integrated
+so lets plan creating the ADR's and the implementation 
+do a relentless questioning to make sure we agree on all aspects. 
+
+
+
 ## devac status improve determnistic part
 
 when running

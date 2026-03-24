@@ -302,7 +302,7 @@ interface TrustContract {
 
 ```typescript
 interface SyncContract {
-  resolution: { text: "crdt-yjs", scalar: "last-writer-wins", ref: "manual-merge" }
+  resolution: { text: "crdt-loro", scalar: "last-writer-wins", ref: "manual-merge" }
   scope: { push: DatomQuery, pull: DatomQuery }
   claim: { pattern: ":effect/claimed-by", timeout: "30s" }
 }
