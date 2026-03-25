@@ -14,10 +14,10 @@ The implementation KB §2.5 frames the UI framework decision: a framework for re
 - ADR-0046 (Deno runtime)
 - ADR-0047 (datom store — d2ts as Warm→Hot bridge, Hypercore, Pear client)
 
-**Key constraints from prior ADRs:**
+**Key constraints from prior ADRs (updated per ADR-0049):**
 
-- **ADR-0046 (Deno):** Application runtime is Deno. npm packages available via `npm:` specifiers. No build step for CLI/MCP/skills, but bundling still required for web UI.
-- **ADR-0047 (datom store):** d2ts differential dataflow powers the Warm tier. The Hot tier (UI) consumes d2ts diffs. TanStack DB uses d2ts internally. Three deployment contexts: server (Deno), Pear client (Bare + webview), browser client.
+- **ADR-0049 (deployment):** Server runtime is Node.js (supersedes ADR-0046's Deno choice). Browser SPA for Phases 1-19, Tauri desktop shell for Phase 20+. Protomux channels carry data between server and client.
+- **ADR-0047 (datom store):** d2ts differential dataflow powers the Warm tier. The Hot tier (UI) consumes d2ts diffs via `datom-app/v1` Protomux channel. TanStack DB uses d2ts internally. Two deployment contexts: server (Node.js), browser/Tauri client.
 
 **Why the TanStack ecosystem:** High-quality open-source with a unified philosophy: framework-agnostic cores, type-safe by design, production-grade, no vendor lock-in. The d2ts technology already committed in ADR-0047 originated from the same differential dataflow thinking that powers TanStack DB. Adopting the broader ecosystem provides consistent patterns across routing, data, forms, tables, and tooling.
 
@@ -27,16 +27,18 @@ The implementation KB §2.5 frames the UI framework decision: a framework for re
 
 React is the UI library. Largest ecosystem, Storybook native, component model maps to Surface modes. React 19 (without Server Components — no SSR in this architecture).
 
-### 2. Deployment Targets — Web Only
+### 2. Deployment Targets — Web Only (amended by ADR-0049)
+
+> **Note:** [ADR-0049](0049-deployment-architecture.md) supersedes this section's Pear client references. The deployment model is now: browser SPA (Phases 1-19) + Tauri desktop shell (Phase 20+). The UI bundle is identical in both contexts.
 
 Both deployment contexts render web UI:
 
 | Context | Runtime | UI rendering |
 |---------|---------|-------------|
-| **Pear client** (desktop) | Bare | Webview rendering Vite-built bundle |
-| **Browser client** | Browser | Standard browser rendering |
+| **Browser client** (Phases 1-19) | Browser | Vite-built React SPA served by Node.js at localhost |
+| **Tauri client** (Phase 20+) | System webview | Same Vite-built bundle, wrapped in Tauri native shell |
 
-React Native / Expo are **not** adopted. The Pear client is a webview, not a native mobile context. Mobile browsers access the browser client. Native mobile is a separate future decision if needed.
+React Native / Expo are **not** adopted for now. Tauri v2 provides iOS/Android support via system webview. React Native + Bare Kit is deferred as a future option if native mobile with embedded Hypercore becomes critical. See ADR-0049 §5 for alternatives evaluation.
 
 ### 3. App Shell — Vite + TanStack Router
 
@@ -209,22 +211,30 @@ Three-layer error strategy:
 
 Domain errors are **actor states, not exceptions**. When an effectHandler fails, the actor transitions to an error state. The pure component renders the error state's UI. Contract violations produce error datoms incorporated into actor context.
 
-### 15. Pear Client Architecture
+### 15. Server + Client Architecture (amended by ADR-0049)
+
+> **Note:** [ADR-0049](0049-deployment-architecture.md) replaces the original Pear client architecture. Actors run in Node.js on the server, not in Bare. The Bare↔webview IPC bridge is eliminated. Data flows via Protomux channels.
 
 ```
-Pear client process (Bare runtime)
-├── Hypercore feed (on disk)
+Node.js server process
+├── Hypercore 11 feed (on disk)
 ├── d2ts warm indexes (in memory)
 ├── XState actors (domain logic)
-└── Webview
-    ├── Vite-built bundle (React + Ark UI)
-    ├── TanStack DB (hot tier — receives diffs from Bare via IPC)
-    └── Pure rendering
+└── Protomux server (over localhost WebSocket / Noise stream)
+    ├── hypercore/alpha — feed sync
+    ├── loro-text/v1 — rich text CRDT
+    └── datom-app/v1 — d2ts diffs, actor snapshots, queries
+
+Browser / Tauri webview
+├── Vite-built bundle (React + Ark UI)
+├── Protomux client (connects to server)
+├── TanStack DB (hot tier — receives diffs via datom-app/v1)
+└── Pure rendering of actor state snapshots
 ```
 
-**Actors run in the Bare runtime** (server-side of Pear client). The webview receives actor snapshots via IPC and renders them purely.
+**Actors run in Node.js** on the server. The browser receives actor state snapshots via the `datom-app/v1` Protomux channel and renders them purely. XState actors are pure JavaScript — they could run in the browser if needed, but the default architecture places them server-side for consistency with the Hypercore write path.
 
-**Browser client:** Actors run in the browser itself (no Bare runtime available). XState actors are pure JavaScript — they work in both contexts. The data subscription wiring differs per context (Bare-native d2ts vs. WebSocket-relayed diffs).
+**Browser and Tauri clients are identical.** The same React SPA, same Protomux client, same data flow. Tauri wraps the SPA in a native window (Phase 20+) without code changes.
 
 ### 16. Internationalization
 
@@ -268,28 +278,28 @@ packages/
 - **Two state machine layers:** Zag.js (UI interaction) + XState (domain behavior) is conceptually clean but adds learning curve
 - **TanStack DB is beta:** production readiness must be monitored; fallback is direct d2ts subscription + React state
 - **TanStack AI is alpha:** may not mature; vivief-specific LLM adapter may be needed regardless
-- **Actor-in-Bare architecture** for Pear client requires IPC bridge implementation and testing
+- ~~**Actor-in-Bare architecture** for Pear client requires IPC bridge implementation and testing~~ Eliminated by ADR-0049 — actors run in Node.js, data flows via Protomux
 
 ### Neutral
 
-- **Bundle size ~160 kB gzipped** is acceptable for a workspace application; Pear client loads from disk
+- **Bundle size ~160 kB gzipped** is acceptable for a workspace application; Tauri client loads from disk
 - **Vite over TanStack Start:** can migrate to TanStack Start later since TanStack Router is shared; no rearchitecture required
 - **React 19 without Server Components:** uses improved Suspense and `use()` hook without SSR complexity
 
-## Spikes Required
+## Spikes Required (updated per ADR-0049)
 
 | Spike | Phase | What it unblocks |
 |-------|-------|--------------------|
-| Vite + TanStack ecosystem in Deno (`npm:` specifiers) | Pre-Phase 5 | Confirms dev server and Storybook work in Deno runtime |
-| Pear webview + Vite bundle | Pre-Phase 5 | Confirms the Pear client rendering path |
-| TanStack DB ↔ d2ts warm tier integration | Phase 5 | Confirms the Warm→Hot data flow is seamless |
-| XState actor IPC bridge (Bare ↔ webview) | Phase 5 | Confirms actor-in-Bare architecture with snapshot forwarding |
+| Vite + TanStack ecosystem in Node.js | Pre-Phase 5 | Confirms dev server and Storybook work in Node.js runtime |
+| TanStack DB ↔ d2ts warm tier via Protomux | Phase 5 | Confirms the Warm→Hot data flow is seamless over Protomux channels |
+| Tauri + Node.js sidecar + same SPA | Pre-Phase 20 | Confirms the desktop shell path (see ADR-0049) |
 
 ## References
 
 - [vivief-concepts-v6-implementation-kb.md §2.5, §2.6, §2.9](../vision/vivief-concepts-v6-implementation-kb.md) — UI Framework, State Machines, Visualization decision frames
 - [vivief-concepts-v6.md §2.3, §2.4](../vision/vivief-concepts-v6.md) — Surface concept, Render Contract
-- [ADR-0046](0046-runtime-and-language.md) — Runtime and Language (Deno)
+- [ADR-0046](0046-runtime-and-language.md) — Runtime and Language (superseded by ADR-0049 for server runtime)
+- [ADR-0049](0049-deployment-architecture.md) — Deployment Architecture (supersedes Pear, amends deployment targets)
 - [ADR-0047](0047-datom-store-sync.md) — Datom Store and Sync (d2ts, Hypercore)
 - [TanStack](https://tanstack.com/) — Router, Query, DB, Form, Table, Virtual, Hotkeys, Devtools, AI
 - [Ark UI](https://ark-ui.com/) — Headless components built on Zag.js

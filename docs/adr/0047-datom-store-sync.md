@@ -19,7 +19,7 @@ The implementation KB §2.2 (Datom Store) and §2.3 (P2P & Replication) framed f
 
 2. **Replay diffs is the universal operation.** Every boundary in the system — peer sync, index materialization, reactive queries, UI rendering — is crossed the same way: a consumer replays datoms it hasn't seen. The `op` field IS the diff multiplicity. One primitive, one operation, every tier.
 
-**Tension with ADR-0046:** The Holepunch ecosystem (Hypercore, Hyperswarm, Protomux) is Node.js/Bare. ADR-0046 chose Deno as the application runtime. Resolution: Holepunch lives at the infrastructure layer and runs via `npm:` specifiers in Deno on server, and natively in Bare on Pear client. The application layer (effectHandlers, CLI, MCP) benefits from Deno's no-build-step; the infrastructure layer does not need it.
+**~~Tension with ADR-0046~~ Resolved by ADR-0049:** The Holepunch ecosystem (Hypercore, Hyperswarm, Protomux) is Node.js/Bare. ADR-0046 originally chose Deno as the application runtime, creating a tension around native addon compatibility (Hypercore 11 uses RocksDB). ADR-0049 resolves this by choosing Node.js as the server runtime — Holepunch runs natively without `npm:` specifier or NAPI compatibility concerns. See [ADR-0049](0049-deployment-architecture.md) for the full rationale.
 
 ## Decision
 
@@ -233,7 +233,7 @@ interface SyncContract {
 
 ### Negative
 
-- **Holepunch ecosystem coupling:** Hypercore, Hyperswarm, and Protomux are Node.js/Bare libraries; Deno compatibility via `npm:` must be re-validated on each Holepunch version upgrade
+- **Holepunch ecosystem coupling:** Hypercore, Hyperswarm, and Protomux are Node.js/Bare libraries. ~~Deno compatibility via `npm:` must be re-validated on each Holepunch version upgrade~~ Resolved by [ADR-0049](0049-deployment-architecture.md): Node.js is the server runtime, so Holepunch runs natively without compatibility concerns
 - **Three spikes required before Phase 1–3 commitments:** d2ts startup performance, d2ts on Bare, and HC 10 browser compatibility (see table below)
 - **Warm tier is fully in-memory:** the server must hold all active entities' warm indexes in RAM; memory budget must be planned explicitly as the number of practices grows
 - **P2P deferred to Phase 20+:** multi-user collaboration is a late-phase feature; the replication architecture is decided but untested against real workloads until late

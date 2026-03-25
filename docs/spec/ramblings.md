@@ -370,6 +370,24 @@ do a relentless questioning to make sure we agree on all aspects.
 
 
 
+
+Interview me relentlessly about every aspect of the implementation 
+of the tech stack in docs/vision/vivief-concepts-v6-implementation-kb.md chapter 2
+and use docs/vision/vivief-concepts-v6.md and docs/vision/vivief-concepts-v6-review.md
+and the brainstorming in docs/vision/brainstorms/datom-data-world-v0.7.md
+, docs/vision/brainstorms/vivief-p2p-lean-stack-adr.md
+and docs/vision/brainstorms/vivief-p2p-lean-stack-adr-v2.md
+and note that we did a previous try creating
+docs/adr/0049-deployment-architecture.md
+docs/adr/0046-runtime-and-language.md
+docs/adr/0047-datom-store-sync.md
+docs/adr/0048-ui-framework.md but we think we made assumptions that ended in a tech-stack that is not elegant and not matching what we want, the lean stack ideas look much better and from previous try we did not look at the complete picture and ended up correcting several times so this is the next try to define the new tech stack for implementing vivief.
+until we reach a shared understanding for creating ADR 0050-tech-stack.md
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+
+
+
 ## devac status improve determnistic part
 
 when running

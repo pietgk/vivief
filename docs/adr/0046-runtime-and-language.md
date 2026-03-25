@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0049](0049-deployment-architecture.md) for server runtime choice (Deno → Node.js due to Hypercore 11 native addon incompatibility). TypeScript language choice and Bun elimination reasoning remain valid.
 
 ## Context
 
