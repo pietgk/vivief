@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0050](0050-tech-stack.md). Holepunch stack (Hypercore, Hyperbee, Hyperswarm, Protomux) replaced by Iroh + MoQ + D2TS. Datom shape, conflict resolution, and Loro scoping carried forward.
 
 ## Context
 

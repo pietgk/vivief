@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by [ADR-0050](0050-tech-stack.md). React + Vite, XState v5, Ark UI, CSS Modules carried forward. TanStack suite trimmed to Router only; others adopted as needed.
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (supersedes ADR-0046 for server runtime; amends ADR-0047 §Deno tension; amends ADR-0048 §2, §15, spikes)
+Superseded by [ADR-0050](0050-tech-stack.md). Three-runtime complexity eliminated. Browser-first for Phase 1-12, moq-relay for Phase 13-16, Tauri + Rust sidecar for Phase 20+.
 
 ## Context
 

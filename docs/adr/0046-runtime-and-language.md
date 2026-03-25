@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [ADR-0049](0049-deployment-architecture.md) for server runtime choice (Deno → Node.js due to Hypercore 11 native addon incompatibility). TypeScript language choice and Bun elimination reasoning remain valid.
+Superseded by [ADR-0050](0050-tech-stack.md). Browser-first architecture eliminates the runtime question; Node.js 24 LTS used for dev tooling only. TypeScript language choice carried forward.
 
 ## Context
 
