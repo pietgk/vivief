@@ -394,7 +394,31 @@ so lets try to determine a few ways on how to look at this to enable a clean viv
 Interview me relentlessly about every aspect that needs clarification in this prompt before creation the brainstorm document.
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
-
+in docs/vision/brainstorms/vivief-datom-model-query-architecture.md
+We defined effectHandler as intentHandler (Datoms, Intent) => (Datoms', [Intent]')
+We defined an initail version concept of layered query engines on datoms where the concept is to take an Intent and determine what are the most effective ways to get the data needed by the intentHandler to create the "Answer" in the form of datoms and intents.
+Available are the Hot (Cache local in limited memory), Warm (local in-memory) and Frozen (WAL with indexes) datoms and a D2TS live sync engine to get filtered data Projected from a colder layer (note that we need to define the in memory datoms in a highly optimized memory effecient way to make it usable).
+Extending the layed query concept i think that from the datoms we can project datoms  
+ - as Time-series Database as that is already what they are 
+ - as Virtual Graphs Nodes, Edges, Effects Database
+ - as Virtual Relational Database
+ - as Virtual Columnar Database
+ - as virtual Document Database
+ - as virtual Vector Database using the correct specific Tokenizers and parsers that also add Token datoms 
+ - FTS support
+ Using the four indexes on datoms ESVT, AEVT, AVET, VAET in memory as the base.
+We then enable llm's by
+ - creating and using generated Typescript to query using code in a way that is known to llms
+ - creating and using datalog queries
+ - creating and using sql
+ - create and use vector and or FTS search
+This is the part where we use the big model llms with high effort to create these ways of mapping and querying and then use it for this and future deterministic and smaller models to handle intent in a faster and cheaper way.
+The reason i think we should do this is that this will make vivief very usefull in answering complex questions in an understandable way while the data changes for all the domains and we can use the complex code analysis domain together with the counseler domain to verify this 
+lets create a new brainstorm document based on vivief-datom-model-query-architecture.md and these ideas.
+the goal for this brainstorm is to define what we need to spike to proof that the concepts we come up with work.
+note that docs/vision/vivief-concepts-vision.md contains the latest concepts not yet updated with intenHandler is (Datoms, Intent) => (Datoms', [Intent]')
+Interview me relentlessly about every aspect that needs clarification in this prompt before creation the brainstorm document. If you want to use other files in the vivief/docs context then make sure to reference them including why they are relevant as we have a lot of history and we need to make sure we use all the relevant latest content and avoid using older files as the latest as happened with vivief-concepts-v6.md that has a newer vivief-concepts-vison.md
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
 ## devac status improve determnistic part
 
