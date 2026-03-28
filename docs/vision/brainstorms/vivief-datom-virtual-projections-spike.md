@@ -46,17 +46,41 @@ Where:
 
 **The concept name stays "effectHandler."** The name is well-established across all docs and describes what it is. The signature clarification is the real insight — the name is secondary.
 
-**Rationale:** The distinction is PHASE, not TYPE. A datom at rest is a fact (queryable via Projection). A datom in motion is an Intent (entering an effectHandler). The SAME datom can be both, depending on context. This makes the pipeline crystal clear:
+**Rationale:** The distinction is PHASE, not TYPE. A datom at rest is a fact (queryable via Projection). A datom in motion is an Intent (entering an effectHandler). The SAME datom can be both, depending on context.
+
+### Datom Naming Convention (from CQRS-ES)
+
+**All datoms use past-tense or noun naming. Never imperative.** Datoms are immutable facts. An imperative ("change this file") is not a fact — it's a contradiction.
+
+From CQRS-ES: commands are imperative (what you WANT), events are past-tense (what HAS happened). In our model, intents are always facts (events), because they're datoms. Even action requests are facts: "it is true that promotion was requested."
+
+| Scenario | Naming | Example |
+|----------|--------|---------|
+| Something happened externally | Past tense | `:file/changed` |
+| Pipeline stage completed | Past tense | `:seed/updated`, `:validation/completed` |
+| Someone requests an action | Past tense of request | `:sandbox/promotion-requested`, `:tokenization/requested` |
+| Action succeeded | Past tense | `:sandbox/promoted` |
+| Action failed | Past tense | `:sandbox/promotion-rejected` |
+
+**There is no `:intent/*` namespace.** Intent is a phase (datom in motion), not a type. Any datom can become an intent when it enters an effectHandler. The effectHandler declares which attributes it reacts to via its Behavior Contract:
+
+```typescript
+// Behavior Contract
+accepts: [":file/changed", ":seed/updated", ":tokenization/requested"]
+```
+
+### Pipeline Example
 
 ```
-:intent/file-changed
-  -> Parser (datoms, intent) -> (entity datoms + behavioral datoms, [:intent/seed-updated])
-    -> Rules Engine (datoms, intent) -> (domain datoms, [])
-    -> Validator (datoms, intent) -> (diagnostic datoms, [:intent/validation-complete])
-    -> Index Materializer (datoms, intent) -> (edge indexes, [])
+:file/changed  (fact: file was modified on disk)
+  -> Parser reacts to :file/changed
+     -> (entity datoms + behavioral datoms, [:seed/updated])
+       -> Rules Engine reacts to :seed/updated -> (domain datoms, [])
+       -> Validator reacts to :seed/updated -> (diagnostic datoms, [:validation/completed])
+       -> Index Materializer reacts to :seed/updated -> (edge indexes, [])
 ```
 
-Every handler: datoms in, datoms out. Intents trigger, intents cascade. One model.
+Every handler: datoms in, datoms out. Facts trigger, facts cascade. One model.
 
 **Note:** vivief-concepts-vision.md will be updated with this refined signature AFTER the spike validates the architecture. This remains a brainstorm finding until then.
 
@@ -250,7 +274,7 @@ Token datoms support Vector and FTS virtual projections. They live in the datom 
 - Clinical notes: Domain-specific tokenizers for therapeutic concepts
 - Natural language: General-purpose text embeddings
 
-The tokenizer IS an effectHandler: `(Datoms [source content], Intent [:intent/tokenize]) => (Datoms' [token datoms], [])`.
+The tokenizer IS an effectHandler: `(Datoms [source content], :tokenization/requested) => (Datoms' [token datoms], [])`.
 
 **Status:** Design only. Not included in the spike. The architecture supports it; implementation is deferred until graph/document projections are proven.
 
@@ -483,15 +507,17 @@ Arrived at: **Datoms are a universal query substrate. Virtual projections give y
 
 1. **effectHandler signature clarified**: `(Datoms, Intent) => (Datoms', [Intent]')` — same concept name, cleaner semantics
 
-2. **Virtual projections are 2D**: shape (what) x engine (how). Three engines (TS API, D2TS, DuckDB) serve all 7 projection shapes. Only useful cells get implemented.
+2. **Datom naming convention from CQRS-ES**: all datoms use past-tense or noun naming, never imperative. No `:intent/*` namespace — intent is a phase, not a type. effectHandlers declare which fact-attributes they react to.
 
-3. **Query templates ARE effectHandlers** — the template system is the creation cache applied to queries. Big model creates, small model routes, templates evolve from ad-hoc to infrastructure.
+3. **Virtual projections are 2D**: shape (what) x engine (how). Three engines (TS API, D2TS, DuckDB) serve all 7 projection shapes. Only useful cells get implemented.
 
-4. **Three tiers (Hot/Warm/Frozen)** with D2TS bridging. Memory optimization is benchmark-driven, using known techniques (interning, typed arrays, structured values).
+4. **Query templates ARE effectHandlers** — the template system is the creation cache applied to queries. Big model creates, small model routes, templates evolve from ad-hoc to infrastructure.
 
-5. **Architecture is domain-agnostic** — code analysis and counseling use the same DatomStore API, same template pattern, different attribute namespaces.
+5. **Three tiers (Hot/Warm/Frozen)** with D2TS bridging. Memory optimization is benchmark-driven, using known techniques (interning, typed arrays, structured values).
 
-6. **The spike is focused** — prove 4 existential claims (performance, N+1 elimination, LLM generation, template routing) with blast-radius as the showcase question. Everything else is deferred engineering.
+6. **Architecture is domain-agnostic** — code analysis and counseling use the same DatomStore API, same template pattern, different attribute namespaces.
+
+7. **The spike is focused** — prove 4 existential claims (performance, N+1 elimination, LLM generation, template routing) with blast-radius as the showcase question. Everything else is deferred engineering.
 
 ### Connection to Vision
 
