@@ -61,7 +61,7 @@ describe("LLM Test Harness", () => {
       store = setup();
       // Simulate correct LLM output
       const result = ["login", "logout", "validateToken"];
-      const v = TEST_QUESTIONS[0].validate(result, store);
+      const v = TEST_QUESTIONS[0]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
@@ -71,14 +71,14 @@ describe("LLM Test Harness", () => {
         { name: "stripeCharge", isAsync: true },
         { name: "login", isAsync: true },
       ];
-      const v = TEST_QUESTIONS[1].validate(result, store);
+      const v = TEST_QUESTIONS[1]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
     it("Q3: who calls stripeCharge", () => {
       store = setup();
       const result = ["handleClick", "processRefund"];
-      const v = TEST_QUESTIONS[2].validate(result, store);
+      const v = TEST_QUESTIONS[2]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
@@ -88,14 +88,14 @@ describe("LLM Test Harness", () => {
         { module: "jsonwebtoken", symbol: "jwt" },
         { module: "bcrypt", symbol: "bcrypt" },
       ];
-      const v = TEST_QUESTIONS[3].validate(result, store);
+      const v = TEST_QUESTIONS[3]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
     it("Q5: blast radius of validateToken", () => {
       store = setup();
       const result = ["login", "getUser", "handleClick", "renderDashboard"];
-      const v = TEST_QUESTIONS[4].validate(result, store);
+      const v = TEST_QUESTIONS[4]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
@@ -112,28 +112,28 @@ describe("LLM Test Harness", () => {
         "deleteUser",
         "hashPassword",
       ];
-      const v = TEST_QUESTIONS[5].validate(result, store);
+      const v = TEST_QUESTIONS[5]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
     it("Q7: most called function", () => {
       store = setup();
       const result = "validateToken";
-      const v = TEST_QUESTIONS[6].validate(result, store);
+      const v = TEST_QUESTIONS[6]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
     it("Q8: dependency chain from handleClick to utils", () => {
       store = setup();
       const result = ["handleClick", "stripeCharge", "calculateTotal", "payment", "utils"];
-      const v = TEST_QUESTIONS[7].validate(result, store);
+      const v = TEST_QUESTIONS[7]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
     it("Q9: files affected by renaming UserService", () => {
       store = setup();
       const result = ["service.ts", "app.tsx"];
-      const v = TEST_QUESTIONS[8].validate(result, store);
+      const v = TEST_QUESTIONS[8]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
 
@@ -143,7 +143,7 @@ describe("LLM Test Harness", () => {
         { module: "stripe", symbol: "Stripe" },
         { module: "stripe", symbol: "PaymentIntent" },
       ];
-      const v = TEST_QUESTIONS[9].validate(result, store);
+      const v = TEST_QUESTIONS[9]!.validate(result, store);
       expect(v.pass).toBe(true);
     });
   });

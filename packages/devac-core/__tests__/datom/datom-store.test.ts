@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryDatomStore } from "../../src/datom/datom-store.js";
-import type { Datom, EdgeDatomValue } from "../../src/datom/types.js";
+import type { Datom, DatomValue, EdgeDatomValue } from "../../src/datom/types.js";
 
 function makeDatom(e: string, a: string, v: Datom["v"], tx = 1): Datom {
   return { e, a, v, tx, op: "assert" };
@@ -25,7 +25,7 @@ describe("InMemoryDatomStore", () => {
     it("handles structured values", () => {
       const store = new InMemoryDatomStore();
       const edgeVal = makeEdgeValue("e2");
-      store.assertDatom(makeDatom("e1", ":edge/CALLS", edgeVal));
+      store.assertDatom(makeDatom("e1", ":edge/CALLS", edgeVal as unknown as DatomValue));
 
       expect(store.datomCount()).toBe(1);
       expect(store.entityCount()).toBe(1);
@@ -91,8 +91,8 @@ describe("InMemoryDatomStore", () => {
       const edge1 = makeEdgeValue("e2");
       const edge2 = makeEdgeValue("e3");
       store.assertDatoms([
-        makeDatom("e1", ":edge/CALLS", edge1),
-        makeDatom("e1", ":edge/CALLS", edge2),
+        makeDatom("e1", ":edge/CALLS", edge1 as unknown as DatomValue),
+        makeDatom("e1", ":edge/CALLS", edge2 as unknown as DatomValue),
       ]);
 
       const view = store.get("e1")!;
@@ -188,8 +188,8 @@ describe("InMemoryDatomStore", () => {
         makeDatom("e1", ":node/name", "caller1"),
         makeDatom("e2", ":node/name", "caller2"),
         makeDatom("e3", ":node/name", "target"),
-        makeDatom("e1", ":edge/CALLS", makeEdgeValue("e3")),
-        makeDatom("e2", ":edge/CALLS", makeEdgeValue("e3")),
+        makeDatom("e1", ":edge/CALLS", makeEdgeValue("e3") as unknown as DatomValue),
+        makeDatom("e2", ":edge/CALLS", makeEdgeValue("e3") as unknown as DatomValue),
       ]);
 
       const refs = store.reverseRefs("e3", ":edge/CALLS");
@@ -201,8 +201,8 @@ describe("InMemoryDatomStore", () => {
     it("finds all reverse refs without attribute filter", () => {
       const store = new InMemoryDatomStore();
       store.assertDatoms([
-        makeDatom("e1", ":edge/CALLS", makeEdgeValue("e3")),
-        makeDatom("e2", ":edge/IMPORTS", makeEdgeValue("e3")),
+        makeDatom("e1", ":edge/CALLS", makeEdgeValue("e3") as unknown as DatomValue),
+        makeDatom("e2", ":edge/IMPORTS", makeEdgeValue("e3") as unknown as DatomValue),
       ]);
 
       const refs = store.reverseRefs("e3");
@@ -230,12 +230,12 @@ describe("InMemoryDatomStore", () => {
       store.assertDatoms([
         makeDatom("caller", ":node/name", "callerFn"),
         makeDatom("target", ":node/name", "targetFn"),
-        makeDatom("caller", ":edge/CALLS", makeEdgeValue("target")),
+        makeDatom("caller", ":edge/CALLS", makeEdgeValue("target") as unknown as DatomValue),
       ]);
 
       const callers = store.callers("target");
       expect(callers).toHaveLength(1);
-      expect(callers[0].get(":node/name")).toBe("callerFn");
+      expect(callers[0]!.get(":node/name")).toBe("callerFn");
     });
 
     it("callees returns EntityViews of all callees", () => {
@@ -244,8 +244,8 @@ describe("InMemoryDatomStore", () => {
         makeDatom("caller", ":node/name", "callerFn"),
         makeDatom("t1", ":node/name", "target1"),
         makeDatom("t2", ":node/name", "target2"),
-        makeDatom("caller", ":edge/CALLS", makeEdgeValue("t1")),
-        makeDatom("caller", ":edge/CALLS", makeEdgeValue("t2")),
+        makeDatom("caller", ":edge/CALLS", makeEdgeValue("t1") as unknown as DatomValue),
+        makeDatom("caller", ":edge/CALLS", makeEdgeValue("t2") as unknown as DatomValue),
       ]);
 
       const callees = store.callees("caller");
@@ -265,9 +265,9 @@ describe("InMemoryDatomStore", () => {
         makeDatom("B", ":node/name", "B"),
         makeDatom("C", ":node/name", "C"),
         makeDatom("D", ":node/name", "D"),
-        makeDatom("A", ":edge/CALLS", makeEdgeValue("B")),
-        makeDatom("B", ":edge/CALLS", makeEdgeValue("C")),
-        makeDatom("C", ":edge/CALLS", makeEdgeValue("D")),
+        makeDatom("A", ":edge/CALLS", makeEdgeValue("B") as unknown as DatomValue),
+        makeDatom("B", ":edge/CALLS", makeEdgeValue("C") as unknown as DatomValue),
+        makeDatom("C", ":edge/CALLS", makeEdgeValue("D") as unknown as DatomValue),
       ]);
       return store;
     }
@@ -276,7 +276,7 @@ describe("InMemoryDatomStore", () => {
       const store = buildChainStore();
       const deps = store.transitiveDeps("A", ":edge/CALLS", 1);
       expect(deps).toHaveLength(1);
-      expect(deps[0].get(":node/name")).toBe("B");
+      expect(deps[0]!.get(":node/name")).toBe("B");
     });
 
     it("depth=2 follows two levels", () => {
@@ -305,9 +305,9 @@ describe("InMemoryDatomStore", () => {
         makeDatom("A", ":node/name", "A"),
         makeDatom("B", ":node/name", "B"),
         makeDatom("C", ":node/name", "C"),
-        makeDatom("A", ":edge/CALLS", makeEdgeValue("B")),
-        makeDatom("B", ":edge/CALLS", makeEdgeValue("C")),
-        makeDatom("C", ":edge/CALLS", makeEdgeValue("A")),
+        makeDatom("A", ":edge/CALLS", makeEdgeValue("B") as unknown as DatomValue),
+        makeDatom("B", ":edge/CALLS", makeEdgeValue("C") as unknown as DatomValue),
+        makeDatom("C", ":edge/CALLS", makeEdgeValue("A") as unknown as DatomValue),
       ]);
 
       const deps = store.transitiveDeps("A", ":edge/CALLS", 10);

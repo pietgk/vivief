@@ -29,15 +29,17 @@
         {
           default = pkgs.mkShell {
             packages = with pkgs; [
+              dotnet-sdk_10
               gh
               git
               nodejs_24
               pnpm
+              python3
               turbo
             ];
 
             shellHook = ''
-              echo "vivief dev shell — node $(node --version), pnpm $(pnpm --version)"
+              echo "vivief dev shell — node $(node --version), pnpm $(pnpm --version), python $(python3 --version), dotnet $(dotnet --version)"
             '';
           };
         }

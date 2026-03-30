@@ -28,8 +28,8 @@ describe("Benchmark V2", () => {
       const data2 = generateRealisticData(100, 42);
 
       expect(data1.nodes).toHaveLength(100);
-      expect(data1.nodes[0].entity_id).toBe(data2.nodes[0].entity_id);
-      expect(data1.nodes[0].kind).toBe(data2.nodes[0].kind);
+      expect(data1.nodes[0]!.entity_id).toBe(data2.nodes[0]!.entity_id);
+      expect(data1.nodes[0]!.kind).toBe(data2.nodes[0]!.kind);
       expect(data1.edges).toHaveLength(data2.edges.length);
     });
 

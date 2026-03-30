@@ -138,7 +138,7 @@ export class InMemoryDatomStore implements DatomStore {
     const callEdges = this.getAttribute(entity, ":edge/CALLS");
     return callEdges
       .map((v) => {
-        const target = (v as EdgeDatomValue).target;
+        const target = (v as unknown as EdgeDatomValue).target;
         return target ? this.get(target) : undefined;
       })
       .filter((v): v is EntityView => v !== undefined);
@@ -165,7 +165,7 @@ export class InMemoryDatomStore implements DatomStore {
       if (currentDepth < depth) {
         const edges = this.getAttribute(id, attr);
         for (const edge of edges) {
-          const target = (edge as EdgeDatomValue).target;
+          const target = (edge as unknown as EdgeDatomValue).target;
           if (target && !visited.has(target)) {
             queue.push({ id: target, currentDepth: currentDepth + 1 });
           }
@@ -247,7 +247,7 @@ export class InMemoryDatomStore implements DatomStore {
 
     // VAET — only for edge datoms (attributes starting with ":edge/")
     if (a.startsWith(":edge/") && v !== null && typeof v === "object" && !Array.isArray(v)) {
-      const target = (v as EdgeDatomValue).target;
+      const target = (v as unknown as EdgeDatomValue).target;
       if (target) {
         let refAttrMap = this.vaet.get(target);
         if (!refAttrMap) {

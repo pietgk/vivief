@@ -45,7 +45,7 @@ describe("loadFromArrays", () => {
       const entities = store.findByValue(":node/name", "myFunc");
       expect(entities).toHaveLength(1);
 
-      const view = store.get(entities[0])!;
+      const view = store.get(entities[0]!)!;
       expect(view.get(":node/name")).toBe("myFunc");
       expect(view.get(":node/kind")).toBe("function");
       expect(view.get(":node/file_path")).toBe("src/utils.ts");
@@ -61,7 +61,7 @@ describe("loadFromArrays", () => {
       loadFromArrays(store, data);
 
       const entities = store.findByValue(":node/name", "fn");
-      const view = store.get(entities[0])!;
+      const view = store.get(entities[0]!)!;
 
       // These should NOT be present as attributes
       expect(view.has(":node/entity_id")).toBe(false);
@@ -87,7 +87,7 @@ describe("loadFromArrays", () => {
       loadFromArrays(store, data);
 
       const entities = store.findByValue(":node/name", "fn");
-      const view = store.get(entities[0])!;
+      const view = store.get(entities[0]!)!;
       expect(view.has(":node/type_signature")).toBe(false);
       expect(view.has(":node/documentation")).toBe(false);
     });

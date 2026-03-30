@@ -42,9 +42,9 @@ describe("graphDepsDatom", () => {
       });
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].name).toBe("processData");
-      expect(deps[0].edgeType).toBe("CALLS");
-      expect(deps[0].depth).toBe(1);
+      expect(deps[0]!.name).toBe("processData");
+      expect(deps[0]!.edgeType).toBe("CALLS");
+      expect(deps[0]!.depth).toBe(1);
     });
 
     it("depth=2 returns transitive deps of main", () => {
@@ -70,7 +70,7 @@ describe("graphDepsDatom", () => {
       });
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].name).toBe("helper");
+      expect(deps[0]!.name).toBe("helper");
     });
 
     it("returns nothing for leaf node (helper)", () => {
@@ -109,8 +109,8 @@ describe("graphDepsDatom", () => {
       });
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].name).toBe("BaseClass");
-      expect(deps[0].edgeType).toBe("EXTENDS");
+      expect(deps[0]!.name).toBe("BaseClass");
+      expect(deps[0]!.edgeType).toBe("EXTENDS");
     });
 
     it("filters by edgeType=CALLS for derivedMethod", () => {
@@ -123,7 +123,7 @@ describe("graphDepsDatom", () => {
       });
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].name).toBe("baseMethod");
+      expect(deps[0]!.name).toBe("baseMethod");
     });
   });
 
@@ -152,7 +152,7 @@ describe("graphDepsDatom", () => {
       });
 
       expect(deps).toHaveLength(1);
-      expect(deps[0].name).toBe("funcB");
+      expect(deps[0]!.name).toBe("funcB");
     });
   });
 

@@ -40,15 +40,15 @@ class SeededRng {
   /** Returns a float in [0, 1) */
   next(): number {
     const s = this.s;
-    const result = Math.imul(s[1] * 5, 7) >>> 0;
-    const t = s[1] << 9;
+    const result = Math.imul(s[1]! * 5, 7) >>> 0;
+    const t = s[1]! << 9;
 
-    s[2] ^= s[0];
-    s[3] ^= s[1];
-    s[1] ^= s[2];
-    s[0] ^= s[3];
-    s[2] ^= t;
-    s[3] = (s[3] << 11) | (s[3] >>> 21);
+    s[2] = s[2]! ^ s[0]!;
+    s[3] = s[3]! ^ s[1]!;
+    s[1] = s[1]! ^ s[2]!;
+    s[0] = s[0]! ^ s[3]!;
+    s[2] = s[2]! ^ t;
+    s[3] = (s[3]! << 11) | (s[3]! >>> 21);
 
     return (result >>> 0) / 0x100000000;
   }
@@ -60,7 +60,7 @@ class SeededRng {
 
   /** Pick a random element from an array */
   pick<T>(arr: readonly T[]): T {
-    return arr[this.nextInt(arr.length)];
+    return arr[this.nextInt(arr.length)]!;
   }
 
   /** Pick an element using weighted probabilities */
@@ -68,10 +68,10 @@ class SeededRng {
     const total = weights.reduce((a, b) => a + b, 0);
     let r = this.next() * total;
     for (let i = 0; i < items.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return items[i];
+      r -= weights[i]!;
+      if (r <= 0) return items[i]!;
     }
-    return items[items.length - 1];
+    return items[items.length - 1]!;
   }
 }
 
@@ -144,11 +144,11 @@ export function generateRealisticData(count: number, seed = 42): { nodes: Node[]
 
       const edgeType = rng.weightedPick(EDGE_TYPES, EDGE_TYPE_WEIGHTS);
       edges.push({
-        source_entity_id: nodes[i].entity_id,
-        target_entity_id: nodes[targetIdx].entity_id,
+        source_entity_id: nodes[i]!.entity_id,
+        target_entity_id: nodes[targetIdx]!.entity_id,
         edge_type: edgeType,
-        source_file_path: nodes[i].file_path,
-        source_line: nodes[i].start_line + 3,
+        source_file_path: nodes[i]!.file_path,
+        source_line: nodes[i]!.start_line + 3,
         source_column: 4,
         properties: {},
         source_file_hash: `hash${Math.floor(i / nodesPerFile)}`,

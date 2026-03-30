@@ -87,8 +87,8 @@ export async function runComparison(
   const compactScaling = await runScalingCurve(() => new CompactDatomStore(), scales);
 
   // Extrapolate to 250K using the largest measured bytes/entity
-  const lastNaive = naiveScaling[naiveScaling.length - 1];
-  const lastCompact = compactScaling[compactScaling.length - 1];
+  const lastNaive = naiveScaling[naiveScaling.length - 1]!;
+  const lastCompact = compactScaling[compactScaling.length - 1]!;
   const target250K = 250_000;
   const targetBytesTotal = 1.02 * 1024 * 1024 * 1024; // 1.02 GB from brainstorm
 

@@ -281,7 +281,7 @@ describe("Memory Analysis", () => {
       console.log("-".repeat(38));
       for (let i = 0; i < scales.length; i++) {
         console.log(
-          `${scales[i].toLocaleString().padStart(8)} | ${naiveResults[i].bytesPerEntity.toFixed(0).padStart(11)} | ${compactResults[i].bytesPerEntity.toFixed(0).padStart(13)}`
+          `${scales[i]!.toLocaleString().padStart(8)} | ${naiveResults[i]!.bytesPerEntity.toFixed(0).padStart(11)} | ${compactResults[i]!.bytesPerEntity.toFixed(0).padStart(13)}`
         );
       }
       console.log("WHY: If bytes/entity stays roughly constant, growth is linear (good).");
@@ -289,8 +289,8 @@ describe("Memory Analysis", () => {
 
       // bytes/entity at 25K should not be more than 2x the value at 1K
       // (allowing for Map overhead amortization at small scales)
-      const naiveSmall = naiveResults[0].bytesPerEntity;
-      const naiveLarge = naiveResults[naiveResults.length - 1].bytesPerEntity;
+      const naiveSmall = naiveResults[0]!.bytesPerEntity;
+      const naiveLarge = naiveResults[naiveResults.length - 1]!.bytesPerEntity;
       // Skip strict assertion if GC not available (memory noise is too high)
       if (gcAvailable) {
         expect(naiveLarge).toBeLessThan(naiveSmall * 2);
@@ -369,19 +369,22 @@ describe("Memory Analysis", () => {
       const entityIds = Array.from({ length: 100 }, (_, i) => `bench:pkg:function:entity${i}`);
 
       // Naive: creates a new EntityView every time
-      warmup((i) => naive.get(entityIds[i % entityIds.length]), 5_000);
-      const naiveTiming = batchTimingNs((i) => naive.get(entityIds[i % entityIds.length]), lookups);
+      warmup((i) => naive.get(entityIds[i % entityIds.length]!), 5_000);
+      const naiveTiming = batchTimingNs(
+        (i) => naive.get(entityIds[i % entityIds.length]!),
+        lookups
+      );
 
       // Compact: WeakRef cache returns same view
-      warmup((i) => compact.get(entityIds[i % entityIds.length]), 5_000);
+      warmup((i) => compact.get(entityIds[i % entityIds.length]!), 5_000);
       const compactTiming = batchTimingNs(
-        (i) => compact.get(entityIds[i % entityIds.length]),
+        (i) => compact.get(entityIds[i % entityIds.length]!),
         lookups
       );
 
       // Verify cache hit: same object returned
-      const view1 = compact.get(entityIds[0]);
-      const view2 = compact.get(entityIds[0]);
+      const view1 = compact.get(entityIds[0]!);
+      const view2 = compact.get(entityIds[0]!);
       const cacheHit = view1 === view2;
 
       console.log("\n=== 7. EntityView Allocation ===");
