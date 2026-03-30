@@ -420,6 +420,36 @@ note that docs/vision/vivief-concepts-vision.md contains the latest concepts not
 Interview me relentlessly about every aspect that needs clarification in this prompt before creation the brainstorm document. If you want to use other files in the vivief/docs context then make sure to reference them including why they are relevant as we have a lot of history and we need to make sure we use all the relevant latest content and avoid using older files as the latest as happened with vivief-concepts-v6.md that has a newer vivief-concepts-vison.md
 Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
 
+
+ brainstorm - result -review - iterate - adr
+ 
+the vivief/docs directory has been evolving with specs vision and brainstorms and other good efforts over time and the structure and overview is lost for me even while we created this together.
+Do a very thorough look at the complete docs and plan 3 different ways to get a good usefull documentation context with 
+- the path from start to now
+- the starting concepts and foundation to the vivief-concepts-vision with brainstorms on datom and query and p2p views
+- we need a good definition on what we are building in vivief (vivion View Effect) it started as a developer analytics centre to analyze existing code in multiple repos to get answer to understand what the code does using all the information available from code, cms, infra and company documents and administration.
+it evolved as a tool to support building new code by adding a validation pipeline that does type, lint, test, coverage and llm validations.
+then by adding an example app and the insight that we can use the example app to implement a counseling app with lifelong developer experience mapping to concepts that elegantly solve development of clean elegant concepts like datoms, p2p, streaming communication, d2ts and some more vivief turned into something more and devac become more and domains got into the picture.
+make the plan result it claude (you) friendly efficient docs and so discussing and brainstorming can easily use the thoughts and ideas as a base for further ADR and brainstorming to plan the clean concepts and vision to enable implementation 
+Interview me relentlessly about every aspect that needs clarification in this prompt before creation the plan.
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+q1 correct
+q2 both for claude and for me so i can participate in the thinking
+q3a lets define a standard way to have full archives for these evelutionary documents that happened and probably will happen so a standard way to archive and a way to have the latest with a brief "evelution log"
+q3b v6 is pretty stable but we are fully in the process of trying to define how to use them so there is still a possibilty it will change, but until now it did survive a lot of chalenges.
+q4 datom model is firm
+q5 procurement domain is planned as a domain and probably usefull as a way to determine how to share between domains
+q6 agree with adding a relevance overlay
+q7 agressive archiving is needed. using a simlar way as q3a might be a good option
+q8 would both be possible by having single claude window of 50-80 lines with a reference to the human version explicitly. i am ok with me reading the claude window version as a start and if i need more i will open the human version. standarizing on this approach might help us both
+q9 we also had an overlapping handle the complete development workflow with issues, pr flow worktrees and soling accessibility at the same time doing validation
+q10 c where a the datom store extends to the p2p communication and regarding the platform we have work on security and containers and vpn level security ideas that need a place in further brainstorming
+the struggle is a bit that we want to design but feel that we need to implement to be able to iterate on design and implementation as vivief is about creation including itself
+so finding the balance on creation using ideas, brainstorming, spikes, testing validating and implementing is the pltform and creation of the platform 
+so a little bit the chicken and the egg problem we need to address.
+
+
 ## devac status improve determnistic part
 
 when running
