@@ -92,8 +92,8 @@ function benchmarkLookups(
   latencies.sort((a, b) => a - b);
   if (count === 0) return { medianUs: 0, p99Us: 0 };
   return {
-    medianUs: latencies[Math.floor(latencies.length / 2)]!,
-    p99Us: latencies[Math.floor(latencies.length * 0.99)]!,
+    medianUs: latencies[Math.floor(latencies.length / 2)] as number,
+    p99Us: latencies[Math.floor(latencies.length * 0.99)] as number,
   };
 }
 

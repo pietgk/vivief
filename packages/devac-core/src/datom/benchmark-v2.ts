@@ -21,34 +21,40 @@ import type { DatomStore } from "./types.js";
 
 /** Simple xoshiro128** PRNG for deterministic benchmarks */
 class SeededRng {
-  private s: Uint32Array;
+  private s0: number;
+  private s1: number;
+  private s2: number;
+  private s3: number;
 
   constructor(seed: number) {
     // SplitMix32 to initialize state from a single seed
-    this.s = new Uint32Array(4);
-    let s = seed;
+    const s = new Uint32Array(4);
+    let x = seed;
     for (let i = 0; i < 4; i++) {
-      s += 0x9e3779b9;
-      let z = s;
+      x += 0x9e3779b9;
+      let z = x;
       z = (z ^ (z >>> 16)) * 0x85ebca6b;
       z = (z ^ (z >>> 13)) * 0xc2b2ae35;
       z = z ^ (z >>> 16);
-      this.s[i] = z >>> 0;
+      s[i] = z >>> 0;
     }
+    this.s0 = s[0] ?? 0;
+    this.s1 = s[1] ?? 0;
+    this.s2 = s[2] ?? 0;
+    this.s3 = s[3] ?? 0;
   }
 
   /** Returns a float in [0, 1) */
   next(): number {
-    const s = this.s;
-    const result = Math.imul(s[1]! * 5, 7) >>> 0;
-    const t = s[1]! << 9;
+    const result = Math.imul(this.s1 * 5, 7) >>> 0;
+    const t = this.s1 << 9;
 
-    s[2] = s[2]! ^ s[0]!;
-    s[3] = s[3]! ^ s[1]!;
-    s[1] = s[1]! ^ s[2]!;
-    s[0] = s[0]! ^ s[3]!;
-    s[2] = s[2]! ^ t;
-    s[3] = (s[3]! << 11) | (s[3]! >>> 21);
+    this.s2 ^= this.s0;
+    this.s3 ^= this.s1;
+    this.s1 ^= this.s2;
+    this.s0 ^= this.s3;
+    this.s2 ^= t;
+    this.s3 = (this.s3 << 11) | (this.s3 >>> 21);
 
     return (result >>> 0) / 0x100000000;
   }
@@ -60,7 +66,7 @@ class SeededRng {
 
   /** Pick a random element from an array */
   pick<T>(arr: readonly T[]): T {
-    return arr[this.nextInt(arr.length)]!;
+    return arr[this.nextInt(arr.length)] as T;
   }
 
   /** Pick an element using weighted probabilities */
@@ -68,10 +74,10 @@ class SeededRng {
     const total = weights.reduce((a, b) => a + b, 0);
     let r = this.next() * total;
     for (let i = 0; i < items.length; i++) {
-      r -= weights[i]!;
-      if (r <= 0) return items[i]!;
+      r -= weights[i] as number;
+      if (r <= 0) return items[i] as T;
     }
-    return items[items.length - 1]!;
+    return items[items.length - 1] as T;
   }
 }
 
@@ -143,12 +149,14 @@ export function generateRealisticData(count: number, seed = 42): { nodes: Node[]
       if (targetIdx === i) continue; // no self-edges
 
       const edgeType = rng.weightedPick(EDGE_TYPES, EDGE_TYPE_WEIGHTS);
+      const sourceNode = nodes[i] as Node;
+      const targetNode = nodes[targetIdx] as Node;
       edges.push({
-        source_entity_id: nodes[i]!.entity_id,
-        target_entity_id: nodes[targetIdx]!.entity_id,
+        source_entity_id: sourceNode.entity_id,
+        target_entity_id: targetNode.entity_id,
         edge_type: edgeType,
-        source_file_path: nodes[i]!.file_path,
-        source_line: nodes[i]!.start_line + 3,
+        source_file_path: sourceNode.file_path,
+        source_line: sourceNode.start_line + 3,
         source_column: 4,
         properties: {},
         source_file_hash: `hash${Math.floor(i / nodesPerFile)}`,

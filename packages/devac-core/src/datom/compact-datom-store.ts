@@ -282,7 +282,9 @@ export class CompactDatomStore implements DatomStore {
     const queue: { id: EntityId; currentDepth: number }[] = [{ id: entity, currentDepth: 0 }];
 
     while (queue.length > 0) {
-      const { id, currentDepth } = queue.shift()!;
+      const next = queue.shift();
+      if (!next) break;
+      const { id, currentDepth } = next;
 
       if (visited.has(id)) continue;
       visited.add(id);

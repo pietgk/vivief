@@ -50,7 +50,7 @@ export function createSymbolIndexEntry(params: {
 
   for (let i = 0; i < qualifiedParts.length; i++) {
     const isLast = i === qualifiedParts.length - 1;
-    const partName = qualifiedParts[i]!;
+    const partName = qualifiedParts[i] as string;
     segments.push({
       kind: isLast ? segmentKind : "type",
       name: partName,

@@ -47,7 +47,9 @@ export function graphDepsDatom(store: DatomStore, params: GraphDepsDatomParams):
   visited.add(entity);
 
   while (queue.length > 0 && results.length < limit) {
-    const { id, currentDepth } = queue.shift()!;
+    const next = queue.shift();
+    if (!next) break;
+    const { id, currentDepth } = next;
 
     if (currentDepth >= depth) continue;
 
