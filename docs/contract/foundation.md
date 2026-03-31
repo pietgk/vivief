@@ -237,7 +237,7 @@ Repo B seeds ─┘
 ### 5.1 Core Formula
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 **This is the entire pattern.** Everything maps to it:
@@ -612,7 +612,7 @@ LLM capabilities change rapidly. Our system must:
 | **Context Discovery** | Convention-based detection of related repos and worktrees |
 | **CWD** | Current working directory |
 | **Effect** | Immutable data describing something that happened or should happen |
-| **Effect Handler** | Function: `(state, effect) => (state', [effect'])` |
+| **Effect Handler** | Function: `(state, intent) => (state', [intent'])` |
 | **Effect Hierarchy** | Low-level effects composing into high-level effects; see [actors.md](./actors.md) for Actor-level extension |
 | **Effect Telemetry** | Runtime observation converted to effect format (see [actors.md](./actors.md)) |
 | **Effect Store** | Conceptual model: append-only Effect Stream + accumulated State |

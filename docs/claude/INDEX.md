@@ -53,7 +53,7 @@ for deep understanding and decision records.
 - `concepts-projection.md` — Query + access scope + encryption + delivery modes
 - `concepts-surface.md` — Six rendering modes (dashboard, chat, brief, feed, detail, ambient)
 - `concepts-contract.md` — Constraints on all concepts, trust strategies, escalation
-- `concepts-effecthandler.md` — `(state, effect) => (state', [effect'])`, the transition function
+- `concepts-effecthandler.md` — `(state, intent) => (state', [intent'])`, the transition function
 - `concepts-creation-loop.md` — The creation formula, chicken-and-egg as feature
 
 **Architecture**

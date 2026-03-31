@@ -68,7 +68,7 @@ Source Code
         → Datoms (for MoQ publishing)
 ```
 
-Every stage: `(state, effect) => (state', [effect'])`. One pattern. One composition model.
+Every stage: `(state, intent) => (state', [intent'])`. One pattern. One composition model.
 
 ---
 
@@ -76,7 +76,7 @@ Every stage: `(state, effect) => (state', [effect'])`. One pattern. One composit
 
 ### 2a. Perfect V6 Alignment
 
-The vivief formula is `effectHandler = (state, effect) => (state', [effect'])`. If the parser outputs only effects, the entire DevAC pipeline is effectHandler composition:
+The vivief formula is `effectHandler = (state, intent) => (state', [intent'])`. If the parser outputs only effects, the entire DevAC pipeline is effectHandler composition:
 
 ```
 Parser:         (codeState, FileChanged)    => [DeclarationEffect*, FunctionCallEffect*, ContainsEffect*]
@@ -190,9 +190,9 @@ A function declaration and a stripe.charge call are categorically different:
 
 Calling both "effects" loses this distinction. The vivief concepts doc says "Intent is an effect" — the `effect` parameter entering the creation loop. A function declaration is NOT an intent; it's a fact about code structure.
 
-**Counter-argument:** In the `(state, effect) => (state', [effect'])` model, the parser takes source code (state) and FileChanged (effect), and produces observations. A declaration IS an observation the parser makes. The parser observes "a function named handleClick exists at line 42." That's an effect of parsing, not an effect of code execution. The semantic shift: effects are observations, not actions.
+**Counter-argument:** In the `(state, intent) => (state', [intent'])` model, the parser takes source code (state) and FileChanged (effect), and produces observations. A declaration IS an observation the parser makes. The parser observes "a function named handleClick exists at line 42." That's an effect of parsing, not an effect of code execution. The semantic shift: effects are observations, not actions.
 
-**Verdict:** This redefines "effect" to mean "observation" — which is coherent but diverges from the V6 definition where effects are closer to "actions that produce state changes." The V6 formula `(state, effect) => (state', [effect'])` reads as "given state and an action, produce new state and new actions." Declarations aren't actions.
+**Verdict:** This redefines "effect" to mean "observation" — which is coherent but diverges from the V6 definition where effects are closer to "actions that produce state changes." The V6 formula `(state, intent) => (state', [intent'])` reads as "given state and an action, produce new state and new actions." Declarations aren't actions.
 
 ### 3d. Only 1 of 21 Edge Types Has Real Redundancy
 
@@ -288,7 +288,7 @@ The proposal reveals three real insights:
 
 **Insight 1: The CALLS/FunctionCall redundancy is a code smell.** The parser shouldn't produce both a CALLS edge and a FunctionCall effect. One should derive from the other. The effect is richer → derive the edge from the effect.
 
-**Insight 2: effectHandler composition is the right architectural pattern.** Every stage of the DevAC pipeline (parse, resolve, materialize, validate, enrich, publish) follows `(state, effect) => (state', [effect'])`. This should be formalized, not because we merge storage, but because it aligns with V6 and makes the pipeline composable.
+**Insight 2: effectHandler composition is the right architectural pattern.** Every stage of the DevAC pipeline (parse, resolve, materialize, validate, enrich, publish) follows `(state, intent) => (state', [intent'])`. This should be formalized, not because we merge storage, but because it aligns with V6 and makes the pipeline composable.
 
 **Insight 3: The datom layer is where unification happens.** Nodes, edges, and effects are different storage shapes that converge at the datom API level. The merge happens in the query interface, not the storage.
 
@@ -338,11 +338,11 @@ My Section 6 verdict said "merge is bad at storage, good at architecture." But t
 
 V6 §2.5 (line 372): "Effects are data. What devac extracts from code (function calls, stores, sends) are effects. All queryable as datoms."
 
-V6 §1 (line 9): "All creation follows `(state, effect) => (state', [effect'])`."
+V6 §1 (line 9): "All creation follows `(state, intent) => (state', [intent'])`."
 
-V6 uses "effect" for TWO things:
-1. **Trigger**: the `effect` parameter entering `handler(state, effect)` — `:effect/file-changed`, `:effect/sync-requested`
-2. **Observation**: behavioral facts stored as datoms — FunctionCall, Store, Send
+V6 (now updated) uses "intent" for the trigger and "effect" for observations:
+1. **Trigger/Intent**: the `intent` parameter entering `handler(state, intent)` — `:file/changed`, `:sync/requested`
+2. **Observation**: behavioral facts stored as datoms — FunctionCall, Store, Send (still `:effect/*` namespace)
 
 This overloading hides a cleaner model. What if the distinction isn't **type** (trigger vs observation) but **phase**?
 
@@ -870,15 +870,15 @@ interface DatomStore {
 
 ## 11. V6 Naming Clarification
 
-The analysis reveals V6 overloads "effect" to mean both:
-- **Trigger/Intent**: the `effect` parameter in `handler(state, effect)` — what causes state change
-- **Observation/Datom**: behavioral facts about code — what we observe about code behavior
+The analysis revealed V6 overloaded "effect" to mean both trigger and observation. This has been resolved:
+- **Intent**: the `intent` parameter in `handler(state, intent)` — what causes state change (domain-specific namespace, e.g. `:file/changed`, `:sync/requested`)
+- **Observation/Datom**: behavioral facts about code — what we observe about code behavior (`:effect/*` namespace)
 
 This overloading caused the original "merge node and effect" question. If "effects" are just datoms, and "nodes" are just datoms, then of course they should merge — they're the same thing.
 
-### Proposed V6 Clarification
+### V6 Clarification (RESOLVED)
 
-**The duality is real but should be named explicitly:**
+**The duality is now named explicitly:**
 
 ```
 Datom = universal fact, at rest in the store
@@ -889,8 +889,8 @@ Datom = universal fact, at rest in the store
 
 Intent = datom in motion, entering the creation loop
   Any datom can become an Intent when it triggers an effectHandler.
-  :intent/file-changed triggers Parser
-  :intent/seed-updated triggers Rules Engine, Validator
+  :file/changed triggers Parser
+  :seed/updated triggers Rules Engine, Validator
   A new behavioral datom entering the Rules Engine is an Intent for that handler.
 
 effectHandler = processes Intents, produces Datoms (and possibly new Intents)
@@ -902,23 +902,23 @@ effectHandler = processes Intents, produces Datoms (and possibly new Intents)
 - A datom in motion = an Intent (entering an effectHandler)
 - The SAME datom can be both, depending on context
 
-**What changes from current V6:**
-- "Code Effects" → behavioral datoms (facts about what code does, stored in datom store)
-- "Workflow Effects" → split: some are workflow datoms (facts), some are Intents (triggers)
-- The `effect'` in `(state, effect) => (state', [effect'])` → `(state, intent) => (state', [intents'])` where state/state' are datom stores
-- "effectHandler" name could stay (it handles effects/intents) or become "intentHandler" (more precise)
-- The formula: `handler(datoms, intent) → (datoms', [intent'])` — datoms are state, intents are triggers
+**What changed (RESOLVED):**
+- "Code Effects" → behavioral datoms (facts about what code does, `:effect/*` namespace)
+- "Workflow Effects" → split: some are workflow datoms (facts), some are Intents (domain-specific namespace, e.g. `:file/changed`)
+- The handler parameter renamed from `effect` to `intent`: `(state, intent) => (state', [intent'])`
+- "effectHandler" name stays (it handles effects/side-effects, the parameter is what flows through it)
+- Return type: `{ datoms, intents }` (outputs are new intents for other handlers)
 
 **What stays the same:**
 - Five concepts: Datom, Projection, Surface, Contract, effectHandler
 - Creation loop: intent → Contract(effectHandler) → datoms
 - Trust model, provenance, all Contract types
 
-### The Cleaner V6 Formula
+### The Cleaner Formula (RESOLVED — now canonical)
 
 ```
-Current:  (state, effect) => (state', [effect'])
-Revised:  (datoms, intent) => (datoms', [intent'])
+Canonical: (state, intent) => (state', [intent'])
+Refined:   (datoms, intent) => (datoms', [intent'])
 ```
 
 Where:
@@ -929,10 +929,10 @@ Where:
 
 This makes the pipeline crystal clear:
 ```
-:intent/file-changed
-  → Parser (datoms, intent) → (entity datoms + behavioral datoms, [:intent/seed-updated])
+:file/changed
+  → Parser (datoms, intent) → (entity datoms + behavioral datoms, [:seed/updated])
     → Rules Engine (datoms, intent) → (domain datoms, [])
-    → Validator (datoms, intent) → (diagnostic datoms, [:intent/validation-complete])
+    → Validator (datoms, intent) → (diagnostic datoms, [:validation/completed])
     → Index Materializer (datoms, intent) → (edge indexes, [])
 ```
 

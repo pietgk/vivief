@@ -54,7 +54,7 @@ Vivief models everything with five concepts:
 | **Projection** | Query | Query + access + encryption + delivery + trust |
 | **Surface** | Render | 6 modes: Stream, Card, Canvas, Dialog, Board, Diagram |
 | **Contract** | Constrain | Declares rules; effectHandler enforces them |
-| **effectHandler** | Transition | `(state, effect) => (state', [effect'])` — the universal abstraction |
+| **effectHandler** | Transition | `(state, intent) => (state', [intent'])` — the universal abstraction |
 
 Everything else (domain, bridge, artifact, slice, profile, skill) is a **pattern**, not a concept.
 

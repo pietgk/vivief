@@ -58,7 +58,7 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **How vivief covers it today:** Not covered. Lens is a filter (selects datoms), not a summarizer (transforms/compresses them). The dual-loop pattern describes human + AI loops but doesn't address how the AI's context window is managed.
 
-**Assessment:** **High-priority gap for AI-centric workflows.** When an effectHandler invokes an LLM, it must construct context from datoms. This is: (1) select relevant datoms (Lens), (2) render them into a prompt (Surface?), (3) compress if needed (new). The selection is Lens. The rendering could be a Surface variant. The compression/summarization is neither — it's a lossy transform that produces a new datom (summary) from old datoms. This could be modeled as an effectHandler itself: `(state, :effect/compact) => { datoms: [summary-datom], effects: [] }`. The compaction handler reads state via Lens, produces a summary datom, and the AI handler uses that summary datom as context. This works within existing concepts but the pattern should be named and documented.
+**Assessment:** **High-priority gap for AI-centric workflows.** When an effectHandler invokes an LLM, it must construct context from datoms. This is: (1) select relevant datoms (Lens), (2) render them into a prompt (Surface?), (3) compress if needed (new). The selection is Lens. The rendering could be a Surface variant. The compression/summarization is neither — it's a lossy transform that produces a new datom (summary) from old datoms. This could be modeled as an effectHandler itself: `(state, :compaction/requested) => { datoms: [summary-datom], intents: [] }`. The compaction handler reads state via Lens, produces a summary datom, and the AI handler uses that summary datom as context. This works within existing concepts but the pattern should be named and documented.
 
 ### 3.5 Composition / Extensibility
 
@@ -72,9 +72,9 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **What we observed:** Pi supports steering messages (interrupt mid-execution, skip remaining tools) and follow-up messages (queued until natural completion). This enables human-in-the-loop control during long-running agent tasks.
 
-**How vivief covers it today:** effectHandler is a pure function `(state, effect) => result`. It runs to completion. The dual-loop pattern has the human loop (synchronous) and AI loop (asynchronous, draft-only), but neither specifies interruption.
+**How vivief covers it today:** effectHandler is a pure function `(state, intent) => result`. It runs to completion. The dual-loop pattern has the human loop (synchronous) and AI loop (asynchronous, draft-only), but neither specifies interruption.
 
-**Assessment:** **Medium priority — model as effects.** An interrupt is an effect: `{ type: ':effect/cancel', target: 'effect:running-analysis-42' }`. The dispatcher checks for cancel effects before dispatching each downstream effect in a cascade. Long-running handlers (LLM calls) check for cancellation via an abort signal. This doesn't require a new concept — it requires specifying how the dispatcher handles cancel effects. Worth documenting as a pattern.
+**Assessment:** **Medium priority — model as effects.** An interrupt is an intent: `{ type: ':handler/cancel-requested', target: 'intent:running-analysis-42' }`. The dispatcher checks for cancel intents before dispatching each downstream intent in a cascade. Long-running handlers (LLM calls) check for cancellation via an abort signal. This doesn't require a new concept — it requires specifying how the dispatcher handles cancel intents. Worth documenting as a pattern.
 
 ### 3.7 Tool Registration Protocol
 
@@ -125,7 +125,7 @@ This is a **concept reduction**: 7 concepts stays at 7, but Contract becomes mor
 
 ### 3.12 XState v5 — effectHandler as Actor
 
-**What we observed:** XState v5's formalism is `(state, event) => (state', [actions])`. This is identical to effectHandler's `(state, effect) => (state', [effect'])`. XState adds: (a) the state machine is **visible** — you can explore it in Stately Studio before writing implementation code, (b) the **actor model** — each actor has private state, receives messages, sends messages, can be spawned and stopped.
+**What we observed:** XState v5's formalism is `(state, event) => (state', [actions])`. This is identical to effectHandler's `(state, intent) => (state', [intent'])`. XState adds: (a) the state machine is **visible** — you can explore it in Stately Studio before writing implementation code, (b) the **actor model** — each actor has private state, receives messages, sends messages, can be spawned and stopped.
 
 **How vivief covers it today:** effectHandler defines the formula but doesn't surface the state machine explicitly. There's no visual representation, no way to explore transitions before implementation, no formal actor boundaries between handlers.
 
@@ -142,7 +142,7 @@ This is a **concept reduction**: 7 concepts stays at 7, but Contract becomes mor
 
    This gives formal answers to:
    - **Composition (3.5)**: actors with typed message protocols replace ad-hoc dispatch priority
-   - **Interruptibility (3.6)**: actors can receive `:effect/cancel` messages and clean up
+   - **Interruptibility (3.6)**: actors can receive `:handler/cancel-requested` messages and clean up
    - **Extensibility (3.5)**: new actors register without modifying existing ones — the actor system handles routing
 
 ### 3.13 Storybook — Surface as Testable, Documented Component

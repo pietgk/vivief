@@ -24,7 +24,7 @@ These documents contained overlapping ideas but lacked a unifying abstraction. W
 Adopt the **Effect Handler Pattern** as the unifying abstraction for DevAC:
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 This pattern models everything as immutable effects flowing through handlers:

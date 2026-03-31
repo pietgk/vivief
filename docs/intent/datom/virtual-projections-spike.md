@@ -29,7 +29,7 @@ This brainstorm extends those findings with virtual projections, query templates
 The [vivief-concepts-vision](../vivief-concepts-vision.md) currently defines:
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 The prior brainstorm (Section 11) identified that V6 overloads "effect" to mean both trigger/intent and behavioral observation/datom. The clean model separates these:

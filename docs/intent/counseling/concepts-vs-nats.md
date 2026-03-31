@@ -7,7 +7,7 @@
 vivief-concepts.md v1.1 removed "signals" as a handler output concept. Handlers now produce exactly two things:
 
 ```typescript
-handler(state, effect): { datoms: Datom[], effects: Effect[] }
+handler(state, intent): { datoms: Datom[], intents: Intent[] }
 ```
 
 Notification is handled by **reactive subscription** — a property of the datom store, not the handler. When datoms are committed, the store notifies all subscribers whose subscriptions match the committed datoms. The implementation varies (EventTarget, Hypercore append, WebSocket push) but the concept is uniform.
@@ -75,7 +75,7 @@ In vivief's current model (single-device, embedded), this is unnecessary — the
 
 Current approach: both run it, `:tx/source :ai` + Contract dedup prevents conflicting results. This works but wastes compute.
 
-Future option if needed: a "claim" datom pattern — before running expensive analysis, a device asserts `[effect:X, :effect/claimed-by, device:macbook, tx:N, true]`. Other devices see the claim via reactive subscription and skip. This is reactive coordination, not infrastructure — it uses the existing datom + reactive subscription model without adding a new concept.
+Future option if needed: a "claim" datom pattern — before running expensive analysis, a device asserts `[effect:X, :work/claimed-by, device:macbook, tx:N, true]`. Other devices see the claim via reactive subscription and skip. This is reactive coordination, not infrastructure — it uses the existing datom + reactive subscription model without adding a new concept.
 
 ## 6. Conclusion
 

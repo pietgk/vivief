@@ -56,7 +56,7 @@ Anna's Mac
 │ │ ├── Hypercore 11 (Erik's datoms on disk)            │ │
 │ │ ├── d2ts (warm indexes: EAVT, AEVT, AVET, VAET)    │ │
 │ │ ├── XState (SessionPrepActor)                       │ │
-│ │ │   └── :effect/prepare-session → AI generates brief│ │
+│ │ │   └── :session/preparation-requested → AI brief   │ │
 │ │ └── Hyperswarm ←──── syncs from always-on server    │ │
 │ └─────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
@@ -74,7 +74,7 @@ d2ts query: sessions where client = Erik, last 4 weeks
 SessionPrepActor receives query results
     │
     ▼
-:effect/prepare-session
+:session/preparation-requested
     │
     ▼
 LLM effectHandler (trust 0.85)
@@ -217,7 +217,7 @@ Anna's Mac
 Anna clicks "Start Video"
     │
     ▼
-SessionActor sends :effect/start-video
+SessionActor sends :media/video-started
     │
     ▼
 media-signal/v1 channel:
@@ -311,7 +311,7 @@ Detects: "Erik mentioned not eating for two days"
 Guard Contract evaluates: risk keyword detected
     │
     ▼
-:effect/risk-flag-detected
+:risk/flag-detected
     │
     ▼
 SessionActor transitions to "risk-flagged" state
@@ -336,7 +336,7 @@ Anna clicks "End Session"
     ▼
 SessionActor transitions: in-progress → completing
     │
-    ├── WebRTC video call ends (media-signal/v1: :effect/end-call)
+    ├── WebRTC video call ends (media-signal/v1: :media/call-ended)
     │
     ├── AI generates session summary
     │   └── Input: session notes, themes, risk flags

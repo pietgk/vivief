@@ -26,10 +26,10 @@ Datom -> Projection -> Surface -> Contract -> effectHandler
 2. **Projection** — Query + access scope + encryption + delivery mode. How datoms reach consumers.
 3. **Surface** — Rendering mode. Six types: dashboard, chat, brief, feed, detail, ambient.
 4. **Contract** — Constraints on any concept. Trust strategies, schema rules, escalation.
-5. **effectHandler** — `(state, effect) => (state', [effect'])`. The transition function. Every activity is an effect handled by some handler that produces datoms.
+5. **effectHandler** — `(state, intent) => (state', [intent'])`. The transition function. Every activity is an intent handled by some handler that produces datoms.
 
-A Contract declares; an effectHandler enforces. Intent is an effect (the `effect`
-parameter entering the creation loop). Validation datoms are exempt from recursion.
+A Contract declares; an effectHandler enforces. Intent is the `intent`
+parameter entering the creation loop. Validation datoms are exempt from recursion.
 
 ### Three Domains
 
@@ -64,8 +64,8 @@ and can have Contracts.
 
 Vivief creates itself using its own concepts. Designing vivief IS using the creation
 loop. The chicken-and-egg problem is embraced as a feature: the platform's concepts
-model its own development process. Every design session is `(state, effect) =>
-(state', [effect'])` where the effect is "clarify concept X" and the output is new
+model its own development process. Every design session is `(state, intent) =>
+(state', [intent'])` where the intent is "clarify concept X" and the output is new
 datoms (decisions, documents, code).
 
 DevAC is the first domain because it makes the platform's own development queryable

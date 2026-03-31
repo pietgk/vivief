@@ -141,7 +141,7 @@ devac sync already bridges filesystem → code graph datoms. Extend it minimally
    Files: compiler reads files
    Bridge: devac sync --validate (existing)
    Datoms: diagnostic datoms (existing) + [:diag/workflow workflow:42]
-   Validation feedback: :effect/validation-failed → auto-fix/AI-fix/human-fix
+   Validation feedback: :validation/failed → auto-fix/AI-fix/human-fix
 
 7. PR
    Files: git push + gh pr create
@@ -213,7 +213,7 @@ Claude:
      → Bridge records: [file:recap.ts :file/created-by :ai :file/intent workflow:42]
   3. devac sync --validate
      → TypeScript errors → diagnostic datoms linked to workflow:42
-     → :effect/validation-failed emitted
+     → :validation/failed emitted
   4. Auto-fix: biome --fix resolves lint (system, deterministic)
      → Bridge records: [fix:1 :fix/diagnostic diag:lint :fix/by :system]
   5. AI-fix: Claude reads error datoms via Projection, edits file
@@ -310,7 +310,7 @@ Instead of:
 
 Claude does:
 ```
-(state, :effect/plan) => {
+(state, :workflow/plan-requested) => {
   datoms: [
     [plan:P :plan/workflow workflow:42 :plan/step 1 :plan/action "..."],
     [plan:P :plan/step 2 :plan/action "..."],
@@ -442,16 +442,16 @@ The state machine doesn't care about the medium — it tracks the PROCESS. The b
 ```
 1. [workflow:42 :workflow/state :brainstorm]
    Developer takes notes. Optional: Canvas datoms.
-   Transition: :effect/create-prd
+   Transition: :workflow/prd-created
 
 2. [workflow:42 :workflow/state :prd]
    Developer writes PRD. Markdown or Canvas.
-   Transition: :effect/create-issues
+   Transition: :workflow/issues-created
    Contract: PRD must have goals + scope before transition allowed
 
 3. [workflow:42 :workflow/state :issues]
    Issues created in GitHub. Bridge syncs to datoms.
-   Transition: :effect/start-work { issue: 42 }
+   Transition: :workflow/work-started { issue: 42 }
 
 4. [workflow:42 :workflow/state :coding]
    Developer + AI write code in files.
@@ -469,7 +469,7 @@ The state machine doesn't care about the medium — it tracks the PROCESS. The b
 
 7. [workflow:42 :workflow/state :pr_open]
    gh pr create. Bridge records PR datom.
-   Transition: :effect/request-review
+   Transition: :workflow/review-requested
 
 8. [workflow:42 :workflow/state :reviewing]
    Human + AI review. Bridge records review datoms.
@@ -482,7 +482,7 @@ The state machine doesn't care about the medium — it tracks the PROCESS. The b
 
 10. [workflow:42 :workflow/state :approved]
     Ready to merge.
-    Transition: :effect/merge
+    Transition: :workflow/merged
 
 11. [workflow:42 :workflow/state :merged]
     Done. Promotion from sandbox (branch) to authoritative (main).
@@ -701,7 +701,7 @@ Claude:
     → Claude: [action:A1 :action/type :file-create :action/context context:C] (Alt 2 memory)
 
   Validates: TypeScript fails, lint warns
-    → Bridge: diagnostic datoms + :effect/validation-failed
+    → Bridge: diagnostic datoms + :validation/failed
     → Auto-fix: biome --fix (system, deterministic)
     → AI-fix: Claude reads error datoms, fixes in sandbox
       → Claude: [action:A2 :action/type :fix-error :action/diagnostic diag:ts-1] (memory)

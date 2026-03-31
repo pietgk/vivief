@@ -300,7 +300,7 @@ Every transaction carries metadata as first-class datoms:
 
 ```
 [:tx/1087  :tx/what   [:session/42 :session/mood "anxious, hopeful"]  tx:1087  true]
-[:tx/1087  :tx/how    :effect/voice-recap                             tx:1087  true]
+[:tx/1087  :tx/how    :session/voice-recapped                             tx:1087  true]
 [:tx/1087  :tx/who    :therapist/anna                                 tx:1087  true]
 [:tx/1087  :tx/why    "Client reported sleep regression → exploring CBT-I"  tx:1087  true]
 ```
@@ -572,7 +572,7 @@ Fallback when LLM extraction fails or times out (60s): commit the Loro snapshot 
 [:doc/42   :doc/loro-version  <loro-version-vector>             tx:N  true]
 [:doc/42   :doc/themes        ["sleep","anxiety","cbt-i"]       tx:N  true]
 [:doc/42   :doc/mood-summary  "anxious but improving"           tx:N  true]
-[:tx/N     :tx/how            :effect/crdt-commit               tx:N  true]
+[:tx/N     :tx/how            :doc/crdt-committed               tx:N  true]
 [:tx/N     :tx/why            "Session recap auto-save (2s idle)" tx:N  true]
 ```
 
@@ -659,7 +659,7 @@ CREATE INDEX idx_aevt ON datoms (a, e, tx DESC);
 -- TXID: time range queries — "give me all facts since tx:1000"
 CREATE INDEX idx_tx ON datoms (tx DESC);
 
--- AVET: attribute + value (text) — "find handler where effect-type = :effect/session-recap"
+-- AVET: attribute + value (text) — "find handler where effect-type = :session/recap-requested"
 CREATE INDEX idx_avet_text ON datoms (a, v_text, e)
   WHERE v_type = 'text';
 
@@ -889,9 +889,9 @@ async function dispatch(state: State, effect: Effect): Promise<void> {
 
   // 5. Execute handler with timeout
   const result = await withTimeout(
-    () => handler(state, effect),
+    () => handler(state, intent),
     30_000,
-    () => handleTimeout(effect)
+    () => handleTimeout(intent)
   )
 
   // 6. Contract validation — abort atomically if any fail
@@ -977,7 +977,7 @@ async function handleDispatchFailure(err: unknown, effect: Effect): Promise<void
 Every handler is registered as datoms. The key change from v0.6: `module-path` replaces `git-ref`. Git-refs are a development-time concept; the runtime resolves handlers by file path to a built artifact.
 
 ```
-[:handler/session-recap  :handler/effect-type  :effect/session-recap                    tx:1  true]
+[:handler/session-recap  :handler/effect-type  :session/recap-requested                    tx:1  true]
 [:handler/session-recap  :handler/module-path  "dist/handlers/session-recap.v1.mjs"     tx:1  true]
 [:handler/session-recap  :handler/active       true                                     tx:1  true]
 ```
@@ -991,7 +991,7 @@ A feature flag is a datom that the dispatcher reads at runtime to decide which c
 ```
 // Flag: disabled (new handler built but not active)
 [:feature/soap-v2  :feature/enabled      false                        tx:N    true]
-[:feature/soap-v2  :feature/effect-type  :effect/session-recap        tx:N    true]
+[:feature/soap-v2  :feature/effect-type  :session/recap-requested        tx:N    true]
 [:feature/soap-v2  :feature/handler      :handler/session-recap-v2    tx:N    true]
 
 // Enable for one client first (testing)
@@ -1023,7 +1023,7 @@ The deployment model separates two concerns that v0.6 conflated: **version contr
 3. When ready: `pnpm build:handler session-recap` → outputs `dist/handlers/session-recap.v2.mjs`
 4. Register new handler datom pointing to the built artifact:
    ```
-   [:handler/session-recap-v2  :handler/effect-type  :effect/session-recap              tx:N  true]
+   [:handler/session-recap-v2  :handler/effect-type  :session/recap-requested              tx:N  true]
    [:handler/session-recap-v2  :handler/module-path  "dist/handlers/session-recap.v2.mjs" tx:N  true]
    [:handler/session-recap-v2  :handler/active       true                               tx:N  true]
    ```
@@ -1087,13 +1087,13 @@ Enforced on every datom write for a `:client` entity.
 
 **Effect contracts** — handler output validity:
 ```
-[:contract/recap  :contract/effect-type  :effect/session-recap       tx:1  true]
+[:contract/recap  :contract/effect-type  :session/recap-requested       tx:1  true]
 [:contract/recap  :contract/requires     :session/themes             tx:1  true]
 [:contract/recap  :contract/requires     :session/mood-pre           tx:1  true]
 [:contract/recap  :contract/requires     :tx/why                    tx:1  true]
 [:contract/recap  :contract/forbids      :session/diagnosis          tx:1  true]
 ```
-Enforced on every dispatch of `:effect/session-recap`.
+Enforced on every dispatch of `:session/recap-requested`.
 
 **Invariant contracts** — cross-entity business rules, expressed as `DatomQuery` conditions:
 ```

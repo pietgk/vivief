@@ -24,13 +24,13 @@ Alternative 4 from vivief-concepts-creation.md showed that code, content, UI, an
 | AI suggests treatment adjustment | Draft treatment datoms | AI | Treatment Contract + approval gate |
 | P2P peer sends datoms | Replicated datoms from another device | Remote system | Sync Contract (validate before accept) |
 
-**Every single thing vivief does is creation.** The effectHandler formula `(state, effect) => (state', [effect'])` IS creation: you take existing state, apply an intent, and create new state. The only question is: **who creates, and how much does the Contract trust them?**
+**Every single thing vivief does is creation.** The effectHandler formula `(state, intent) => (state', [intent'])` IS creation: you take existing state, apply an intent, and create new state. The only question is: **who creates, and how much does the Contract trust them?**
 
 ---
 
 ## Alternative 1: "Creation IS the Core Thesis"
 
-> Replace "Everything is `(state, effect) => (state', [effect'])`" with "Everything is creation."
+> Replace "Everything is `(state, intent) => (state', [intent'])`" with "Everything is creation."
 
 ### The New Core Thesis
 
@@ -105,7 +105,7 @@ But the **framing** changes. Instead of "seven concepts that model the platform,
 
 ### Assessment
 
-**Strengths:** "Creation" is more intuitive than `(state, effect) => (state', [effect'])`. A counselor understands "I create session notes" better than "my effectHandler produces datoms." Trust as Contract property elegantly unifies the dual-loop's safety model (AI = draft) with the single creation pattern. The formula is still there — it's just not the thesis.
+**Strengths:** "Creation" is more intuitive than `(state, intent) => (state', [intent'])`. A counselor understands "I create session notes" better than "my effectHandler produces datoms." Trust as Contract property elegantly unifies the dual-loop's safety model (AI = draft) with the single creation pattern. The formula is still there — it's just not the thesis.
 
 **Weaknesses:** "Everything is creation" is very broad. Deleting a datom (retraction) is creation? Reading data (Projection query) is creation? The thesis might be so general it loses explanatory power. Also, "creation" has positive connotations — error handling, failure recovery, and conflict resolution don't feel like "creation."
 
@@ -182,7 +182,7 @@ Sandboxed creations commit to the datom store but under a sandbox namespace. Onl
 ### The Morning Brief example
 
 ```
-Intent: :effect/create-morning-brief
+Intent: :brief/creation-requested
 Actor: AI (gated)
 Contract: {
   creates: "brief",

@@ -286,7 +286,7 @@ A custom LLM abstraction that maps exactly to the effectHandler pattern:
 - **Observability as datoms** — tokens, cost, latency, model stored as regular datoms alongside results, queryable via Projection
 - **Provider adapters** (Anthropic, OpenAI) as effectHandlers producing datoms with provenance
 
-Every LLM call is an effectHandler: `(state, effect) => { datoms, effects }`. The effectHandler IS the abstraction. No framework on top.
+Every LLM call is an effectHandler: `(state, intent) => { datoms, intents }`. The effectHandler IS the abstraction. No framework on top.
 
 Browser-direct API calls to CORS-enabled provider endpoints. No server proxy needed for Phase 1–12. In Phase 13–16, the moq-relay could optionally proxy LLM calls if API key management requires it.
 

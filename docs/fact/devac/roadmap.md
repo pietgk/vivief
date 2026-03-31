@@ -391,7 +391,7 @@ graph LR
 **The Universal Pattern:**
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 Effects are NOT specific to code - they're the universal abstraction for ALL changes in the system.

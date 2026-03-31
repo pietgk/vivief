@@ -134,10 +134,10 @@ interface SecuritySandbox {
 
   // What the actor can DO (Behavior Contract)
   behavior: {
-    accepts: [":effect/analyze-content"]
+    accepts: [":content/analysis-requested"]
     produces: {
       required: [":analysis/summary", ":analysis/trust-signals"]
-      forbidden: [":effect/write-file", ":effect/network-request", ":effect/modify-config"]
+      forbidden: [":file/write-requested", ":network/request-sent", ":config/modification-requested"]
     }
     output: "structured-schema-only"
   }
@@ -309,7 +309,7 @@ Contract: Behavior Contract
   - File content schema validation
   - Surface diff: hash before/after each tool call
 
-Vivief model: file write = effectHandler(:effect/write-file, { path, content })
+Vivief model: file write = effectHandler(:file/write-requested, { path, content })
   Behavior Contract specifies allowed paths per sandbox level.
   Surface diff wraps the call — unexpected writes = violation.
 ```
@@ -376,7 +376,7 @@ Contract: DETERMINISTIC (not LLM-governed)
   - Request log: every outbound request logged (empty = clean in sandbox)
   - Markdown/HTML sanitizer strips image tags from untrusted content
 
-Vivief model: effectHandler(:effect/fetch) — Behavior Contract
+Vivief model: effectHandler(:network/fetch-requested) — Behavior Contract
   specifies allowed domains. Infrastructure enforces at network level.
   The LLM CANNOT construct arbitrary URLs — it selects from approved sources.
 ```

@@ -42,7 +42,7 @@ How DevAC transforms source code into architectural understanding: from AST to C
 The pipeline addresses a fundamental challenge: **code is structured for execution, not understanding**.
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 If Effects capture complete semantics, understanding effects = understanding code.

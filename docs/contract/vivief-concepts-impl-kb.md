@@ -38,7 +38,7 @@
 | **TypeScript / Deno** | Built-in TypeScript, modern APIs, permissions model | Smaller ecosystem, compatibility gaps |
 | **TypeScript / Bun** | Fast startup, built-in bundler, Node.js compatible | Younger runtime, compatibility edge cases |
 
-**Concept connection.** The effectHandler signature `(state, effect) => { datoms, effects }` is language-agnostic but benefits from TypeScript's type system for Contract enforcement at compile time. Actor-level handlers need robust async primitives.
+**Concept connection.** The effectHandler signature `(state, intent) => { datoms, intents }` is language-agnostic but benefits from TypeScript's type system for Contract enforcement at compile time. Actor-level handlers need robust async primitives.
 
 ### 2.2 Datom Store
 
@@ -336,7 +336,7 @@ Contract enforcement follows the trust boundary (v6 §2.4). Implementation appro
 - Domain-specific Guard Contracts → start as handler logic. As patterns stabilize, enforcement externalizes into infrastructure rules. This migration is the deterministic-first loop applied to enforcement itself.
 
 **Post-commit enforcement (async):**
-- Cross-entity invariants checked after the fact. Violations produce error datoms and `:effect/validation-failed` for escalation. Runs as a separate system actor triggered by commit events.
+- Cross-entity invariants checked after the fact. Violations produce error datoms and `:validation/failed` for escalation. Runs as a separate system actor triggered by commit events.
 
 ### Bridge Pattern
 
@@ -379,7 +379,7 @@ The LLM doesn't continuously monitor — it observes when triggered:
 - **Repeated explanations**: when the explanation handler generates similar explanations for different users encountering the same concept confusion
 - **Repeated debug narratives**: when `Projection.debug()` output for different entities follows the same pattern (same Contract failures, same escalation paths)
 
-Each trigger produces an `:effect/rule-proposal-needed` datom with context.
+Each trigger produces an `:rule/proposal-needed` datom with context.
 
 ### How Rules Are Proposed
 
@@ -455,7 +455,7 @@ active Contract          → reviewed, validated, enforced by the system
 infrastructure Contract  → enforcement migrated to external (§5 enforcement strategy)
 ```
 
-The system proposes formalization (`:effect/rule-proposal-needed`) but a human approves each transition. Knowledge files are not dead weight — they're the intermediate form between LLM-discovered patterns and formalized Contracts.
+The system proposes formalization (`:rule/proposal-needed`) but a human approves each transition. Knowledge files are not dead weight — they're the intermediate form between LLM-discovered patterns and formalized Contracts.
 
 **Evidence from devac.** The devac plugin's knowledge directories demonstrate this path in practice. Quality rules (M1-M4) and C4 gap metrics (G1-G4) are proto-Contracts — structured rules with numbered items, quantitative thresholds, and applicability conditions, living in markdown files:
 

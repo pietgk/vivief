@@ -393,22 +393,22 @@ Each source has its own inbound bridge. Each bridge has its own Contract. The ef
 ### Alt A: Bridge as effectHandler
 
 Every bridge IS an effectHandler:
-- Inbound bridge = `(state, :effect/gather-{source}) => { datoms, effects }`
-- Outbound bridge = `(state, :effect/land-{medium}) => { datoms, effects }`
+- Inbound bridge = `(state, :bridge/{source}-gathered) => { datoms, intents }`
+- Outbound bridge = `(state, :bridge/{medium}-landed) => { datoms, intents }`
 
 ```
 Inbound:
-  handler(:effect/gather-github, { issue: 42 })
-    => { datoms: [intent datoms], effects: [] }
+  handler(:bridge/github-gathered, { issue: 42 })
+    => { datoms: [intent datoms], intents: [] }
 
 Outbound:
-  handler(:effect/land-filesystem, { path: "recap.ts", content })
-    => { datoms: [provenance datoms], effects: [:effect/validate] }
+  handler(:bridge/filesystem-landed, { path: "recap.ts", content })
+    => { datoms: [provenance datoms], intents: [:validation/requested] }
 ```
 
 **Strength:** Clean. No new concept. Bridge dissolves into effectHandler — it's just what effectHandlers do at medium boundaries.
 
-**Weakness:** "Bridge" disappears as vocabulary. When explaining the system, you can't say "the bridge syncs files to datoms" — you'd say "the effectHandler that handles :effect/gather-filesystem produces datoms." More precise but less intuitive.
+**Weakness:** "Bridge" disappears as vocabulary. When explaining the system, you can't say "the bridge syncs files to datoms" — you'd say "the effectHandler that handles :bridge/filesystem-gathered produces datoms." More precise but less intuitive.
 
 ### Alt B: Bridge as named pattern (current approach)
 
@@ -513,7 +513,7 @@ Gather:
   - Projection(today's-clients, delivery: snapshot) → loads client history, notes, risk flags
   - No filesystem involved — all datom-native
 Create:
-  - effectHandler(:effect/morning-brief) → AI summarizes, flags risks
+  - effectHandler(:brief/preparation-requested) → AI summarizes, flags risks
   - In-flight Contract: no diagnosis language, no unauthorized detail
   - Trust: gated (counselor reviews before acting)
 Land:
@@ -573,7 +573,7 @@ Gather (multiple inbound bridges):
   - LLM memory: prior XState experience (via datom Projection)
 Create:
   - LLM synthesizes all sources → generates handler code
-  - effectHandler(:effect/create-file, { path, content })
+  - effectHandler(:file/creation-requested, { path, content })
   - In-flight Contract: code must follow project patterns (from code graph datoms)
 Land:
   - File on disk (session-recap.ts)

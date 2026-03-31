@@ -13,7 +13,7 @@ The universal control pattern. Every state transition in vivief is an effectHand
 ## Signature
 
 ```typescript
-handler(state: State, effect: Effect): { datoms: Datom[], effects: Effect[] }
+handler(state: State, intent: Intent): { datoms: Datom[], intents: Intent[] }
 ```
 
 Input: current state (via Projection) and an effect. Output: new datoms and further effects. Pure, testable, composable.
@@ -74,7 +74,7 @@ interface BehaviorContract {
 
 Two paths, both auditable:
 
-- **Graceful**: handler returns `{ datoms: [error-datoms], effects: [:effect/failed] }` -- triggers escalation
+- **Graceful**: handler returns `{ datoms: [error-datoms], intents: [:handler/failed] }` -- triggers escalation
 - **Crash**: actor runtime catches exception, produces crash datom -- escalates to human immediately
 
 Both produce datoms in the log. Both enter the creation loop.

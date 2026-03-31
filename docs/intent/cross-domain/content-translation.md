@@ -59,7 +59,7 @@ A blog post instance:
 [post:42  :post/author   :user/anna                  tx:10  true]
 ```
 
-Publishing workflow is an effectHandler: `(state, :effect/publish) => { datoms: [status-change], effects: [notify-subscribers] }`. Draft → review → published is a Behavior Contract (state machine). This is already covered by the concepts — zero new machinery.
+Publishing workflow is an effectHandler: `(state, :content/publication-requested) => { datoms: [status-change], intents: [:notification/subscribers-notified] }`. Draft → review → published is a Behavior Contract (state machine). This is already covered by the concepts — zero new machinery.
 
 **Content blocks** are datoms with ref attributes composing a page:
 
@@ -94,7 +94,7 @@ Projection({
 
 **Cultural concepts without equivalents:** When a concept exists in one language but not another, the translated attribute simply doesn't exist. The fallback chain handles this — Surface shows the original-language term with an annotation, or the content author writes a culturally adapted version instead of a translation.
 
-**AI translation as effectHandler:** `(state, :effect/translate) => { datoms: [translated-content] }`. The AI loop proposes translations (`:tx/source :ai`, `:tx/status :pending`), human translator reviews and approves.
+**AI translation as effectHandler:** `(state, :content/translation-requested) => { datoms: [translated-content] }`. The AI loop proposes translations (`:tx/source :ai`, `:tx/status :pending`), human translator reviews and approves.
 
 ### Assessment
 

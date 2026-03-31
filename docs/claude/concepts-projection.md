@@ -36,7 +36,7 @@ interface Projection {
 | **live-persistent** | Like live but independent entity with lifecycle. Survives Surface unmount. Recorded as datoms with `:projection/status` (active/paused/stopped) |
 | **replay** | Full history from tx:0 or asOf(tx). Time-travel |
 
-Live Projections are ephemeral by default. Mark persistent when they must outlive any particular Surface. On Store compaction, persistent Projections re-snapshot automatically via `:effect/compaction-complete`.
+Live Projections are ephemeral by default. Mark persistent when they must outlive any particular Surface. On Store compaction, persistent Projections re-snapshot automatically via `:compaction/completed`.
 
 ## Named Profiles
 

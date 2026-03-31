@@ -12,7 +12,7 @@
 Push as much as possible into the **deterministic world** (systems handle it) so humans and LLMs can focus on what they do best (reasoning, decisions, creativity).
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 the main concept is that everything can be presented with effectHandlers  that take a state and an effect, and return a new state and a list of new effects to be handled.

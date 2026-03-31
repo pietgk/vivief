@@ -216,7 +216,7 @@ The keypair handles transport authentication. Trust Contract + Projection Contra
 interface SyncContract {
   resolution: { text: "crdt-loro", scalar: "last-writer-wins", ref: "manual-merge" }
   scope: { push: DatomQuery, pull: DatomQuery }
-  claim: { pattern: ":effect/claimed-by", timeout: "30s" }
+  claim: { pattern: ":work/claimed-by", timeout: "30s" }
 }
 ```
 

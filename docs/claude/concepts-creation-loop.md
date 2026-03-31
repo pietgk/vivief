@@ -18,9 +18,9 @@ effect (Intent) -> Contract(effectHandler) -> datoms (result)
 
 An effect enters the loop. A Contract governs the effectHandler that processes it. The result is datoms.
 
-## Intent = The Effect Parameter
+## Intent = The Parameter
 
-Intent is not a new concept. It is the `effect` parameter entering the creation loop. When a counselor clicks "Prepare for 9:00," that's `:effect/prepare-session`. When `devac sync` runs, that's `:effect/sync-requested`. Intent carries what-to-create, for-whom, and at-what-depth as datom attributes.
+Intent is not a new concept. It is the `intent` parameter entering the creation loop. Intents use domain-specific namespaces with past-tense names (no `:intent/*` namespace), consistent with CQRS-ES convention. When a counselor clicks "Prepare for 9:00," that's `:session/preparation-requested`. When `devac sync` runs, that's `:sync/requested`. Intent carries what-to-create, for-whom, and at-what-depth as datom attributes.
 
 ## Full Loop with Failure and Escalation
 
@@ -30,7 +30,7 @@ Intent -> Contract -> Create -> Validate --- pass --> Cache
           (defines    (human,   fail
            what's     AI, or     |
            valid      system)    v
-           + trust)         error datoms + :effect/fix
+           + trust)         error datoms + :fix/requested
                                  |
                           Fix (another creation,
                            reading errors as input)
@@ -77,7 +77,7 @@ Knowledge matures through a predictable path:
 tacit knowledge -> knowledge file -> proto-Contract -> proposed Contract -> active Contract -> infrastructure Contract
 ```
 
-The system proposes formalization (`:effect/rule-proposal-needed`) but a human approves each transition. Enforcement migrates outward as patterns stabilize.
+The system proposes formalization (`:rule/proposal-needed`) but a human approves each transition. Enforcement migrates outward as patterns stabilize.
 
 ## The Chicken-and-Egg
 

@@ -49,7 +49,7 @@ Code contains implicit state machines that aren't queryable:
 **Actors follow the same pattern**. The effect handler formula from [foundation.md](./foundation.md):
 
 ```
-effectHandler = (state, effect) => (state', [effect'])
+effectHandler = (state, intent) => (state', [intent'])
 ```
 
 Applies directly to actors:

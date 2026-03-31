@@ -6,7 +6,7 @@
 
 ## 1. Core Thesis
 
-**The platform exists to help humans, AI, and systems create. All creation follows `(state, effect) => (state', [effect'])`. What varies is who creates and how much the Contract trusts them.**
+**The platform exists to help humans, AI, and systems create. All creation follows `(state, intent) => (state', [intent'])`. What varies is who creates and how much the Contract trusts them.**
 
 **Deterministic first.** Each actor does what it's best at. The system validates deterministically — fast, consistent, auditable. The LLM generates the rules the system enforces — pattern recognition, rule authoring, natural language explanation. The human approves, judges, and decides domain questions. When the LLM handles edge cases via reasoning, it observes its own patterns and proposes new deterministic rules. The system gets more deterministic over time. **LLM authors, system enforces, LLM refines.**
 
@@ -20,11 +20,11 @@ Datom → Projection → Surface → Contract → effectHandler
          +trust scope            these
 ```
 
-At runtime, they are actors communicating via effects. Streaming is native via Projection delivery modes. Contracts cross-cut everything — any concept can have one. Every activity — a counseling session, a code analysis, a morning brief, a cultural adaptation — is creation through this same machinery.
+At runtime, they are actors communicating via intents. Streaming is native via Projection delivery modes. Contracts cross-cut everything — any concept can have one. Every activity — a counseling session, a code analysis, a morning brief, a cultural adaptation — is creation through this same machinery.
 
 **A Contract declares. An effectHandler enforces.** Every active Contract has an effectHandler that applies it. Creating new Contracts is itself creation — following the same loop, same trust strategies. This is how the system improves: LLM creates rules (Contracts), system enforces them (effectHandlers), LLM observes and refines.
 
-**Intent is an effect.** The creation loop begins with an effect — the `effect` parameter in `handler(state, effect)`. When a counselor clicks "Prepare for 9:00," that's `:effect/prepare-session`. When `devac sync` runs, that's `:effect/sync-requested`. Intent carries what-to-create, for-whom, and at-what-depth as datom attributes. Formalizing Intent doesn't add a concept — it names what the `effect` parameter already is when it enters the creation loop.
+**Intent is the parameter.** The creation loop begins with an intent — the `intent` parameter in `handler(state, intent)`. When a counselor clicks "Prepare for 9:00," that's `:session/preparation-requested`. When `devac sync` runs, that's `:sync/requested`. Intent carries what-to-create, for-whom, and at-what-depth as datom attributes. Formalizing Intent doesn't add a concept — it names the parameter that enters the creation loop. Intent uses domain-specific namespaces with past-tense naming (`:session/completed`, `:validation/failed`, `:compaction/requested`) — there is no `:intent/*` namespace because intent is a phase of the creation loop, not a type of datom.
 
 **Validation is exempt from recursion.** Validation datoms produced by system actors (trust 1.0) are exempt from re-entering the creation loop. They commit directly. This prevents infinite recursion — enforcement produces datoms, but those datoms don't trigger further enforcement.
 
@@ -113,7 +113,7 @@ interface Projection {
 | **live-persistent** | Like live, but independent entity with lifecycle. Survives Surface unmount. |
 | **replay** | Full history from tx:0 or asOf(tx). Time-travel. |
 
-**Live Projection — two tiers.** A live Projection is ephemeral by default (dies with its Surface); mark it persistent when it must outlive any particular Surface. Persistent Projections are recorded as datoms with `:projection/status` (active / paused / stopped), consumable by zero or more Surfaces. On Store compaction, persistent Projections re-snapshot automatically via `:effect/compaction-complete`.
+**Live Projection — two tiers.** A live Projection is ephemeral by default (dies with its Surface); mark it persistent when it must outlive any particular Surface. Persistent Projections are recorded as datoms with `:projection/status` (active / paused / stopped), consumable by zero or more Surfaces. On Store compaction, persistent Projections re-snapshot automatically via `:compaction/completed`.
 
 **Named profiles.** Most uses need only a few dimensions. Three named profiles provide convenience:
 
@@ -304,7 +304,7 @@ interface TrustContract {
 interface SyncContract {
   resolution: { text: "crdt-loro", scalar: "last-writer-wins", ref: "manual-merge" }
   scope: { push: DatomQuery, pull: DatomQuery }
-  claim: { pattern: ":effect/claimed-by", timeout: "30s" }
+  claim: { pattern: ":work/claimed-by", timeout: "30s" }
 }
 ```
 
@@ -317,7 +317,7 @@ The universal control pattern. Two zoom levels and an orthogonal implementation 
 **Level 1 — The function:**
 
 ```typescript
-handler(state: State, effect: Effect): { datoms: Datom[], effects: Effect[] }
+handler(state: State, intent: Intent): { datoms: Datom[], intents: Intent[] }
 ```
 
 Pure, testable, composable. State via Projection. Most handlers.
@@ -349,7 +349,7 @@ Implementation strategy affects trust scoring and the deterministic-first evolut
 
 **Failure model.** Two paths, both auditable:
 
-- **Graceful failure**: the handler returns `{ datoms: [error-datoms], effects: [:effect/failed] }`. Triggers the creation loop's escalation.
+- **Graceful failure**: the handler returns `{ datoms: [error-datoms], intents: [:handler/failed] }`. Triggers the creation loop's escalation.
 - **Crash**: the actor runtime catches the exception and produces a crash datom: `[handler:X :handler/crashed "reason" tx:N true]`. Escalates to human immediately.
 
 Both are datoms in the log — auditable, queryable. Both enter the creation loop.
@@ -367,7 +367,7 @@ interface BehaviorContract {
 
 **Streaming from actors.** LLM handler actors produce in-flight token effects. Surface actors with `freshness: "in-flight"` render them. In-flight Contracts validate them. On completion, the final datom commits.
 
-**Context compaction.** `(state, :effect/compact) => { datoms: [summary-datom], effects: [] }`. Named pattern for LLM context window management.
+**Context compaction.** `(state, :compaction/requested) => { datoms: [summary-datom], intents: [] }`. Named pattern for LLM context window management.
 
 **Effects as understanding.** The system observes itself through effects. Every meaningful action — a function call, a store write, an LLM invocation — produces effect datoms. This is the foundation of the deterministic-first loop:
 
@@ -401,7 +401,7 @@ Intent → Contract → Create → Validate ─── pass ──→ Cache
           what's     AI, or     │
           valid      system)    ▼
           + trust)         error datoms
-                         + :effect/fix
+                         + :fix/requested
                                │
                        ┌───────┘
                        ▼
@@ -464,7 +464,7 @@ Examples: devac sync bridges source code to code graph datoms. A metadata extrac
 
 ### Validation Feedback
 
-When a Contract rejects a creation, error datoms are committed and `:effect/validation-failed` is emitted. Three fix strategies compose: auto-fix (deterministic, cheap) → AI-fix (sandbox, iterates until Contracts pass) → human-fix (errors surfaced via Projection). The escalation itself can be a StateMachine Contract.
+When a Contract rejects a creation, error datoms are committed and `:validation/failed` is emitted. Three fix strategies compose: auto-fix (deterministic, cheap) → AI-fix (sandbox, iterates until Contracts pass) → human-fix (errors surfaced via Projection). The escalation itself can be a StateMachine Contract.
 
 ### The Compounding Flywheel
 
@@ -484,7 +484,7 @@ Knowledge matures through a predictable path:
 tacit knowledge → knowledge file → proto-Contract → proposed Contract → active Contract → infrastructure Contract
 ```
 
-The system proposes formalization (`:effect/rule-proposal-needed`) but a human approves each transition. Enforcement migrates outward as patterns stabilize.
+The system proposes formalization (`:rule/proposal-needed`) but a human approves each transition. Enforcement migrates outward as patterns stabilize.
 
 ### Operations as Creation of Understanding
 
@@ -523,7 +523,7 @@ Operations fit the creation loop: you're creating understanding, not features. M
        → Additive — existing datoms still valid, no migration needed
 
 10:15  Write effectHandler
-       → handler(state, :effect/session-complete) => { datoms: [risk-assessment], effects: [] }
+       → handler(state, :session/completed) => { datoms: [risk-assessment], intents: [] }
        → Reads session datoms via Projection.snapshot(), computes risk level
        → Returns datom with :tx/source :ai/text-generation, :tx/trust-score 0.85
 
@@ -534,7 +534,7 @@ Operations fit the creation loop: you're creating understanding, not features. M
 
 10:45  Fix error
        → Behavior Contract rejects: handler produces :forbidden/diagnosis attribute
-       → Error datom committed, :effect/validation-failed emitted
+       → Error datom committed, :validation/failed emitted
        → Developer reads error via Projection, removes the attribute, re-validates
        → Pass. Feature complete at the Feature slice — no Surface needed yet
 ```
@@ -590,8 +590,8 @@ At runtime, the five concepts become actors communicating via effects. Streaming
 
 ```
 HumanActor (counselor)
-  → emits :effect/voice-input
-    → SessionRecapActor.receive(:effect/voice-input)
+  → emits :voice/input-received
+    → SessionRecapActor.receive(:voice/input-received)
       → TranscriberActor produces in-flight tokens
         → InFlightContract validates each chunk
         → DialogSurfaceActor renders (Render Contract enforces a11y)
@@ -668,10 +668,10 @@ The streaming path (in-flight tokens → Contract validation → Surface renderi
 
 | Term | Definition |
 |------|-----------|
-| **effectHandler** | `(state, effect) => { datoms, effects }` — function or actor |
+| **effectHandler** | `(state, intent) => { datoms, intents }` — function or actor |
 | **implementation strategy** | How an effectHandler is implemented: code, markdown/LLM, StateMachine, or hybrid |
 | **Contract-governed** | `Contract(effectHandler)` — Contract wraps handler with preconditions on intent and postconditions on result |
-| **graceful failure** | Handler returns error datoms + `:effect/failed` — triggers escalation |
+| **graceful failure** | Handler returns error datoms + `:handler/failed` — triggers escalation |
 | **crash** | Runtime catches exception → `:handler/crashed` datom → escalates to human |
 | **context compaction** | Named pattern for LLM context window management |
 

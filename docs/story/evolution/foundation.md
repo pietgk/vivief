@@ -7,7 +7,7 @@
 | v2.1 | 2025-01 | Refinements to effect hierarchy |
 | v2.2 | 2025-01 | Further refinements |
 | v2.3 | 2025-01 | Precursor to v3, workspace topology |
-| v3 | 2025-02 | **Current** — aligned to v6 concepts, universal abstraction `(state, effect) => (state', [effect'])` |
+| v3 | 2025-02 | **Current** — aligned to v6 concepts, universal abstraction `(state, intent) => (state', [intent'])` |
 
 ## Key transitions
 

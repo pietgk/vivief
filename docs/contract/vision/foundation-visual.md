@@ -425,7 +425,7 @@ graph LR
     H4 --> E5[QueryReady]
 ```
 
-**Universal Pattern**: `effectHandler = (state, effect) => (state', [effect'])`
+**Universal Pattern**: `effectHandler = (state, intent) => (state', [intent'])`
 
 ---
 
