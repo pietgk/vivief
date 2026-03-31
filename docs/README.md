@@ -1,100 +1,67 @@
-# DevAC Documentation
+# Vivief Documentation
 
-**DevAC** (Developer Analysis & Codebase) is 
-- a combination of tools to enable developers to use the combination of humans, systems and llm's to have a powerfull and easy DX to create validated high quality systems that are documented and can be explained. 
-- a federated code analysis system that parses codebases into queryable knowledge graphs using DuckDB + Parquet.
+**Vivief** (ViViEf = Vision View Effect) is a platform for human-AI-system creation. **DevAC** (Developer Analytics Centre) is the first domain — code analysis, validation, and workflow. **Counseling** and **Procurement** are planned domains.
 
-## Documentation Structure
+## Structure — The Creation Loop
 
-### Vision (Conceptual Foundation)
-
-What we're building and why. Start here to understand the concepts and philosophy.
-
-| Document | Description |
-|----------|-------------|
-| [Foundation](./vision/foundation.md) | Core concepts: Effect Handler pattern, Seeds, Vision↔View loop |
-| [Visual Guide](./vision/foundation-visual.md) | Architecture diagrams and visual explanations |
-| [Implementation Guide](./vision/foundation-impl-guide.md) | How to implement foundation concepts |
-
-### Implementation (What's Built)
-
-Technical details of the current implementation.
-
-| Document | Description |
-|----------|-------------|
-| [Overview](./implementation/overview.md) | High-level system architecture |
-| [Roadmap](./implementation/roadmap.md) | Implementation phases and progress |
-| [Data Model](./implementation/data-model.md) | Nodes, edges, refs schema |
-| [Storage](./implementation/storage.md) | DuckDB + Parquet internals |
-| [Parsing](./implementation/parsing.md) | Two-pass analysis flow |
-| [Resolution](./implementation/resolution.md) | Semantic resolution details |
-| [Federation](./implementation/federation.md) | Multi-repo queries |
-| [Context Discovery](./implementation/context-discovery.md) | Workspace context detection |
-| [AST](./implementation/ast.md) | AST extraction architecture |
-| [Eval Framework](./implementation/eval-framework.md) | Answer quality evaluation internals |
-
-### User Guides
-
-Getting started and reference documentation.
-
-| Document | Description |
-|----------|-------------|
-| [Quick Start](./quick-start.md) | Get up and running (10 min) |
-| [Change-Validate-Fix Loop](./change-validate-fix.md) | Automatic validation with Claude Code |
-| [Start Asking About Your Code](./start-asking-about-your-code-guide.md) | End-to-end AI integration guide |
-| [CLI Reference](./cli-reference.md) | All commands |
-| [API Reference](./api-reference.md) | Programmatic usage |
-| [MCP Server](./mcp-server.md) | AI assistant integration |
-| [Worktree Workflow](./devac-worktree.md) | Issue-based git worktrees |
-| [Eval Framework](./eval-framework.md) | LLM answer quality evaluation |
-
-### Archive
-
-[Historical foundation versions](./archive/) - preserved for reference.
-
----
-
-## What is DevAC?
-
-DevAC is a **file-based, federated code analysis system** that replaces traditional graph databases with a more portable approach:
+The documentation follows vivief's own creation model: **intent** (ideas) → **contract** (decisions) → **fact** (reality).
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  SOURCE CODE                                                    │
-│  ├── repo-api/                                                  │
-│  │   └── packages/auth/.devac/seed/                            │
-│  │       ├── base/nodes.parquet    ← Analyzed code structure   │
-│  │       └── branch/nodes.parquet  ← Current branch delta      │
-│  ├── repo-web/                                                  │
-│  └── repo-mobile/                                               │
-│                                                                 │
-│  QUERY ENGINE                                                   │
-│  └── DuckDB ───► Direct Parquet queries, no import needed     │
-└─────────────────────────────────────────────────────────────────┘
+docs/
+├── claude/        ← Claude windows: 50-80 line summaries for AI sessions
+├── intent/        ← Open questions & active brainstorms, by topic
+├── contract/      ← Locked decisions, specs & ADRs, by topic
+├── fact/          ← Implemented reality: code docs, guides, references
+├── story/         ← Narrative: path from start to now + evolution logs
+└── archive/       ← All historical versions, resolved brainstorms
 ```
 
-## Core Principles
+## Getting Started
 
-1. **Source Code is Truth** - Seeds are derived, always regenerable
-2. **No Data Duplication** - Query Parquet files directly
-3. **Single Technology Stack** - DuckDB + Parquet everywhere
-4. **Package-Local by Default** - Federation is opt-in
-5. **LLM-Optimized Output** - Context-rich query results
+| You want to... | Start here |
+|-----------------|-----------|
+| **Use DevAC** | [Quick Start](fact/guides/quick-start.md) → [CLI Reference](fact/guides/cli-reference.md) |
+| **Understand the vision** | [claude/INDEX.md](claude/INDEX.md) → [Concepts v6](contract/vivief-concepts-v6.md) |
+| **See the full story** | [Story Arc](story/arc.md) → [Evolution logs](story/evolution/) |
+| **Brainstorm with Claude** | Load [claude/INDEX.md](claude/INDEX.md) first, then relevant topic windows |
+| **Find a decision** | [ADRs](contract/adr/README.md) + [Relevance overlay](contract/adr/RELEVANCE.md) |
+| **Explore open questions** | Browse [intent/](intent/) by topic |
 
-## Key Features
+## Claude Windows (Dual Format)
 
-- **Multi-language**: TypeScript, Python, C# support
-- **Incremental Updates**: Sub-second file change handling
-- **Cross-Repo Queries**: Federated queries across repositories
-- **Symbol-Level Precision**: Track individual function/class usage
-- **Affected Detection**: Know exactly what changes impact
+Every topic has two representations:
+- **Claude window** (`claude/*.md`): 50-80 lines with frontmatter — loads fast, gives Claude enough context to participate
+- **Human version**: Full document linked from the Claude window's `human-version:` field
 
-## Version
+Start with the Claude window. Follow the link when you need depth.
 
-- **Current Version**: 2.2.0
-- **Status**: Active Development
-- **Last Updated**: January 2026
+## Document Lifecycle
 
----
+```
+NEW IDEA → intent/[topic]/        Brainstorm, explore
+DECISION → contract/[topic]/      Lock it down, ADR or spec
+BUILT    → fact/[topic]/          Document what ships
+OLD      → archive/[topic]/       Preserve with evolution log in story/evolution/
+```
 
-*Start with [Vision Foundation](./vision/foundation.md) to understand the concepts, or [Quick Start](./quick-start.md) to dive in.*
+## Five Concepts
+
+Vivief models everything with five concepts:
+
+| Concept | Role | One-liner |
+|---------|------|-----------|
+| **Datom** | Fact | `[Entity, Attribute, Value, Tx, Op]` — universal, immutable, append-only |
+| **Projection** | Query | Query + access + encryption + delivery + trust |
+| **Surface** | Render | 6 modes: Stream, Card, Canvas, Dialog, Board, Diagram |
+| **Contract** | Constrain | Declares rules; effectHandler enforces them |
+| **effectHandler** | Transition | `(state, effect) => (state', [effect'])` — the universal abstraction |
+
+Everything else (domain, bridge, artifact, slice, profile, skill) is a **pattern**, not a concept.
+
+## Three Domains
+
+| Domain | Status | Focus |
+|--------|--------|-------|
+| **DevAC** | Production-ready | Code analysis, validation, workflow, browser automation |
+| **Counseling** | Spec v0.7 (implementation-ready) | Lifelong developer experience mapping |
+| **Procurement** | MVP specified | Intelligent data extraction at scale |
