@@ -61,7 +61,7 @@ Different roles see different Projections of the same datoms:
 | Client | Own progress, goals, session summaries | `own` |
 | Supervisor | Anonymized patterns, counselor effectiveness | `consented` + aggregated |
 
-Projections carry Seal encryption — client data encrypted with per-Projection keys,
+Projections carry encryption — client data encrypted with per-Projection keys,
 so even at rest, role separation is cryptographic, not just access-control.
 
 ### Surface Modes
@@ -78,7 +78,7 @@ Counseling uses multiple Surface modes from the vivief Surface concept:
 
 Counseling has the highest trust requirements of any vivief domain:
 
-- All session data encrypted at rest (Seal)
+- All session data encrypted at rest (Projection encryption)
 - P2P sync means no central server holds unencrypted client data
 - Contract enforcement: "never share client data without consent" is a
   high-criticality Contract that escalates to external enforcement

@@ -417,19 +417,7 @@ The resulting model: simple things are simple (locale suffix on attributes), cul
 
 ## How This Fits the Concept Model
 
-### In vivief-concepts.md (7 concepts)
-
-| Concept | Content role | Translation role |
-|---------|-------------|-----------------|
-| **Datom** | Content instances | Locale-tagged values |
-| **Lens** | Content views (by type, status, tag) | Locale resolution (filter + fallback) |
-| **Surface** | CMS editor (Canvas), content display (Card, Stream) | RTL/LTR, typography, cultural layout |
-| **Seal** | Content access control (draft = author only) | Per-locale encryption (cultural sensitivity) |
-| **Contract** | Content type schema, publishing workflow rules | Cultural Contracts, regulatory compliance per jurisdiction |
-| **P2P** | Content replication across devices | Content world sovereignty per culture |
-| **effectHandler** | Publishing workflow, AI content generation | AI translation/adaptation, bridge management |
-
-### In Hybrid C (5 concepts)
+### In vivief-concepts (5 concepts — current model)
 
 | Concept | Content role | Translation role |
 |---------|-------------|-----------------|

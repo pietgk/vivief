@@ -9,19 +9,18 @@ last-verified: 2026-03-30
 ## Security Architecture
 
 Security in vivief is distributed across concepts rather than being a separate layer.
-Encryption lives in Projection (Seal), trust enforcement in Contract, and access
+Encryption lives in Projection, trust enforcement in Contract, and access
 control in effectHandler. This is one of the most open design areas.
 
-### Seal (Projection Encryption)
+### Projection Encryption
 
-Seal is the encryption mechanism embedded in Projections. Each Projection can specify
-encryption with derived keys:
+Each Projection carries its own encryption scope with derived keys:
 
 - **Per-Projection keys** — different Projections of the same datoms can have
   different encryption, matching their access scope
 - **Key derivation** — keys derived from a root secret + Projection identity,
   so revoking a Projection revokes its key
-- **At-rest and in-transit** — Seal encrypts datoms in storage and during P2P sync
+- **At-rest and in-transit** — Projection encryption covers datoms in storage and during P2P sync
 
 ### Trust Model
 
@@ -69,7 +68,7 @@ both its query logic AND its access scope, so there is no separate ACL layer.
 In peer-to-peer topology, trust boundaries become critical:
 
 - Each peer evaluates trust scores independently
-- Relay servers see encrypted datoms only (Seal prevents relay snooping)
+- Relay servers see encrypted datoms only (Projection encryption prevents relay snooping)
 - Version vectors prevent replay attacks (causal ordering)
 - DHT-relay nodes cannot read content they relay
 

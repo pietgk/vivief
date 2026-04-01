@@ -2,7 +2,7 @@
 
 | Version | Date | Status | Key Change |
 |---------|------|--------|------------|
-| v1 (v0.6) | 2026-03-14 | Concept definition complete | Three primitives: Datom, Lens, Surface. Ready for prototyping. |
+| v1 (v0.6) | 2026-03-14 | Concept definition complete | Three primitives: Datom, Projection, Surface. Ready for prototyping. |
 | v2 (v0.7) | 2026-03-15 | **Implementation-ready** | All MUST blockers resolved. Formal TypeScript API, PostgreSQL DDL, handler registration. |
 
 ## Key transitions

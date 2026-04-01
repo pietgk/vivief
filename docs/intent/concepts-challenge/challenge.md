@@ -1,11 +1,13 @@
 # Vivief Concepts Challenge
 
-> Analysis document. Challenges the 7 vivief platform concepts against real-world LLM repos and visual architecture tools.
+> Analysis document. Challenges vivief platform concepts against real-world LLM repos and visual architecture tools.
 > Not a spec. A thinking document — let it sink in, then decide what to act on.
+>
+> **Note (2026-04):** This analysis was written against the original 7-concept model. Since then, Lens and Seal were merged into **Projection** and P2P became infrastructure, yielding the current 5 concepts: Datom, Projection, Surface, Contract, effectHandler. References below have been updated to use current terminology.
 
 ## 1. Purpose
 
-The vivief platform defines 7 first-class concepts: **Datom, Lens, Surface, Seal, Contract, P2P, effectHandler** — plus **reactive subscription** as a store property. These were designed by synthesizing devac (code analysis) and counseling platform (clinical workflows) requirements. To test whether they hold up as a general-purpose LLM platform foundation, we challenge them against two repos that solve real problems in the LLM development space:
+The vivief platform defines 5 first-class concepts: **Datom, Projection, Surface, Contract, effectHandler** — plus **reactive subscription** as a store property. These were designed by synthesizing devac (code analysis) and counseling platform (clinical workflows) requirements. To test whether they hold up as a general-purpose LLM platform foundation, we challenge them against two repos that solve real problems in the LLM development space:
 
 - **open-webui** — what a mature, full-featured LLM chat platform looks like at scale
 - **pi-mono coding-agent** — what a minimal, extensible LLM development harness looks like
@@ -24,7 +26,7 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **XState v5** ([xstate.js.org](https://stately.ai/docs/xstate)) — State machine and actor model library. Makes logic visible, explorable in Stately Studio, and testable. Actors have private state, communicate via messages, can be spawned/stopped. The formalism `(state, event) => (state', [actions])` is identical to effectHandler.
 
-**Storybook** ([storybook.js.org](https://storybook.js.org/)) — UI component isolation, visual testing, accessibility scanning (axe), interaction testing (play functions), living documentation. Each story renders a component with controlled props — essentially a Surface with a fixed Lens.
+**Storybook** ([storybook.js.org](https://storybook.js.org/)) — UI component isolation, visual testing, accessibility scanning (axe), interaction testing (play functions), living documentation. Each story renders a component with controlled props — essentially a Surface with a fixed Projection.
 
 ## 3. Challenges by Category
 
@@ -32,9 +34,9 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **What we observed:** Open-webui has a clean generic `AccessGrant` model — single table with `resource_type`, `principal_type`, `principal_id`, `permission` (read/write). Plus RBAC roles, groups, LDAP/SCIM/OAuth. This is **authorization**: who can access what.
 
-**How vivief covers it today:** Seal covers **confidentiality** (encryption, per-client keys). The Lens-as-capability idea ("a capability IS a Lens") is mentioned in concept composition but not fully specified. Access control appears as "Lens + Seal" but the authorization half is underspecified.
+**How vivief covers it today:** Projection covers **confidentiality** (per-Projection encryption keys) and **authorization** (capability tokens). The Projection-as-capability idea ("a capability IS a Projection") is mentioned in concept composition but not fully specified. Access control is a Projection property but the authorization half is underspecified.
 
-**Assessment:** **Strengthen existing concepts.** Seal handles encryption. Authorization (who can query what) should be specified as a Lens property — a Lens that cannot be constructed without the right capability token. This is already hinted at in vivief-concepts §3 ("Lens + Seal = access control") but needs to be made concrete. Not a new concept — a sharper definition of how Lens and Seal compose.
+**Assessment:** **Strengthen existing concepts.** Projection handles both encryption and query scope. Authorization (who can query what) should be specified as a Projection property — a Projection that cannot be constructed without the right capability token. This needs to be made concrete. Not a new concept — a sharper definition of Projection's access control.
 
 ### 3.2 Provider Abstraction / Model Routing
 
@@ -56,9 +58,9 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **What we observed:** Pi treats context management as a first-class concern. When conversation approaches context limits, it walks backwards to find valid cut points, generates LLM-powered summaries, and tracks file artifacts across compaction boundaries. This is a **lossy transformation** preserving semantic continuity.
 
-**How vivief covers it today:** Not covered. Lens is a filter (selects datoms), not a summarizer (transforms/compresses them). The dual-loop pattern describes human + AI loops but doesn't address how the AI's context window is managed.
+**How vivief covers it today:** Not covered. Projection is a filter (selects datoms), not a summarizer (transforms/compresses them). The dual-loop pattern describes human + AI loops but doesn't address how the AI's context window is managed.
 
-**Assessment:** **High-priority gap for AI-centric workflows.** When an effectHandler invokes an LLM, it must construct context from datoms. This is: (1) select relevant datoms (Lens), (2) render them into a prompt (Surface?), (3) compress if needed (new). The selection is Lens. The rendering could be a Surface variant. The compression/summarization is neither — it's a lossy transform that produces a new datom (summary) from old datoms. This could be modeled as an effectHandler itself: `(state, :compaction/requested) => { datoms: [summary-datom], intents: [] }`. The compaction handler reads state via Lens, produces a summary datom, and the AI handler uses that summary datom as context. This works within existing concepts but the pattern should be named and documented.
+**Assessment:** **High-priority gap for AI-centric workflows.** When an effectHandler invokes an LLM, it must construct context from datoms. This is: (1) select relevant datoms (Projection), (2) render them into a prompt (Surface?), (3) compress if needed (new). The selection is Projection. The rendering could be a Surface variant. The compression/summarization is neither — it's a lossy transform that produces a new datom (summary) from old datoms. This could be modeled as an effectHandler itself: `(state, :compaction/requested) => { datoms: [summary-datom], intents: [] }`. The compaction handler reads state via Projection, produces a summary datom, and the AI handler uses that summary datom as context. This works within existing concepts but the pattern should be named and documented.
 
 ### 3.5 Composition / Extensibility
 
@@ -90,7 +92,7 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **How vivief covers it today:** Contract defines validation rules. Handler configuration is stored as datoms. But the admin-vs-user configuration split is not addressed.
 
-**Assessment:** **Contract sub-pattern.** A handler's configurable parameters are datoms with two attribute namespaces: `:config/admin/*` (only admin can write, Contract enforces) and `:config/user/*` (user can write within Contract bounds). The Seal + Lens composition controls who can read/write which config datoms. This is a pattern within existing concepts, not a new concept.
+**Assessment:** **Contract sub-pattern.** A handler's configurable parameters are datoms with two attribute namespaces: `:config/admin/*` (only admin can write, Contract enforces) and `:config/user/*` (user can write within Contract bounds). Projection's access control (capability tokens + encryption) controls who can read/write which config datoms. This is a pattern within existing concepts, not a new concept.
 
 ### 3.9 Conflict Resolution Strategy
 
@@ -106,7 +108,7 @@ The question: do vivief's concepts cover what these systems need? What's missing
 
 **How vivief covers it today:** Datom provides audit trail (every state change is a fact with Tx metadata). But cost tracking, token metering, and performance tracing are not addressed.
 
-**Assessment:** **Covered by Datom — just needs attribute conventions.** LLM invocations produce datoms: `[effect:42, :llm/tokens-in, 1500, tx:N, true]`, `[effect:42, :llm/cost-usd, 0.045, tx:N, true]`. These are queryable via Lens, displayable on Surfaces, aggregatable over time. No new concept needed — Datom's universality handles it. Document attribute conventions for LLM observability.
+**Assessment:** **Covered by Datom — just needs attribute conventions.** LLM invocations produce datoms: `[effect:42, :llm/tokens-in, 1500, tx:N, true]`, `[effect:42, :llm/cost-usd, 0.045, tx:N, true]`. These are queryable via Projection, displayable on Surfaces, aggregatable over time. No new concept needed — Datom's universality handles it. Document attribute conventions for LLM observability.
 
 ### 3.11 C4 Model / likeC4 — Contract Subsumes Rules
 
@@ -121,7 +123,7 @@ The question: do vivief's concepts cover what these systems need? What's missing
 - Contracts define what transitions are valid at each C4 level (System contracts → Container contracts → Component contracts → Code contracts)
 - The C4 zoom pattern IS the Contract hierarchy pattern
 
-This is a **concept reduction**: 7 concepts stays at 7, but Contract becomes more powerful and Rules (currently a devac-specific mechanism) disappears as a separate concept.
+This is a **concept simplification**: Contract becomes more powerful and Rules (currently a devac-specific mechanism) disappears as a separate concept.
 
 ### 3.12 XState v5 — effectHandler as Actor
 
@@ -134,7 +136,7 @@ This is a **concept reduction**: 7 concepts stays at 7, but Contract becomes mor
 1. **effectHandler's state machine should be explicit and visual.** An effectHandler's possible states and transitions can be described as an XState machine definition. This machine definition IS the Contract for that handler — it defines what states exist, what effects trigger what transitions, and what downstream effects each transition produces. Designing the XState machine first (in Stately Studio) and implementing the handler second inverts the current flow and makes logic graspable before code exists.
 
 2. **The actor model answers composition and interruptibility.** Each effectHandler instance is an actor:
-   - **Private state**: its Lens view of the datom store (not shared mutable state)
+   - **Private state**: its Projection view of the datom store (not shared mutable state)
    - **Receives**: effects (messages to this actor)
    - **Sends**: downstream effects (messages to other actors) + datoms (committed to store)
    - **Spawnable/stoppable**: the dispatcher spawns actors for effect handling, can stop them (cancel)
@@ -149,12 +151,12 @@ This is a **concept reduction**: 7 concepts stays at 7, but Contract becomes mor
 
 **What we observed:** Storybook isolates UI components with controlled props, provides visual regression testing, accessibility scanning (axe), interaction testing (play functions), and serves as living documentation. Each story is: component + controlled inputs → visual output.
 
-**How vivief covers it today:** Surface renders datoms via a Lens. But how Surfaces are developed, tested in isolation, and documented is not specified.
+**How vivief covers it today:** Surface renders datoms via a Projection. But how Surfaces are developed, tested in isolation, and documented is not specified.
 
-**Assessment:** **Surface + Storybook is a natural composition.** A Storybook story IS a Surface with a fixed Lens over fixture datoms:
+**Assessment:** **Surface + Storybook is a natural composition.** A Storybook story IS a Surface with a fixed Projection over fixture datoms:
 
 ```
-Story = Surface(Lens(fixture-datoms))
+Story = Surface(Projection(fixture-datoms))
 ```
 
 This means:
@@ -164,7 +166,7 @@ This means:
 - **Play functions test interactions** — user clicks produce effects, which the test can assert on
 - **Visual regression** catches unintended Surface changes across datom schema evolution
 
-Storybook doesn't require a new concept. It's the development methodology for Surfaces — the same way XState/Stately Studio is the development methodology for effectHandlers. Both use the same vivief concepts (Surface, Lens, Contract, effectHandler) but make them visual and testable before production use.
+Storybook doesn't require a new concept. It's the development methodology for Surfaces — the same way XState/Stately Studio is the development methodology for effectHandlers. Both use the same vivief concepts (Surface, Projection, Contract, effectHandler) but make them visual and testable before production use.
 
 ### 3.14 Visual Thinking — Surface is Broader Than UI
 
@@ -174,19 +176,19 @@ Storybook doesn't require a new concept. It's the development methodology for Su
 
 **Assessment:** **Surface applies to system understanding, not just end-user UI.** Everything that makes the system understandable is a Surface over datoms:
 
-| What's Visualized | Surface Type | Datom Source | Lens |
+| What's Visualized | Surface Type | Datom Source | Projection |
 |---|---|---|---|
 | Application data (counseling UI) | Stream, Card, Canvas | Clinical datoms | `:client/*`, `:session/*` |
 | Application data (devac CLI) | Terminal output | Code graph datoms | `:node/*`, `:edge/*` |
 | System architecture (C4) | likeC4 diagram | Contract + effect datoms | C4 level filter (System/Container/Component) |
 | System behavior (XState) | Stately Studio | effectHandler definition datoms | Handler-specific state machine |
-| Component catalog (Storybook) | Story | Fixture datoms | Per-story Lens |
+| Component catalog (Storybook) | Story | Fixture datoms | Per-story Projection |
 | Execution flow (sequence diagram) | Mermaid/D2 | Tx history datoms | Time-range + entity filter |
 | Knowledge map (mindmap/force graph) | Interactive graph | Entity + relationship datoms | Depth + entity type filter |
 
-The unifying pattern: **a Surface renders datoms through a Lens**. Whether those datoms describe a client's therapy journey or the system's own architecture is irrelevant to the concept. This doesn't add a new concept — it broadens Surface's scope and makes explicit that system documentation is a first-class Surface concern, not an afterthought.
+The unifying pattern: **a Surface renders datoms through a Projection**. Whether those datoms describe a client's therapy journey or the system's own architecture is irrelevant to the concept. This doesn't add a new concept — it broadens Surface's scope and makes explicit that system documentation is a first-class Surface concern, not an afterthought.
 
-This also connects to the develop/use blur from vivief-concepts §4: the developer viewing a C4 diagram (Surface) of handler registrations (datoms) filtered by domain (Lens) is using the exact same conceptual stack as the counselor viewing a client timeline (Surface) of session datoms filtered by date range (Lens).
+This also connects to the develop/use blur from vivief-concepts §4: the developer viewing a C4 diagram (Surface) of handler registrations (datoms) filtered by domain (Projection) is using the exact same conceptual stack as the counselor viewing a client timeline (Surface) of session datoms filtered by date range (Projection).
 
 ## 4. Validation — What the Repos and Tools Confirm
 
@@ -197,16 +199,16 @@ Not everything is a gap. The repos and tools validate several vivief design choi
 | **Datom (append-only immutable facts)** | Pi's session model is an append-only JSONL tree with branching — essentially datoms for conversation state. Open-webui's mutable CRUD model struggles with history, audit, and branching. Datom is the right foundation. |
 | **Reactive subscription** | Open-webui uses Socket.IO pub/sub for real-time updates. Pi uses follow-up message queues. Both implement reactive notification patterns that reactive subscription generalizes cleanly. |
 | **Contract (validation rules)** | Open-webui's plugin system has no validation — any Python code can be loaded and executed. Pi has basic permission hooks but no declarative constraint model. Contract provides what both lack. C4's architecture rules and XState's valid-transition definitions confirm that Contract is the right abstraction for "what's allowed." |
-| **Lens (query/filter)** | Both repos have ad-hoc query patterns. Open-webui has SearchParams objects scattered across endpoints. Pi's resource discovery cascade is a multi-layer filter. Lens unifies these under one concept. |
+| **Projection (query/filter/access)** | Both repos have ad-hoc query patterns. Open-webui has SearchParams objects scattered across endpoints. Pi's resource discovery cascade is a multi-layer filter. Projection unifies these under one concept. |
 | **effectHandler (state machine)** | Pi's dual-loop IS the effectHandler pattern. XState v5's formalism `(state, event) => (state', [actions])` is literally the same formula. The pattern independently emerges in LLM agents (Pi), state machine libraries (XState), and vivief — strong validation that it's the right universal abstraction. |
-| **Surface (rendering)** | Storybook's `Story = Component(props)` maps directly to `Surface(Lens(datoms))`. The visual tools (C4, XState Studio, Storybook) all confirm that Surface should encompass system visualization, not just end-user UI. |
+| **Surface (rendering)** | Storybook's `Story = Component(props)` maps directly to `Surface(Projection(datoms))`. The visual tools (C4, XState Studio, Storybook) all confirm that Surface should encompass system visualization, not just end-user UI. |
 | **P2P (replication)** | Open-webui is server-only — no offline, no local-first. This is the exact limitation vivief's P2P concept solves. |
 
 ## 5. Summary
 
 | # | Challenge | Source | Vivief Today | Assessment | Priority |
 |---|---|---|---|---|---|
-| 1 | Authorization vs. confidentiality | open-webui | Lens + Seal hinted, underspecified | Sharpen Lens + Seal composition | **High** |
+| 1 | Authorization vs. confidentiality | open-webui | Projection access underspecified | Sharpen Projection access model | **High** |
 | 2 | Provider abstraction | Both repos | Not addressed | Domain pattern, not concept | Low |
 | 3 | Progressive/streaming values | Both repos | Reactive sub = committed only | Surface handles in-flight streams | **High** |
 | 4 | Context management / compaction | pi-mono | Not covered | effectHandler pattern for compaction | **High** |
@@ -218,11 +220,11 @@ Not everything is a gap. The repos and tools validate several vivief design choi
 | 10 | Observability (cost, tokens) | Both repos | Datom provides audit | Document attribute conventions | Low |
 | 11 | Contract subsumes Rules | C4/likeC4 | Rules and Contract separate | Unify: Rules become Contract sub-pattern | **High** |
 | 12 | effectHandler as XState actor | XState v5 | Formula matches, not explicit | Make state machine visible + actor model for composition | **High** |
-| 13 | Surface + Storybook development | Storybook | Surface not testable in isolation | `Story = Surface(Lens(fixture-datoms))` | **Medium** |
+| 13 | Surface + Storybook development | Storybook | Surface not testable in isolation | `Story = Surface(Projection(fixture-datoms))` | **Medium** |
 | 14 | Visual thinking as Surface | C4 + XState + Storybook | Surface = end-user UI only | Surface applies to system understanding too | **Medium** |
 
 **5 high-priority items** that could make concepts cleaner:
-1. Authorization model (Lens + Seal composition)
+1. Authorization model (Projection access control)
 2. Streaming/progressive values (Surface refinement)
 3. Context management (compaction as effectHandler pattern)
 4. **Contract subsumes Rules** — concept simplification, C4 and runtime validation share source of truth
@@ -232,7 +234,7 @@ Not everything is a gap. The repos and tools validate several vivief design choi
 6. Composition via actor message protocols (replaces dispatch priority question)
 7. Cancellation via actor lifecycle (stop/cancel messages)
 8. P2P conflict resolution strategy per attribute type
-9. Surface + Storybook as development methodology (stories = Surfaces with fixture Lenses)
+9. Surface + Storybook as development methodology (stories = Surfaces with fixture Projections)
 10. Surface scope broadened to include system visualization (C4, XState, sequence diagrams)
 
 **4 low-priority items** are domain patterns within existing concepts — document when implementing.
@@ -245,13 +247,13 @@ C4, XState, and Storybook each make a different vivief concept **visible and exp
 |---|---|---|
 | **C4 / likeC4** | Architecture at multiple zoom levels | Contract (as hierarchical effect aggregation) + Surface |
 | **XState / Stately Studio** | State machine logic and transitions | effectHandler (as explicit state machine) + Contract (valid transitions) |
-| **Storybook** | UI components with controlled inputs | Surface (with fixture Lens) + Contract (a11y validation) |
+| **Storybook** | UI components with controlled inputs | Surface (with fixture Projection) + Contract (a11y validation) |
 
-The overlap: all three are **Surfaces over datoms, constrained by Contracts**. This validates that the 7 concepts are the right primitives — the visual tools compose from them rather than requiring new concepts. The opportunity is making this composition explicit so the concepts reinforce each other instead of existing in parallel.
+The overlap: all three are **Surfaces over datoms, constrained by Contracts**. This validates that the 5 concepts are the right primitives — the visual tools compose from them rather than requiring new concepts. The opportunity is making this composition explicit so the concepts reinforce each other instead of existing in parallel.
 
 ## 7. References
 
-- `docs/vision/vivief-concepts.md` — the 7 concepts being challenged
+- `docs/vision/vivief-concepts.md` — the concepts being challenged
 - `docs/spec/counseling/vivief-concepts-vs-nats.md` — reactive subscription gap analysis
 - [open-webui](https://github.com/open-webui/open-webui) — v0.6+, FastAPI + Svelte
 - [pi-mono coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) — TypeScript, ~30-hook extension model

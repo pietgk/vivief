@@ -19,7 +19,7 @@ Previous architecture iterations (v1, v2, v4a, v4b) relied on NATS for 10+ disti
 | # | NATS Capability | vivief-concepts Equivalent | Reactive Sub? | Notes |
 |---|---|---|---|---|
 | 1 | **Pub/sub fan-out** (`datom.stream`, `viviefco.tx.committed`) | Datom store notifies matching subscribers on commit | **Yes** | This IS reactive subscription |
-| 2 | **Subject-based routing** (attribute namespace filtering) | DatomQuery filter on subscription (`:session/*`, `:client/*`) | **Yes** | Lens filter / DatomQuery replaces NATS subject hierarchy |
+| 2 | **Subject-based routing** (attribute namespace filtering) | DatomQuery filter on subscription (`:session/*`, `:client/*`) | **Yes** | Projection filter / DatomQuery replaces NATS subject hierarchy |
 | 3 | **JetStream persistence + replay** (startup recovery) | iroh-blobs (content-addressed frozen storage) + warm indexes | No | Persistence is the datom store's job, not subscription's |
 | 4 | **Request-reply** (synchronous LLM calls) | Direct function calls (in-process) / MoQ RPC track (cross-process) | No | Not a notification concern |
 | 5 | **KV store** (dedup hashes, active schemas, metrics) | Warm indexes + schema-as-datoms | No | Versioned, P2P-replicated. Strictly better than NATS KV |
@@ -46,7 +46,7 @@ These are the five use cases defined in vivief-concepts.md §2.7 and §3, mapped
 
 | Reactive Subscription Use Case | Replaces NATS... |
 |---|---|
-| **Surfaces stay current** — Lens-based subscription triggers re-render | Pub/sub fan-out to UI consumers |
+| **Surfaces stay current** — Projection-based subscription triggers re-render | Pub/sub fan-out to UI consumers |
 | **AI loop observes** — attribute namespace subscription dispatches analysis | Subject-based routing + pub/sub |
 | **P2P replication propagates** — MoQ track delivery notifies peers | JetStream consumer notification (not persistence) |
 | **Reactive datom projections** — TanStack DB collections update | Pub/sub fan-out to client-side state |

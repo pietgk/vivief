@@ -7,7 +7,7 @@
 
 **Changes from v0.6:**
 - Added section 2.6: DatomQuery API (formal TypeScript definition) — resolves W1, W4
-- Updated section 2.2: Lens filter now references formal DatomQuery
+- Updated section 2.2: Projection filter now references formal DatomQuery
 - Added section 6.4: PostgreSQL Datom Table Design (full DDL) — resolves W3
 - Updated section 10.2: Dispatcher uses real DatomQuery API and concrete importHandler
 - Updated section 10.3: Handler registration uses module-path (not git-ref)
@@ -23,13 +23,13 @@
 
 A fully autonomous, local-first counseling practice platform that runs entirely on a MacBook Pro. It combines LLM reasoning and knowledge with human counseling expertise and senior software architecture skills to deliver a system that is private by design, elegant in its conceptual model, and delightful for both counselor and client.
 
-The system is not a collection of apps bolted together. It is a single coherent system built on three primitives — **Datom**, **Lens**, and **Surface** — that compose to replace what traditional tools deliver as separate products (ClickUp, Notion, Slack, CRM, EHR, scheduling, AI assistant).
+The system is not a collection of apps bolted together. It is a single coherent system built on three primitives — **Datom**, **Projection**, and **Surface** — that compose to replace what traditional tools deliver as separate products (ClickUp, Notion, Slack, CRM, EHR, scheduling, AI assistant).
 
 ### 1.1 Design principles
 
 - **Privacy is non-negotiable.** Client therapy data never leaves the local machine unless explicitly chosen. Local-first is not a preference — it is a competitive and ethical advantage.
 - **Everything is a datom.** One universal fact model for all data: messages, tasks, session notes, treatment plans, card attributes, AI suggestions. One storage model, one sync model, one history model.
-- **Three primitives, infinite compositions.** Datom + Lens + Surface. No feature sprawl, no separate "apps." New capabilities emerge from composing these three concepts.
+- **Three primitives, infinite compositions.** Datom + Projection + Surface. No feature sprawl, no separate "apps." New capabilities emerge from composing these three concepts.
 - **The counselor's mental model wins.** The system is shaped around therapeutic arcs and client journeys, not sprints, kanban columns, or project hierarchies.
 - **AI augments, never replaces.** The AI loop proposes; the human approves. This is both an ethical stance and a regulatory requirement (see Illinois AI therapy legislation, 2025).
 - **Multimodal by default.** Voice, keyboard, touch, swipe, and AI-inferred intent are all first-class input channels. The counselor should never need to navigate a menu when a voice command or gesture suffices.
@@ -61,12 +61,12 @@ The universal fact primitive. Inspired by Datomic's immutable fact model.
 - **Typed.** Values carry type information: text, number, date, enum, reference (to another entity), rich-text (CRDT block sequence), attachment (blob reference).
 - **Self-describing.** The schema itself is stored as datoms. Adding a new attribute to a Type is just asserting new schema datoms — no migrations.
 
-### 2.2 The Lens
+### 2.2 The Projection
 
-A Lens is a query combined with rendering intent. It defines **which datoms are visible** and **how they should be rendered**.
+A Projection is a query combined with access scope, encryption, and rendering intent. It defines **which datoms are visible**, **who can access them**, and **how they should be rendered**.
 
 ```typescript
-interface Lens {
+interface Projection {
   filter: DatomQuery   // Which entities/attributes to include — see section 2.6
   sort: SortSpec       // Time, attribute value, relevance
   group?: GroupSpec    // Group by attribute (enables Board mode)
@@ -75,13 +75,13 @@ interface Lens {
 }
 ```
 
-`DatomQuery` is defined formally in section 2.6. The same query type is used for Lens filters, Seal enforcement, Contract invariants, and the dispatcher's state queries — one model, used everywhere.
+`DatomQuery` is defined formally in section 2.6. The same query type is used for Projection filters, Projection encryption enforcement, Contract invariants, and the dispatcher's state queries — one model, used everywhere.
 
-A saved Lens is what other apps call a "view," "dashboard," "page," or "workspace." Lenses are themselves datoms — they can be shared, versioned, and composed.
+A saved Projection is what other apps call a "view," "dashboard," "page," or "workspace." Projections are themselves datoms — they can be shared, versioned, and composed.
 
 **Examples:**
 
-| Lens name       | Human-readable filter                  | DatomQuery object                                                                                                                    | Mode   |
+| Projection name | Human-readable filter                  | DatomQuery object                                                                                                                    | Mode   |
 |-----------------|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|--------|
 | Morning prep    | clients with session today             | `{ attribute: ':client/*', where: [{ attribute: ':session/date', op: 'within', value: '1d', direction: 'future' }] }`               | Board  |
 | Maria's journey | everything for client:42               | `{ entity: 'client:42', depth: 'all' }`                                                                                              | Card   |
@@ -91,7 +91,7 @@ A saved Lens is what other apps call a "view," "dashboard," "page," or "workspac
 
 ### 2.3 The Surface
 
-The Surface is the renderer. It takes a Lens and the datom store and produces UI. Five modes that morph fluidly based on context:
+The Surface is the renderer. It takes a Projection and the datom store and produces UI. Five modes that morph fluidly based on context:
 
 #### Surface modes
 
@@ -113,7 +113,7 @@ The multimodal input surface. Voice, text, or gesture → the system interprets 
 
 **Board** — the spatial overview.
 Absorbs: Kanban, list view, table/grid, calendar, client roster.
-Cards arranged spatially by a grouping attribute. Group by status → Kanban. Group by date → calendar. Group by nothing → table. Dragging a Card between columns is an Effect (retract old datom, assert new one). The Board is a lens over Cards, not a separate data structure.
+Cards arranged spatially by a grouping attribute. Group by status → Kanban. Group by date → calendar. Group by nothing → table. Dragging a Card between columns is an Effect (retract old datom, assert new one). The Board is a Projection over Cards, not a separate data structure.
 
 #### Surface morphing
 
@@ -126,17 +126,17 @@ The user never "switches apps." Surfaces morph based on:
 
 Transitions are animated morphs, not page navigations. The datoms stay — only the rendering shifts.
 
-### 2.4 The Seal (Privacy Model)
+### 2.4 Projection Encryption (Privacy Model)
 
-A Seal is not a fourth primitive — it emerges from combining a Lens with cryptographic enforcement. It answers three questions: who are you (identity), what can you do (capability), and what can you see (encryption boundary).
+Encryption is not a separate primitive — it emerges from combining a Projection with cryptographic enforcement. It answers three questions: who are you (identity), what can you do (capability), and what can you see (encryption boundary).
 
-**Core insight: a capability scope IS a Lens.** The statement "client Maria can read her own data" is expressed as a Lens `{ filter: { entity: 'client:42', depth: 'own' } }` combined with Maria's decryption key. The same query engine that renders Surfaces also enforces access control.
+**Core insight: a capability scope IS a Projection.** The statement "client Maria can read her own data" is expressed as a Projection `{ filter: { entity: 'client:42', depth: 'own' } }` combined with Maria's decryption key. The same query engine that renders Surfaces also enforces access control.
 
 **Selective Value encryption.** Only the Value field of sensitive datoms is encrypted. Entity, Attribute, Tx, and Op remain cleartext so the system can route, index, and query without decryption. Which attributes are sensitive is defined in the schema itself (as datoms).
 
 **Deterministic key derivation.** One counselor passphrase → PBKDF2 → master key → HKDF per-client keys. No key database, no key server. Keys exist only in memory during a session. The counselor never manages keys — she just remembers her passphrase.
 
-**Four roles, four Seals:**
+**Four roles, four access scopes:**
 
 | Role       | Key held                    | Can see                                  | Can do                              |
 |------------|-----------------------------|------------------------------------------|-------------------------------------|
@@ -168,8 +168,8 @@ See section 11 for the full development flow built on contracts.
 ### 2.6 The DatomQuery API
 
 `DatomQuery` is the single query model for the entire system. It is used by:
-- Lens filters (section 2.2) — which datoms a Surface renders
-- Seal enforcement (section 2.4) — which datoms a role can access
+- Projection filters (section 2.2) — which datoms a Surface renders
+- Projection encryption (section 2.4) — which datoms a role can access
 - Contract invariants (section 11.1) — cross-entity business rule conditions
 - Dispatcher state reads (section 10.2) — handler and feature flag resolution
 
@@ -289,7 +289,7 @@ effectHandler: (State, Effect) => (State', [Effect'])
 
 | Component  | In this system                                                     |
 |------------|--------------------------------------------------------------------|
-| **State**  | A query over the datom log — a point-in-time view. `State = f(Lens, DatomLog)`. Always valid because history is preserved. |
+| **State**  | A query over the datom log — a point-in-time view. `State = f(Projection, DatomLog)`. Always valid because history is preserved. |
 | **Effect** | An intent with three facets: **What** (new datom(s) to assert), **How** (the handler/operation that processes it), **Why** (therapeutic or business reasoning). |
 | **State'** | The datom log after new facts are asserted. Append-only.            |
 | **[Effect']** | Downstream side-effects triggered by the state transition: AI analysis, schedule updates, notifications, alerts. |
@@ -460,9 +460,9 @@ All running locally on a MacBook Pro. No cloud dependencies for core operations.
 │  MCP Servers: mcp-clients, mcp-sessions, mcp-schedule,        │
 │               mcp-notes, mcp-plans                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                     Seal Layer (Privacy)                         │
+│                     Projection Encryption Layer (Privacy)         │
 │  Key derivation: passphrase → PBKDF2 → master → HKDF per-client│
-│  Selective Value encryption: AES-256-GCM on sealed attributes  │
+│  Selective Value encryption: AES-256-GCM on encrypted attributes│
 │  Consent enforcement: datom-based, per-client, per-scope       │
 │  Client-side search index: decrypt-on-login, filter in memory  │
 ├─────────────────────────────────────────────────────────────────┤
@@ -730,7 +730,7 @@ This section illustrates how the system supports a typical counselor day using t
 
 ### 7.1 Morning prep (Board → Card)
 
-The counselor opens the app. The default Lens is "morning prep" — a Board showing today's clients grouped by session time. Each card shows the client name, last session mood, and any AI-flagged items.
+The counselor opens the app. The default Projection is "morning prep" — a Board showing today's clients grouped by session time. Each card shows the client name, last session mood, and any AI-flagged items.
 
 She swipes through client Cards to review. Maria's Card shows: "Sleep issues mentioned 3 consecutive sessions. AI suggests: explore CBT-I protocol." The counselor taps to expand — the Card morphs to show the full treatment arc, session history, and the AI's draft suggestion.
 
@@ -756,7 +756,7 @@ The Stream shows activity: client check-ins, AI alerts, colleague messages, syst
 
 ### 7.5 End of day (Board)
 
-The counselor switches to the "weekly overview" Lens — a Board grouped by client status. She drags a client from "active" to "maintenance." That's an Effect: retract the old status datom, assert the new one. The AI loop picks it up and suggests adjusting the session frequency.
+The counselor switches to the "weekly overview" Projection — a Board grouped by client status. She drags a client from "active" to "maintenance." That's an Effect: retract the old status datom, assert the new one. The AI loop picks it up and suggests adjusting the session frequency.
 
 ---
 
@@ -769,7 +769,7 @@ A simple, privacy-first portal where clients can:
 - See upcoming appointments
 - Send a secure message (→ `:message/*` datom)
 
-The portal is a restricted Surface — it renders only datoms the client is authorized to see, through a filtered Lens. Built with the same TanStack stack, deployed as a separate route or lightweight web app.
+The portal is a restricted Surface — it renders only datoms the client is authorized to see, through a filtered Projection. Built with the same TanStack stack, deployed as a separate route or lightweight web app.
 
 The AI pre-processes incoming check-ins so the counselor sees a dashboard before each day: "3 clients checked in, 1 flagged low mood, suggested priority order for today."
 
@@ -781,7 +781,7 @@ The AI pre-processes incoming check-ins so the counselor sees a dashboard before
 
 | Traditional tool       | Replaced by                                           |
 |------------------------|-------------------------------------------------------|
-| ClickUp / Asana        | Board + Card surfaces with Lens-based views           |
+| ClickUp / Asana        | Board + Card surfaces with Projection-based views     |
 | Notion                 | Canvas surface with CRDT editing                      |
 | Slack                  | Stream surface filtered to messages                   |
 | CRM (client records)   | Card surface with `:client/*` Type                    |
@@ -797,7 +797,7 @@ The AI pre-processes incoming check-ins so the counselor sees a dashboard before
 | Data model            | MongoDB docs            | Append-only logs           | Datom blobs (iroh-blobs) | Datoms [E,A,V,Tx,Op]        |
 | Replication           | Cloud multi-tenant      | P2P via Hyperswarm         | P2P via MoQ + Iroh      | MoQ pub/sub                  |
 | Multiplexing          | N/A                     | Protomux channels          | MoQ tracks               | MoQ tracks                   |
-| UI model              | Separate features       | N/A (protocol only)        | N/A (protocol only)      | 3 primitives: Datom+Lens+Surface |
+| UI model              | Separate features       | N/A (protocol only)        | N/A (protocol only)      | 3 primitives: Datom+Projection+Surface |
 | AI integration        | Planned (Hulia)         | None                       | None                     | Dual-loop (human + AI)      |
 | Offline-first         | No                      | Yes                        | Yes                      | Yes                          |
 | Privacy               | Cloud or self-host      | Built-in encryption        | QUIC encryption          | Local-first by design        |
@@ -1205,7 +1205,7 @@ Traditional line coverage ("78% of code lines exercised") is replaced by more me
 | Lint rules              | Kept        | ESLint/Biome for handler code quality                          |
 | Unit tests              | Transformed | Handler tests: given state + effect → contracts pass?          |
 | Integration tests       | Transformed | Dispatcher with real datom store + contract validation         |
-| E2E tests               | Transformed | Lens verification (pure data) + counselor feature-flag testing |
+| E2E tests               | Transformed | Projection verification (pure data) + counselor feature-flag testing |
 | Test coverage           | Transformed | Contract coverage + effect coverage + violation rate           |
 | Human testing           | Kept        | Counselor tests via per-client feature flags                   |
 | Branch                  | Kept        | Git branches, handler build artifacts per version              |
@@ -1250,13 +1250,13 @@ Traditional line coverage ("78% of code lines exercised") is replaced by more me
 
    **Decision:** No explicit version numbers on Types. The datom log's Tx dimension IS the version history. Four cases handled: add attribute (assert new `:type/attr` datom), remove attribute (retract `:type/attr`), rename attribute (assert `:attr/display-name`), retype attribute (retract old type, assert new type with Surface rendering schema-aware per Tx). See v0.6 for full analysis.
 
-4. **Consent model: Consent-as-datom with Seal** *(resolved)*
+4. **Consent model: Consent-as-datom with Projection encryption** *(resolved)*
 
-   **Decision:** Consent is a first-class datom with full Why chain. Controls the Seal. Revocation = retraction datom. AI agent key bound to consent_tx via HKDF — revocation changes the key. Consent scopes: ai-analysis, transcription, portal-access, data-sharing, supervisor-review. See v0.6 for full analysis.
+   **Decision:** Consent is a first-class datom with full Why chain. Controls the Projection encryption scope. Revocation = retraction datom. AI agent key bound to consent_tx via HKDF — revocation changes the key. Consent scopes: ai-analysis, transcription, portal-access, data-sharing, supervisor-review. See v0.6 for full analysis.
 
 5. **Regulatory compliance: Patientdatalagen + GDPR** *(resolved — architecturally addressed, legal review still recommended)*
 
-   Architecture satisfies key requirements by design: selective encryption, four-role Seal, append-only audit trail with Why chain, local-first (no third-party data transfer), crypto-shredding for right-to-erasure, AI draft-only mode. Legal review with Swedish healthcare data protection lawyer recommended before production.
+   Architecture satisfies key requirements by design: selective encryption, four-role access model, append-only audit trail with Why chain, local-first (no third-party data transfer), crypto-shredding for right-to-erasure, AI draft-only mode. Legal review with Swedish healthcare data protection lawyer recommended before production.
 
 6. **Voice UX** *(deferred to config datom — see section 10.7)*
 
@@ -1272,15 +1272,15 @@ Traditional line coverage ("78% of code lines exercised") is replaced by more me
 
 9. **State query API: DatomQuery typed builder** *(resolved — new in v0.7)*
 
-   **Decision:** TypeScript typed query builder that compiles to SQL against the `datoms` table. One query model used for Lens filters, Seal enforcement, Contract invariants, and dispatcher state reads. Attribute wildcards supported (`:handler/*` → `a LIKE ':handler/%'`). Time-travel via `asOf(tx)`. See section 2.6 for full type definitions and examples.
+   **Decision:** TypeScript typed query builder that compiles to SQL against the `datoms` table. One query model used for Projection filters, Projection encryption, Contract invariants, and dispatcher state reads. Attribute wildcards supported (`:handler/*` → `a LIKE ':handler/%'`). Time-travel via `asOf(tx)`. See section 2.6 for full type definitions and examples.
 
 10. **PostgreSQL datom table design** *(resolved — new in v0.7)*
 
     **Decision:** Discriminated union with typed columns (`v_text`, `v_num`, `v_bool`, `v_date`, `v_ref`, `v_bytes`, `v_vec`) plus `v_type` discriminator. Sealed values in `v_bytes` with `v_type = 'encrypted'`. pgvector embeddings as ordinary datoms with `v_type = 'vec'`. Four primary indexes (EAVT, AEVT, AVET-text, AVET-ref) plus partial indexes for date and vector queries. See section 6.4 for full DDL.
 
-11. **Lens filter language** *(resolved — new in v0.7)*
+11. **Projection filter language** *(resolved — new in v0.7)*
 
-    **Decision:** The Lens `filter: DatomQuery` uses the same `DatomQuery` type as the state query API (section 2.6). No separate DSL. One query model everywhere. The inconsistent notation examples in v0.6 (SQL-ish, key=value pairs, keyword references) are all expressible as typed `DatomQuery` objects. See section 2.2 for updated Lens examples.
+    **Decision:** The Projection `filter: DatomQuery` uses the same `DatomQuery` type as the state query API (section 2.6). No separate DSL. One query model everywhere. The inconsistent notation examples in v0.6 (SQL-ish, key=value pairs, keyword references) are all expressible as typed `DatomQuery` objects. See section 2.2 for updated Projection examples.
 
 12. **Handler hot-swap mechanism** *(resolved — new in v0.7)*
 
@@ -1316,7 +1316,7 @@ Reordered from v0.6 to follow the review recommendation: prove the hardest parts
 
 4. **Wire up handler registration datoms and feature flags** — switch from hard-coded dispatch to datom-driven handler resolution. This is where the bootstrapping sequence becomes real.
 
-5. **Build the first Surface** — Card mode for a client entity. Prove the Lens → DatomQuery → SQL → render pipeline end-to-end.
+5. **Build the first Surface** — Card mode for a client entity. Prove the Projection → DatomQuery → SQL → render pipeline end-to-end.
 
 6. **Build the first MCP server** — `mcp-clients` as the bridge between Claude and the datom store. Minimum tool signatures: `query_client(id)`, `list_clients(filter)`, `assert_datoms(datoms)`.
 

@@ -82,9 +82,9 @@ Add the window to the index below under the right category.
 **Architecture**
 
 - `arch-datom-store.md` — DatomStore implementation, Map-based indexes, migration path
-- `arch-p2p.md` — MoQ, Protomux, Loro CRDT, progressive P2P topology
+- `arch-p2p.md` — MoQ, Iroh, Loro CRDT, progressive P2P topology
 - `arch-query.md` — Three-layer query architecture (TS API + D2TS + DuckDB)
-- `arch-security.md` — Seal encryption, trust model, containers, VPN
+- `arch-security.md` — Projection encryption, trust model, containers, VPN
 
 **Domains**
 

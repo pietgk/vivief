@@ -55,10 +55,10 @@ performance for million-datom scale.
 
 ### 7. P2P Substrate (Mar 2026)
 
-Architecture for peer-to-peer: MoQ (Media over QUIC) for transport, Protomux for
-multiplexed channels, Loro for CRDT-based collaboration. Progressive topology:
-single-user local-first, then relay-assisted sync, then full P2P mesh. Encryption
-via Seal (encrypt datom values, decrypt per-Projection trust scope).
+Architecture for peer-to-peer: MoQ for unified pub/sub over QUIC via Iroh, Loro
+for CRDT-based collaboration. Progressive topology: single-user local-first, then
+relay-assisted sync, then full P2P mesh. Encryption via Projection (encrypt datom
+values, decrypt per-Projection trust scope).
 
 ### 8. Current State (Mar 2026)
 
