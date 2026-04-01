@@ -2,7 +2,7 @@
 topic: query-architecture
 status: canonical
 depends-on: [concepts-datom, concepts-projection, arch-datom-store]
-human-version: ../contract/datom/architecture.md
+human-version: ../contract/datom/query-layers.md
 last-verified: 2026-03-30
 ---
 

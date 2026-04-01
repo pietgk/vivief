@@ -40,6 +40,29 @@ Each Claude window is a 50-80 line summary. The `human-version` frontmatter fiel
 links to the full document. Windows are for fast context loading; human versions are
 for deep understanding and decision records.
 
+### Creating a New Claude Window
+
+When a topic is significant enough to need fast AI context, create a window:
+
+```markdown
+---
+topic: my-topic
+status: canonical
+depends-on: [related-window-1, related-window-2]
+human-version: ../contract/path/to/full-doc.md
+last-verified: 2026-04-01
+---
+
+## Title
+
+[50-80 lines: core facts, key decisions, code examples, relationships]
+```
+
+**Rules**: Keep under 80 lines. Include only what Claude needs to participate in the
+topic — decisions, shapes, formulas, relationships. Link to the full doc for depth.
+Update `last-verified` when you confirm the window still matches its human version.
+Add the window to the index below under the right category.
+
 ### Claude Windows
 
 **Identity and Narrative**

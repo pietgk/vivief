@@ -270,7 +270,9 @@ Skills are NOT a cross-LLM standard — each platform has its own format (Claude
 
 Note: Skills emerge from Phase 4 (effectHandler function) + Phase 7 (effectHandler actor). No separate phase needed — skills are an implementation strategy, not a build target.
 
-### Advanced Phases (after core validated)
+### Advanced Phases (after core validated — not near-term)
+
+> These phases depend on a working core platform (Phases 1-12). They are aspirational targets, not current priorities.
 
 | Phase | What | Depends on |
 |-------|------|-----------|
@@ -279,7 +281,9 @@ Note: Skills emerge from Phase 4 (effectHandler function) + Phase 7 (effectHandl
 | 15 | Remaining Surface modes (Stream, Canvas, Dialog, Board, Diagram) | Phase 5, 7 |
 | 16 | Deterministic-first loop (LLM rule proposal + review + activation) | Phase 12, 7 |
 
-### Deferred Phases (see §8)
+### Deferred Phases (see §8 — revisit when triggers are met)
+
+> These items are explicitly deferred. Each has a "when to revisit" trigger — do not build until the trigger condition is met.
 
 | Phase | What | When |
 |-------|------|------|

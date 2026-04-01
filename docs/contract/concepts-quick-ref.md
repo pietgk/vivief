@@ -1,6 +1,7 @@
-# DevAC Concepts
+# DevAC Concepts — Domain Quick Reference
 
-> Quick reference for DevAC terminology and structure.
+> Quick reference for **DevAC domain** terminology and structure.
+> DevAC is the first domain of the vivief platform. For platform-level concepts (Datom, Projection, Surface, Contract, effectHandler), see [vivief-concepts-v6.md](./vivief-concepts-v6.md).
 > For deep conceptual understanding, see [foundation.md](./foundation.md).
 
 ---
@@ -171,7 +172,7 @@ DevAC Status
   Next:         Fix 5 type errors in src/auth/*
 ```
 
-**Full:** (see [status command examples](./status-examples.md) for detailed output)
+**Full:** (detailed breakdown per category with full diagnostic output)
 
 ---
 
@@ -283,17 +284,17 @@ What causes DevAC to update:
 | Document | Purpose |
 |----------|---------|
 | [foundation.md](./foundation.md) | Deep conceptual dive — effect handlers, pipelines, rules |
-| [validation.md](./validation.md) | Unified feedback model — Watch → Validate → Cache → Query |
-| [actors.md](./actors.md) | Actor model — state machines as higher-level effects |
-| [ui-effects.md](./ui-effects.md) | UI effects — JSX components, A11y, Storybook as documentation |
-| [foundation-visual.md](./foundation-visual.md) | Mermaid diagrams illustrating concepts |
+| [validation.md](./vision/validation.md) | Unified feedback model — Watch → Validate → Cache → Query |
+| [actors.md](./vision/actors.md) | Actor model — state machines as higher-level effects |
+| [ui-effects.md](./vision/ui-effects.md) | UI effects — JSX components, A11y, Storybook as documentation |
+| [foundation-visual.md](./vision/foundation-visual.md) | Mermaid diagrams illustrating concepts |
 
-**Spec & Implementation**:
+**Archive & Implementation**:
 | Document | Purpose |
 |----------|---------|
-| [test-strategy.md](../spec/test-strategy.md) | How tests validate effects — unit, integration, Storybook, E2E |
-| [gaps.md](../spec/gaps.md) | Implementation gaps tracking by phase |
-| [otel-integration.md](../implementation/otel-integration.md) | OTel + test-driven runtime effects implementation |
+| [test-strategy.md](../archive/spec/test-strategy.md) | How tests validate effects — unit, integration, Storybook, E2E |
+| [gaps.md](../archive/spec/gaps.md) | Implementation gaps tracking by phase |
+| [otel-integration.md](../fact/devac/otel-integration.md) | OTel + test-driven runtime effects implementation |
 
 ---
 
