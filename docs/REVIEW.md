@@ -104,7 +104,7 @@ All in `contract/concepts-quick-ref.md` (lines 286-297) unless noted otherwise.
 | ~~New contributor onboarding path~~ | ~~No sequential "start here" guide~~ | ~~Add to docs/README.md~~ | **Fixed** — "New here?" flow added |
 | ~~Documentation maintenance guide~~ | ~~Contributors don't know naming, folder, or lifecycle rules~~ | ~~Create in fact/ or contract/~~ | **Fixed** — maintenance section in `docs/README.md` |
 | ~~Claude window creation guide~~ | ~~Can't maintain dual-format without knowing the pattern~~ | ~~Document in claude/INDEX.md~~ | **Fixed** — creation guide added to `claude/INDEX.md` |
-| Full document index | 230+ docs only discoverable by browsing folders | Consider generating or adding | Open |
+| Doc discoverability | 230+ docs invisible to devac — not in the code graph | Make docs first-class devac entities (see [intent/creation/doc-discovery.md](intent/creation/doc-discovery.md)) | Open — design exploration |
 
 ---
 
