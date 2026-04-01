@@ -3,34 +3,35 @@ topic: p2p
 status: canonical
 depends-on: [concepts-datom, arch-datom-store]
 human-version: ../contract/p2p/lean-stack-v2.md
-last-verified: 2026-03-30
+last-verified: 2026-04-01
 ---
 
 ## P2P Architecture
 
-Vivief uses **MoQ (Media over QUIC)** as its unified protocol stack, replacing the
-earlier Holepunch exploration. The stack is designed for progressive complexity —
-single-user first, P2P last.
+Vivief uses **MoQ (Media over QUIC)** as its unified pub/sub protocol, with
+**Iroh** for P2P transport and NAT traversal. This replaces the earlier
+Holepunch/Hypercore stack entirely.
 
 ### Protocol Stack
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Transport | QUIC | Reliable, multiplexed, encrypted streams |
-| Protocol | MoQ | Pub/sub over QUIC with relay support |
-| Channels | Protomux | Multiplexed logical channels over one connection |
-| CRDT | Loro (Fugue algorithm) | Rich text collaboration, conflict-free merging |
-| Logs | Hypercore | Append-only logs for datom history |
+| Transport | QUIC via Iroh (iroh-net, DERP relays) | P2P holepunch, encrypted, multiplexed |
+| Pub/sub | MoQ (moq-lite) | Track-based publish/subscribe with priority and ordering |
+| Media | hang (MoQ WebCodecs format) | Video/audio for conferencing |
+| CRDT | Loro (Fugue algorithm) | Rich text collaboration |
+| Frozen storage | iroh-blobs (BLAKE3) | Content-addressed datom epoch storage |
+| Incremental compute | D2TS | Differential dataflow for warm materialization |
 | Ordering | Version vectors | Causal delivery guarantees |
-| NAT | DHT-relay | NAT traversal via distributed hash table relays |
 
-### Protomux Channels
+### MoQ Tracks
 
-Protomux multiplexes several logical channels over a single QUIC connection:
+MoQ multiplexes all data as named tracks over QUIC:
 
-- **datom-sync** — Datom replication between peers using version vectors
-- **loro-crdt** — Real-time rich text collaboration (session notes, documents)
-- **signaling** — Peer discovery, connection negotiation, relay coordination
+- **Datom sync** (`{ns}/datoms/{entity-ns}`) — datom multisets as MoQ groups
+- **Loro CRDT** (`{ns}/notes/{doc-id}`) — rich text CRDT updates
+- **Media** (`{ns}/{peer}/video`, `{ns}/{peer}/audio`) — hang format
+- **Presence** (`{ns}/presence`) — lightweight status
 
 ### Progressive Complexity
 
@@ -38,16 +39,16 @@ The architecture supports three deployment stages without rewriting:
 
 ```
 Stage 1: Single-user (local)
-  DatomStore → local disk
+  DatomStore → local disk (iroh-blobs)
   No network, no sync
 
-Stage 2: Multi-user relay (WebSocket bridge)
-  DatomStore → WebSocket → relay server → other clients
+Stage 2: Multi-user relay (MoQ relay)
+  DatomStore → MoQ → relay server → other clients
   Works behind NATs, corporate firewalls
 
-Stage 3: Full P2P (QUIC direct)
+Stage 3: Full P2P (QUIC via Iroh)
   DatomStore → QUIC → direct peer connections
-  DHT-relay for NAT traversal, no central server needed
+  Iroh DERP relays for NAT traversal, no central server needed
 ```
 
 Each stage adds a transport layer; the DatomStore API and Projection mechanics
@@ -66,18 +67,19 @@ Loro state is separate from datom state. Datoms are facts; Loro documents are
 living collaborative artifacts. A bridge effectHandler converts Loro operations
 into datoms when a document is "committed" or snapshotted.
 
-### Hypercore Append-Only Logs
+### iroh-blobs Frozen Storage
 
-Each peer maintains a Hypercore log of its datom transactions. Logs are:
+Each peer stores frozen datom epochs as iroh-blobs:
 
-- Append-only (immutable history)
-- Efficiently replicable (Merkle tree verification)
-- The source of truth for datom ordering per peer
+- Content-addressed (BLAKE3 hash) — integrity verified automatically
+- Efficiently replicable between peers
+- Browser storage via IndexedDB/OPFS; native via iroh-blobs on disk
 
-Version vectors across Hypercore logs establish causal ordering for multi-peer sync.
+Version vectors across peers establish causal ordering for multi-peer sync.
 
-### Open Brainstorms
+### Open Questions
 
+- **Cold-tier indexing**: How Iroh + MoQ support range-scannable cold indexes (was Hyperbee). Needs spike.
+- **Peer discovery**: iroh-net + MoQ relay/catalog compose for room-based discovery. Needs spike.
 - `intent/p2p/webrtc-signaling.md` — WebRTC as fallback when QUIC is blocked
-- `intent/p2p/node-architecture.md` — how relay nodes, super-peers, and
-  lightweight clients compose in production deployments
+- `intent/p2p/node-architecture.md` — relay nodes, super-peers, lightweight clients

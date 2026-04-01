@@ -67,7 +67,7 @@ The brainstorm on 2026-03-27 revealed the merge question was wrong. The real mod
 
 ### Phase 7: P2P Substrate & Current Work (Mar 2026 - present)
 
-**Technical substrate**: MoQ (Media over QUIC) as unified protocol. Protomux for multiplexed channels. Loro for rich text CRDT. Progressive: single-user → relay → full P2P.
+**Technical substrate**: MoQ (Media over QUIC) as unified pub/sub protocol over QUIC via Iroh. iroh-blobs for frozen-tier storage. Loro for rich text CRDT. Progressive: single-user → relay → full P2P. Keet/Pear/Holepunch stack dropped — video built directly on MoQ hang format.
 
 **Active implementation**: DatomStore in packages/devac-core/src/datom/ — Map-based indexes, benchmarks, compact store.
 

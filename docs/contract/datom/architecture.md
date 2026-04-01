@@ -2,8 +2,9 @@
 
 ## Architecture for a Local-First Practice Management Platform
 
-**Version 0.7 — Refined Architecture**
-**Date: 2026-03-24**
+**Version 0.8 — Iroh + MoQ Stack**
+**Date: 2026-04-01**
+**Supersedes: v0.7 (Holepunch/Hypercore stack)**
 
 ---
 
@@ -13,8 +14,9 @@
 
 An `assert` datom is an add-operation to a grow-only set. A `retract` is
 a tagged remove. They're commutative. The datom log is an operation-based
-CRDT. We need Hypercore for logs, a materializer for indexes, and version
-vectors for causal delivery. Loro is for rich text only (Fugue algorithm).
+CRDT. We need iroh-blobs for content-addressed frozen storage, a
+materializer for indexes, and version vectors for causal delivery. Loro
+is for rich text only (Fugue algorithm).
 
 ### 1.2 Replay Diffs Is the Universal Operation
 
@@ -64,7 +66,7 @@ log.
 ### 2.4 Rich Text as ContainerRef
 
 When `db/valueType` is `"text"`, the datom value is a Loro pointer. The
-content syncs via the Loro Protomux channel.
+content syncs via a dedicated Loro MoQ track.
 
 ### 2.5 External Identity Resolution
 
@@ -74,18 +76,20 @@ entities are shared.
 
 ---
 
-## 3. The Essential Networking Layer: Protomux
+## 3. The Networking Layer: MoQ over QUIC via Iroh
 
-(Unchanged from v0.6 — see that document for full protocol stack,
-channel definitions, and dht-relay explanation.)
+MoQ (Media over QUIC) provides track-based pub/sub over QUIC. Iroh
+provides P2P transport with NAT traversal (iroh-net, DERP relays).
+See `contract/p2p/lean-stack-v2.md` for the full protocol stack.
 
-Three channels over one Noise-encrypted stream:
-1. **Hypercore replication** (`hypercore/alpha`) — datom feeds
-2. **Loro text sync** (`loro-text/v1`) — rich text deltas
-3. **App RPC** (`datom-app/v1`) — queries, subscriptions, presence
+Key MoQ tracks for datom operations:
+1. **Datom sync** (`{namespace}/datoms/{entity-ns}`) — datom multisets as MoQ groups
+2. **Loro text sync** (`{namespace}/notes/{doc-id}`) — rich text CRDT updates
+3. **Presence** (`{namespace}/presence`) — lightweight status track
+4. **Media** (`{namespace}/{peer}/video`, `audio`) — MoQ hang format
 
-All clients (Pear + Web) use the same Protomux stack. Web clients reach
-Hyperswarm via dht-relay (WebSocket → blind relay → UDP).
+All clients (browser + native) connect via the same MoQ protocol.
+Browsers use WebTransport over HTTP/3; native clients use QUIC via Iroh.
 
 ---
 
@@ -94,54 +98,47 @@ Hyperswarm via dht-relay (WebSocket → blind relay → UDP).
 ### 4.1 Three Temperatures, One Diff Shape
 
 ```
-Frozen (Hypercore) ──diffs──► Warm (Indexes) ──diffs──► Hot (UI)
+Frozen (iroh-blobs) ──diffs──► Warm (Indexes) ──diffs──► Hot (UI)
 ```
 
-### 4.2 Storage Clarification
+### 4.2 Storage Architecture
 
-Hypercore 11 uses RocksDB internally as its storage engine. We don't
-introduce RocksDB as a separate technology — it's how Hypercore persists
-feed entries to disk. When we say "Hypercore on disk," that's RocksDB
-underneath, managed entirely by Hypercore.
+iroh-blobs provides content-addressed, BLAKE3-verified frozen storage.
+Each blob is a batch of datom transactions, content-addressed by hash.
 
-| Property          | Web (browser)       | Pear (phone/desktop)| Server (always-on)  |
-|-------------------|---------------------|---------------------|---------------------|
-| Transport         | WS → dht-relay      | UDP direct          | UDP direct          |
-| Connection        | Protomux            | Protomux            | Protomux            |
-| Datom feed store  | In-memory HC        | Hypercore on disk   | Hypercore on disk   |
-| Warm indexes      | In-memory (partial) | In-memory (own data)| In-memory (all)     |
-| Cold indexes      | —                   | Hyperbee on HC      | Hyperbee on HC      |
-| Bootstrap         | IndexedDB cache     | Hypercore on disk   | Hypercore on disk   |
-| Offline           | Seconds (tab open)  | Days/weeks          | Always-on           |
-| Identity          | Noise keypair (IDB) | Noise keypair       | Noise keypair       |
+| Property          | Web (browser)       | Native (desktop/mobile) | Server (always-on)  |
+|-------------------|---------------------|-------------------------|---------------------|
+| Transport         | WebTransport (H3)   | QUIC via Iroh           | QUIC via Iroh       |
+| Pub/sub           | MoQ                 | MoQ                     | MoQ                 |
+| Frozen store      | IndexedDB / OPFS    | iroh-blobs on disk      | iroh-blobs on disk  |
+| Warm indexes      | In-memory (partial) | In-memory (own data)    | In-memory (all)     |
+| Cold indexes      | —                   | TBD (open question)     | TBD (open question) |
+| Bootstrap         | IndexedDB cache     | iroh-blobs on disk      | iroh-blobs on disk  |
+| Offline           | Seconds (tab open)  | Days/weeks              | Always-on           |
+| Identity          | Keypair (IDB)       | Keypair (iroh-net)      | Keypair (iroh-net)  |
 
 Note: "In-memory (partial)" means the web client materializes indexes
 only for the datoms it has downloaded. "In-memory (own data)" means the
-Pear client materializes its own practice data. "In-memory (all)" means
+native client materializes its own practice data. "In-memory (all)" means
 the server materializes all active entities across all practices.
 
 ### 4.3 Index Storage: Same Approach, Different Scope
 
-Both Pear client and server build EAVT/AEVT/AVET/VAET indexes as
+Both native client and server build EAVT/AEVT/AVET/VAET indexes as
 in-memory sorted maps. The source differs:
 
-- **Server**: Materializes from ALL peers' Hypercore feeds → full warm
+- **Server**: Materializes from ALL peers' datom blobs → full warm
   indexes. These are derived state, rebuilt on startup by replaying
-  feeds through the d2ts materializer.
-- **Pear client**: Materializes from its own feed + selectively
-  replicated feeds → indexes over its own practice data.
+  blobs through the d2ts materializer.
+- **Native client**: Materializes from its own blobs + selectively
+  replicated blobs → indexes over its own practice data.
 - **Web client**: Materializes from datoms received during the session →
   partial indexes over the current view.
 
-We do NOT use HyperDB's collection abstraction for our datom indexes.
-HyperDB is designed for typed collections with named fields — a different
-shape than EAV tuples. Instead, we use Hyperbee directly for cold-tier
-indexes (range-scannable B-tree on Hypercore) and plain sorted maps for
-warm-tier indexes (fastest in-memory access).
-
-HyperDB remains useful if we need a standalone queryable database on
-the Pear client for non-datom data (e.g., local app settings, cached
-UI state), but it's not the datom index engine.
+**Open question**: Cold-tier indexing technology is TBD. The old stack
+used Hyperbee (B-tree on Hypercore). How Iroh + MoQ best support
+range-scannable cold indexes needs a spike. See `intent/` for
+exploration.
 
 ---
 
@@ -152,7 +149,7 @@ UI state), but it's not the datom index engine.
 The datom's `op` field is the multiplicity. No separate diff type.
 
 ```
-Hypercore append event → datom with op:'assert' or op:'retract'
+MoQ track delivery → datom with op:'assert' or op:'retract'
   → d2ts input: [datom, datom.op === 'assert' ? 1 : -1]
   → operators: resolve LWW, maintain indexes, filter, join, sort
   → output: updated query results
@@ -160,9 +157,9 @@ Hypercore append event → datom with op:'assert' or op:'retract'
 
 ### 5.2 d2ts at Every Temperature
 
-**Frozen → Warm**: d2ts materializer pipeline. Hypercore appends feed
-datoms as MultiSet entries. d2ts operators resolve LWW conflicts and
-maintain the four indexes.
+**Frozen → Warm**: d2ts materializer pipeline. iroh-blobs deliver
+batched datoms as MultiSet entries. d2ts operators resolve LWW conflicts
+and maintain the four indexes.
 
 **Warm → Hot**: d2ts query pipeline. Index updates feed into reactive
 queries (filter, join, sort, aggregate). Sub-ms UI updates.
@@ -172,7 +169,7 @@ One engine, two pipeline stages.
 ### 5.3 Subscription as Replication Filter
 
 A client's query expression simultaneously drives:
-1. Sparse Hypercore download (which feed ranges to fetch)
+1. MoQ track subscription (which datom tracks to receive)
 2. Server push notifications (which diffs to forward)
 3. d2ts pipeline input filter (which diffs to process)
 
@@ -180,27 +177,29 @@ One expression, three effects.
 
 ### 5.4 Same Operations at Every Layer
 
-| Operation | Frozen (Hypercore)       | Warm (Indexes)          | Hot (UI)               |
+| Operation | Frozen (iroh-blobs)      | Warm (Indexes)          | Hot (UI)               |
 |-----------|--------------------------|-------------------------|------------------------|
-| Read      | `core.get(seq)`          | `db.entity(id)`         | `useLiveQuery()`       |
-| Write     | `core.append(datom)`     | `db.transact([...])`    | `useOptimisticMutation()` |
-| List      | `core.createReadStream()`| `db.datoms('aevt', a)`  | d2ts collection output |
-| Watch     | `core.on('append')`      | `db.watch({ a })`       | d2ts subscription      |
+| Read      | `blob.get(hash)`         | `db.entity(id)`         | `useLiveQuery()`       |
+| Write     | `blob.put(datoms)`       | `db.transact([...])`    | `useOptimisticMutation()` |
+| List      | `blob.list(prefix)`      | `db.datoms('aevt', a)`  | d2ts collection output |
+| Watch     | MoQ track subscription   | `db.watch({ a })`       | d2ts subscription      |
 
 ---
 
-## 6. Keet Integration
+## 6. Video and Media
 
-(Unchanged from v0.6 — shared Hyperswarm, shared identity, in-room
-apps, personal relay as server.)
+Video is built directly on MoQ using the `hang` format (WebCodecs-based).
+No external dependency on Keet or Pear. See `contract/p2p/lean-stack-v2.md`
+§4 for the hang format details, track patterns, and congestion priority.
 
 ---
 
 ## 7. Index Architecture
 
-(Unchanged — EAVT/AEVT/AVET/VAET in-memory sorted maps, dictionary
-encoding, DuckDB virtual tables on server, Hyperbee for cold-tier
-range queries.)
+EAVT/AEVT/AVET/VAET in-memory sorted maps with dictionary encoding.
+DuckDB virtual tables on server for analytics (L3 query layer).
+Cold-tier range queries: **open question** — was Hyperbee, needs spike
+to determine best approach with Iroh + MoQ.
 
 ---
 
@@ -248,30 +247,12 @@ for startup, the fallback is a simple imperative materializer for cold
 start (replay datoms into sorted maps directly) with d2ts taking over
 for incremental updates once warm.
 
-### 11.2 Hypercore in the Browser — SPIKE NEEDED
+### 11.2 Browser Storage — RESOLVED
 
-Hypercore 11's storage engine is RocksDB (native C++), which cannot run
-in the browser. However, what the browser needs is NOT the storage engine
-— it needs the Hypercore replication PROTOCOL running over a dht-relay
-WebSocket connection.
-
-Two possible approaches:
-
-**Approach A**: Use Hypercore 10 (or a branch) with `random-access-memory`
-storage in the browser. HC 10 supports pluggable storage backends
-including in-memory. This is proven to work in browser environments.
-Trade-off: using an older Hypercore version, potentially missing HC 11
-features.
-
-**Approach B**: Use Corestore with a browser-compatible storage adapter.
-Corestore 7 + Hypercore 11 may work if we provide a RocksDB-compatible
-shim (e.g., IndexedDB-backed). The `hypercore-storage` module would need
-a browser polyfill. This is more work but keeps us on HC 11.
-
-**Decision**: Spike in Phase 3. Start with Approach A (HC 10 + RAM in
-browser). If it works, ship it. Evaluate Approach B as an optimization
-later. The Protomux protocol is the same regardless of which Hypercore
-version the browser uses.
+With the move to Iroh + MoQ, the Hypercore-in-browser problem is
+eliminated. Browsers connect via WebTransport (HTTP/3) to a MoQ relay.
+Frozen datom blobs are cached locally using IndexedDB or OPFS (Origin
+Private File System). No native code dependency in the browser.
 
 ### 11.3 Subscription Filter Granularity — START COARSE
 
@@ -301,67 +282,56 @@ usage data.
 
 The flow, entirely in datoms:
 
-1. Pear client generates ED25519 keypair on first launch (Hypercore
-   stores this automatically)
+1. Native client generates keypair on first launch (iroh-net manages
+   this automatically)
 2. Web client generates keypair, stores in IndexedDB
-3. Practitioner creates a "device link" transaction on the Pear client:
+3. Practitioner creates a "device link" transaction on the native client:
    ```
    [practitioner-eid, "identity/device", web-pubkey-hex, tx, assert]
    [practitioner-eid, "identity/device-name", "Office Chrome", tx, assert]
    ```
-4. This datom replicates to the server via Hypercore
-5. When web client connects, server checks its Noise handshake pubkey
+4. This datom replicates to the server via MoQ datom track
+5. When web client connects, server checks its handshake pubkey
    against `identity/device` datoms → grants workspace access
 
-Linking mechanism: QR code displayed by Pear app, scanned by browser.
-The QR contains the Pear client's Hyperswarm topic + a one-time token.
-Browser connects, presents its pubkey, Pear client creates the device
-claim datom.
+Linking mechanism: QR code displayed by native app, scanned by browser.
+The QR contains the Iroh endpoint ID + a one-time token. Browser
+connects via MoQ relay, presents its pubkey, native client creates the
+device claim datom.
 
-Alternative: both are in the same Keet room. Exchange signed proofs
-over the Keet connection.
+### 11.5 d2ts Runtime — RESOLVED
 
-### 11.5 d2ts on Bare Runtime — LIKELY WORKS
-
-d2ts is pure TypeScript: `Map`, `Array`, `Set`, basic JS constructs.
-No Node.js-specific APIs (`fs`, `net`, `crypto`). Bare runs ES2020+
-JavaScript with full `Map`/`Set`/`Array` support.
-
-**Assessment**: d2ts should work on Bare without modification.
-
-**What to verify in a spike**: `npm install @electric-sql/d2ts`, run a
-basic pipeline in a Bare script. If it fails, check for:
-- `process.env` references (Bare has `Bare.env` instead)
-- `Buffer` usage (Bare has `Buffer` but may differ subtly)
-- Import path resolution (Bare uses bare-module-resolve)
-
-The d2ts SQLite backend would need `bare-sqlite` or similar, but
-in-memory d2ts should be clean.
-
-**Decision**: Spike early in Phase 2. If d2ts fails on Bare, the Pear
-client uses a simpler datom-watch-based reactivity (less elegant, same
-functionality). The web client uses d2ts in browser (proven environment).
+With the move to browser-native + Rust sidecar (no Bare/Pear), d2ts
+runs in two proven environments: browser (TypeScript, already validated)
+and Node.js/Bun for the optional server component. No Bare runtime
+compatibility concern.
 
 ---
 
 ## 12. Remaining Open Questions
 
-1. **Hypercore version for browser**: HC 10 vs HC 11 in browser context.
-   Needs Phase 3 spike. Not blocking — both speak the same Protomux
-   replication protocol.
+1. **Cold-tier indexing**: How do Iroh + MoQ support range-scannable
+   cold indexes? Was Hyperbee (B-tree on Hypercore). Options: DuckDB
+   for analytics-only cold queries, SQLite for general-purpose cold
+   indexes, or a custom B-tree on iroh-blobs. **Needs spike.**
 
-2. **d2ts warm-tier startup**: How fast is replaying 500k datoms through
+2. **Peer discovery details**: iroh-net provides NAT traversal (DERP
+   relays, iroh-dns). MoQ relay provides track catalog/announcement.
+   How these compose for room-based discovery (counseling sessions,
+   collaborative workspaces) **needs spike and implementation**.
+
+3. **d2ts warm-tier startup**: How fast is replaying 500k datoms through
    d2ts? Needs benchmarking in Phase 1. If slow, hybrid approach: direct
    materialization for cold start, d2ts for incremental updates.
 
-3. **Loro document granularity**: One LoroDoc per text attribute instance
+4. **Loro document granularity**: One LoroDoc per text attribute instance
    (e.g., per session note) vs. one LoroDoc per workspace with nested
    containers. Per-instance is simpler, more documents to manage.
    Per-workspace consolidates but the oplog grows. **Lean toward
    per-instance** — each session note is independent, rarely co-edited
    across notes simultaneously.
 
-4. **Warm tier eviction policy**: When does an entity go warm → cold?
+5. **Warm tier eviction policy**: When does an entity go warm → cold?
    Options: explicit archival (practitioner marks client as inactive),
    time-based (no datom activity in 90 days), LRU (when memory pressure
    exceeds threshold). **Lean toward explicit + time-based fallback**.
@@ -378,11 +348,11 @@ functionality). The web client uses d2ts in browser (proven environment).
 2. **Replay diffs is the universal operation.** Every boundary is
    crossed by replaying datoms. The `op` field IS the multiplicity.
 
-3. **One connection, many protocols.** Protomux over Noise. Adding a
-   new protocol = one `createChannel` call.
+3. **One transport, many tracks.** MoQ over QUIC via Iroh. Adding a
+   new data flow = one MoQ track subscription.
 
-4. **Transport-agnostic peers.** Same code on Pear (UDP) and web
-   (WebSocket relay).
+4. **Transport-agnostic peers.** Same code on native (QUIC via Iroh)
+   and web (WebTransport via MoQ relay).
 
 5. **Subscriptions are replication filters.** A query drives sparse
    download, server push, and d2ts pipeline input.
@@ -391,6 +361,9 @@ functionality). The web client uses d2ts in browser (proven environment).
    — all datoms on the same entity.
 
 ## Appendix B: Influences
+
+> These sources influenced the design. Technologies marked † have since
+> been replaced by Iroh + MoQ (see §3 and `contract/p2p/lean-stack-v2.md`).
 
 | Source | What we take | What we leave |
 |--------|-------------|---------------|
@@ -401,10 +374,10 @@ functionality). The web client uses d2ts in browser (proven environment).
 | **Loco** | Temperature model, replay-diffs-universal, tree-is-API, subscription-as-filter, external identity | C#/.NET, Starcounter |
 | **TanStack DB / d2ts** | Differential dataflow at all tiers, optimistic mutations | ElectricSQL, TanStack Query |
 | **Loro** | LoroText (Fugue), LoroTree, version vectors | Using as total sync |
-| **Protomux** | Channel multiplexing, compact-encoding | — (as-is) |
-| **Hypercore** | Append-only log, Merkle verify, sparse replication | HyperDB collection model |
-| **Hyperswarm + HyperDHT** | Peer discovery, NAT traversal, Noise encryption | — (as-is) |
-| **hyperswarm-dht-relay** | WebSocket bridge for browsers | — (as-is) |
-| **protomux-rpc** | Request/response over channels | — (as-is) |
-| **Keet / Pear** | Shared Hyperswarm, identity, in-room apps, relay | Chat UI |
+| **Iroh** | P2P transport, NAT traversal (DERP), content-addressed blobs (BLAKE3) | — (current stack) |
+| **MoQ** | Track-based pub/sub over QUIC, hang media format, relay infrastructure | — (current stack) |
+| **Protomux** † | Channel multiplexing concept (influenced MoQ track design) | Replaced by MoQ tracks |
+| **Hypercore** † | Append-only log concept, Merkle verification, sparse replication | Replaced by iroh-blobs |
+| **Hyperswarm** † | Peer discovery concept, NAT traversal | Replaced by Iroh (iroh-net, DERP) |
+| **Keet / Pear** † | Demonstrated P2P-first UX, room-based collaboration | Replaced by MoQ hang for video |
 | **CRDT theory** | Datoms as OR-Set, commutativity | Complex CRDTs for structured data |

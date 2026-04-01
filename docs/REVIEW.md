@@ -86,7 +86,7 @@ All in `contract/concepts-quick-ref.md` (lines 286-297) unless noted otherwise.
 | Term | Stream A (DevAC) | Stream B (vivief platform) | Tension | Resolution |
 |------|-------------------|---------------------------|---------|------------|
 | **Data unit** | Node, Edge, External Ref | Datom `[e,a,v,tx,op]` | Different models | DevAC migrating to datom model. Bridge doc needed. |
-| **Storage** | Parquet seeds + DuckDB hub | Hypercore + Map indexes + DuckDB analytics | Different stacks | Both correct — current vs target. Document explicitly. |
+| **Storage** | Parquet seeds + DuckDB hub | iroh-blobs + Map indexes + DuckDB analytics | Different stacks | Both correct — current vs target. Document explicitly. |
 | **"Effect"** | Code/system description (FunctionCall, Store, Send) | Not a concept — part of "effectHandler" name | Overloaded | foundation.md "effects" = DevAC-era term. v6 absorbed into effectHandler. Document evolution. |
 | **Query** | `query_sql`, `query_symbol` MCP tools | 3-layer: L1 DatomStore, L2 D2TS, L3 DuckDB | Current vs target | query-layers.md documents migration. |
 | **Validation** | Unified diagnostics (tsc, lint, test) | Contract enforcement (Schema, Behavior, Trust) | Subset relationship | DevAC validation = one implementation of v6 Contracts. Bridge doc needed. |
@@ -146,3 +146,4 @@ All in `contract/concepts-quick-ref.md` (lines 286-297) unless noted otherwise.
 | Date | Reviewer | Scope | Key Findings |
 |------|----------|-------|-------------|
 | 2026-04-01 | Claude (Opus 4.6) + human | Full docs review (~230 files) | Found 9 broken refs, terminology bridge gap, 5 omissions, 3 trim candidates. All fixed same session. Grade: B+ → A. Remaining: full document index (open), last-reviewed dates (ongoing). |
+| 2026-04-01 | Claude (Opus 4.6) + human | Holepunch → Iroh+MoQ stack correction | Replaced all Holepunch references (Hypercore, Protomux, Hyperbee, Hyperswarm, Pear/Bare, Keet) with Iroh + MoQ stack across 11 files. Archived session-keet-challenge.md. Updated datom/architecture.md to v0.8. Cold-tier indexing and peer discovery remain open questions. |

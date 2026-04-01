@@ -12,7 +12,7 @@
 
 ## Two core insights (stable since v0.3/v0.6)
 
-1. **Datoms ARE CRDT**: No external CRDT needed for fact storage. Hypercore for logs, materializer for indexes, version vectors for causal delivery. Loro for rich text only.
+1. **Datoms ARE CRDT**: No external CRDT needed for fact storage. iroh-blobs for frozen storage, materializer for indexes, version vectors for causal delivery. Loro for rich text only.
 2. **Replay diffs is universal**: Peer sync, index materialization, reactive queries, UI rendering — all crossed by replaying unseen diffs. The datom IS the diff unit.
 
 ## Canonical document

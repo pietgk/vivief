@@ -1,5 +1,7 @@
 # ViviefCo Unified Platform — Architecture v4
 
+> **Technology note (2026-04-01):** This brainstorm references the Holepunch stack (Hypercore, Hyperbee, Hyperswarm) which has since been replaced by Iroh + MoQ. The architectural reasoning (local-first, P2P, datom-based) remains valid. See `contract/p2p/lean-stack-v2.md` for the current P2P stack.
+
 ## "Local-First, Peer-to-Peer, Production is the Network of Laptops" Edition
 
 > **The philosophical shift from v3**: v3 said "runs on a MacBook for dev, then deploy to servers for production." v4 asks the heretical question: *what if there is no separate production?* What if every developer laptop, every field worker's machine, every regional office server IS the production system — and the "cloud" is just the most well-connected peer?

@@ -83,11 +83,11 @@
 
 | Candidate | Strengths | Concerns |
 |-----------|-----------|----------|
-| **Holepunch (Hypercore / Hyperbee / Autobase)** | Append-only logs, multi-writer via Autobase, encryption, P2P native | API stability, learning curve, Node.js only |
+| **Iroh + MoQ** (current choice) | QUIC transport, MoQ pub/sub, iroh-blobs, browser-native | Newer ecosystem, some components still maturing |
 | **Holochain** | Agent-centric, validation rules, P2P native | Rust runtime, different data model, steep learning curve |
 | **Custom over libp2p** | Full control, language-agnostic | Significant build cost |
 
-**Concept connection.** Peers are remote actors governed by the same Contracts as local actors. The Sync Contract maps directly to replication configuration. Defer until core platform is validated.
+**Concept connection.** Peers are remote actors governed by the same Contracts as local actors. The Sync Contract maps directly to replication configuration. See `contract/p2p/lean-stack-v2.md` for the decided stack (Iroh + MoQ). Defer full implementation until core platform is validated.
 
 ### 2.4 CRDT
 
@@ -546,7 +546,7 @@ Explicit list of concepts and patterns that should NOT be built in the foundatio
 | **LLM-generated lint rules** | Requires working creation loop and LLM integration | After deterministic-first loop is validated with manual rules |
 | **Portability mapping tables** | Reference material, moved from concepts doc | Alongside export templates |
 | **Git → vivief mapping** | Detailed bridge mapping for source code medium | When implementing the source code bridge |
-| **Holepunch / infrastructure details** | P2P implementation specifics | When P2P replication is prioritized |
+| **Iroh + MoQ infrastructure details** | P2P implementation specifics (cold indexes, peer discovery) | When P2P replication is prioritized |
 | **Content worlds** | Deep locale adaptation with separate content structures | When internationalization is needed |
 | **Canvas mode + CRDT** | Requires CRDT library integration | After Card and Dialog modes are stable |
 | **Replay delivery mode** | Time-travel queries require mature store | After snapshot and live modes are solid |

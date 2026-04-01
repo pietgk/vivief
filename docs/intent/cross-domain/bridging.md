@@ -31,7 +31,7 @@ Intent
 | **Local filesystem** | Files on disk | Read/watch + parser |
 | **Git** | Versions, history, branches | Git commands → datoms |
 | **GitHub** | Issues, PRs, reviews, CI status | gh API / webhooks → datoms |
-| **Remote filesystem** | P2P files | Hyperdrive sync |
+| **Remote filesystem** | P2P files | iroh-blobs sync |
 | **Web** | Reference docs, API specs, content | Scrape → markdown → datoms |
 | **LLM reasoning** | Generated text, code, plans, decisions | LLM output → file + datoms |
 | **External APIs** | Data from services | API call → response → datoms |
@@ -47,7 +47,7 @@ Intent
 | **GitHub** | PRs, issues, comments, reviews | gh API |
 | **Datom store** | Metadata, provenance, workflow state, LLM context | Datom assertion |
 | **Remote systems** | Deployments, notifications, published content | API calls |
-| **Hyperdrive** | P2P replicated files | Hyperdrive write |
+| **iroh-blobs** | P2P replicated files | iroh-blobs write |
 
 ### Contract at every boundary
 

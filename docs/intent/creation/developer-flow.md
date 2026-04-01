@@ -541,18 +541,18 @@ PR merge → webhook → datom: [workflow:42 :workflow/state :merged]
 CI run → webhook → datom: [ci:C :ci/pr pr:Z :ci/status :pass]
 ```
 
-### Hyperdrive enters here
+### P2P version control enters here
 
 For P2P scenarios (offline development, team without GitHub):
 
-| Git concept | Hyperdrive equivalent |
-|-------------|---------------------|
-| Repository | Hyperdrive (file storage) |
-| Branch | Named Hyperdrive fork |
-| Commit | Hypercore append |
-| Push/Pull | Hyperswarm replication |
+| Git concept | Iroh + MoQ equivalent |
+|-------------|----------------------|
+| Repository | iroh-blobs (content-addressed file storage) |
+| Branch | Named blob collection fork |
+| Commit | iroh-blobs put (BLAKE3-verified) |
+| Push/Pull | MoQ track replication via Iroh |
 | PR | Sync Contract promotion proposal |
-| Merge | Autobase multi-writer merge |
+| Merge | Version vector-based multi-writer merge |
 
 The Sync Contract specifies: how branches merge (CRDT for concurrent edits to same file, last-writer-wins for config, manual merge for conflicts).
 

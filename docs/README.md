@@ -61,7 +61,7 @@ DevAC is the first domain — a working implementation. Vivief concepts define t
 | DevAC (current) | Vivief Platform (target) | Status |
 |-----------------|--------------------------|--------|
 | Nodes, Edges, External Refs | **Datom** `[e,a,v,tx,op]` with attribute namespaces | DatomStore in devac-core, migrating |
-| Parquet seeds + DuckDB hub | **Datom** storage (Hypercore + Map indexes + DuckDB analytics) | DuckDB is L3 analytics layer |
+| Parquet seeds + DuckDB hub | **Datom** storage (iroh-blobs + Map indexes + DuckDB analytics) | DuckDB is L3 analytics layer |
 | `query_sql`, `query_symbol` MCP tools | **Projection** (3-layer: L1 DatomStore, L2 D2TS, L3 DuckDB) | L3 current, L1 migration planned |
 | CLI output, MCP responses | **Surface** (6 rendering modes) | Stream mode via CLI/MCP |
 | Unified diagnostics (tsc, lint, test) | **Contract** (Schema, Behavior, Trust enforcement) | Validation = one Contract type |

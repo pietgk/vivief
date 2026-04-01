@@ -792,23 +792,25 @@ The AI pre-processes incoming check-ins so the counselor sees a dashboard before
 
 ### 9.2 Architectural comparison
 
-| Aspect               | Huly                    | Holepunch/Hypercore     | Our system                   |
-|-----------------------|-------------------------|-------------------------|------------------------------|
-| Data model            | MongoDB docs            | Append-only logs        | Datoms [E,A,V,Tx,Op] in PG  |
-| Replication           | Cloud multi-tenant      | P2P via Hyperswarm      | NATS pub/sub                 |
-| UI model              | Separate features       | N/A (protocol only)     | 3 primitives: Datom+Lens+Surface |
-| AI integration        | Planned (Hulia)         | None                    | Dual-loop (human + AI)      |
-| Offline-first         | No                      | Yes                     | Yes                          |
-| Privacy               | Cloud or self-host      | Built-in encryption     | Local-first by design        |
-| Counseling fit        | Generic PM              | None                    | Domain-native                |
+| Aspect               | Huly                    | Holepunch/Hypercore (prev) | Iroh + MoQ (current)     | Our system                   |
+|-----------------------|-------------------------|----------------------------|--------------------------|------------------------------|
+| Data model            | MongoDB docs            | Append-only logs           | Datom blobs (iroh-blobs) | Datoms [E,A,V,Tx,Op]        |
+| Replication           | Cloud multi-tenant      | P2P via Hyperswarm         | P2P via MoQ + Iroh      | MoQ pub/sub                  |
+| Multiplexing          | N/A                     | Protomux channels          | MoQ tracks               | MoQ tracks                   |
+| UI model              | Separate features       | N/A (protocol only)        | N/A (protocol only)      | 3 primitives: Datom+Lens+Surface |
+| AI integration        | Planned (Hulia)         | None                       | None                     | Dual-loop (human + AI)      |
+| Offline-first         | No                      | Yes                        | Yes                      | Yes                          |
+| Privacy               | Cloud or self-host      | Built-in encryption        | QUIC encryption          | Local-first by design        |
+| Browser support       | Yes (cloud)             | Limited (Bare runtime)     | Native (WebTransport)    | Yes (browser-first)          |
+| Counseling fit        | Generic PM              | None                       | None                     | Domain-native                |
 
 ### 9.3 Future replication path
 
 Because datoms are append-only facts with transaction IDs, they are naturally replicable:
 
-- **Phase 1 (now):** Single machine. PostgreSQL + NATS. Everything local.
-- **Phase 2 (when needed):** Second node (e.g., VPS for client portal). Replicate datoms over NATS between nodes.
-- **Phase 3 (if ever needed):** The datom log is structurally identical to a Hypercore — append-only, hash-linkable. Bridge to Hypercore/Holepunch without redesigning the data model.
+- **Phase 1 (now):** Single machine. Local datom store. Everything local.
+- **Phase 2 (when needed):** Second node (e.g., VPS for client portal). Replicate datoms over MoQ between nodes.
+- **Phase 3 (target):** Full P2P via Iroh + MoQ. The datom log is structurally content-addressable (iroh-blobs, BLAKE3). Datoms are already CRDT-compatible (assert/retract = add/remove operations).
 
 ---
 
