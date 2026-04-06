@@ -3,6 +3,22 @@
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
 
+## research
+
+in the context of vivief we can for example ask questions about the code by using the devac tools,
+  we can also for example need information where we need to search the web.
+  what do you see as valid options on how to organise this kind of specifying the sources that enable
+  searching in a specific context.
+  it could be mcp tools or skills that know how to search and specify this in their description or
+  cli commands specified in claude.md or have a dedicated set of research agents with the correct specific skill for a specific way of researching like for example create dedicated search algorithems to optimize for specific cases or others ways
+  i would like to create a document that makes it clear how vivief obtains knowledge to answer a
+  question based on the best up to date knowledge needed to answer the question as good and correct
+  as possible including the references to the origins of the knowledge
+  i do not want implementations details that is for later
+  Interview me relentlessly about every aspect of this question to make sure we understand what we
+  want.
+  Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For
+  each question, provide your recommended answer.
 
 # concepts the total version
 
