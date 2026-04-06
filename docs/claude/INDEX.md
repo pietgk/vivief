@@ -78,6 +78,7 @@ Add the window to the index below under the right category.
 - `concepts-contract.md` — Constraints on all concepts, trust strategies, escalation
 - `concepts-effecthandler.md` — `(state, intent) => (state', [intent'])`, the transition function
 - `concepts-creation-loop.md` — The creation formula, chicken-and-egg as feature
+- `concepts-fractal-software-factory.md` — Same loop at every scale, temperature tiers, LLM budget
 
 **Architecture**
 

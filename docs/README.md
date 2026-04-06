@@ -28,6 +28,7 @@ docs/
 |-----------------|-----------|
 | **Use DevAC** | [Quick Start](fact/guides/quick-start.md) → [CLI Reference](fact/guides/cli-reference.md) |
 | **Understand the vision** | [claude/INDEX.md](claude/INDEX.md) → [Concepts v6](contract/vivief-concepts-v6.md) |
+| **Understand compounding** | [Fractal Factory](claude/concepts-fractal-software-factory.md) → [Full vision](contract/vision/fractal-software-factory.md) |
 | **See the full story** | [Story Arc](story/arc.md) → [Evolution logs](story/evolution/) |
 | **Brainstorm with Claude** | Load [claude/INDEX.md](claude/INDEX.md) first, then relevant topic windows |
 | **Find a decision** | [ADRs](contract/adr/README.md) + [Relevance overlay](contract/adr/RELEVANCE.md) |
