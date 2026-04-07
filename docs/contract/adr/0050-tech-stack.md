@@ -17,15 +17,15 @@ ADRs 0046–0049 made sequential decisions that corrected each other, producing 
 
 The result: three runtimes, heavy Holepunch coupling, a Node.js sidecar, and technology choices driven by cascading constraints rather than a coherent vision.
 
-**The lean stack brainstorms** ([v1](../vision/brainstorms/vivief-p2p-lean-stack-adr.md), [v2](../vision/brainstorms/vivief-p2p-lean-stack-adr-v2.md)) revealed a fundamentally cleaner architecture. The key insight: **Hypercore's append-only log is the wrong abstraction for datoms** — datoms are a multiset with retractions (`assert` = +1, `retract` = -1), which maps directly to differential dataflow. D2TS consolidation is the right primitive, not Hypercore append.
+**The lean stack brainstorms** ([v1](../../archive/p2p/vivief-p2p-lean-stack-adr.md), [v2](../p2p/lean-stack-v2.md)) revealed a fundamentally cleaner architecture. The key insight: **Hypercore's append-only log is the wrong abstraction for datoms** — datoms are a multiset with retractions (`assert` = +1, `retract` = -1), which maps directly to differential dataflow. D2TS consolidation is the right primitive, not Hypercore append.
 
 This ADR starts from the complete picture and makes all tech stack decisions coherently in one document.
 
 **Sources:**
-- `vivief-concepts-v6.md` — the five concepts and their requirements
-- `vivief-concepts-v6-implementation-kb.md` §2 — technology decision framework
-- `vivief-p2p-lean-stack-adr.md` / `vivief-p2p-lean-stack-adr-v2.md` — lean stack architecture
-- `datom-data-world-v0.7.md` — datom-as-CRDT insight, temperature tiers
+- [`vivief-concepts-v6.md`](../vivief-concepts-v6.md) — the five concepts and their requirements
+- [`vivief-concepts-implementation-kb.md`](../../archive/vivief-concepts/vivief-concepts-implementation-kb.md) §2 — technology decision framework
+- [`vivief-p2p-lean-stack-adr.md`](../../archive/p2p/vivief-p2p-lean-stack-adr.md) / [`lean-stack-v2.md`](../p2p/lean-stack-v2.md) — lean stack architecture
+- [`datom-data-world-v0.6.md`](../../archive/datom-data-world/datom-data-world-v0.6.md) — datom-as-CRDT insight, temperature tiers
 
 ---
 
@@ -523,11 +523,11 @@ Tauri application
 
 ## References
 
-- [vivief-concepts-v6.md](../vision/vivief-concepts-v6.md) — The five concepts
-- [vivief-concepts-v6-implementation-kb.md](../vision/vivief-concepts-v6-implementation-kb.md) — Technology decision framework
-- [vivief-p2p-lean-stack-adr.md](../vision/brainstorms/vivief-p2p-lean-stack-adr.md) — Lean stack v1 (Iroh + D2TS + Loro)
-- [vivief-p2p-lean-stack-adr-v2.md](../vision/brainstorms/vivief-p2p-lean-stack-adr-v2.md) — Lean stack v2 (adds MoQ)
-- [datom-data-world-v0.7.md](../vision/brainstorms/datom-data-world-v0.7.md) — Datom-as-CRDT insight
+- [vivief-concepts-v6.md](../vivief-concepts-v6.md) — The five concepts
+- [vivief-concepts-implementation-kb.md](../../archive/vivief-concepts/vivief-concepts-implementation-kb.md) — Technology decision framework
+- [vivief-p2p-lean-stack-adr.md](../../archive/p2p/vivief-p2p-lean-stack-adr.md) — Lean stack v1 (Iroh + D2TS + Loro)
+- [lean-stack-v2.md](../p2p/lean-stack-v2.md) — Lean stack v2 (adds MoQ)
+- [datom-data-world-v0.6.md](../../archive/datom-data-world/datom-data-world-v0.6.md) — Datom-as-CRDT insight
 - [D2TS](https://github.com/electric-sql/d2ts) — Differential dataflow for TypeScript
 - [Iroh](https://github.com/n0-computer/iroh) — P2P QUIC networking
 - [MoQ](https://github.com/moq-dev/moq) — Media over QUIC pub/sub
