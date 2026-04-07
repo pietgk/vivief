@@ -54,6 +54,13 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0042](0042-mcp-tool-naming-conventions.md) | MCP Tool Naming Conventions | Accepted | 2026-01 |
 | [0043](0043-hook-based-validation-triggering.md) | Hook-Based Validation Triggering | Accepted | 2026-01 |
 | [0044](0044-unified-addressing-scheme.md) | Unified Addressing Scheme for DevAC | Accepted | 2026-01 |
+| [0045](0045-accessibility-intelligence-layer.md) | Accessibility Intelligence Layer | Accepted | 2026-01 |
+| [0046](0046-runtime-and-language.md) | Runtime and Language | Superseded | 2026-02 |
+| [0047](0047-datom-store-sync.md) | Datom Store and Sync | Superseded | 2026-02 |
+| [0048](0048-ui-framework.md) | UI Framework | Superseded | 2026-02 |
+| [0049](0049-deployment-architecture.md) | Deployment Architecture | Superseded | 2026-02 |
+| [0050](0050-tech-stack.md) | Vivief Tech Stack | Superseded | 2026-03 |
+| [0051](0051-tech-stack.md) | Vivief Tech Stack — P2P Node Architecture | Proposed | 2026-04 |
 
 ## Creating a New ADR
 

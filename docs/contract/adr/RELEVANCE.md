@@ -55,11 +55,12 @@
 | 0047 | Datom Store and Sync | **Superseded** | By ADR-0050 + contract/datom/architecture.md. |
 | 0048 | UI Framework | **Superseded** | By ADR-0050. |
 | 0049 | Deployment Architecture | **Superseded** | By ADR-0050 + contract/p2p/lean-stack-v2.md. |
-| 0050 | Vivief Tech Stack | **Active** | The umbrella decision. Browser-first lean stack. |
+| 0050 | Vivief Tech Stack | **Superseded** | By ADR-0051. Browser-first model replaced by P2P node architecture. |
+| 0051 | Vivief Tech Stack — P2P Node Architecture | **Active** | The umbrella decision. Supersedes 0050. P2P nodes, MoQ from start, revised storage tiers. |
 
 ## Summary
 
-- **Active**: 37 ADRs — still govern current implementation
+- **Active**: 38 ADRs — still govern current implementation
 - **Transitional**: 6 ADRs — valid now, will evolve with datom/P2P migration
-- **Superseded**: 4 ADRs (0046-0049) — replaced by ADR-0050
+- **Superseded**: 5 ADRs (0046-0050) — replaced by ADR-0051
 - **Context**: 1 ADR (0015) — historical rationale, superseded by v6 concepts

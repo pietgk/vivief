@@ -1,8 +1,8 @@
 # Vivief P2P Node Architecture
 
-**Status:** Brainstorm
+**Status:** Graduated → [ADR-0051](../../contract/adr/0051-tech-stack.md)
 **Date:** 2026-03-26
-**Revises:** [ADR-0050](../../adr/0050-tech-stack.md) (browser-first tech stack)
+**Revises:** [ADR-0050](../../contract/adr/0050-tech-stack.md) (browser-first tech stack)
 **Sources:** ADR-0050, [d2ts-sqlite-operator-state](d2ts-sqlite-operator-state.md), [vivief-p2p-lean-stack-adr-v2](vivief-p2p-lean-stack-adr-v2.md), [vivief-concepts-v6](../vivief-concepts-v6.md), [concepts](../concepts.md), [foundation](../foundation.md), [implementation KB](../vivief-concepts-v6-implementation-kb.md)
 
 ---

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by [ADR-0051](0051-tech-stack.md)
 
 Supersedes: [ADR-0046](0046-runtime-and-language.md), [ADR-0047](0047-datom-store-sync.md), [ADR-0048](0048-ui-framework.md), [ADR-0049](0049-deployment-architecture.md)
 
