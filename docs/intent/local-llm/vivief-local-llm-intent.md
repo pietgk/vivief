@@ -304,7 +304,7 @@ Install: `curl -fsSL https://unsloth.ai/install.sh | sh` → open `http://localh
 7. **Log escalations to Sonnet/Opus** — these become new training data
 8. **Periodic re-fine-tune** — local model improves continuously
 
-This mirrors Vivief's dual-loop architecture (practitioner loop + AI loop with human approval) applied to model training itself.
+This mirrors Vivief's creation loop — the practitioner and AI collaborating with human approval of AI-proposed changes — applied to model training itself.
 
 ### Training Data Requirements
 
@@ -365,7 +365,7 @@ This mirrors Vivief's dual-loop architecture (practitioner loop + AI loop with h
 
 | Decision | Alignment |
 |----------|-----------|
-| Dual-loop (practitioner + AI with human approval) | VivRouter proposes, human approves — fully local |
+| Creation loop (practitioner + AI collaboration) | VivRouter proposes, human approves — fully local |
 | Generative UI / Projection compiler | VivSurface fine-tune is the compiler — local, deterministic after training |
 | Selective encryption (AES-256-GCM) | All LLM inference local — encrypted datoms never leave device for AI processing |
 | Local-first / Iroh P2P | LiteRT-LM embeds in Tauri — no server dependency for inference |
