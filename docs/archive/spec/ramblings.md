@@ -2,6 +2,15 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+# review docs including intent overview
+
+lets plan an updated review of  "/Users/grop/ws/vivief/docs/REVIEW.md" and include the status of all intent files. 
+this to be able to determine what to do with these intents. 
+we have a lot of them and i do not have an overview and feel overwelmed by the sheer amount of intent.
+previous session we improved the quality of some intent files to enable that they are ready to move to a more concrete place so they are available when we start implementing them.
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+For each question, provide your recommended answer with proper explaining why that is the recommended answer together with a challenging alternative answer.
+
 
 ## research
 
@@ -18,8 +27,7 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
   Interview me relentlessly about every aspect of this plan proposal to make sure we understand what we
   understand each other fully.
   Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For
-  each question, provide your recommended answer with proper explaining why that is the recommended answer and if appropriate a challenging answer to the recommended answer.
-
+  each question, provide your recommended answer with proper explaining why that is the recommended answer together with challenging alternative answer.
 
 
 in the context of vivief we can for example ask questions about the code by using the devac tools,
