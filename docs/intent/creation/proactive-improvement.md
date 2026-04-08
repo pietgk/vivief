@@ -22,14 +22,19 @@ These are not competing mechanisms. They are the same improvement impulse at dif
 
 Aggregation is already a Contract mode: "derive higher-level facts from lower-level datoms." Proactive improvement is an Aggregation Contract that watches session interaction datoms:
 
-```
-Aggregation Contract:
-  from: session interaction datoms (prompts, tool calls, responses)
-  trigger: count > N (e.g., 10 interactions, 15 tool calls, 3 sessions)
-  to: :improvement/review-requested
+An Aggregation Contract watches session interaction datoms and triggers when a threshold is met:
+
+```clojure
+;; Aggregation Contract — proactive improvement trigger
+[:contract/type        :aggregation]
+[:contract/source      :session/interaction]      ;; watches prompts, tool calls, responses
+[:contract/trigger     {:count 10                  ;; after 10 interactions
+                        :or {:event :session/end}} ;; OR at session end
+[:contract/produces    :improvement/review-requested]
+[:contract/trust-floor 0.6]                        ;; only reviews interactions above this trust
 ```
 
-When the threshold is met, the Contract produces an `:improvement/review-requested` intent that enters the creation loop like any other intent. No special mechanism — just an Aggregation Contract doing what Aggregation Contracts do.
+When triggered, the Contract produces an `:improvement/review-requested` intent that enters the creation loop like any other intent. No special mechanism — just an Aggregation Contract doing what Aggregation Contracts do.
 
 ## What Processes the Review
 
@@ -89,10 +94,26 @@ Interaction → effect datoms → Aggregation triggers review → improvement da
 
 The flywheel's "LLM observes patterns, proposes Contracts" step is not magic — it's proactive improvement, triggered by Aggregation Contracts, processed by Improver effectHandlers, governed by the same trust model as everything else.
 
+## Open Questions
+
+| Question | Context | Next step |
+|----------|---------|-----------|
+| **What exactly is an Aggregation Contract?** | Used throughout this doc but not formally defined. How does it differ from a regular Behavior Contract? What's the schema? Is `trigger` a first-class field or metadata? | Needs formalization — candidate for its own contract/ doc |
+| **Who approves improvement proposals?** | Line "human approves formalization steps" — but what's the mechanism? A Surface notification? A dialog prompt? An MCP tool? | Design the approval workflow as part of the creation loop |
+| **Researcher ↔ Improver handoff** | The Improver role (effecthandler-roles.md) proposes improvements, the Researcher role (knowledge-acquisition.md) investigates context. How do they coordinate? Sequential? Parallel? Who initiates? | Map to multi-agent primitives (multi-agent-primitives.md) |
+| **Autoresearch applicability** | Karpathy's [Autoresearch-as-Universal-Skill](https://github.com/balukosuri/Andrej-Karpathy-s-Autoresearch-As-a-Universal-Skill) proposes research as a structural, automatable loop. How do these concepts map to vivief's improvement cycle? | Future brainstorm — evaluate key concepts for adoption |
+| **Compound trigger semantics** | "After 10 interactions OR at session end" — what's the formal semantics? Short-circuit? Priority? Reset behavior? | Needs formalization alongside Aggregation Contract schema |
+
+## Research Inputs
+
+- **Karpathy's Autoresearch** — [Autoresearch-as-Universal-Skill](https://github.com/balukosuri/Andrej-Karpathy-s-Autoresearch-As-a-Universal-Skill): positions research as a universal, automatable skill. Relevant to vivief because the proactive improvement loop IS a research loop (observe patterns → form hypotheses → propose changes). Key concepts to evaluate: research as a manually-triggered improvement cycle, structural decomposition of research steps, LLM-as-researcher patterns.
+
 ## Related Documents
 
 - [knowledge-acquisition.md](knowledge-acquisition.md) — the interview that surfaced this pattern, Researcher role
 - [effecthandler-roles.md](effecthandler-roles.md) — Improver as an effectHandler role
+- [multi-agent-primitives.md](multi-agent-primitives.md) — composition patterns for Researcher + Improver coordination
+- [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) — aperture governs what improvement reviews can see
 - [concepts-creation-loop](../../claude/concepts-creation-loop.md) — reactive improvement (validate/fix), the flywheel
 - [concepts-contract](../../claude/concepts-contract.md) — Aggregation as a Contract mode
 - [concepts-fractal-software-factory](../../claude/concepts-fractal-software-factory.md) — temperature tiers (hot/warm/cold)

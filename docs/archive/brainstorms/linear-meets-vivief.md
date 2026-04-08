@@ -1,5 +1,7 @@
 # Linear Meets Vivief — Brainstorm
 
+> **Archived 2026-04-07.** Core concepts locked in [contract/vision/creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md). Experiments in [intent/creation/creation-loop-experiments.md](../../intent/creation/creation-loop-experiments.md).
+
 > Brainstorm document. Maps Linear's "Context → Execution" vision against vivief's creation loop.
 > Sparked by Linear's April 2025 announcement: "Issue tracking is dead."
 > Linear is becoming a shared product system that turns context into execution via agents, skills, and automations.

@@ -61,8 +61,8 @@ The vivief documentation is **remarkably well-organized** for a project at this 
 | 6 | ~~Missing `status-examples.md`~~ | ~~Low~~ | Referenced by `concepts-quick-ref.md` | **Fixed** 2026-04-01 |
 | 7 | ~~CLAUDE.md has no vivief platform pointer~~ | ~~Low~~ | `CLAUDE.md` | **Fixed** 2026-04-01 — platform pointer added to Project Overview |
 | 8 | ~~5 broken references in ADR-0050~~ | ~~High~~ | `contract/adr/0050-tech-stack.md` | **Fixed** 2026-04-07 — paths corrected to actual file locations |
-| 9 | Scribble-phase doc depended upon | Medium | `intent/creation/high-level-concepts.md` | **Open** — referenced by effecthandler-roles.md and knowledge-acquisition.md but explicitly "scribble phase" |
-| 10 | New terms lack formal registry | Low | Multiple `intent/creation/` docs | **Open** — aperture, intake, role, researcher, improver introduced without a terminology index |
+| 9 | ~~Scribble-phase doc depended upon~~ | ~~Medium~~ | `intent/creation/high-level-concepts.md` | **Fixed** 2026-04-07 — archived; refs repointed to `creation-loop-extensions.md`; orphaned ideas extracted to `session-harness.md` and `multi-agent-primitives.md` |
+| 10 | ~~New terms lack formal registry~~ | ~~Low~~ | Multiple `intent/creation/` docs | **Fixed** 2026-04-07 — terms defined at source docs (aperture/intake in `creation-loop-extensions.md`, role in `effecthandler-roles.md`) |
 
 ---
 
@@ -152,11 +152,12 @@ All in `contract/adr/0050-tech-stack.md` (Context + References sections). Root c
 
 ### Round 2 (2026-04-07)
 
-11. ~~**Fix 5 broken links in ADR-0050**~~ — Fixed (paths corrected to actual locations)
-12. **Mature `high-level-concepts.md`** — Either restructure into a proper design doc or remove references from effecthandler-roles.md (line 64) and knowledge-acquisition.md. Currently scribble-phase but depended upon.
-13. **Consider a terminology registry** — New terms (aperture, intake, role, researcher, improver) are introduced cleanly but scattered across `intent/creation/` docs. A lightweight index (e.g., `intent/creation/glossary.md`) would help readers unfamiliar with the full doc set.
-14. **Lock `knowledge-acquisition.md`** — Strongest new doc. Ready to move from intent/ to contract/ after high-level-concepts dependency is resolved.
-15. **Lock `effecthandler-roles.md`** — Near-lock quality. Same high-level-concepts dependency as above.
+11. ~~**Fix 5 broken links in ADR-0050**~~ — Fixed
+12. ~~**Mature `high-level-concepts.md`**~~ — Archived. Refs repointed to `creation-loop-extensions.md`. Orphaned ideas extracted to `session-harness.md` and `multi-agent-primitives.md`.
+13. ~~**Consider a terminology registry**~~ — Terms defined at their source docs. No separate glossary.
+14. **Lock `knowledge-acquisition.md`** — Ready to move from intent/ to contract/ in next plan.
+15. **Lock `effecthandler-roles.md`** — Ready to move from intent/ to contract/ in next plan.
+16. **Brainstorm `proactive-improvement.md`** — Open questions documented (Aggregation Contract schema, approval workflow, Researcher↔Improver handoff). Karpathy autoresearch reference added for future brainstorm.
 
 ---
 
@@ -199,6 +200,7 @@ New terms introduced cleanly but without formal definitions:
 
 | Date | Reviewer | Scope | Key Findings |
 |------|----------|-------|-------------|
+| 2026-04-07 | Claude (Opus 4.6) + human | Round 2 fix: resolve open issues from review | Archived high-level-concepts.md, split linear-meets-vivief.md into locked creation-loop-extensions.md (contract) + experiments (intent). Created docs-as-creation-artifacts.md vision doc. Accepted ADR-0051. Established vision↔ADR convention. Created thin intent docs for session-harness and multi-agent-primitives. Tightened proactive-improvement.md with open questions + autoresearch reference. All review issues resolved. |
 | 2026-04-07 | Claude (Opus 4.6) + human | Round 2: 15 new/modified docs since 2026-04-01 | Fixed 5 broken ADR-0050 links (stale `vision/brainstorms/` paths). 6 new intent/creation docs reviewed — knowledge-acquisition and effecthandler-roles near lock-ready. high-level-concepts.md is scribble-phase but depended upon (open issue). v6 terminology consistent across all new content. ADR-0051 governance correct. Grade: A maintained. |
 | 2026-04-01 | Claude (Opus 4.6) + human | Full docs review (~230 files) | Found 9 broken refs, terminology bridge gap, 5 omissions, 3 trim candidates. All fixed same session. Grade: B+ → A. Remaining: full document index (open), last-reviewed dates (ongoing). |
 | 2026-04-01 | Claude (Opus 4.6) + human | Holepunch → Iroh+MoQ stack correction | Replaced all Holepunch references (Hypercore, Protomux, Hyperbee, Hyperswarm, Pear/Bare, Keet) with Iroh + MoQ stack across 11 files. Archived session-keet-challenge.md. Updated datom/architecture.md to v0.8. Cold-tier indexing and peer discovery remain open questions. |

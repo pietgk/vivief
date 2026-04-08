@@ -1,6 +1,8 @@
 # Intent: Documentation Discoverability via DevAC
 
-**Status**: Open — design exploration
+> **Archived 2026-04-07.** Evolved into [contract/vision/docs-as-creation-artifacts.md](../../contract/vision/docs-as-creation-artifacts.md) — reframed from DevAC feature to docs-as-creation-artifacts vision.
+
+**Status**: Archived
 
 ## The problem
 

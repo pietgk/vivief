@@ -5,6 +5,23 @@ This is file is used to create and edit prompts snippets for pasting into llm ch
 
 ## research
 
+  i would like to plan fixing the open issues we detected in the review.
+    from the document assesment we can determine what documement need to be improved
+    to the level (you use the term locked)  that we can use then to create the correct contract and fact documents in a next plan.
+    regarding
+    - high-level-concepts we should try to split it in the parts that are referenced in a clean way if that is possible.
+    - doc-discovery needs alignment with the fractal-software-factory and as its part of the creation loop and devac we nned to
+    determine how to move this to a more concrete level
+    - i reviewed adr 0051 and i approve it.
+    - proactive-improvement needs a seperate brainstorm and improvement cycle as we have some concepts that need work and some
+    research regarding autoresearch as a possible manually triggered improvement loop
+  Interview me relentlessly about every aspect of this plan proposal to make sure we understand what we
+  understand each other fully.
+  Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For
+  each question, provide your recommended answer with proper explaining why that is the recommended answer and if appropriate a challenging answer to the recommended answer.
+
+
+
 in the context of vivief we can for example ask questions about the code by using the devac tools,
   we can also for example need information where we need to search the web.
   what do you see as valid options on how to organise this kind of specifying the sources that enable

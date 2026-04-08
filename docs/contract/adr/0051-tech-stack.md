@@ -2,11 +2,13 @@
 
 ## Status
 
-Proposed
+Accepted (2026-04-07)
 
 Supersedes: [ADR-0050](0050-tech-stack.md) (which superseded [ADR-0046](0046-runtime-and-language.md), [ADR-0047](0047-datom-store-sync.md), [ADR-0048](0048-ui-framework.md), [ADR-0049](0049-deployment-architecture.md))
 
 ## Context
+
+**Motivated by** [vivief-concepts-v6.md](../vivief-concepts-v6.md) and [creation-loop-extensions.md](../vision/creation-loop-extensions.md).
 
 ADR-0050 defined vivief as a **browser-first, lean stack** — all application logic in the browser, complexity introduced progressively. It consolidated ADRs 0046–0049 into one coherent decision.
 
@@ -88,7 +90,7 @@ A browser tab is a small node with UI. A desktop app is a big node with all capa
 | Protocol | Purpose |
 |----------|---------|
 | **iroh-blobs** | Content-addressed blob transfer (BLAKE3 tree hash). Verified streaming per 1KB chunk. For large data that doesn't fit the track model (Loro document snapshots, frozen epoch archives). |
-| **iroh-gossip** | Epidemic broadcast tree (HyParView + PlumTree). Available as fallback; primary pub/sub is MoQ. |
+| **iroh-gossip** | Epidemic broadcast tree (HyParView + PlumTree hybrid protocol). Available as fallback; primary pub/sub is MoQ. |
 
 ### 4. Pub/Sub Protocol: MoQ (Media over QUIC)
 

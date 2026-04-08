@@ -1,7 +1,7 @@
 ---
 topic: index
 status: canonical
-last-verified: 2026-03-30
+last-verified: 2026-04-07
 ---
 
 ## Vivief Documentation — Claude Index
@@ -20,6 +20,8 @@ its full human-version doc for deeper reading.
 | `story/` | Narrative arc and evolution history | Append-only |
 | `archive/` | Historical documents, past sessions, old plans | Frozen |
 | `claude/` | This folder — compact windows for Claude sessions | Synced to above |
+
+**Vision ↔ ADR linkage**: Vision docs (`contract/vision/`) describe concepts; ADRs (`contract/adr/`) record decisions. They cross-reference via `Related Decisions` sections (in vision docs) and `Motivated by` links (in ADR Context sections).
 
 ### What Is Vivief?
 
@@ -79,6 +81,7 @@ Add the window to the index below under the right category.
 - `concepts-effecthandler.md` — `(state, intent) => (state', [intent'])`, the transition function
 - `concepts-creation-loop.md` — The creation formula, chicken-and-egg as feature
 - `concepts-fractal-software-factory.md` — Same loop at every scale, temperature tiers, LLM budget
+- `concepts-creation-loop-extensions.md` — Aperture parameter, intake pattern, context-as-fractal, local-first compounding
 
 **Architecture**
 

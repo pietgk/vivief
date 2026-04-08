@@ -116,6 +116,17 @@ contract/[topic]/doc.md  →  IMPLEMENTED  →  fact/[topic]/doc.md
 any doc  →  SUPERSEDED  →  archive/[topic]/doc.md + entry in story/evolution/
 ```
 
+### Vision ↔ ADR Convention
+
+Vision docs (`contract/vision/`) describe **concepts and principles** — the "what" and "why."
+ADRs (`contract/adr/`) record **specific decisions** — the "how" and "which."
+
+They cross-reference with a lightweight convention:
+- **Vision docs** get a `Related Decisions` section listing ADRs that implement them
+- **ADRs** open their Context section with `Motivated by [vision-doc]` when applicable
+
+This is bidirectional but lightweight — no frontmatter, no tooling. The goal: reading either doc tells you the other exists.
+
 ### Review
 
 The documentation quality review lives at [REVIEW.md](REVIEW.md). Update it when making structural changes.

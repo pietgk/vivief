@@ -69,7 +69,7 @@ When a `:knowledge/requested` intent enters the creation loop, dispatch happens 
 1. **Classification** — a cheap/fast effectHandler (local model or deterministic rules) categorizes the intent: what kind of knowledge is needed? Code structure? Current state? External reference?
 2. **Source selection** — based on classification + available sources (filtered by access Contracts), select which Researcher effectHandlers to invoke, in what order, with what depth budget.
 
-This maps to: `categorize => template(prompt) => [effectHandler(prompt)]`
+This maps to the intent dispatch model defined in [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md): `categorize => template(prompt) => [effectHandler(prompt)]`
 
 Classification produces auditable datoms — why a source was chosen is traceable, unlike opaque LLM tool selection.
 
@@ -198,8 +198,8 @@ Thin wrappers (MCP, CLI) adapt protocol. Thick wrappers (skills) compose effectH
 
 ## Related Documents
 
-- [high-level-concepts.md](high-level-concepts.md) — scribble-phase sketch containing the Surface/Improve/Projection/Researcher container cycle
-- [doc-discovery.md](doc-discovery.md) — making docs a queryable source for the Researcher
+- [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) — aperture-based intent routing, context-as-fractal model, DevAC as wide-aperture Projection
+- [docs-as-creation-artifacts.md](../../contract/vision/docs-as-creation-artifacts.md) — making docs a queryable source for the Researcher
 - [concepts-effecthandler](../../claude/concepts-effecthandler.md) — effectHandler definition, implementation strategies, skills
 - [concepts-creation-loop](../../claude/concepts-creation-loop.md) — the creation formula, fix strategies, compounding flywheel
 - [concepts-fractal-software-factory](../../claude/concepts-fractal-software-factory.md) — fractal retrieve → generate → evaluate at every scale

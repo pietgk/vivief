@@ -61,7 +61,7 @@ Patterns are named for communication, not for enforcement. "That's a Researcher"
 
 ## Roles Enable Dispatch
 
-Roles are the mechanism behind "ask who can handle this intent" — the confidence-bidding pattern from the high-level-concepts sketch.
+Roles are the mechanism behind "ask who can handle this intent" — the aperture-based intent routing model defined in [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md). At narrow aperture, a single role-matched handler fires (triage). At wide aperture, all non-rejecting handlers produce and a composition handler merges (chorus).
 
 Dispatch flow:
 
@@ -76,6 +76,14 @@ This replaces hardcoded routing with declarative matching. New handlers with the
 ## Roles Apply to Humans Too
 
 Humans in vivief already have implicit roles: Counselor, Developer, Organiser. Formalizing Role as a concept makes the parallel explicit. A human with role `:counselor` and an effectHandler with role `:counselor` both participate in the same dispatch surface for counseling-related intents. The handler might auto-fix; the human handles what the handler can't — same escalation path.
+
+## Role vs. Skill
+
+A skill is a pattern: effectHandler (LLM) + Behavior Contract + Projection (context). A role is a dimension of any effectHandler. Their relationship:
+
+- Every skill has at least one role (a research skill has role `:researcher`)
+- Not every handler with a role is a skill (a deterministic code validator has role `:validator` but is not a skill)
+- Role is broader: it applies across implementation strategies. Skills are LLM-specific.
 
 ## Starting Role Taxonomy
 
@@ -92,14 +100,6 @@ Roles are an open set (new roles emerge as new competences appear), but here is 
 
 This is a starting taxonomy. New roles appear when new competences are needed. No approval process — just add the attribute.
 
-## Role vs. Skill
-
-A skill is a pattern: effectHandler (LLM) + Behavior Contract + Projection (context). A role is a dimension of any effectHandler. Their relationship:
-
-- Every skill has at least one role (a research skill has role `:researcher`)
-- Not every handler with a role is a skill (a deterministic code validator has role `:validator` but is not a skill)
-- Role is broader: it applies across implementation strategies. Skills are LLM-specific.
-
 ## Relationship to Knowledge Acquisition
 
 The Researcher role was the catalyst for formalizing Roles. See [knowledge-acquisition.md](knowledge-acquisition.md) for the full design of how Researcher effectHandlers acquire, synthesize, and attribute knowledge.
@@ -107,6 +107,6 @@ The Researcher role was the catalyst for formalizing Roles. See [knowledge-acqui
 ## Related Documents
 
 - [knowledge-acquisition.md](knowledge-acquisition.md) — Researcher role in depth, sources, dispatch, provenance
-- [high-level-concepts.md](high-level-concepts.md) — container cycle sketch, confidence-bidding dispatch
+- [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) — aperture-based intent routing, confidence-bidding via dispatch model
 - [concepts-effecthandler](../../claude/concepts-effecthandler.md) — effectHandler definition, levels, implementation strategies
 - [concepts-contract](../../claude/concepts-contract.md) — Behavior Contracts that formalize what roles mean

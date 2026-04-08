@@ -1,6 +1,8 @@
 # high level concepts
 
-status: this intent is in the scribble phase
+> **Archived 2026-04-07.** 3/5 ideas evolved into [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) (confidence-bidding → aperture-based routing, intent dispatch, container cycle → context-as-fractal). SessionHarness and multi-agent primitives extracted to dedicated intent docs: [session-harness.md](../../intent/creation/session-harness.md), [multi-agent-primitives.md](../../intent/creation/multi-agent-primitives.md).
+
+status: archived (was scribble phase)
 
 we want to create the outer high level concepts to get better insight and overview of the technical and logical creation environment we are creating.
 

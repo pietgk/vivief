@@ -60,7 +60,7 @@ An Architecture Decision Record captures an important architectural decision mad
 | [0048](0048-ui-framework.md) | UI Framework | Superseded | 2026-02 |
 | [0049](0049-deployment-architecture.md) | Deployment Architecture | Superseded | 2026-02 |
 | [0050](0050-tech-stack.md) | Vivief Tech Stack | Superseded | 2026-03 |
-| [0051](0051-tech-stack.md) | Vivief Tech Stack — P2P Node Architecture | Proposed | 2026-04 |
+| [0051](0051-tech-stack.md) | Vivief Tech Stack — P2P Node Architecture | Accepted | 2026-04 |
 
 ## Creating a New ADR
 
