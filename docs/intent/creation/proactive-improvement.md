@@ -100,7 +100,7 @@ The flywheel's "LLM observes patterns, proposes Contracts" step is not magic —
 |----------|---------|-----------|
 | **What exactly is an Aggregation Contract?** | Used throughout this doc but not formally defined. How does it differ from a regular Behavior Contract? What's the schema? Is `trigger` a first-class field or metadata? | Needs formalization — candidate for its own contract/ doc |
 | **Who approves improvement proposals?** | Line "human approves formalization steps" — but what's the mechanism? A Surface notification? A dialog prompt? An MCP tool? | Design the approval workflow as part of the creation loop |
-| **Researcher ↔ Improver handoff** | The Improver role (effecthandler-roles.md) proposes improvements, the Researcher role (knowledge-acquisition.md) investigates context. How do they coordinate? Sequential? Parallel? Who initiates? | Map to multi-agent primitives (multi-agent-primitives.md) |
+| **Researcher ↔ Improver handoff** | The Improver role ([effecthandler-roles](../../contract/vision/effecthandler-roles.md)) proposes improvements, the Researcher role ([knowledge-acquisition](../../contract/vision/knowledge-acquisition.md)) investigates context. How do they coordinate? Sequential? Parallel? Who initiates? | Map to multi-agent primitives (multi-agent-primitives.md) |
 | **Autoresearch applicability** | Karpathy's [Autoresearch-as-Universal-Skill](https://github.com/balukosuri/Andrej-Karpathy-s-Autoresearch-As-a-Universal-Skill) proposes research as a structural, automatable loop. How do these concepts map to vivief's improvement cycle? | Future brainstorm — evaluate key concepts for adoption |
 | **Compound trigger semantics** | "After 10 interactions OR at session end" — what's the formal semantics? Short-circuit? Priority? Reset behavior? | Needs formalization alongside Aggregation Contract schema |
 
@@ -110,8 +110,8 @@ The flywheel's "LLM observes patterns, proposes Contracts" step is not magic —
 
 ## Related Documents
 
-- [knowledge-acquisition.md](knowledge-acquisition.md) — the interview that surfaced this pattern, Researcher role
-- [effecthandler-roles.md](effecthandler-roles.md) — Improver as an effectHandler role
+- [knowledge-acquisition.md](../../contract/vision/knowledge-acquisition.md) — Researcher role, sources, dispatch, provenance
+- [effecthandler-roles.md](../../contract/vision/effecthandler-roles.md) — Improver as an effectHandler role
 - [multi-agent-primitives.md](multi-agent-primitives.md) — composition patterns for Researcher + Improver coordination
 - [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) — aperture governs what improvement reviews can see
 - [concepts-creation-loop](../../claude/concepts-creation-loop.md) — reactive improvement (validate/fix), the flywheel

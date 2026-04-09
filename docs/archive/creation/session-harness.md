@@ -1,8 +1,8 @@
-# Session Harness
+# Session Harness (Archived)
 
 > Intent: context management via progressive disclosure within a creation session.
 
-**Status**: Open — extracted from [archived high-level-concepts](../../archive/brainstorms/high-level-concepts.md) for focused exploration.
+**Status**: Archived — consolidated into §Context Composition of [contract/vision/knowledge-acquisition.md](../../contract/vision/knowledge-acquisition.md) on 2026-04-09. Open questions preserved in the contract.
 
 ---
 

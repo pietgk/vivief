@@ -81,5 +81,5 @@ Version vectors across peers establish causal ordering for multi-peer sync.
 
 - **Cold-tier indexing**: How Iroh + MoQ support range-scannable cold indexes (was Hyperbee). Needs spike.
 - **Peer discovery**: iroh-net + MoQ relay/catalog compose for room-based discovery. Needs spike.
-- `intent/p2p/webrtc-signaling.md` — WebRTC as fallback when QUIC is blocked
-- `intent/p2p/node-architecture.md` — relay nodes, super-peers, lightweight clients
+- `archive/p2p/webrtc-signaling.md` — WebRTC over Protomux (archived — superseded by MoQ)
+- `archive/p2p/node-architecture.md` — relay nodes, super-peers (archived — core decisions in ADR-0051)

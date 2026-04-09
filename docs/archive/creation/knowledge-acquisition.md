@@ -1,6 +1,6 @@
-# Intent: Knowledge Acquisition
+# Intent: Knowledge Acquisition (Archived)
 
-**Status**: Open — interview-resolved design, not yet locked
+**Status**: Archived — promoted to [contract/vision/knowledge-acquisition.md](../../contract/vision/knowledge-acquisition.md) on 2026-04-09.
 
 ## The Problem
 

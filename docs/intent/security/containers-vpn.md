@@ -15,6 +15,5 @@ Vivief's security model has trust scores and capability tokens at the concept le
 
 ## Related
 
-- `intent/security/security-architecture.md` — Draft v0.2 of the security model
-- `intent/security/secure-bridging.md` — Secure cross-domain bridging
+- `intent/security/security-architecture.md` — Draft v0.3 (threat model + bridge security consolidated)
 - `contract/vivief-concepts-v6.md` §2.4 — Contract enforcement trust boundaries

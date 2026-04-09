@@ -1,6 +1,8 @@
-# Alternative A — Schema-First with LLM Enhancement
+# Alternative A — Schema-First with LLM Enhancement (Archived)
 
-> The pragmatic approach: humans define schemas, LLMs fill them, 
+> **Archived 2026-04-09.** Resolved as Phase 1 of phased approach in [contract/procurement/extraction-pipeline.md](../../contract/procurement/extraction-pipeline.md).
+
+> Original: The pragmatic approach: humans define schemas, LLMs fill them, 
 > the system just gets better at filling over time.
 > Lower risk, lower reward. The safe starting point.
 

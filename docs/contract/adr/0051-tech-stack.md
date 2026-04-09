@@ -35,7 +35,7 @@ Vivief as "platform" in C4 terms means: the set of shared concepts (Datom, Proje
 
 **Sources:**
 - [vivief-concepts-v6](../vivief-concepts-v6.md) — the five concepts and their requirements
-- [node-architecture brainstorm](../../intent/p2p/node-architecture.md) — source analysis for this ADR
+- [node-architecture brainstorm](../../archive/p2p/node-architecture.md) — source analysis for this ADR
 - [lean-stack-v2](../p2p/lean-stack-v2.md) — MoQ "everything is a track" insight
 - [d2ts-operator-state](../datom/d2ts-operator-state.md) — D2TS SQLite is operator state, not datom storage
 
@@ -703,11 +703,12 @@ DevAC Node → datoms → MoQ → Relay → MoQ → Browser Node
 ## References
 
 - [vivief-concepts-v6](../vivief-concepts-v6.md) — The five concepts
-- [node-architecture brainstorm](../../intent/p2p/node-architecture.md) — Source analysis for this ADR
+- [node-architecture brainstorm](../../archive/p2p/node-architecture.md) — Source analysis for this ADR
 - [lean-stack-v2](../p2p/lean-stack-v2.md) — MoQ "everything is a track" insight
 - [lean-stack-v1](../../archive/p2p/vivief-p2p-lean-stack-adr.md) — Original lean stack (Iroh + D2TS + Loro)
 - [d2ts-operator-state](../datom/d2ts-operator-state.md) — D2TS SQLite is operator state, not datom storage
 - [datom architecture](../datom/architecture.md) — DatomStore implementation and migration path
+- [Reactive Subscription vs NATS gap analysis](../../archive/counseling/concepts-vs-nats.md) — Evidence: 2/10 NATS capabilities are reactive subscription; remaining 8 handled by Iroh+MoQ+datom model
 - [ADR-0050](0050-tech-stack.md) — Previous tech stack decision (superseded)
 - [D2TS](https://github.com/electric-sql/d2ts) — Differential dataflow for TypeScript
 - [Iroh](https://github.com/n0-computer/iroh) — P2P QUIC networking

@@ -55,4 +55,4 @@ Peers need to find each other for real-time collaboration: counseling sessions, 
 
 - `contract/p2p/lean-stack-v2.md` §1, §3 (MoQ track discovery)
 - `contract/datom/architecture.md` §3, §11.4 (device linking)
-- `intent/p2p/node-architecture.md` (relay nodes, super-peers)
+- `archive/p2p/node-architecture.md` (relay nodes, super-peers — archived, core decisions in ADR-0051)

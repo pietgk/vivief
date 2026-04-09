@@ -1,6 +1,6 @@
-# Intent: Documentation review and Holepunch → Iroh+MoQ stack correction
+# Intent: Documentation review and Holepunch → Iroh+MoQ stack correction (Archived)
 
-**Status**: In progress — resolving stack references across all docs
+**Status**: Archived 2026-04-09 — tracking doc, all items resolved. Ongoing tracking in [REVIEW.md](../../REVIEW.md).
 
 ## The problem
 

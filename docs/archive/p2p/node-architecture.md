@@ -1,6 +1,6 @@
 # Vivief P2P Node Architecture
 
-**Status:** Decided — core decisions captured in [ADR-0051](../../contract/adr/0051-tech-stack.md) (Accepted 2026-04-07). This doc retains the full exploration and open questions not covered by the ADR.
+**Status:** Archived 2026-04-09 — core decisions in [ADR-0051](../../contract/adr/0051-tech-stack.md). Open questions (spike items) carried forward in ADR-0051 §Open Questions. "Platform in C4" question resolved in ADR-0051 §System Context.
 **Date:** 2026-03-26
 **Revises:** [ADR-0050](../../contract/adr/0050-tech-stack.md) (browser-first tech stack)
 **Sources:** ADR-0050, [d2ts-sqlite-operator-state](d2ts-sqlite-operator-state.md), [vivief-p2p-lean-stack-adr-v2](vivief-p2p-lean-stack-adr-v2.md), [vivief-concepts-v6](../vivief-concepts-v6.md), [concepts](../concepts.md), [foundation](../foundation.md), [implementation KB](../vivief-concepts-v6-implementation-kb.md)

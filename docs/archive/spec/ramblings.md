@@ -2,6 +2,9 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+lets pick up immediate and this week from the priority queue of our latest review  "/Users/grop/ws/vivief/docs/REVIEW.md"
+
+
 # review docs including intent overview
 
 lets plan an updated review of  "/Users/grop/ws/vivief/docs/REVIEW.md" and include the status of all intent files. 

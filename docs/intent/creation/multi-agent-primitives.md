@@ -35,7 +35,7 @@ In vivief terms: LLM responses are tool calls to effectHandlers. The loop is the
 
 ## Overlapping Concepts
 
-- **effectHandler roles** ([effecthandler-roles.md](effecthandler-roles.md)) — roles define handler competence. Multi-agent primitives define handler composition. A ParallelAgent might dispatch to handlers based on their roles.
+- **effectHandler roles** ([effecthandler-roles.md](../../contract/vision/effecthandler-roles.md)) — roles define handler competence. Multi-agent primitives define handler composition. A ParallelAgent might dispatch to handlers based on their roles.
 - **Intent dispatch** ([creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md)) — the aperture-based dispatch model (triage → pool → chorus) IS a form of multi-agent composition. Narrow = sequential (one handler), Wide = parallel (chorus). The primitives may be the implementation of aperture-based dispatch.
 - **Proactive improvement** ([proactive-improvement.md](proactive-improvement.md)) — the improvement cycle (detect → research → propose → approve) is a SequentialAgent pattern where each step is an effectHandler.
 - **XState v5 actors** ([ADR-0051](../../contract/adr/0051-tech-stack.md)) — XState already provides actor composition (spawn, send, invoke). The question: are multi-agent primitives a vivief-level abstraction or just XState actor patterns?

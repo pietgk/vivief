@@ -1,6 +1,8 @@
-# Creation Is What We Do
+# Creation Is What We Do (Archived)
 
-> Brainstorm document. Four alternatives exploring the idea that EVERYTHING in vivief is creation.
+> **Archived 2026-04-09.** "Everything is creation" thesis absorbed into [fractal-software-factory.md](../../contract/vision/fractal-software-factory.md) — the same retrieve→generate→evaluate pattern at every scale, with trust as the governing parameter.
+
+> Original brainstorm: Four alternatives exploring the idea that EVERYTHING in vivief is creation.
 >
 > A counselor having a session = creating clinical insights. devac analyzing code = creating a code graph. A morning brief from emails = creating a summary. Writing a handler = creating code. Translating content = creating cultural adaptation. All creation. All `Contract → Create → Validate → Cache`.
 >

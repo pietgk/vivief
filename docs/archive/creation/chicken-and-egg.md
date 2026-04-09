@@ -1,6 +1,6 @@
-# Intent: The Design-Implement Balance
+# Intent: The Design-Implement Balance (Archived)
 
-**Status**: Open — ongoing meta-challenge
+**Status**: Archived 2026-04-09 — meta-observation internalized in docs lifecycle model (intent→contract→fact).
 
 ## The problem
 

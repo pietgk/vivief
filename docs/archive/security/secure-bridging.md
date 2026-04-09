@@ -1,7 +1,8 @@
-# Secure Bridging — Where Security Meets the Universal Connection Pattern
+# Secure Bridging (Archived)
 
-> Brainstorm document. Every bridge boundary is a security boundary. Every source has a trust level. Every landing needs validation. How do the vivief concepts — Contract, Sandbox, Trust, effectHandler, Projection — map cleanly onto the security concerns of bridging across mediums?
->
+> **Archived 2026-04-09.** Thesis consolidated into [security-architecture.md](../../intent/security/security-architecture.md) §9-13 (bridge trust levels, Contract mapping, sandbox as Projection, detection as Contracts, memory defense, contract defaults).
+
+> Original: Brainstorm mapping vivief concepts onto security concerns of bridging across mediums.
 > Sources: `vivief-concepts-bridging.md` (universal bridge pattern) and `vivief-concepts-security-architecture.md` (threat model + sandbox architecture).
 
 ---

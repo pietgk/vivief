@@ -1,6 +1,6 @@
 # high level concepts
 
-> **Archived 2026-04-07.** 3/5 ideas evolved into [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) (confidence-bidding → aperture-based routing, intent dispatch, container cycle → context-as-fractal). SessionHarness and multi-agent primitives extracted to dedicated intent docs: [session-harness.md](../../intent/creation/session-harness.md), [multi-agent-primitives.md](../../intent/creation/multi-agent-primitives.md).
+> **Archived 2026-04-07.** 3/5 ideas evolved into [creation-loop-extensions.md](../../contract/vision/creation-loop-extensions.md) (confidence-bidding → aperture-based routing, intent dispatch, container cycle → context-as-fractal). SessionHarness consolidated into [knowledge-acquisition contract §Context Composition](../../contract/vision/knowledge-acquisition.md). Multi-agent primitives: [multi-agent-primitives.md](../../intent/creation/multi-agent-primitives.md).
 
 status: archived (was scribble phase)
 

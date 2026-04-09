@@ -1,6 +1,8 @@
-# Alternative B — Progressive Schema Discovery (The Hybrid)
+# Alternative B — Progressive Schema Discovery (Archived)
 
-> Start schema-first for known sources, let the system propose 
+> **Archived 2026-04-09.** Resolved as Phase 2 of phased approach in [contract/procurement/extraction-pipeline.md](../../contract/procurement/extraction-pipeline.md).
+
+> Original: Start schema-first for known sources, let the system propose 
 > schemas for unknown ones. Human approves before anything hits 
 > the lakehouse. Best of both worlds.
 

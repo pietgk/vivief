@@ -1,8 +1,10 @@
 # vivief Security Architecture
 
-## Status: Draft v0.2 — seed document from threat analysis session
+## Status: Draft v0.3 — threat model + bridge security consolidated
 
-> This document captures the security model for vivief, an MCP-based code analysis and LLM coordination platform that ingests external content, processes it through LLMs, and presents results to users. The core challenge: LLMs are confused deputies that cannot reliably distinguish trusted instructions from untrusted data.
+> Security is Contract enforcement at bridge boundaries. This document captures vivief's complete security model: threat analysis, sandbox architecture, and how every bridge boundary maps to Contracts within the vivief concept model.
+>
+> Consolidated from: original threat analysis (v0.2) + [secure-bridging brainstorm](../../archive/security/secure-bridging.md) (archived 2026-04-09).
 
 ---
 
@@ -333,4 +335,134 @@ Documented to prevent future regressions.
 
 ---
 
-*Document origin: Threat analysis conversation, March 2026. To be integrated into the vivief concepts document via Claude Code CLI.*
+---
+
+## 9. Security at Bridge Boundaries
+
+Every bridge boundary in vivief is a security boundary. Every inbound bridge is an injection vector. Every outbound bridge is an exfiltration path. Every landing is a persistence surface.
+
+### Core thesis
+
+**Security is not a separate layer — it is Contract enforcement at bridge boundaries.**
+
+```
+Source (untrusted)
+  → Inbound Bridge (effectHandler + Contract)
+    → Validated Store (datoms with trust metadata)
+      → Projection (scoped by trust, redacted by Contract)
+        → Creation (effectHandler, sandboxed by trust level)
+          → Outbound Bridge (effectHandler + Contract)
+            → Landing (native medium, validated)
+```
+
+### Inbound bridge trust levels
+
+| Source | Trust level | Contract at boundary |
+|--------|-----------|---------------------|
+| Human input (voice, text) | Authoritative | Schema Contract (structure) |
+| Datom store (own datoms) | Committed | Projection Contract (scoped access) |
+| Datom store (AI-written) | Gated | Schema + provenance check |
+| Local filesystem | High | Parser validates structure |
+| Git (own repo) | High | Commit signature, branch protection |
+| GitHub (issues, PRs) | Medium | Schema Contract on API response |
+| Web content | Adversarial | Ingestion Sandbox + instruction detection |
+| External APIs | Adversarial | Schema Contract + trust scoring |
+| LLM reasoning | Untrusted | Behavioral Contract + surface diffing |
+| Other agents | Untrusted | Sync Contract + trust propagation |
+
+### Outbound bridge persistence risk
+
+| Landing | Risk | Contract at boundary | Detection |
+|---------|------|---------------------|-----------|
+| Files on disk | HIGH | Behavior Contract (allowed paths) | File hash before/after |
+| Git commits | HIGH | Pre-commit Contract | Commit content validation |
+| Datom store | HIGH | Schema Contract pre-commit | Record count + content hash |
+| LLM memory datoms | CRITICAL — self-reinforcing | Schema + behavioral + human gate | Memory diff per conversation |
+| Network requests | CRITICAL | Network allowlist (deterministic) | Request log |
+| Prompt assembly sources | CRITICAL | Read-only to LLM | Hash of all prompt inputs |
+
+### Security concern → Contract mapping
+
+| Security concern | Contract type | Where it applies |
+|-----------------|--------------|-----------------|
+| What data can exist | Schema Contract | Inbound bridge: validate structure |
+| Who can see what | Projection Contract | Context: scope + redaction per trust |
+| What can be displayed | Render Contract | Surface: sanitize, no untrusted image loading |
+| Who can do what | Trust Contract | All bridges: capability scoping per actor |
+| What effects are allowed | Behavior Contract | Outbound: allowed tools, paths, actions |
+| How conflicts resolve | Sync Contract | P2P: trust propagation across peers |
+
+---
+
+## 10. Sandbox as Projection Scope
+
+Sandbox = scoped Projection + gated promotion Contract. This IS the ingestion sandbox from §4, expressed in vivief concepts:
+
+| Sandbox level | Sees | Does | Network | Trust |
+|--------------|------|------|---------|-------|
+| **Ingestion** | Untrusted content only | Structured analysis only | Allowlisted domains | Lowest |
+| **Creation** | Own sandbox datoms + scoped context | Write to sandbox, propose effects | None | Medium |
+| **Recap** | Stored validated content | Text output only | None | Higher |
+
+Each is a Projection scope + Behavior Contract + Trust Contract. No special "sandbox infrastructure" — just the five concepts applied with security constraints.
+
+---
+
+## 11. Detection Layers as Contracts
+
+The detection layers from §5 map directly to Contract types:
+
+| Detection layer | Contract type | Mode |
+|----------------|--------------|------|
+| Instruction detection | Guard Contract | Pre-commit — flags, doesn't block |
+| Behavioral validation | Guard Contract | Post-processing — checks outcomes |
+| Surface diffing | Guard Contract | Binary — any unexpected change = violation |
+| Trust scoring | Aggregation Contract | Derives trust datom from all signals |
+
+The detection stack composes:
+```
+Content → InstructionDetection(Guard) → trust signal
+  → Sandbox effectHandler
+    → SurfaceDiff.before() → snapshot
+    → [LLM processes]
+    → SurfaceDiff.after() → binary violation
+    → BehavioralValidation(Guard) → trust signals
+  → TrustScore(Aggregation) → trust datom
+  → Projection(trust >= threshold) → Render Contract → user
+```
+
+---
+
+## 12. Self-Reinforcing Memory Defense
+
+The most dangerous persistence path: if LLM memory is datoms and the LLM reads its memory via Projection, poisoned memory datoms load into future context and reinforce the poison.
+
+**Defense layers:**
+1. Memory datoms carry trust score from the conversation that created them
+2. Projection can filter memory by trust threshold
+3. Memory writes during untrusted-content processing are flagged
+4. High-impact memory changes require human approval
+5. Memory datoms are append-only — can revert to any prior state
+6. Periodic audit: "show memory datoms written while processing untrusted content"
+
+---
+
+## 13. Contract Defaults as Configuration Points
+
+Security questions that can't be fully answered at design time become Contract configuration points:
+
+| Configuration point | Default | Refinement path |
+|---|---|---|
+| Trust score shape | Single number (0.0–1.0) | Clinical may need vector; add dimensions when single number proves insufficient |
+| Human review threshold | All convention-changing writes | Clinical = all AI writes. Dev = project-level only |
+| Trust propagation rule | `min(source_trusts)` (conservative) | Dev tooling = weighted average may suffice |
+| Trust evolution | No automatic increase | Known curated sources may earn trust via human approval |
+| Capability-safety balance | Strict by default, relax explicitly | Track false-positive rate; relax where noise exceeds signal |
+
+Defaults are datoms: `[config:X :config/value "default" tx:1 true]`. Refinement is datom evolution with provenance tracking why the default changed.
+
+**Contract evolution lifecycle:** `:default` → `:domain-refined` → `:experience-refined` → `:locked`. Each transition is a datom assertion with provenance — the system self-documents its own security evolution.
+
+---
+
+*Document origin: Threat analysis (March 2026) + bridge security consolidation (April 2026).*

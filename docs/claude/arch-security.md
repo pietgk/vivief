@@ -76,9 +76,7 @@ In peer-to-peer topology, trust boundaries become critical:
 
 Security has the most open brainstorms of any architecture area:
 
-- `intent/security/security-architecture.md` — draft v0.2, overall security model
-- `intent/security/secure-bridging.md` — how bridge effectHandlers maintain
-  security when converting between external systems and datoms
+- `intent/security/security-architecture.md` — draft v0.3, threat model + bridge security consolidated
 - `intent/security/containers-vpn.md` — container isolation and VPN-level
   security for sensitive domains (counseling, procurement)
 

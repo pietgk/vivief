@@ -1,6 +1,8 @@
-# WebRTC Signaling over Protomux — Can We Kill the Signal Server?
+# WebRTC Signaling over Protomux (Archived)
 
-> Brainstorm: Deep technical analysis of using Protomux as the WebRTC
+> **Archived 2026-04-09.** Entirely Protomux-based — superseded by MoQ (see [ADR-0051](../../contract/adr/0051-tech-stack.md)). Start fresh intent if WebRTC signaling is needed over MoQ.
+
+> Original: Deep technical analysis of using Protomux as the WebRTC
 > signaling channel, eliminating the traditional centralized signal server.
 > Builds on the `media-signal/v1` channel proposed in
 > `counselor-session-keet-challenge.md` Model C.

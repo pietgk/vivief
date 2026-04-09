@@ -1,6 +1,6 @@
-# Intent: effectHandler Roles
+# Intent: effectHandler Roles (Archived)
 
-**Status**: Open — discovered during knowledge-acquisition interview, not yet locked
+**Status**: Archived — promoted to [contract/vision/effecthandler-roles.md](../../contract/vision/effecthandler-roles.md) on 2026-04-09.
 
 ## The Problem
 

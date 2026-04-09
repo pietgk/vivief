@@ -1,6 +1,8 @@
-# Reactive Subscription vs NATS — Gap Analysis
+# Reactive Subscription vs NATS — Gap Analysis (Archived)
 
-> Analysis document. Not a spec. Helps decide whether vivief-concepts' "reactive subscription" is sufficient or needs extension.
+> **Archived 2026-04-09.** Analysis conclusions are the current architecture. Referenced as evidence in [ADR-0051](../../contract/adr/0051-tech-stack.md).
+
+> Original: Analysis document. Helps decide whether vivief-concepts' "reactive subscription" is sufficient or needs extension.
 
 ## 1. Context
 
