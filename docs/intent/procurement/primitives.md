@@ -3,7 +3,19 @@
 **A Crazy-Useful Exploration of What Procurement Actually Is**
 
 *For: Dev Team, Business, Sales & Procurement Experts — Brainstorming Document*
-*Status: Living document — meant to trigger insights, not conclude them*
+*Status: Resolved (2026-04-09) — domain-specific patterns, not platform concepts*
+
+## Resolution
+
+Two design decisions resolved via interview:
+
+1. **Platform or domain?** Domain-specific patterns. The 5 primitives (Matter, Energy, Information, Attention, Rights) x 4 directions (Acquire, Dispose, Move, Transform) are a domain decomposition of procurement — attribute namespaces and domain Contracts that compose the 5 platform concepts (Datom, Projection, Surface, Contract, effectHandler). V6 is explicit: "domain, bridge, artifact, slice, profile, skill" are patterns, not concepts. The diagnostic pattern in Part 4 already maps to `(state, intent) => (state', [intent'])`.
+
+2. **Keep 5 primitives?** Yes, keep current 5. Defer Energy/Matter merge and Trust-as-6th to domain usage evidence. Energy and Matter behave differently in procurement (different failure modes, storage characteristics). Trust is already modeled as a Contract concern in vivief — adding it as a procurement primitive would conflate governance with resource classification. Let the domain exercise the 5x4 matrix; merge if Energy/Matter collapse in practice.
+
+**Next**: Keep as intent (implementation-gated). Not promoted to contract because these are domain-specific patterns that need validation through procurement implementation.
+
+---
 
 ---
 

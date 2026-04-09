@@ -1,10 +1,28 @@
 # vivief Security Architecture
 
-## Status: Draft v0.3 — threat model + bridge security consolidated
+## Status: Archived (2026-04-09) — promoted to [contract/vision/security-architecture.md](../../contract/vision/security-architecture.md)
 
 > Security is Contract enforcement at bridge boundaries. This document captures vivief's complete security model: threat analysis, sandbox architecture, and how every bridge boundary maps to Contracts within the vivief concept model.
 >
 > Consolidated from: original threat analysis (v0.2) + [secure-bridging brainstorm](../../archive/security/secure-bridging.md) (archived 2026-04-09).
+
+## Resolution
+
+Five design decisions resolved via interview:
+
+### Enforcement model
+1. **Contract-driven infrastructure wiring.** Contract datoms declare security policy (network allowlists, process isolation, filesystem permissions). A system-actor effectHandler (trust 1.0) reads these Contract datoms and applies OS primitives (seccomp profiles, cgroup limits, network namespaces). No new concept — infrastructure IS effectHandler enforcement. The system-actor effectHandler just happens to call OS APIs. This is the strongest validation of the platform model: security reduces to the same 5 concepts.
+
+2. **Guard Contracts + enforcement effectHandlers for detection layers.** Each detection mechanism (instruction detection, behavioral validation, surface diffing) is a Guard Contract (declares WHAT to detect) paired with a system-actor effectHandler (implements HOW). Guard Contract says "no unexpected state changes"; enforcement effectHandler takes the snapshot and computes the diff. Explicit, testable, composable.
+
+### Trust configuration
+3. **Scalar trust score (0.0-1.0).** Start with a single number. Simpler to reason about, display, compare, and threshold. Trust score shape is a Contract configuration point stored as a datom. When a domain (e.g., clinical) requires dimensions (source-trust vs content-trust vs temporal-trust), that domain adds them. Platform machinery (Projection filtering by trust threshold) remains the same.
+
+4. **All convention-changing writes require human review** as the default threshold. Domain-specific overrides via Contract configuration (e.g., clinical = all AI writes; dev = project-level only). Start strict, relax based on tracked false-positive rates. The creation loop already has the approval mechanism: effectHandler proposes, human approves.
+
+5. **`min(source_trusts)` propagation, no automatic trust increase.** A chain is only as trusted as its weakest link. Prevents trust laundering (untrusted content passing through a trusted intermediary to gain trust). Trust increases only through human approval. Maps to Contract evolution lifecycle.
+
+**Next**: Promote to `contract/vision/security-architecture.md`.
 
 ---
 

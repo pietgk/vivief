@@ -1,9 +1,17 @@
 # Vivief Intent: Local LLM Infrastructure — Gemma 4 + LiteRT-LM
 
-> **Status**: Research complete, ready for concrete planning
+> **Status**: Partially resolved (2026-04-09) — training strategy decided, Tauri integration deferred to spike
 > **Session**: Claude.ai brainstorm, 2025-04-08
-> **Next**: Pick up in Claude Code CLI for implementation planning
+> **Next**: Spike for LiteRT-LM Tauri integration (sidecar vs FFI)
 > **Location**: `~/ws/vivief/docs/intent/local-llm/`
+
+## Resolution
+
+Two design decisions from interview:
+
+1. **Training strategy: Hybrid.** Few-shot + RAG to start for VivSurface and VivPractitioner (their tasks are complex and hard to synthesize accurately). Synthetic training data (Opus-generated) for VivRouter only — its intent classification task over the 5 primitives is narrow, well-defined, and reliably synthesizable. Train when real usage data accumulates for the other tiers. This avoids teaching models to mimic Opus rather than learning the actual distribution, while still getting VivRouter operational quickly.
+
+2. **LiteRT-LM Tauri integration: Deferred to spike.** Both sidecar (crash isolation, independent lifecycle, ~50ms overhead) and FFI (zero IPC overhead, tighter coupling, crash propagation risk) are viable. Build a minimal Tauri app that loads FunctionGemma 270M via both approaches. Measure: startup latency, inference latency, memory overhead, crash behavior, developer ergonomics. Decide based on data, not theory.
 
 ---
 

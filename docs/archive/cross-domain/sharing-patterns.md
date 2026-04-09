@@ -1,6 +1,20 @@
 # Intent: Cross-Domain Sharing Patterns
 
-**Status**: Open — procurement domain will be the test case
+**Status**: Archived (2026-04-09) — folded into [contract/vision/bridging.md](../../contract/vision/bridging.md) cross-domain section
+
+## Resolution
+
+All open questions resolved via design interview:
+
+1. **Cross-domain datom references**: Qualified entity IDs with domain prefix. A datom in the procurement domain referencing a DevAC entity uses the full qualified ID: `[:procurement/rule:42 :rule/validated-by :devac/fn:handleValidation tx:100 true]`. The entity ID carries its domain origin. Projection resolves cross-domain references when the user has access to both domains.
+
+2. **Projections spanning domains**: Yes, governed by a cross-domain Projection Contract. The Projection Contract declares which domains are in scope. The user must have access to all referenced domains. This enables the "procurement improves code rules" self-referential loop.
+
+3. **Contract composition**: The hypothesis table below is confirmed as the sharing model. Platform-level machinery (datom format, Projection mechanics, Surface rendering, Contract enforcement) is shared. Domain-specific concerns (attribute namespaces, effectHandlers, domain Contracts, bridge implementations) are isolated.
+
+**Next**: Fold into `contract/vision/bridging.md` as a cross-domain section.
+
+---
 
 ## Context
 

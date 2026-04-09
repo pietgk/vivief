@@ -84,7 +84,7 @@ stateDiagram-v2
     HumanReview --> Rejected: Human rejects
     HumanReview --> Refined: Human modifies
 
-    Merged --> Monitoring: Schema updated on main\nExtractors notified via NATS
+    Merged --> Monitoring: Schema updated on main\nExtractors notified via reactive subscription
     Rejected --> Monitoring: Branch deleted\nLesson logged
     Refined --> ValidationRun: Re-validate with changes
 ```
@@ -174,7 +174,7 @@ uses the existing catalog APIs to observe and act.
 │  │  Observer    │  │ Reasoner │  │ Proposer    │  │
 │  │             │  │          │  │             │  │
 │  │ - subscribes│  │ - Claude │  │ - creates   │  │
-│  │   to NATS   │  │   API    │  │   Nessie    │  │
+│  │   to MoQ    │  │   API    │  │   Nessie    │  │
 │  │   streams   │  │ - prompt │  │   branches  │  │
 │  │ - queries   │  │   chain  │  │ - runs      │  │
 │  │   DuckDB    │  │   with   │  │   validation│  │
@@ -187,7 +187,7 @@ uses the existing catalog APIs to observe and act.
 │         ▼              ▼               ▼          │
 │  ┌─────────────────────────────────────────────┐  │
 │  │         Standard APIs (nothing custom)       │  │
-│  │  NATS subscribe │ Nessie REST │ DuckDB SQL  │  │
+│  │  MoQ subscribe  │ Nessie REST │ DuckDB SQL  │  │
 │  └─────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────┘
 

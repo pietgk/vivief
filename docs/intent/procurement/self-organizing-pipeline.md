@@ -16,15 +16,15 @@ graph TB
         DE["Document Extractors\n(LLMWhisperer / LlamaParse)"]
     end
 
-    subgraph NATS["📡 NATS JetStream — Event Backbone"]
+    subgraph Events["📡 Reactive Subscriptions — Event Backbone"]
         direction LR
-        S1[/"Stream:\nRAW_DOCUMENTS"/]
-        S2[/"Stream:\nEXTRACTED"/]
-        S3[/"Stream:\nSCHEMA_PROPOSALS"/]
-        S4[/"Stream:\nVALIDATED"/]
-        KV1[("KV: dedup\n& state")]
-        KV2[("KV: active\nschemas")]
-        OBJ[("ObjectStore:\nraw files")]
+        S1[/"Track:\nRAW_DOCUMENTS"/]
+        S2[/"Track:\nEXTRACTED"/]
+        S3[/"Track:\nSCHEMA_PROPOSALS"/]
+        S4[/"Track:\nVALIDATED"/]
+        KV1[("DatomStore:\ndedup & state")]
+        KV2[("DatomStore:\nactive schemas")]
+        OBJ[("iroh-blobs:\nraw files")]
     end
 
     subgraph Intelligence["🧠 Intelligence Layer"]
@@ -87,7 +87,7 @@ graph TB
     CAT --> META
     META --> DASH
 
-    style NATS fill:#2d3748,color:#fff
+    style Events fill:#2d3748,color:#fff
     style Intelligence fill:#1a365d,color:#fff
     style Lakehouse fill:#22543d,color:#fff
     style Human fill:#744210,color:#fff
@@ -140,45 +140,45 @@ graph LR
     style P4 fill:#dd6b20,color:#fff
 ```
 
-## NATS Event Flow Detail
+## Reactive Subscription Event Flow Detail
 
 ```mermaid
 sequenceDiagram
     participant Scraper as Scraping Agent
-    participant NATS as NATS JetStream
-    participant Dedup as Dedup Check (KV)
+    participant MoQ as MoQ Relay (Reactive Subscriptions)
+    participant Dedup as Dedup Check (DatomStore)
     participant Extract as LLM Extractor
     participant Cluster as Schema Clustering
     participant Validate as Validator
     participant Writer as Iceberg Writer
     participant Catalog as Catalog (Polaris)
 
-    Scraper->>NATS: Publish raw document
-    NATS->>Dedup: Check document hash
+    Scraper->>MoQ: Publish raw document
+    MoQ->>Dedup: Check document hash
     alt Already seen
-        Dedup-->>NATS: Skip (deduplicated)
+        Dedup-->>MoQ: Skip (deduplicated)
     else New document
-        Dedup-->>NATS: Proceed
-        NATS->>Extract: Request (with timeout)
+        Dedup-->>MoQ: Proceed
+        MoQ->>Extract: Request (with timeout)
         Note over Extract: LLM processes document
-        Extract->>NATS: Reply: structured JSON
+        Extract->>MoQ: Reply: structured JSON
 
         alt No matching schema exists
-            NATS->>Cluster: Route to discovery stream
+            MoQ->>Cluster: Route to discovery track
             Note over Cluster: Accumulate samples,<br/>detect emerging clusters
-            Cluster->>NATS: Schema proposal event
-            Note right of NATS: Human approves schema<br/>→ stored in KV + Catalog
+            Cluster->>MoQ: Schema proposal event
+            Note right of MoQ: Human approves schema<br/>→ stored in DatomStore + Catalog
         else Schema exists
-            NATS->>Validate: Route to validation
+            MoQ->>Validate: Route to validation
             Validate->>Validate: Deterministic rules
             Validate->>Validate: Optional 2nd LLM check
             alt Valid
-                Validate->>NATS: Publish to VALIDATED stream
-                NATS->>Writer: Micro-batch consume
+                Validate->>MoQ: Publish to VALIDATED track
+                MoQ->>Writer: Micro-batch consume
                 Writer->>Catalog: Commit Iceberg snapshot
             else Invalid
-                Validate->>NATS: Publish to FAILED stream
-                Note right of NATS: Alert + manual review queue
+                Validate->>MoQ: Publish to FAILED track
+                Note right of MoQ: Alert + manual review queue
             end
         end
     end

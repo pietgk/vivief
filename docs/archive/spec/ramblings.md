@@ -2,6 +2,24 @@
 
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
+
+day 1 all questions recommended answer
+day 2 q1, q2 recommended, q3 challenging alternative
+day 3 agree
+day 4 q1 and q2 i do not know the correct/best answer for these 2 need more pros and const to make the sandbox contract enforcement and infrastructure on enforcement and detection. we need both so how to handle this needs more context than i have now to make this elegantly simple and consistent.
+day 5 q1, q2, q3 recommended answer
+day 6 q1 alternative answer, q2 recommended answer
+day 7 i think we should make this a seperate intent spike refinement as we need proper focus on this one when we need it
+day 8 peer-discovery q1,q2 recommended answers, sharing q1, q2 recommended answers, local-llm q1 the question is not correct you need to understand this one better before mistaking the model and the added training, lite-llm q2 needs more pros and cons and probalby trying out with spikes to determine what we want and what the pros and cons are
+day 9 q1, q2, q3 recommended answers
+day 10 agree
+
+
+lets resolve  "/Users/grop/ws/vivief/docs/REVIEW.md" next 2 weeks by relentless interviewing
+  Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+  For each question, provide your recommended answer with proper explaining why that is the recommended answer together with a challenging
+  alternative answer.
+
 lets pick up immediate and this week from the priority queue of our latest review  "/Users/grop/ws/vivief/docs/REVIEW.md"
 
 

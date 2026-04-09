@@ -1,6 +1,20 @@
 # Intent: Proactive Improvement
 
-**Status**: Open — discovered during knowledge-acquisition interview, not yet locked
+**Status**: Archived (2026-04-09) — promoted to [contract/vision/proactive-improvement.md](../../contract/vision/proactive-improvement.md)
+
+## Resolution
+
+All three open questions resolved via design interview:
+
+1. **What is an Aggregation Contract?** A Behavior Contract with a trigger-threshold parameter. Not a new Contract type. Schema adds `:contract/trigger-count`, `:contract/trigger-pattern`, `:contract/trigger-strategy` (count, time, pattern, event, or compound) to the existing Behavior Contract schema. This follows the deterministic-first principle: start as a Behavior Contract attribute, promote to a recognized pattern when it stabilizes.
+
+2. **Approval mechanism**: Surface notification with explicit human approval via the creation loop. When an improvement datom (`:improvement/opportunity` or `:rule/proposal-needed`) is produced, it enters the creation loop as an intent. The Surface presents it to the human as a notification with accept/reject/defer actions. Accept triggers the next creation step. No special approval workflow needed — same mechanism as any human-gated creation step. Trust Contract on improvement datoms determines which proposals require approval (all, initially).
+
+3. **Researcher-Improver coordination**: Sequential pipeline. Researcher effectHandler responds to `:improvement/review-requested` by gathering relevant interaction datoms and analyzing patterns. It produces `:improvement/analysis-completed` datoms (findings). Improver effectHandler responds to `:improvement/analysis-completed` by proposing specific improvements. Standard effectHandler composition — cascading intent pattern used everywhere in the pipeline. No special multi-agent coordination primitive needed.
+
+**Next**: Promote to `contract/vision/proactive-improvement.md`.
+
+---
 
 ## The Problem
 

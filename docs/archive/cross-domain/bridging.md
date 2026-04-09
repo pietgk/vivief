@@ -1,8 +1,24 @@
 # Bridging — The Universal Connection Pattern
 
+> **Archived (2026-04-09):** Promoted to [contract/vision/bridging.md](../../contract/vision/bridging.md). Sharing-patterns.md folded into the contract as a cross-domain section.
+
 > Brainstorm document. How does the bridge pattern extend beyond "files ↔ datoms" to cover the complete scope of creation in vivief — developers (pre-LLM, current, future), non-developers, LLM reasoning, and diverse file sources?
 >
 > The challenge: we defined bridge generally as `File (native medium) ←→ Bridge ←→ Datoms`. But files come from many sources (disk, git, web, LLM reasoning, APIs). And LLMs themselves need bridging — their context, memory, tools, and skills are the "code and state" of reasoning. Contract applies at every bridge boundary. How do we define this elegantly?
+
+**Status**: Resolved (2026-04-09) — ready to promote to contract
+
+## Resolution
+
+Three design decisions resolved via interview:
+
+1. **Bridge stays as named pattern (Alt B).** `Bridge = effectHandler + Contract at medium boundary`. Gives vocabulary ("the GitHub bridge", "the LLM memory bridge") without adding a 6th concept. Follows v6 precedent: patterns are explicitly listed alongside concepts. The test passes: "outbound bridge" has a consistent shape (validate -> transform -> write -> confirm). Bridge is the 7th pattern (alongside domain, artifact, slice, profile, skill, and intake).
+
+2. **LLM bridging as worked example in vision doc.** The LLM bridge table mapping context/memory/tools/skills/reasoning to datom concepts is promoted as a verification scenario in the vision doc (alongside the counselor morning brief scenario). Makes abstract concepts concrete for Era 2/Era 3 audience without adding new machinery.
+
+3. **"Gathering" named for teaching purposes.** Intent -> Gather -> Create -> Land is named in domain-user documentation as a recognizable mental model for non-technical practitioners (counselors, analysts). Omitted from technical architecture docs where it adds vocabulary without explanatory power.
+
+**Next**: Promote to `contract/vision/bridging.md`. Fold `sharing-patterns.md` into it as a cross-domain section.
 
 ---
 

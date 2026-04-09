@@ -1,12 +1,20 @@
 # Brainstorm: Datom Model & Layered Query Architecture
 
-**Status:** Brainstorm
+**Status:** Resolved (2026-04-09) — Option A (Clean Datom) from the start
 **Date:** 2026-03-27
 **Sources:** [vivief-p2p-node-architecture](vivief-p2p-node-architecture.md), [vivief-concepts-v6](../vivief-concepts-v6.md), [viviefco-architecture-ideas §Datoms-vs-typed-structs](../../spec/counseling/viviefco-architecture-ideas.md), current DevAC implementation (devac-core)
 
 **Starting question:** Should DevAC's three-concept data model (Nodes + Edges + Effects) collapse to two (Effects + Edges)?
 
 **Where it went:** The merge question was wrong. Nodes, edges, and effects are all datoms. The real question is: should DevAC adopt a full datom model internally? Answer: yes — with a layered query architecture (TypeScript API + D2TS + DuckDB SQL).
+
+## Resolution
+
+Two design decisions resolved via interview:
+
+1. **Option A (Clean Datom) from the start.** Skip the DuckDB wrapper phase (Option B). Build DatomStore with native Map indexes (EAVT/AEVT/AVET/VAET) from day one. 200MB for a typical 50K-entity codebase, ~1GB for 250K entities — comfortable on any developer machine. DuckDB kept only as a separate Layer 3 analytics engine (materialized views, `query_sql` MCP tool preserved). The wrapper phase would introduce a leaky abstraction (EAV queries over relational store = self-JOINs, pivot queries) that is wasted effort when the spike proves native indexes work.
+
+2. **Spike proceeds as defined** in `virtual-projections-spike.md`. The 4 existential claims remain the make-or-break risks: (1) datom model performance, (2) N+1 elimination, (3) LLM TypeScript generation, (4) template routing. The architecture brainstorm strengthened the case but did not change the spike deliverables.
 
 ---
 

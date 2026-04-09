@@ -1,6 +1,18 @@
 # Intent: Peer Discovery with Iroh + MoQ
 
-**Status**: Open — needs spike and implementation
+**Status**: Resolved (2026-04-09) — spike plan ready to execute
+
+## Resolution
+
+Two key design decisions resolved via interview:
+
+1. **Room-based discovery**: Shared room code that maps to a MoQ broadcast namespace. A room code is a short, human-shareable identifier (e.g., 6-character alphanumeric) that the system maps to a MoQ broadcast namespace. The counselor starts a session, gets a room code, shares it with the client (verbally, via text, or QR). The client's device connects to the MoQ relay and subscribes to that namespace. QR code is a convenience wrapper encoding the same room code + relay address. iroh-dns is reserved for always-on device-to-device linking (question 2), not session-based discovery.
+
+2. **Relay topology**: Default to a shared public MoQ relay (Cloudflare) with a self-hosted option for privacy-sensitive deployments. Public relay minimizes infrastructure burden for practitioners. Data is encrypted end-to-end via Iroh, so the relay sees ciphertext only. Self-hosted relay is a deployment-time configuration, not an architectural decision.
+
+Remaining open questions (3-5) can be resolved through the spike.
+
+---
 
 ## The problem
 

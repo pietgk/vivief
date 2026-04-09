@@ -1,5 +1,7 @@
 # ViviefCo Unified Platform — Architecture v4
 
+> **Archived (2026-04-09):** Moved from `intent/counseling/`. The v4a/v4b/v4c exploration led to v6 concepts and ADR-0051, which capture all key architectural decisions. The Holepunch stack has been replaced by Iroh + MoQ. Unique contribution: the three-step radicalism progression (v4a pragmatic → v4b bold → v4c radical) that validated the datom-as-universal-primitive thesis.
+>
 > **Technology note (2026-04-01):** This brainstorm references the Holepunch stack (Hypercore, Hyperbee, Hyperswarm) which has since been replaced by Iroh + MoQ. The architectural reasoning (local-first, P2P, datom-based) remains valid. See `contract/p2p/lean-stack-v2.md` for the current P2P stack.
 
 ## "Local-First, Peer-to-Peer, Production is the Network of Laptops" Edition

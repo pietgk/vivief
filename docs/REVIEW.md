@@ -2,7 +2,7 @@
 
 > Living quality review for vivief documentation. Maintained over time to stay grounded.
 
-**Last review**: 2026-04-08
+**Last review**: 2026-04-09
 **Docs counted**: ~291 markdown files across 6 top-level folders
 **Reviewed by**: Claude (Opus 4.6) + human review
 
@@ -16,7 +16,9 @@ The vivief documentation is **remarkably well-organized** for a project at this 
 
 **Round 3 focus**: Complete intent triage — all 34 intent files inventoried and assigned to one of 6 action buckets (Promote, Design, Consolidate, Update, Park, Archive). Dependency tree mapped across 6 key decisions. 8 stale-tech files flagged, 5 consolidation targets identified. After immediate actions: 34 → ~13 active intents.
 
-**Overall grade: A (maintained). Intent organization upgraded from implicit to structured triage. No new hygiene issues.**
+**Round 4 focus**: All 10 DESIGN intents resolved through relentless interviewing (23 questions). 3 new vision contracts written (bridging, security-architecture, proactive-improvement). 3 stale-tech files updated. 1 consolidation done. Active intents: ~13 → ~7. Decision tree Tier 2 fully resolved.
+
+**Overall grade: A+ (upgraded). Intent backlog cleared. Design questions resolved. Platform vision contracts now cover: concepts, creation loop, fractal factory, knowledge acquisition, effectHandler roles, bridging, security, proactive improvement.**
 
 ---
 
@@ -215,96 +217,98 @@ New terms introduced cleanly but without formal definitions:
 
 ### Complete Intent Inventory
 
-#### creation/ (11 files)
+#### creation/ (5 remaining, was 11)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `knowledge-acquisition.md` | 14KB | **↑ PROMOTE** | Write contract (pair with effecthandler-roles) | — |
-| `effecthandler-roles.md` | 6.4KB | **↑ PROMOTE** | Write contract (pair with knowledge-acquisition) | — |
-| `proactive-improvement.md` | 8.6KB | **✎ DESIGN** | Interview: resolve schema shape, approval workflow, Researcher↔Improver handoff | Roles, Knowledge Acq |
-| `creation-is-what-we-do.md` | 29KB | **⇒ CONSOLIDATE** | Thesis absorbed into `fractal-software-factory.md`. Archive with attribution. | — |
-| `developer-flow.md` | 40KB | **↻ UPDATE** | Fix stale Hypercore ref, then interview on bidirectional bridge design | — |
-| `creation-loop-experiments.md` | 3.2KB | **■ PARK** | Revisit when aperture exists in code | Aperture implementation |
-| `creation-review.md` | 2.5KB | **× ARCHIVE** | Tracking doc, all items resolved. No remaining design content. | — |
-| `multi-agent-primitives.md` | 3KB | **■ PARK** | Revisit when first multi-handler creation loop runs | effectHandler composition |
-| `session-harness.md` | 2.4KB | **⇒ CONSOLIDATE** | Fold into knowledge-acquisition contract §3 (context composition) | Knowledge Acq promotion |
-| `chicken-and-egg.md` | 1.4KB | **× ARCHIVE** | Meta-observation, insight internalized in docs lifecycle model | — |
-| `morning-brief-intent.md` | 2.5KB | **■ PARK** | Revisit after knowledge-acquisition contract exists | Knowledge Acq promotion |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| ~~`knowledge-acquisition.md`~~ | 14KB | ~~↑ PROMOTE~~ | **Done** | Promoted to `contract/vision/knowledge-acquisition.md` |
+| ~~`effecthandler-roles.md`~~ | 6.4KB | ~~↑ PROMOTE~~ | **Done** | Promoted to `contract/vision/effecthandler-roles.md` |
+| ~~`proactive-improvement.md`~~ | 8.6KB | ~~✎ DESIGN~~ | **Done** | Resolved + promoted to `contract/vision/proactive-improvement.md` |
+| ~~`creation-is-what-we-do.md`~~ | 29KB | ~~⇒ CONSOLIDATE~~ | **Done** | Archived — thesis in `fractal-software-factory.md` |
+| `developer-flow.md` | 40KB | ↻ UPDATE | **Updated** | Hypercore/Hyperdrive → Iroh/iroh-blobs. Interview deferred. |
+| `creation-loop-experiments.md` | 3.2KB | ■ PARK | Parked | Revisit when aperture exists in code |
+| ~~`creation-review.md`~~ | 2.5KB | ~~× ARCHIVE~~ | **Done** | Archived |
+| `multi-agent-primitives.md` | 3KB | ■ PARK | Parked | Revisit when first multi-handler creation loop runs |
+| ~~`session-harness.md`~~ | 2.4KB | ~~⇒ CONSOLIDATE~~ | **Done** | Folded into knowledge-acquisition contract |
+| ~~`chicken-and-egg.md`~~ | 1.4KB | ~~× ARCHIVE~~ | **Done** | Archived |
+| `morning-brief-intent.md` | 2.5KB | ■ PARK | Parked | Revisit after knowledge-acquisition contract exists (now exists) |
 
-#### procurement/ (7 files)
+#### procurement/ (5 remaining, was 7)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `primitives.md` | 17KB | **✎ DESIGN** | Interview: vivief-level concept or procurement-domain-specific? | — |
-| `schema-first.md` | 4.9KB | **⇒ CONSOLIDATE** | Resolve A/B with hybrid-progressive → single phased procurement contract section | — |
-| `hybrid-progressive.md` | 4.7KB | **⇒ CONSOLIDATE** | Same — merge with schema-first into phased approach | — |
-| `self-organizing-pipeline.md` | 5.4KB | **↻ UPDATE** | Replace NATS refs (19+) with reactive subscription + MoQ | — |
-| `agentic-catalog.md` | 7.8KB | **↻ UPDATE** | Replace NATS refs (3). Maps to effectHandler + Researcher role. | Roles promotion |
-| `ducklake-vivief.md` | 21KB | **■ PARK** | Revisit when DatomStore reaches warm-tier indexing | DatomStore |
-| `investor-pitches.md` | 19KB | **■ PARK** | Business positioning. Revisit when fundraising becomes active. | — |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| `primitives.md` | 17KB | ✎ DESIGN | **Resolved** | Domain-specific patterns, keep 5 primitives. Stays as intent (implementation-gated). |
+| ~~`schema-first.md`~~ | 4.9KB | ~~⇒ CONSOLIDATE~~ | **Done** | Merged into phased procurement contract section |
+| ~~`hybrid-progressive.md`~~ | 4.7KB | ~~⇒ CONSOLIDATE~~ | **Done** | Merged with schema-first |
+| `self-organizing-pipeline.md` | 5.4KB | ↻ UPDATE | **Updated** | 18 NATS refs → MoQ/reactive subscription |
+| `agentic-catalog.md` | 7.8KB | ↻ UPDATE | **Updated** | 3 NATS refs → MoQ |
+| `ducklake-vivief.md` | 21KB | ■ PARK | Parked | Revisit when DatomStore reaches warm-tier indexing |
+| `investor-pitches.md` | 19KB | ■ PARK | Parked | Business positioning. Revisit when fundraising becomes active. |
 
-#### p2p/ (4 files)
+#### p2p/ (2 remaining, was 4)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `node-architecture.md` | 29KB | **× ARCHIVE** | Core decisions in ADR-0051. Extract remaining open Qs into thin intents first. | — |
-| `peer-discovery.md` | 2.9KB | **✎ DESIGN** | Ready for spike. No blocking dependencies. | — |
-| `cold-tier-indexing.md` | 2.2KB | **✎ DESIGN** | Can design now. Spike blocked on DatomStore warm tier. | DatomStore warm tier |
-| `webrtc-signaling.md` | 48KB | **× ARCHIVE** | Entirely Protomux-based (superseded by MoQ). Start fresh intent if needed. | — |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| ~~`node-architecture.md`~~ | 29KB | ~~× ARCHIVE~~ | **Done** | Archived — core decisions in ADR-0051 |
+| `peer-discovery.md` | 2.9KB | ✎ DESIGN | **Resolved** | Room code → MoQ, public relay + self-hosted. Spike plan ready. |
+| `cold-tier-indexing.md` | 2.2KB | ✎ DESIGN | **Deferred** | Folded into `datom/spike-refinement.md` for focused attention |
+| ~~`webrtc-signaling.md`~~ | 48KB | ~~× ARCHIVE~~ | **Done** | Archived — superseded by MoQ |
 
-#### security/ (3 files)
+#### security/ (1 remaining, was 3)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `security-architecture.md` | 20KB | **✎ DESIGN** | Interview: sandbox as Contract enforcement vs separate layer | Bridge pattern decision |
-| `secure-bridging.md` | 37KB | **⇒ CONSOLIDATE** | Fold thesis into security-architecture.md as a chapter | — |
-| `containers-vpn.md` | 826B | **■ PARK** | Deployment-level concern (Phase 4+). Revisit when deployment model is designed. | — |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| ~~`security-architecture.md`~~ | 20KB | ~~✎ DESIGN~~ | **Done** | Resolved + promoted to `contract/vision/security-architecture.md` |
+| ~~`secure-bridging.md`~~ | 37KB | ~~⇒ CONSOLIDATE~~ | **Done** | Folded into security-architecture before promotion |
+| `containers-vpn.md` | 826B | ■ PARK | Parked | Deployment-level concern (Phase 4+) |
 
-#### cross-domain/ (3 files)
+#### cross-domain/ (1 remaining, was 3)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `bridging.md` | 28KB | **✎ DESIGN** | Interview: is bridge the 7th pattern or composition of existing? | v6 concepts (locked) |
-| `content-translation.md` | 24KB | **■ PARK** | Requires multi-domain validation. Revisit when second domain is active. | 2nd domain |
-| `sharing-patterns.md` | 1.7KB | **✎ DESIGN** | Procurement is test case. Resolve when procurement work begins. | Procurement domain |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| ~~`bridging.md`~~ | 28KB | ~~✎ DESIGN~~ | **Done** | Resolved + promoted to `contract/vision/bridging.md` |
+| `content-translation.md` | 24KB | ■ PARK | Parked | Revisit when second domain is active |
+| ~~`sharing-patterns.md`~~ | 1.7KB | ~~✎ DESIGN~~ | **Done** | Resolved + folded into bridging contract |
 
-#### datom/ (2 files)
+#### datom/ (3 files, was 2)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `query-architecture.md` | 64KB | **✎ DESIGN** | Extract un-contracted decisions, remove duplicative content vs contract/datom/ | DatomStore work |
-| `virtual-projections-spike.md` | 26KB | **✎ DESIGN** | Concrete spike definition. Ready for spike planning when DatomStore L1 exists. | DatomStore L1 |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| `query-architecture.md` | 64KB | ✎ DESIGN | **Resolved** | Option A (Clean Datom) from start. DuckDB L3 only. |
+| `virtual-projections-spike.md` | 26KB | ✎ DESIGN | **Deferred** | Spike ready. Tracked in `spike-refinement.md`. |
+| `spike-refinement.md` | 3KB | — | **New** | Consolidates spike plan + cold-tier questions |
 
-#### counseling/ (2 files)
+#### counseling/ (0 remaining, was 2)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `architecture-explorations.md` | 43KB | **⇒ CONSOLIDATE** | Stale Holepunch refs. v4a/v4b/v4c pre-date ADR-0051. Extract unique decisions, archive. | — |
-| `concepts-vs-nats.md` | 9KB | **↑ PROMOTE** | Analysis complete. Conclusions ARE the current architecture. Promote as ADR-0051 evidence. | — |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| ~~`architecture-explorations.md`~~ | 43KB | ~~⇒ CONSOLIDATE~~ | **Done** | Archived — v4a/v4b/v4c extracted, unique contribution noted |
+| ~~`concepts-vs-nats.md`~~ | 9KB | ~~↑ PROMOTE~~ | **Done** | Promoted as ADR-0051 evidence |
 
 #### local-llm/ (1 file)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `vivief-local-llm-intent.md` | 25KB | **✎ DESIGN** | Interview: model selection (E2B vs E4B), task taxonomy, trust tier integration | Roles, Trust tiers |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| `vivief-local-llm-intent.md` | 25KB | ✎ DESIGN | **Partially resolved** | Training: hybrid strategy. Tauri integration: deferred to spike. |
 
 #### concepts-challenge/ (1 file)
 
-| File | Size | Triage | Next Action | Depends On |
-|------|------|--------|-------------|------------|
-| `challenge.md` | 28KB | **■ PARK** | Reference doc, not design. Revisit when concepts change. | — |
+| File | Size | R3 Triage | R4 Status | Notes |
+|------|------|-----------|-----------|-------|
+| `challenge.md` | 28KB | ■ PARK | Parked | Reference doc, not design |
 
-### Triage Summary
+### Triage Summary (updated R4)
 
-| Category | Count | Immediate reduction |
-|----------|-------|-------------------|
-| **↑ PROMOTE** | 3 | −3 intents (become contracts) |
-| **✎ DESIGN** | 10 | 0 (still active, need interviews) |
-| **⇒ CONSOLIDATE** | 6 | −6 intents (merge into targets) |
-| **↻ UPDATE** | 3 | 0 (fix refs, then re-assess) |
-| **■ PARK** | 8 | −8 from active attention (explicit triggers) |
-| **× ARCHIVE** | 4 | −4 intents (move to archive/) |
-| **Total** | **34** | **−21 from active burden → ~13 need attention** |
+| Category | R3 Count | R4 Count | Change |
+|----------|----------|----------|--------|
+| **↑ PROMOTE** | 3 | 0 | −3 (all done) |
+| **✎ DESIGN** | 10 | 0 | −10 (all resolved or deferred) |
+| **⇒ CONSOLIDATE** | 6 | 0 | −6 (all done) |
+| **↻ UPDATE** | 3 | 0 | −3 (all done) |
+| **■ PARK** | 8 | 8 | 0 (unchanged, triggers still pending) |
+| **× ARCHIVE** | 4 | 0 | −4 (all done) |
+| **Resolved** | 0 | 6 | +6 (decisions recorded, staying as intents) |
+| **Total active** | **~13** | **~7** | **−6 from active burden** |
 
 ### Staleness Report
 
@@ -379,120 +383,111 @@ These are settled. No action needed.
 
 #### Tier 2 — Unlocked by Tier 1
 
-**Decision 4: Proactive improvement mechanism** (`proactive-improvement.md`)
+**Decision 4: Proactive improvement mechanism** — **RESOLVED (R4)**
 *Depends on: Roles + Knowledge Acquisition (Tier 1)*
 
-> **Recommended**: Aggregation Contract watching session interaction datoms triggers improvement. No new concept — just an Aggregation Contract sub-type. Three timescales (reactive/proactive/evolutionary) map to hot/warm/cold tiers.
->
-> **Challenging alternative**: Skip the Aggregation Contract abstraction. Simple "after N interactions, review the session" effectHandler with a counter. Zero new infrastructure. Same outcome.
->
-> **Why the alternative might be better**: Simpler by an order of magnitude. A counter-based effectHandler achieves the same outcome today. The Aggregation Contract is an abstraction waiting for a pattern that doesn't yet exist.
->
-> **Resolution**: Both are correct at different maturity levels. Simple effectHandler = Day 1 implementation. Aggregation Contract = formalization when the pattern proves useful across multiple handlers. This IS the deterministic-first path. Document both as Phase 1 and Phase 2.
+> **Resolution (2026-04-09)**: Aggregation Contract = Behavior Contract with trigger-threshold parameter. Not a new type. Surface notification with explicit human approval. Sequential Researcher→Improver pipeline. Promoted to `contract/vision/proactive-improvement.md`.
 
-**Decision 5: Bridge as pattern** (`cross-domain/bridging.md`)
+**Decision 5: Bridge as pattern** — **RESOLVED (R4)**
 *Depends on: v6 concepts (locked)*
 
-> **Recommended**: Bridge IS the 7th pattern (alongside the 6 documented in v6). Bidirectional generalization of intake (already introduced in `creation-loop-extensions.md`). The creation lifecycle `Intent → Gather → Create → Land` always crosses boundaries.
->
-> **Challenging alternative**: Bridge is infrastructure, not a pattern. Intake (unidirectional) is the pattern. Bridge = two intakes facing each other. Fewer concepts is always better.
->
-> **Why the alternative might be better**: If bridge = intake + outbound handler, no new pattern is needed. Adding a 7th pattern after deliberately trimming to 6 reverses the simplification discipline that made v6 strong.
->
-> **Resolution**: Needs interview. The test: does "outbound bridge" have a consistent shape (validate → transform → write → confirm)? If yes, it's a pattern. If outbound varies wildly per destination, it's infrastructure. The answer determines whether bridge is named or decomposed.
+> **Resolution (2026-04-09)**: Alt B — Bridge stays as named pattern. `Bridge = effectHandler + Contract at medium boundary`. 7th pattern. "Gathering" named for teaching purposes in domain-user docs. LLM bridging as verification scenario. Promoted to `contract/vision/bridging.md`.
 
-**Decision 6: Security model** (`security-architecture.md` + `secure-bridging.md`)
+**Decision 6: Security model** — **RESOLVED (R4)**
 *Depends on: Bridge decision, Contract enforcement (locked in v6)*
 
-> **Recommended**: Security IS Contract enforcement at bridge boundaries. The sandbox is a Contract property, not a separate concept. Every bridge boundary has a trust level; every crossing needs validation. This unifies security with the existing concept model.
->
-> **Challenging alternative**: Security needs its own enforcement layer that wraps Contracts. A Contract can declare what should happen, but runtime enforcement (process isolation, capability restriction, network filtering) is infrastructure that sits below the concept layer. Saying "security is just Contracts" may create a false sense of safety.
->
-> **Why the alternative might be better**: Real security cannot be purely declarative. `containerd` doesn't care about your Contract schema — it needs actual cgroup limits and seccomp profiles. The runtime enforcement layer is a thing, whether or not you model it as a Contract.
->
-> **Resolution**: Both are true at different abstraction levels. Contract declares security policy (what). Infrastructure enforces it (how). The contract doc should specify both: the declarative model (Contract properties for trust, isolation, capability) AND the enforcement infrastructure (sandbox runtime, network policies). Consolidate `secure-bridging.md` into `security-architecture.md` to cover both layers.
+> **Resolution (2026-04-09)**: Contract-driven infrastructure wiring. System-actor effectHandler (trust 1.0) reads Contract datoms, applies OS primitives. Guard Contracts for detection layers. Scalar trust score. `min(source_trusts)` propagation. Promoted to `contract/vision/security-architecture.md`.
 
-#### Tier 3 — Implementation-Gated
+#### Tier 3 — Implementation-Gated (partially resolved)
 
-These decisions cannot be fully resolved until implementation reaches specific milestones.
+| Decision | Intent File | Gate | R4 Status |
+|----------|------------|------|-----------|
+| Datom query specifics | `query-architecture.md` | DatomStore work begins | **Resolved** — Option A (Clean Datom) from start |
+| Virtual projections spike | `virtual-projections-spike.md` | DatomStore L1 exists | **Deferred** — spike plan ready in `spike-refinement.md` |
+| Local LLM tier | `vivief-local-llm-intent.md` | effectHandler trust tiers | **Partially resolved** — hybrid training, spike for Tauri |
+| Peer discovery spike | `peer-discovery.md` | MoQ relay available | **Resolved** — room code + public relay |
+| Cold-tier indexing | `cold-tier-indexing.md` | DatomStore warm tier | **Deferred** — folded into `spike-refinement.md` |
 
-| Decision | Intent File | Gate | Can Design Now? |
-|----------|------------|------|-----------------|
-| Datom query specifics | `query-architecture.md` | DatomStore work begins | Yes — extract un-contracted decisions |
-| Virtual projections spike | `virtual-projections-spike.md` | DatomStore L1 exists | Yes — spike plan ready |
-| Local LLM tier | `vivief-local-llm-intent.md` | effectHandler trust tiers | Partially — model research done |
-| Peer discovery spike | `peer-discovery.md` | MoQ relay available | Yes — spike plan ready |
-| Cold-tier indexing | `cold-tier-indexing.md` | DatomStore warm tier | Partially — 4 candidates evaluated |
+### Priority Queue (updated R4)
 
-### Priority Queue
-
-**Immediate (this session or next):**
-
-1. **Promote** `knowledge-acquisition.md` + `effecthandler-roles.md` → write contracts
-2. **Archive** `creation-review.md`, `chicken-and-egg.md`, `webrtc-signaling.md`, `node-architecture.md` (extract remaining open Qs first)
-3. **Promote** `concepts-vs-nats.md` → evidence doc supporting ADR-0051, then archive
-
-**This week:**
-
-4. **Consolidate** `session-harness.md` into knowledge-acquisition contract
-5. **Resolve** schema-first vs hybrid-progressive → write single phased procurement contract section
-6. **Consolidate** `secure-bridging.md` into `security-architecture.md`
-7. **Archive** `creation-is-what-we-do.md` with attribution to `fractal-software-factory.md`
-
-**Next 2 weeks:**
-
-8. **Design interview**: `proactive-improvement.md` — resolve 3 open questions
-9. **Design interview**: `bridging.md` — is bridge a pattern or infrastructure?
-10. **Update**: procurement intents — fix NATS references in `self-organizing-pipeline.md` and `agentic-catalog.md`
-11. **Design interview**: `security-architecture.md` — sandbox model after consolidation
+**All R3 priorities 1-11 are DONE.** Updated queue:
 
 **When implementation reaches milestones:**
 
-12. `peer-discovery.md` spike — when MoQ relay is available
-13. `query-architecture.md` trim — when DatomStore work begins
-14. `virtual-projections-spike.md` — when DatomStore L1 exists
-15. `local-llm` interview — when effectHandler trust tiers are implemented
-16. `developer-flow.md` interview — when bidirectional bridge concept needed
+1. `spike-refinement.md` — execute DatomStore spike when work begins
+2. `vivief-local-llm-intent.md` — spike LiteRT-LM Tauri integration
+3. `peer-discovery.md` — execute spike when MoQ relay available
+4. `developer-flow.md` — interview on bidirectional bridge when concept needed
 
 **Parked with triggers:**
 
-| Intent | Trigger |
-|--------|---------|
-| `creation-loop-experiments.md` | Aperture exists in code |
-| `multi-agent-primitives.md` | First multi-handler creation loop runs |
-| `morning-brief-intent.md` | Knowledge-acquisition contract exists |
-| `ducklake-vivief.md` | DatomStore reaches warm-tier indexing |
-| `investor-pitches.md` | Fundraising becomes active |
-| `content-translation.md` | Second domain is active |
-| `containers-vpn.md` | Deployment model is designed |
-| `challenge.md` | Concepts change (reference doc) |
+| Intent | Trigger | R4 note |
+|--------|---------|---------|
+| `creation-loop-experiments.md` | Aperture exists in code | |
+| `multi-agent-primitives.md` | First multi-handler creation loop runs | |
+| `morning-brief-intent.md` | Knowledge-acquisition contract exists | **Trigger met** — contract exists, can revisit |
+| `ducklake-vivief.md` | DatomStore reaches warm-tier indexing | |
+| `investor-pitches.md` | Fundraising becomes active | |
+| `content-translation.md` | Second domain is active | |
+| `containers-vpn.md` | Deployment model is designed | |
+| `challenge.md` | Concepts change (reference doc) | |
 
-### Round 3 Recommendations
+### Round 4 Recommendations
 
-Continuing from Round 2's #16:
+24. **Execute DatomStore spike** — `spike-refinement.md` consolidates the 4 existential claims + cold-tier questions. Option A (Clean Datom) is decided. This is the highest-leverage implementation task. (When: DatomStore work begins)
+25. **Revisit `morning-brief-intent.md`** — its trigger (knowledge-acquisition contract) is now met. Can be unpacked from PARK. (When: next session)
+26. **Spike LiteRT-LM Tauri integration** — sidecar vs FFI. Build minimal Tauri app, measure, decide. (When: local LLM work begins)
+27. **Continue using triage table as living tracker** — R4 reduced active intents from ~13 to ~7. Goal: no intent stays active for more than 2 review cycles.
 
-17. **Execute immediate promotions** — `knowledge-acquisition.md` and `effecthandler-roles.md` are R2-approved. Write contracts now. (Priority 1)
-18. **Archive 4 completed/superseded intents** — `creation-review.md`, `chicken-and-egg.md`, `webrtc-signaling.md`, `node-architecture.md`. Extract open questions from `node-architecture.md` before archiving. (Priority 2)
-19. **Promote `concepts-vs-nats.md`** — Analysis conclusions are the current architecture. Promote as evidence, then archive. (Priority 3)
-20. **Execute 5 consolidations** — session-harness, schema-first+hybrid-progressive, secure-bridging, creation-is-what-we-do, architecture-explorations. Each reduces file count and increases coherence. (Priority 4-7)
-21. **Fix stale tech refs in 3 medium-severity files** — `self-organizing-pipeline.md` (NATS), `agentic-catalog.md` (NATS), `developer-flow.md` (Hypercore). Low-severity files can wait. (Priority 10)
-22. **Schedule 3 design interviews** — proactive-improvement, bridging, security-architecture. Each resolves blocking questions for downstream decisions. (Priority 8-9, 11)
-23. **Use this triage table as the living intent tracker** — update triage categories as files are promoted/archived/consolidated. Goal: no intent stays DESIGN for more than 2 review cycles without either promoting or parking.
-
-### Updated Quality Scorecard
+### Quality Scorecard (R4)
 
 | Dimension | Grade | Change | Notes |
 |-----------|-------|--------|-------|
 | Structure & organization | **A** | — | Creation-loop model self-consistent |
-| Cross-reference integrity | **A** | — | No new broken links |
-| Terminology consistency | **A-** | — | v6 terms consistent; aperture/intake/role defined at source |
+| Cross-reference integrity | **A** | — | No new broken links detected |
+| Terminology consistency | **A** | ↑ | All new contracts use v6 terms consistently |
 | Claude usability | **A** | — | 18 windows, fast context loading |
 | Human usability | **A-** | — | Routing table + onboarding path |
 | DevAC implementation accuracy | **A** | — | fact/ docs track codebase |
-| Platform vision clarity | **A** | — | v6 crystallized |
-| Archive & history | **A** | — | Full v1-v6 concept history |
+| Platform vision clarity | **A+** | ↑ | 6 new vision contracts: bridging, security, proactive-improvement, knowledge-acquisition, effecthandler-roles, fractal-software-factory |
+| Archive & history | **A** | — | Full v1-v6 concept history + intent archives |
 | Contributor guidance | **B+** | — | Maintenance guide + Claude window guide |
-| **Intent organization** | **A-** | **New** | 34 files triaged with action verbs, dependency tree, priority queue. Upgraded from implicit to structured. |
+| Intent organization | **A** | ↑ | All DESIGN intents resolved. Active burden 34 → ~7. Decision tree Tier 2 fully resolved. |
+
+**Overall grade: A+ (upgraded). Intent backlog cleared. Tier 2 decision tree fully resolved. 6 new vision contracts written.**
+
+---
+
+## Round 4: Design Interview Resolution (2026-04-09)
+
+All 10 DESIGN-triaged intents resolved through relentless interviewing. 23 questions asked, each with recommended answer + challenging alternative. 21 decided (16 recommended, 3 alternative chosen, 2 middle-ground), 2 deferred to spikes.
+
+### New Contracts Written
+
+| Contract | Origin | Key Decisions |
+|----------|--------|---------------|
+| `contract/vision/bridging.md` | `intent/cross-domain/bridging.md` | Bridge = named pattern (Alt B), LLM bridging as verification scenario, gathering for teaching |
+| `contract/vision/security-architecture.md` | `intent/security/security-architecture.md` | Contract-driven infra wiring, Guard Contracts for detection, scalar trust, min propagation |
+| `contract/vision/proactive-improvement.md` | `intent/creation/proactive-improvement.md` | Aggregation = Behavior+threshold, Surface approval, sequential Researcher→Improver |
+
+### Key Decisions (non-promoted)
+
+| Decision | File | Resolution |
+|----------|------|-----------|
+| Procurement primitives | `intent/procurement/primitives.md` | Domain-specific patterns, keep 5 primitives |
+| Query architecture | `intent/datom/query-architecture.md` | Option A (Clean Datom) from start, DuckDB L3 only |
+| Peer discovery | `intent/p2p/peer-discovery.md` | Room code → MoQ, public relay + self-hosted |
+| Cross-domain sharing | (folded into bridging contract) | Qualified entity IDs, cross-domain Projection Contracts |
+| Local LLM training | `intent/local-llm/vivief-local-llm-intent.md` | Hybrid: few-shot + RAG for VivSurface/VivPractitioner, synthetic for VivRouter |
+| Local LLM Tauri integration | `intent/local-llm/vivief-local-llm-intent.md` | Deferred to spike (sidecar vs FFI) |
+
+### Mechanical Work Done
+
+- Replaced 18 NATS refs → MoQ in `self-organizing-pipeline.md`
+- Replaced 3 NATS refs → MoQ in `agentic-catalog.md`
+- Replaced 20+ Hypercore/Hyperdrive refs → Iroh/iroh-blobs in `developer-flow.md`
+- Archived `architecture-explorations.md` (counseling) with attribution
+- Created `intent/datom/spike-refinement.md` consolidating virtual projections + cold-tier
 
 ---
 
@@ -500,6 +495,7 @@ Continuing from Round 2's #16:
 
 | Date | Reviewer | Scope | Key Findings |
 |------|----------|-------|-------------|
+| 2026-04-09 | Claude (Opus 4.6) + human | Round 4: Design interview resolution — all 10 DESIGN intents resolved | 23 interview questions resolved (21 decided, 2 deferred to spikes). 3 new vision contracts written (bridging, security, proactive-improvement). 3 stale-tech files updated (NATS→MoQ, Hypercore→Iroh). 1 consolidation done. Active intents: ~13 → ~7. Decision tree Tier 2 fully resolved. Grade: A → A+. |
 | 2026-04-08 | Claude (Opus 4.6) + human | Round 3: Intent triage — complete inventory of all 34 intent files | 34 intents triaged into 6 action buckets: 3 promote, 11 design, 5 consolidate, 2 update, 8 park, 5 archive. 6-decision dependency tree mapped (Tiers 0-3). 8 stale-tech files flagged. 5 consolidation targets identified. After immediate actions: active burden 34 → ~13. Grade: A maintained. |
 | 2026-04-07 | Claude (Opus 4.6) + human | Round 2 fix: resolve open issues from review | Archived high-level-concepts.md, split linear-meets-vivief.md into locked creation-loop-extensions.md (contract) + experiments (intent). Created docs-as-creation-artifacts.md vision doc. Accepted ADR-0051. Established vision↔ADR convention. Created thin intent docs for session-harness and multi-agent-primitives. Tightened proactive-improvement.md with open questions + autoresearch reference. All review issues resolved. |
 | 2026-04-07 | Claude (Opus 4.6) + human | Round 2: 15 new/modified docs since 2026-04-01 | Fixed 5 broken ADR-0050 links (stale `vision/brainstorms/` paths). 6 new intent/creation docs reviewed — knowledge-acquisition and effecthandler-roles near lock-ready. high-level-concepts.md is scribble-phase but depended upon (open issue). v6 terminology consistent across all new content. ADR-0051 governance correct. Grade: A maintained. |
