@@ -8,7 +8,8 @@ runs:
       uses: DeterminateSystems/nix-installer-action@v22
 
     - name: Enable Nix store cache
-      uses: DeterminateSystems/magic-nix-cache-action@1828eb4e5414b8dfe36daae53ea3e4b8c3fdec7a # main, node24 (v13 is still node20)
+      # TODO: v13 still uses node20 (deprecated Sep 2026). Upgrade when a node24 release is tagged.
+      uses: DeterminateSystems/magic-nix-cache-action@v13
 
     - name: Activate devShell on PATH
       shell: bash
