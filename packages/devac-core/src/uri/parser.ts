@@ -84,7 +84,7 @@ export function parseCanonicalURI(uri: string): ParsedURI {
   }
 
   // First part is repo
-  const repo = parts[0]!;
+  const repo = parts[0] as string;
 
   if (parts.length < 2) {
     // Repo-only URI
@@ -117,7 +117,7 @@ export function parseCanonicalURI(uri: string): ParsedURI {
 
     let fileStartIndex = -1;
     for (let i = 0; i < pathParts.length; i++) {
-      const part = pathParts[i]!;
+      const part = pathParts[i] as string;
 
       // Check if this part looks like a file
       if (fileExtensions.some((ext) => part.endsWith(ext))) {
@@ -220,9 +220,9 @@ export function parseEntityID(id: string): EntityID {
 
   // Handle package paths with colons (unlikely but possible)
   // Last two parts are always kind:hash
-  const hash = parts[parts.length - 1]!;
-  const kind = parts[parts.length - 2]!;
-  const repo = parts[0]!;
+  const hash = parts[parts.length - 1] as string;
+  const kind = parts[parts.length - 2] as string;
+  const repo = parts[0] as string;
   const pkg = parts.slice(1, -2).join(ENTITY_ID_SEPARATOR);
 
   return {

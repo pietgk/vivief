@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>DevAC.Fixtures.CSharp</RootNamespace>
     <AssemblyName>DevAC.Fixtures.CSharp</AssemblyName>
-    <LangVersion>12.0</LangVersion>
+    <LangVersion>14.0</LangVersion>
 
     <!-- Don't produce output, just validate compilation -->
     <OutputType>Library</OutputType>
@@ -26,7 +26,6 @@
 
   <!-- Common NuGet packages that fixtures may reference -->
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 
 </Project>

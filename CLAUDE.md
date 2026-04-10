@@ -6,6 +6,8 @@ This file provides guidance to AI coding agents working with the DevAC monorepo.
 
 DevAC is a code analysis tool that uses DuckDB + Parquet for fast, local code graph storage. It supports TypeScript, Python, and C# with incremental updates and cross-repository federation.
 
+DevAC is the first domain of the **vivief platform** (Vision View Effect) — a broader platform vision for human-AI-system creation. For platform concepts, architecture, and the full story, see [docs/README.md](docs/README.md).
+
 ## Repository Structure
 
 ```
