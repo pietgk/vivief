@@ -40,6 +40,7 @@
   },
   "files": {
     "ignore": [
+      ".direnv",
       "node_modules",
       "dist",
       "coverage",
@@ -53,6 +54,16 @@
     ]
   },
   "overrides": [
+    {
+      "include": ["**/__tests__/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
     {
       "include": ["packages/a11y-reference-storybook/src/stories/**/*.tsx"],
       "linter": {

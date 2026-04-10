@@ -1,0 +1,22 @@
+name: "Setup Nix devShell"
+description: "Install Nix, enable store caching, and activate the flake devShell on PATH"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@v22
+
+    - name: Enable Nix store cache
+      uses: DeterminateSystems/magic-nix-cache-action@v13
+
+    - name: Activate devShell on PATH
+      shell: bash
+      run: |
+        # Extract PATH from nix develop and inject into GITHUB_PATH
+        # so all subsequent steps see Nix-provided tools (node, pnpm, dotnet, python, etc.)
+        RUNNER_PATH_COUNT=$(echo "$PATH" | tr ':' '\n' | wc -l)
+        nix develop --command bash -c 'echo "$PATH"' \
+          | tr ':' '\n' \
+          | head -n -"$RUNNER_PATH_COUNT" \
+          >> "$GITHUB_PATH"
