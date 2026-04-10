@@ -26,6 +26,9 @@
     },
     "clean": {
       "cache": false
+    },
+    "@pietgk/fixtures-validation#build": {
+      "outputs": []
     }
   }
 }
