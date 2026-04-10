@@ -8,6 +8,7 @@ runs:
       uses: DeterminateSystems/nix-installer-action@v22
 
     - name: Enable Nix store cache
+      # TODO: v13 still uses node20 (deprecated Sep 2026). Upgrade when a node24 release is tagged.
       uses: DeterminateSystems/magic-nix-cache-action@v13
 
     - name: Activate devShell on PATH
