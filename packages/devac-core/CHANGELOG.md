@@ -1,5 +1,11 @@
 # @pietgk/devac-core
 
+## 2.6.5
+
+### Patch Changes
+
+- 760f814: fix: gate memory benchmark assertions on gcAvailable so CI without --expose-gc does not fail
+
 ## 2.6.4
 
 ### Patch Changes
