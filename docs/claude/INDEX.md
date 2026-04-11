@@ -82,6 +82,7 @@ Add the window to the index below under the right category.
 - `concepts-creation-loop.md` — The creation formula, chicken-and-egg as feature
 - `concepts-fractal-software-factory.md` — Same loop at every scale, temperature tiers, LLM budget
 - `concepts-creation-loop-extensions.md` — Aperture parameter, intake pattern, context-as-fractal, local-first compounding
+- `concepts-code-mode.md` — TanStack Code Mode sandbox integration, skills as datoms, trust mapping, compounding flywheel
 
 **Architecture**
 

@@ -1,17 +1,25 @@
 # Vivief Intent: Local LLM Infrastructure — Gemma 4 + LiteRT-LM
 
-> **Status**: Partially resolved (2026-04-09) — training strategy decided, Tauri integration deferred to spike
-> **Session**: Claude.ai brainstorm, 2025-04-08
-> **Next**: Spike for LiteRT-LM Tauri integration (sidecar vs FFI)
+> **Status**: Partially resolved (2026-04-09), revised (2026-04-11) — model strategy updated with Code Mode integration
+> **Session**: Claude.ai brainstorm, 2025-04-08; Claude Code interview, 2026-04-11
+> **Next**: Spike 0 — Sandbox Integration (see `vivief-code-mode-integration.md`)
 > **Location**: `~/ws/vivief/docs/intent/local-llm/`
 
 ## Resolution
 
-Two design decisions from interview:
+Original decisions from 2026-04-09 interview:
 
 1. **Training strategy: Hybrid.** Few-shot + RAG to start for VivSurface and VivPractitioner (their tasks are complex and hard to synthesize accurately). Synthetic training data (Opus-generated) for VivRouter only — its intent classification task over the 5 primitives is narrow, well-defined, and reliably synthesizable. Train when real usage data accumulates for the other tiers. This avoids teaching models to mimic Opus rather than learning the actual distribution, while still getting VivRouter operational quickly.
 
 2. **LiteRT-LM Tauri integration: Deferred to spike.** Both sidecar (crash isolation, independent lifecycle, ~50ms overhead) and FFI (zero IPC overhead, tighter coupling, crash propagation risk) are viable. Build a minimal Tauri app that loads FunctionGemma 270M via both approaches. Measure: startup latency, inference latency, memory overhead, crash behavior, developer ergonomics. Decide based on data, not theory.
+
+Revised decisions from 2026-04-11 Code Mode integration interview (see `vivief-code-mode-integration.md` for full 25 decisions):
+
+3. **Model strategy: Skills-first, fine-tuning contingent.** Start with E4B (native function calling) for all local tasks including routing — no fine-tuned VivRouter initially. Lean toward Code Mode skill accumulation over fine-tuning for capability building. Fine-tune VivRouter only if E4B classification accuracy proves inadequate. This replaces the prior assumption of immediate VivRouter fine-tuning.
+
+4. **Inference backend: LiteRT-LM or Ollama behind typed bridge.** Both are viable inference backends. The Code Mode sandbox communicates via typed `external_*` functions that bridge to the host; the bridge doesn't care which inference backend sits behind it. Ollama is no longer "personal experimentation only" — it's a viable development backend.
+
+5. **Sandbox integration as priority spike.** The TanStack Code Mode sandbox (`@tanstack/ai-code-mode` + `@tanstack/ai-isolate-quickjs`) becomes the foundation for all self-improving loop spikes. Sandbox integration moves ahead of fine-tuning work in priority order.
 
 ---
 
@@ -120,7 +128,7 @@ LiteRT-LM is ~2x faster than Ollama on equivalent hardware for Gemma models.
 - No LoRA hot-swap yet — solvable by merging adapters into separate model files in build pipeline
 - Smaller community knowledge base — offset by Google's own engineering investment
 
-**Ollama stays off the dependency graph**. Personal experimentation tool only.
+**Ollama is also viable behind the typed bridge** (revised 2026-04-11). The Code Mode sandbox communicates via `external_*` functions that bridge to the host — the bridge doesn't care whether LiteRT-LM or Ollama handles inference. Both are acceptable development backends. LiteRT-LM remains the production target for cross-platform deployment.
 
 ---
 
@@ -144,15 +152,17 @@ FunctionGemma is the foundation for building **VivRouter** — a Vivief-native m
 
 ## Revised Tiered LLM Architecture
 
-### Five-Tier Model (was three)
+### Five-Tier Model (was three, revised 2026-04-11)
 
 | Tier | Model | Size | Purpose | Latency | Runtime | Always-on? |
 |------|-------|------|---------|---------|---------|------------|
-| **Micro** | VivRouter (FunctionGemma fine-tune) | 270M | Intent classification, primitive routing, quick validation | <100ms | LiteRT-LM | Yes |
-| **Local** | VivSurface / VivPractitioner (E4B + LoRA) | 4B | Surface compilation, diagram gen, function calling, domain reasoning (thinking mode) | 1-3s | LiteRT-LM | Yes |
-| **Local+** | 26B MoE Q4 ("Sonnet-lite") | 26B (3.8B active) | Quality validation, optimization loops, complex local reasoning when API cost is prohibitive | 3-8s | LiteRT-LM / Ollama | On-demand |
-| **Normal** | Sonnet | API | Complex multi-step reasoning, large context synthesis | API | Claude API | — |
-| **Deep** | Opus | API | Architectural decisions, nuanced judgment, hard problems | API | Claude API | — |
+| **Micro** | E4B (native function calling) | 4B | Intent classification, primitive routing, skill selection, quick validation | <100ms | LiteRT-LM / Ollama | Yes |
+| **Local** | E4B (Code Mode) | 4B | Simple Code Mode TypeScript generation, skill authoring, diagram gen | 1-3s | LiteRT-LM / Ollama | Yes |
+| **Local+** | 26B MoE Q4 ("Sonnet-lite") | 26B (3.8B active) | Complex Code Mode generation offline, quality validation, optimization loops | 3-8s | LiteRT-LM / Ollama | On-demand |
+| **Normal** | Sonnet | API | Complex skill authoring, quality Code Mode generation | API | Claude API | — |
+| **Deep** | Opus | API | Architectural skills, training data generation, hard problems | API | Claude API | — |
+
+> **Revised 2026-04-11**: Micro tier changed from "VivRouter (FunctionGemma fine-tune)" to "E4B (native function calling)". Start without fine-tuning; add VivRouter fine-tuning only if E4B classification accuracy proves inadequate. Skills-first approach: Code Mode skill accumulation over LoRA fine-tuning. See `vivief-code-mode-integration.md` Q17, Q20, Q24.
 
 The **Local+** tier is the key addition. It fills a specific gap: tasks that are too expensive to run in repeated Sonnet API loops but need higher reasoning quality than the fine-tuned E4B provides. Examples:
 
@@ -399,18 +409,22 @@ This mirrors Vivief's creation loop — the practitioner and AI collaborating wi
 
 ---
 
-## Action Items (Priority Order)
+## Action Items (Priority Order, revised 2026-04-11)
+
+> Reprioritized: Sandbox integration and Code Mode spikes move ahead of fine-tuning work. See `vivief-code-mode-integration.md` for rationale.
 
 1. **Install and benchmark LiteRT-LM CLI** on M1 Pro 32GB — establish baseline inference performance
-2. **Install mlx-tune** — verify Gemma 4 E4B and FunctionGemma LoRA training works on M1 Pro
-3. **Test E4B function calling** with Vivief primitive schemas via LiteRT-LM
-4. **Prototype VivRouter** — fine-tune FunctionGemma on 200 hand-written primitive routing examples using mlx-tune, evaluate accuracy
-5. **Validate full pipeline** — mlx-tune train → export GGUF → convert `.litertlm` → run on LiteRT-LM. This is the critical integration test
-6. **Install Unsloth Studio** — evaluate Data Recipes for practitioner document → training dataset generation
-7. **Design training data generation pipeline** — Opus prompt templates for synthetic data
-8. **Set up Colab training notebook** — Unsloth proper for larger E4B LoRA runs (VivSurface, VivPractitioner)
-9. **Investigate LiteRT-LM Tauri embedding** — FFI/sidecar architecture spike
-10. **Generate VivSurface training data** — 1000 Projection spec → Surface template pairs via Opus
+2. **Test E4B function calling** with Vivief primitive schemas via LiteRT-LM or Ollama
+3. **Spike 0: Sandbox Integration** — install `@tanstack/ai-code-mode` + `@tanstack/ai-isolate-quickjs`, implement `external_*` bridge to vivief effectHandlers, Contract enforcement at boundary
+4. **Spike 1: Contract Verifier** — `verify(artifact, contract)` function, exposed as `external_verify` in sandbox
+5. **Spike 2: Prompt Garden** — autoresearch on Code Mode system prompt templates, skills accumulate from successful executions
+6. **Spike 3: Template Forge** — ATLAS as Code Mode meta-skill with `Promise.all` for parallel candidates
+7. **Evaluate E4B classification accuracy** — test intent classification into five primitives with function calling schemas. If accuracy is insufficient, proceed to VivRouter fine-tuning (items 8-10)
+8. *(Contingent)* **Install mlx-tune** — verify Gemma 4 E4B and FunctionGemma LoRA training works on M1 Pro
+9. *(Contingent)* **Prototype VivRouter** — fine-tune FunctionGemma on 200 hand-written primitive routing examples
+10. *(Contingent)* **Validate full pipeline** — mlx-tune train → export GGUF → convert `.litertlm` → run on LiteRT-LM
+11. **Install Unsloth Studio** — evaluate Data Recipes for practitioner document → training dataset generation
+12. **Investigate LiteRT-LM Tauri embedding** — FFI/sidecar architecture spike (deferred — web progressive enhancement first per Q4)
 
 ---
 
@@ -434,3 +448,5 @@ This mirrors Vivief's creation loop — the practitioner and AI collaborating wi
 - [mlx-tune PyPI](https://pypi.org/project/unsloth-mlx/) — `uv pip install mlx-tune`
 - [HuggingFace Gemma 4 blog](https://huggingface.co/blog/gemma4)
 - [LiteRT-LM in Chrome/Chromebook/Pixel Watch](https://developers.googleblog.com/on-device-genai-in-chrome-chromebook-plus-and-pixel-watch-with-litert-lm/)
+- [TanStack Code Mode](https://tanstack.com/ai) — sandbox execution, skills system, AG-UI streaming
+- [Code Mode integration decisions](vivief-code-mode-integration.md) — 25 resolved decisions (2026-04-11)

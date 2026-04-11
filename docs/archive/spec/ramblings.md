@@ -3,6 +3,52 @@
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
 
+from reading ~/ws/vivief/docs/intent/local-llm/vivief-code-mode-tanstack.md 
+and the previous work we did on how to use local llms in vivief in 
+/Users/grop/ws/vivief/docs/intent/local-llm/vivief-local-llm-intent.md 
+and /Users/grop/ws/vivief/docs/intent/local-llm/vivief-self-improving-creation-loop.md
+i get the following ideas
+- tanstack code-mode it very usable for a lot of the concepts and ideas we have in vivief
+- we can use this to our advantage by looking at the totl scope of vivief and its concepts and ideas to take advantage of the work that tanstack put in using llm reasoning, human view and system in concrete implemented ways. the progress the tanstack team is making and the shared vision parts seem to good not having a very thorough look into this.
+so lets do a relentless interviewing regarding these documents, the mentioned ideas to improve vivief by taking the best parts of each and to improve the current set of spikes by taking advantage of the tanstack efforts and concrete available code and examples
+  Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+  For each question, provide your recommended answer with proper explaining why that is the recommended answer together with a challenging
+  alternative answer.
+ 
+
+q1 i am fine adapting the tanstack dependancies, i am also curious if there really is an impedance mismatch. the sandbox is for sure something we want to use as its is flexible and support several sanbox implementation in a nice way. 
+so it feels like we can have both a and b
+i answered the remaining question as they also have an influence on all answers including this one, we should look at all the answers to make sure we answer q1 correctly
+q2 recommended
+q3 recommended, note liteRT-lm or ollama are both an option to get the job done
+q4 alternative as tauri can wait a bit when web works is a tempting option even for myself
+q5 recommended with a note that we already have the concept of referencing files from datom ref's so we are flexible and can choose as needed, code a datom string, file, github will be an ongoing depate for some time as we learn and implement
+q6 recommended
+q7 both start with recommended and alternative in a next phase
+q8 both start with recommended and when we learn and have more experience we can merge in VivRouter
+q9 recommended with trying to push typescript use over markdown when possible
+q10 recommended
+q11 recommended
+q12 recommended 
+q13 alternative
+q14 recommended
+q15 recommended
+q16 recommended
+q17 both we have to determine this as we implement this, start with alternative and use recommended if needed
+q18 recommended
+q19 recommended
+q20 recommended
+q21 recommended
+q22 recommended, with the alternative as an optional future experiment if we think it is needed in the future
+q23 recommended with the note that the alternative might be needed in the future if users determine they lack control 
+q24 recommended with fine tuning only if we really need it as the alternative has a point
+q25 alternative
+
+
+
+
+
+
 day 1 all questions recommended answer
 day 2 q1, q2 recommended, q3 challenging alternative
 day 3 agree
