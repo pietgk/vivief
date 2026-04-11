@@ -1,5 +1,27 @@
 # @pietgk/devac-cli
 
+## 2.6.5
+
+### Patch Changes
+
+- Updated dependencies [760f814]
+  - @pietgk/devac-core@2.6.5
+
+## 2.6.4
+
+### Patch Changes
+
+- 95ad129: fix: make sync --validate actually validate git-changed files instead of passing empty changedFiles
+- Updated dependencies [e6f0d6f]
+  - @pietgk/devac-core@2.6.4
+
+## 2.6.3
+
+### Patch Changes
+
+- Updated dependencies [846e126]
+  - @pietgk/devac-core@2.6.3
+
 ## 2.6.2
 
 ### Patch Changes

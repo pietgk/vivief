@@ -209,7 +209,7 @@ export async function symbolGet(
     return formatEmpty(null, Date.now() - startTime, [`Symbol not found: ${entityId}`]);
   }
 
-  const node = result.rows[0]!;
+  const node = result.rows[0] as (typeof result.rows)[number];
   const formatted = formatNodes([node], "details", 1, 1, Date.now() - startTime);
 
   return {

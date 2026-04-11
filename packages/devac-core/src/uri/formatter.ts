@@ -307,7 +307,7 @@ export function buildURIFromNode(params: {
     const segments: SymbolSegment[] = [];
     for (let i = 0; i < parts.length; i++) {
       const isLast = i === parts.length - 1;
-      const partName = parts[i]!;
+      const partName = parts[i] as string;
       segments.push({
         kind: isLast ? segmentKind : "type",
         name: partName,

@@ -1,5 +1,23 @@
 # @pietgk/devac-core
 
+## 2.6.5
+
+### Patch Changes
+
+- 760f814: fix: gate memory benchmark assertions on gcAvailable so CI without --expose-gc does not fail
+
+## 2.6.4
+
+### Patch Changes
+
+- e6f0d6f: fix: gate memory benchmark assertions on gcAvailable so CI without --expose-gc does not fail
+
+## 2.6.3
+
+### Patch Changes
+
+- 846e126: Add experimental datom store spike with compact storage, intern pool, benchmarks, and LLM test harness. Fix minor URI parser and symbol query issues. Restructure documentation into intent/contract/fact/claude/story/archive layout.
+
 ## 2.6.2
 
 ### Patch Changes

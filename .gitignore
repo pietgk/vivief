@@ -53,3 +53,6 @@ packages/fixtures-typescript/src/invalid.ts
 
 # Generated C4 diagrams (from doc-sync command)
 # **/docs/c4/
+
+# direnv
+.direnv/
