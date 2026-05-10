@@ -3,6 +3,31 @@
 This is file is used to create and edit prompts snippets for pasting into llm chats.
 
 
+
+draw a iam profiles rbac to make us fully understand identity, rules in aws context.
+
+i always feel like i understand a bit but i need a more visually view to try to really understand the iam context. use excalidraw as it gives us enough room to encapsulate all the concepts.
+Interview me relentlessly about every aspect of this 
+Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+
+change the assumption that i have iam knowledge, i think this can be useful to use as whiteboard during discussion on how it works
+
+add legend for 
+- org SCP
+- sts
+- IRSA
+
+before writing the matching docs i would like to use from this sessions walking through the levels and discussing the concept i would like to see if we can create another way of drawing this in an onion/boundary layer (access deeper parts) way with maybe a the flow of trust presenting style.
+include the github OIDC as the or 1 of the examples to carry the story
+maybe combine flow and boundary in an elegant nice clean way.
+lets see if we can capture the landmines we capured in our discussion in a visual way 
+this the guide debugging access issues by triggering from a more visual way
+this could also improve our security discussions
+
+
+ 
+
+
 from reading ~/ws/vivief/docs/intent/local-llm/vivief-code-mode-tanstack.md 
 and the previous work we did on how to use local llms in vivief in 
 /Users/grop/ws/vivief/docs/intent/local-llm/vivief-local-llm-intent.md 
