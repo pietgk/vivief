@@ -1,5 +1,16 @@
 # @pietgk/devac-eval
 
+## 2.6.6
+
+### Patch Changes
+
+- fd9bef3: Read package version from package.json at runtime instead of generating
+  `src/version.ts` on prebuild. Removes the generation script, the per-package
+  `prebuild` hook, and the CI generation step; makes version drift structurally
+  impossible. See ADR-0052 (supersedes ADR-0040).
+- Updated dependencies [fd9bef3]
+  - @pietgk/devac-core@2.6.6
+
 ## 2.6.5
 
 ### Patch Changes
