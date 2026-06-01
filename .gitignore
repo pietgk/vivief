@@ -53,3 +53,6 @@ packages/fixtures-typescript/src/invalid.ts
 
 # direnv
 .direnv/
+
+# Claude Code runtime locks (per-machine, not shared)
+.claude/scheduled_tasks.lock
