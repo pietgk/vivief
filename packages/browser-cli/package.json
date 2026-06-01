@@ -16,7 +16,6 @@
   },
   "files": ["dist"],
   "scripts": {
-    "prebuild": "node ../../scripts/generate-version.mjs .",
     "build": "tsc -p tsconfig.json",
     "dev": "tsc --watch",
     "test": "vitest run",
