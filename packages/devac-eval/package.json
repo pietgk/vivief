@@ -19,7 +19,6 @@
     }
   },
   "scripts": {
-    "prebuild": "node ../../scripts/generate-version.mjs .",
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",

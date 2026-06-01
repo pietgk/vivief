@@ -124,6 +124,20 @@ You don't need to manually run validation in those environments — the hooks ha
 3. Add tests alongside the implementation
 4. Update CLI commands if user-facing
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked as GitHub issues on `github.com/pietgk/vivief`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles use their default label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` at the repo root + central ADRs at `docs/contract/adr/`. See `docs/agents/domain.md`.
+
 ## Troubleshooting
 
 - **DuckDB issues**: Requires Node.js 20+. Check memory limits in DuckDBPool options. Seeds stored in `.devac/seed/`.

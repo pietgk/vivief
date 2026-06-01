@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0052](0052-version-from-package-json-runtime.md)
+
+> The prebuild-generation approach drifted in practice: `version.ts` is only
+> regenerated on `prebuild`, so bumping a package version and running tests
+> (or the pre-push hook) without a rebuild leaves the generated file stale and
+> the guardrail test red. ADR-0052 removes the generation step entirely and
+> reads `package.json` at runtime via `createRequire`, making drift impossible.
 
 ## Context
 
